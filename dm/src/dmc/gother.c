@@ -1,5 +1,5 @@
 // Copyright (C) 1986-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -22,6 +22,10 @@
 #include        "oper.h"
 #include        "list.h"
 #include        "type.h"
+
+#if SCPP
+#include        "parser.h"
+#endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -197,7 +201,7 @@ STATIC void rd_compute()
  */
 
 STATIC void conpropwalk(elem *n,vec_t IN)
-{       register unsigned op,i;
+{       register unsigned op;
         Elemdata *pdata;
         vec_t L,R;
         elem *t;
@@ -271,8 +275,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
 
         // Collect data for subsequent optimizations
         if (OTbinary(op) && n->E1->Eoper == OPvar && n->E2->Eoper == OPconst)
-        {   Symbol *v = n->E1->EV.sp.Vsym;
-
+        {
             switch (op)
             {
                 case OPlt:
@@ -451,7 +454,6 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
 {
     elem *foundelem = NULL;
     int unambig;
-    register unsigned i;
     symbol *sv;
     tym_t nty;
     unsigned nsize;
@@ -477,7 +479,12 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
         //printf("\trd: "); WReqn(d); printf("\n");
         if (d->Eoper == OPasm)          /* OPasm elems ruin everything  */
             goto noprop;
+#if 0
+        // Runs afoul of Buzilla 4506
         if (OTassign(d->Eoper) && EBIN(d))      // if assignment elem
+#else
+        if (OTassign(d->Eoper))      // if assignment elem
+#endif
         {   elem *t = Elvalue(d);
 
             if (t->Eoper == OPvar)
@@ -486,6 +493,9 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
                 if (d->Eoper == OPstreq ||
                     !tyscalar(t->Ety))
                     goto noprop;        // not worth bothering with these cases
+
+                if (d->Eoper == OPnegass)
+                    goto noprop;        // don't bother with this case, either
 
                 /* Everything must match or we must skip this variable  */
                 /* (in case of assigning to overlapping unions, etc.)   */
@@ -513,11 +523,6 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
 
         if (d->E2->Eoper == OPconst || d->E2->Eoper == OPrelconst)
         {
-#if TARGET_68K
-        if (d->E2->Eoper == OPrelconst)
-            if(tyfunc(d->E2->Esym->ty()))
-                goto noprop;            /* ruins relocation information */
-#endif
             if (foundelem)              /* already found one            */
             {                           /* then they must be the same   */
                 if (!el_match(foundelem,d->E2))
@@ -538,7 +543,7 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
                 WReqn(n);
                 dbg_printf(" replaced by ");
                 WReqn(foundelem);
-                dbg_printf("), x%lx to x%lx\n",foundelem,n);
+                dbg_printf("), %p to %p\n",foundelem,n);
         }
 #endif
         changes++;
@@ -755,7 +760,6 @@ STATIC void intranges()
 
         // Check that all paths from rdinc to rdinc must pass through rdrel
         {   int i;
-            block *b;
 
             // ib:      block of increment
             // rb:      block of relational
@@ -793,6 +797,7 @@ STATIC void intranges()
                     if (!tyuns(rel->pelem->E2->Ety))
                     {
                         rel->pelem->E2->Ety = touns(rel->pelem->E2->Ety);
+                        rel->pelem->Nflags |= NFLtouns;
 #ifdef DEBUG
                         if (debugc)
                         {   WReqn(rel->pelem);
@@ -1143,7 +1148,7 @@ void rmdeadass()
                 vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
                 foreach (j,asstop,POSS) /* for each possible dead asg.  */
                 {       symbol *v;      /* v = target of assignment     */
-                        register elem *n,*t,*nv;
+                        register elem *n,*nv;
 
                         n = assnod[j];
                         nv = Elvalue(n);

@@ -143,11 +143,11 @@ void Outbuffer::writeByte(int v)
 /**
  * Writes a 32 bit int.
  */
-void Outbuffer::write32(long v)
+void Outbuffer::write32(int v)
 {
     if (pend - p < 4)
         reserve(4);
-    *(long *)p = v;
+    *(int *)p = v;
     p += 4;
 }
 
@@ -170,7 +170,10 @@ void Outbuffer::write64(long long v)
  */
 void Outbuffer::writeFloat(float v)
 {
-    write32(*(long *)&v);
+    if (pend - p < sizeof(float))
+        reserve(sizeof(float));
+    *(float *)p = v;
+    p += sizeof(float);
 }
 
 /**
@@ -178,7 +181,10 @@ void Outbuffer::writeFloat(float v)
  */
 void Outbuffer::writeDouble(double v)
 {
-    write64(*(long long *)&v);
+    if (pend - p < sizeof(double))
+        reserve(sizeof(double));
+    *(double *)p = v;
+    p += sizeof(double);
 }
 
 /**
@@ -254,10 +260,8 @@ void Outbuffer::setsize(unsigned size)
     p = buf + size;
 }
 
-void Outbuffer::writesLEB128(long value)
+void Outbuffer::writesLEB128(int value)
 {
-    int negative = (value < 0);
-
     while (1)
     {
         unsigned char b = value & 0x7F;
@@ -273,7 +277,7 @@ void Outbuffer::writesLEB128(long value)
     }
 }
 
-void Outbuffer::writeuLEB128(unsigned long value)
+void Outbuffer::writeuLEB128(unsigned value)
 {
     do
     {   unsigned char b = value & 0x7F;

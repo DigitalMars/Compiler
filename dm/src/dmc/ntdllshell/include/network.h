@@ -11,11 +11,11 @@
 
 
 #ifndef __NETWORK_H
-#define __NETWORK_H 
+#define __NETWORK_H
 
 #if __cplusplus
 extern "C" {
-#endif 
+#endif
 
 typedef short HCONNECTION;
 
@@ -33,7 +33,7 @@ typedef struct
 {
   char name[MAX_NETWORK_NAME_LENGTH];                 // is 16 bytes
   HCONNECTION hconn;
-} NetCommAddress;       
+} NetCommAddress;
 
 typedef enum
 {
@@ -45,6 +45,6 @@ typedef enum
 
 #if __cplusplus
 }
-#endif 
+#endif
 
 #endif

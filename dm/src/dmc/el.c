@@ -19,10 +19,6 @@
 #include        <time.h>
 #include        <stdarg.h>
 
-#if DDRT
-#include        "paccfp.h"
-#endif
-
 #include        "cc.h"
 #include        "type.h"
 #include        "el.h"
@@ -31,18 +27,13 @@
 #include        "oper.h"
 #include        "type.h"
 
-#include        "parser.h"
 #include        "code.h"
 
 #include        "global.h"
 #include        "go.h"
-#if TARGET_MAC
-#include        "TG.h"
-#endif
 
-#if __POWERPC && TARGET_68K
-#undef DDRT
-#define DDRT 1          // turn ddrt on
+#if SCPP
+#include        "parser.h"
 #endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
@@ -51,11 +42,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #ifdef STATS
 static int elfreed = 0;                 /* number of freed elems        */
 static int eprm_cnt;                    /* max # of allocs at any point */
-#endif
-
-#if TARGET_POWERPC
-#include "cgobjxcoff.h"
-#include "xcoff.h"
 #endif
 
 #if TARGET_OSX
@@ -129,11 +115,7 @@ void el_term()
         {   elem *e;
 
             e = nextfree->E1;
-#if TX86
             mem_ffree(nextfree);
-#else
-            MEM_PH_FREE(nextfree);
-#endif
             nextfree = e;
         }
 #else
@@ -200,11 +182,7 @@ elem *el_calloc()
         nextfree = e->E1;
     }
     else
-#if TX86
         e = (elem *) mem_fmalloc(sizeof(elem));
-#else
-        e = (elem *) MEM_PH_MALLOC(sizeof(elem));
-#endif
 #ifdef STATS
     eprm_cnt++;
 #endif
@@ -263,13 +241,7 @@ L1:
             break;
         case OPstring:
         case OPasm:
-#if HOST_MPW
-            if ( !(e->Eflags&EFsmasm) )
-#endif
-#if TX86 || HOST_MPW
-                // never free; it's alloc'd from temp mem in most (all?) cases
-            MEM_PH_FREE(e->EV.ss.Vstring);
-#endif
+            mem_free(e->EV.ss.Vstring);
             break;
         default:
             debug_assert(op < OPMAX);
@@ -393,6 +365,35 @@ elem *el_params(void **args, int length)
                     el_params(args + mid, length - mid));
 }
 
+/*****************************************
+ * Do an array of parameters as a balanced
+ * binary tree.
+ */
+
+elem *el_combines(void **args, int length)
+{
+    if (length == 0)
+        return NULL;
+    if (length == 1)
+        return (elem *)args[0];
+    int mid = length >> 1;
+    return el_combine(el_combines(args, mid),
+                    el_combines(args + mid, length - mid));
+}
+
+/***************************************
+ * Return a list of the parameters.
+ */
+
+int el_nparams(elem *e)
+{
+    if (e->Eoper == OPparam)
+    {
+        return el_nparams(e->E1) + el_nparams(e->E2);
+    }
+    else
+        return 1;
+}
 
 /*************************************
  * Create a quad word out of two dwords.
@@ -490,7 +491,6 @@ elem * el_selecte2(elem *e)
         if (e->Esrcpos.Slinnum)
             e2->Esrcpos = e->Esrcpos;
     }
-#if !(TARGET_MAC)
     if (PARSER)
         el_settype(e2,e->ET);
     else
@@ -498,7 +498,6 @@ elem * el_selecte2(elem *e)
 //      if (tyaggregate(e->Ety))
 //          e2->Enumbytes = e->Enumbytes;
     }
-#endif
     el_free(e);
     return e2;
 }
@@ -550,27 +549,10 @@ elem * el_copytree(elem *e)
                 e->EV.sm.ethis = NULL;
                 break;
 #endif
-#if TX86
             case OPasm:
                 d->EV.ss.Vstring = (char *) mem_malloc(d->EV.ss.Vstrlen);
                 memcpy(d->EV.ss.Vstring,e->EV.ss.Vstring,e->EV.ss.Vstrlen);
                 break;
-#else
-            case OPasm:
-                if (e->Eflags&EFsmasm)
-                {
-                    d->Eflags |= EFsmasm;
-                    d->EV.mac.Vasmdat[0] = e->EV.mac.Vasmdat[0];
-                    d->EV.mac.Vasmdat[1] = e->EV.mac.Vasmdat[1];
-                }
-                else
-                {
-                    debug_assert(PARSER);
-                    d->EV.ss.Vstring = (char *)MEM_PH_MALLOC(d->EV.ss.Vstrlen);
-                    memcpy(d->EV.ss.Vstring,e->EV.ss.Vstring,e->EV.ss.Vstrlen);
-                }
-                break;
-#endif
         }
     }
     return d;
@@ -768,9 +750,9 @@ elem * el_bint(unsigned op,type *t,elem *e1,elem *e2)
 elem * el_bin(unsigned op,tym_t ty,elem *e1,elem *e2)
 {   elem *e;
 
-#ifdef DEBUG
+#if 0
     if (!(op < OPMAX && OTbinary(op) && e1 && e2))
-        *(char *)0 = 0;
+        *(char *)0=0;
 #endif
     assert(op < OPMAX && OTbinary(op) && e1 && e2);
     assert(MARS || !PARSER);
@@ -782,7 +764,7 @@ elem * el_bin(unsigned op,tym_t ty,elem *e1,elem *e2)
     e->E1 = e1;
     e->E2 = e2;
     if (op == OPcomma && tyaggregate(ty))
-        e->Enumbytes = e2->Enumbytes;
+        e->ET = e2->ET;
     return e;
 }
 
@@ -904,115 +886,7 @@ void el_toconst(elem *e)
         elem_debug(es);
         e->Eoper = es->Eoper;
         assert(e->Eoper == OPconst);
-#if TARGET_MAC
-#if !DDRT
-        if (tyfloating(tybasic(es->ET->Tty)))
-        {
-            long double ld;
-
-            switch (tysize[tybasic(es->ET->Tty)])
-            {
-            case FLOATSIZE:             // TYfloat
-                ld = es->EV.Vfloat;
-                break;
-            case DOUBLESIZE:            // TYdouble
-                ld = es->EV.Vdouble;
-                break;
-            case LNGDBLSIZE:            // TYldouble
-#ifdef LNGHDBLSIZE
-            case LNGHDBLSIZE:
-#endif
-#if (TARGET_POWERPC)
-                if (config.flags & CFGldblisdbl)
-                    ld = es->EV.Vdouble;
-                else
-#endif
-                    ld = es->EV.Vldouble;
-                break;
-            default:
-                assert(0);
-            }
-
-            switch(tysize[tybasic(e->ET->Tty)])
-            {
-            case FLOATSIZE:             // TYfloat
-                e->EV.Vfloat = ld;
-                break;
-            case DOUBLESIZE:            // TYdouble
-                e->EV.Vdouble = ld;
-                break;
-            case LNGDBLSIZE:            // TYldouble
-#ifdef LNGHDBLSIZE
-            case LNGHDBLSIZE:
-#endif
-#if (TARGET_POWERPC)
-                if (config.flags & CFGldblisdbl)
-                    e->EV.Vdouble = ld;
-                else
-#endif
-                    e->EV.Vldouble = ld;
-                break;
-            default:
-                assert(0);
-            }
-        }
-#else /* DDRT */
-        if (tyfloating(tybasic(es->ET->Tty)))
-        {
-            _extended_ ld;
-
-            switch (tysize[tybasic(es->ET->Tty)])
-            {
-            case FLOATSIZE:             // TYfloat
-                ld = Xftox(es->EV.Vfloat);
-                break;
-            case DOUBLESIZE:            // TYdouble
-                ld = Xdtox(es->EV.Vdouble);
-                break;
-            case LNGDBLSIZE:            // TYldouble
-#ifdef LNGHDBLSIZE
-            case LNGHDBLSIZE:
-#endif
-#if TARGET_POWERPC
-                if (config.flags & CFGldblisdbl)
-                    ld = Xdtox(es->EV.Vdouble);
-                else
-#endif
-                    ld = es->EV.Vldouble;
-                break;
-            default:
-                assert(0);
-            }
-
-            switch(tysize[tybasic(e->ET->Tty)])
-            {
-            case FLOATSIZE:             // TYfloat
-                e->EV.Vfloat = Xxtof(ld);
-                break;
-            case DOUBLESIZE:            // TYdouble
-                e->EV.Vdouble = Xxtod(ld);
-                break;
-            case LNGDBLSIZE:            // TYldouble
-#ifdef LNGHDBLSIZE
-            case LNGHDBLSIZE:
-#endif
-#if TARGET_POWERPC
-                if (config.flags & CFGldblisdbl)
-                    e->EV.Vdouble = Xxtod(ld);
-                else
-#endif
-                    e->EV.Vldouble = ld;
-                break;
-            default:
-                assert(0);
-            }
-        }
-#endif /* DDRT */
-        else
-#endif
-        {
-            e->EV = es->EV;
-        }
+        e->EV = es->EV;
     }
 }
 #endif
@@ -1329,7 +1203,7 @@ elem *el_picvar(symbol *s)
     return e;
 }
 #endif
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 
 elem *el_picvar(symbol *s)
 {   elem *e;
@@ -1343,6 +1217,100 @@ elem *el_picvar(symbol *s)
     e->EV.sp.Vsym = s;
     e->Ety = s->ty();
 
+    /* For 32 bit:
+     *      CALL __i686.get_pc_thunk.bx@PC32
+     *      ADD  EBX,offset _GLOBAL_OFFSET_TABLE_@GOTPC[2]
+     * Generate for var locals:
+     *      MOV  reg,s@GOTOFF[014h][EBX]
+     * For var globals:
+     *      MOV  EAX,s@GOT32[EBX]
+     *      MOV  reg,[EAX]
+     * For TLS var locals and globals:
+     *      MOV  EAX,s@TLS_GD[EBX]
+     *      CALL ___tls_get_addr@PLT32
+     *      MOV  reg,[EAX]
+     *****************************************
+     * Generate for var locals:
+     *      MOV reg,s@PC32[RIP]
+     * For var globals:
+     *      MOV RAX,s@GOTPCREL[RIP]
+     *      MOV reg,[RAX]
+     * For TLS var locals and globals:
+     *      0x66
+     *      LEA DI,s@TLSGD[RIP]
+     *      0x66
+     *      0x66
+     *      0x48 (REX | REX_W)
+     *      CALL __tls_get_addr@PLT32
+     *      MOV reg,[RAX]
+     */
+
+    if (I64)
+    {
+        elfobj_refGOTsym();
+        switch (s->Sclass)
+        {
+            case SCstatic:
+            case SClocstat:
+                x = 0;
+                goto case_got64;
+
+            case SCcomdat:
+            case SCcomdef:
+            case SCglobal:
+            case SCextern:
+                x = 1;
+            case_got64:
+            {
+                int op = e->Eoper;
+                tym_t tym = e->Ety;
+                e->Ety = TYnptr;
+
+                if (s->Stype->Tty & mTYthread)
+                {
+                    /* Add "volatile" to prevent e from being common subexpressioned.
+                     * This is so we can preserve the magic sequence of instructions
+                     * that the gnu linker patches:
+                     *   lea EDI,x@tlsgd[RIP], call __tls_get_addr@plt
+                     *      =>
+                     *   mov EAX,gs[0], sub EAX,x@tpoff
+                     */
+                    e->Eoper = OPrelconst;
+                    e->Ety |= mTYvolatile;
+                    if (!tls_get_addr_sym)
+                    {
+                        /* void *__tls_get_addr(void *ptr);
+                         * Parameter ptr is passed in RDI, matching TYnfunc calling convention.
+                         */
+                        tls_get_addr_sym = symbol_name("__tls_get_addr",SCglobal,type_fake(TYnfunc));
+                        symbol_keep(tls_get_addr_sym);
+                    }
+                    e = el_bin(OPcall, TYnptr, el_var(tls_get_addr_sym), e);
+                }
+
+                switch (op * 2 + x)
+                {
+                    case OPvar * 2 + 1:
+                        e = el_una(OPind, TYnptr, e);
+                        break;
+                    case OPvar * 2 + 0:
+                    case OPrelconst * 2 + 1:
+                        break;
+                    case OPrelconst * 2 + 0:
+                        e = el_una(OPaddr, TYnptr, e);
+                        break;
+                    default:
+                        assert(0);
+                        break;
+                }
+                e->Ety = tym;
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    else
     switch (s->Sclass)
     {
         /* local (and thread) symbols get only one level of indirection;
@@ -1437,11 +1405,11 @@ elem * el_var(symbol *s)
 
     //printf("el_var(s = '%s')\n", s->Sident);
     //printf("%x\n", s->Stype->Tty);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // OSX is currently always pic
     if (config.flags3 & CFG3pic &&
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-        !(s->Stype->Tty & mTYthread) &&
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+        (!(s->Stype->Tty & mTYthread) || I64) &&
 #endif
         !tyfunc(s->ty()))
         // Position Independent Code
@@ -1459,21 +1427,44 @@ elem * el_var(symbol *s)
         //printf("thread local %s\n", s->Sident);
 #if TARGET_OSX
         ;
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-        ;               // add GS: override in back end
-        /* Generate:
-         *      MOV reg,GS:[00000000]
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+        /* For 32 bit:
+         * Generate for var locals:
+         *      MOV reg,GS:[00000000]   // add GS: override in back end
          *      ADD reg, offset s@TLS_LE
          *      e => *(&s + *(GS:0))
-         * for locals, and for globals:
+         * For var globals:
          *      MOV reg,GS:[00000000]
          *      ADD reg, s@TLS_IE
          *      e => *(s + *(GS:0))
          * note different fixup
+         *****************************************
+         * For 64 bit:
+         * Generate for var locals:
+         *      MOV reg,FS:s@TPOFF32
+         * For var globals:
+         *      MOV RAX,s@GOTTPOFF[RIP]
+         *      MOV reg,FS:[RAX]
+         *
+         * For address of locals:
+         *      MOV RAX,FS:[00]
+         *      LEA reg,s@TPOFF32[RAX]
+         *      e => &s + *(FS:0)
+         * For address of globals:
+         *      MOV reg,FS:[00]
+         *      MOV RAX,s@GOTTPOFF[RIP]
+         *      ADD reg,RAX
+         *      e => s + *(FS:0)
+         * This leaves us with a problem, as the 'var' version cannot simply have
+         * its address taken, as what is the address of FS:s ? The (not so efficient)
+         * solution is to just use the second address form, and * it.
+         * Turns out that is identical to the 32 bit version, except GS => FS and the
+         * fixups are different.
+         * In the future, we should figure out a way to optimize to the 'var' version.
          */
-        elem *e1,*e2;
-
-        e1 = el_calloc();
+        if (I64)
+            elfobj_refGOTsym();
+        elem *e1 = el_calloc();
         e1->EV.sp.Vsym = s;
         if (s->Sclass == SCstatic || s->Sclass == SClocstat)
         {   e1->Eoper = OPrelconst;
@@ -1485,8 +1476,11 @@ elem * el_var(symbol *s)
             e1->Ety = TYnptr;
         }
 
-        // We'll fix this up in the back end to be GS:[0000]
-        e2 = el_calloc();
+        /* Fake GS:[0000] as a load of _tls_array, and then in the back end recognize
+         * the fake and rewrite it as GS:[0000] (or FS:[0000] for I64), because there is
+         * no way to represent segment overrides in the elem nodes.
+         */
+        elem *e2 = el_calloc();
         e2->Eoper = OPvar;
         e2->EV.sp.Vsym = rtlsym[RTLSYM_TLS_ARRAY];
         e2->Ety = e2->EV.sp.Vsym->ty();
@@ -1538,7 +1532,7 @@ elem * el_var(symbol *s)
 {   elem *e;
 
     //printf("el_var(s = '%s')\n", s->Sident);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && !tyfunc(s->ty()))
         return el_picvar(s);
 #endif
@@ -1635,7 +1629,7 @@ elem * el_ptr(symbol *s)
         return e;
     }
 #endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && tyfunc(s->ty()))
         e = el_picvar(s);
     else
@@ -1753,107 +1747,27 @@ elem *el_scancommas(elem *e)
     return e;
 }
 
-#if (TARGET_POWERPC)
-void el_convconst(elem *e)
-{
+/***************************
+ * Count number of commas in the expression.
+ */
 
-    int i;
-    symbol *s;
-    long    *   p;
-    targ_size_t len;
-    struct CONST_VALUE {
-#if !DDRT
-        long    val[2];                 // Largest floating constant is 8 bytes
-#else
-        fix!!
-#endif
-        symbol  *s;                     // Symbol for that floating constant
-    } *pcv;
-
-    static list_t value_list;
-    list_t pcl;
-
-    tym_t       tym;
-    type * T;
-//    float cnv_float;  // the compiler stores all constants in double accuracy
-                        // hence when the elem is of type TYfloat we have to
-                        // implicitly convert it from double to float
-    assert(!PARSER);
-    elem_debug(e);
-
-    assert(e->Eoper == OPconst);
-
-
-    tym = tybasic(typemask(e));
-
-    assert(tyfloating(tym));    // it shouldn't get here otherwise....
-
-#if !DDRT
-        // all float constants are stored as doubles
-        // NOTE at this point double and long double are the same (11/18/93 -udi-)
-        if (tym == TYdouble || tym == TYldouble) {
-//              tym = TYdouble;
-                p = (long *) &e->EV.Vdouble;
-        } else {
-                p = (long *) &e->EV.Vfloat;
-
-//              cnv_float = e->EV.Vdouble;
-//              p = (long *) & cnv_float;
+int el_countCommas(elem *e)
+{   int ncommas = 0;
+    while (1)
+    {
+        if (EBIN(e))
+        {
+            ncommas += (e->Eoper == OPcomma) + el_countCommas(e->E2);
         }
-
-#else
-        fix!!
-#endif
-
-
-
-
-//
-// Look for another floating constant with the identical value
-// linear list should be fast enough, How many floating constants are there
-// that appear in trees.  Any that appear in data declarations, etc. are already
-// taken care of elsewhere
-//
-        for (pcl = value_list;pcl; pcl = list_next(pcl)) {
-            pcv = (CONST_VALUE *) list_ptr( pcl );
-            if (tysize[tym] == type_size(pcv->s->Stype) &&
-                !memcmp( pcv->val, p, tysize[tym])) {
-                s = pcv->s;
-                goto returnelem;
-            }
+        else if (EUNA(e))
+        {
         }
-
-    // Replace float with a symbol that refers to a float constant stored
-    // in the DATA segment
-
-        tym |= mTYconst;
-        T = type_alloc( tym );
-        s = symbol_generate( SCstatic, T);
-        s->Sfl = FLdatseg;
-
-        pcv = (CONST_VALUE *) MEM_PARC_CALLOC(sizeof(CONST_VALUE));
-        memcpy( pcv->val, p, type_size(T));
-        pcv->s = s;
-        list_append( &value_list, pcv );
-
-        obj_module( s, STYP_DATA, 0 );
-        obj_bytes( STYP_DATA, type_size(T), p);
-
-
-        // NOTE: unlike el_convstring() i'm not implementing any machinery for
-        // remembering already defined constant floats. on a rare occasion that
-        // may create duplications, however i don't think it warrants the extra
-        // effort. should it become necessary, i'll do it. (-udi-  11/7/93)
-
-returnelem:
-    // Refer e to the symbol generated
-    e->Ety = tym;
-    e->Eoper = OPvar;
-    e->EV.sp.Vsym = s;
-    e->EV.sp.Voffset = 0;       // making sure no remnants of the float constat
-                                // appear as some kind of offset into the var
-}       // el_convconst
-#endif
+        else
+            break;
+        e = e->E1;
+    }
+    return ncommas;
+}
 
 /************************************
  * Convert floating point constant to a read-only symbol.
@@ -1862,8 +1776,12 @@ returnelem:
 
 elem *el_convfloat(elem *e)
 {
+    unsigned char buffer[32];
+
 #if TX86
     assert(config.inline8087);
+
+    // Do not convert if the constants can be loaded with the special FPU instructions
     if (tycomplex(e->Ety))
     {
         if (loadconst(e, 0) && loadconst(e, 1))
@@ -1871,40 +1789,66 @@ elem *el_convfloat(elem *e)
     }
     else if (loadconst(e, 0))
         return e;
+
     changes++;
-    int sz = tysize(e->Ety);
-#if LNGDBLSIZE == 12
-    if (sz == 12 || sz == 24)
+    tym_t ty = e->Ety;
+    int sz = tysize(ty);
+    assert(sz <= sizeof(buffer));
+    void *p;
+    switch (tybasic(ty))
     {
-        unsigned short *p = (unsigned short *)&e->EV.Vfloat;
-        p[5] = 0;               // fill in 2 byte hole
-        if (sz == 24)
-            p[11] = 0;          // other 2 byte hole
+        case TYfloat:
+        case TYifloat:
+            p = &e->EV.Vfloat;
+            assert(sz == sizeof(e->EV.Vfloat));
+            break;
+
+        case TYdouble:
+        case TYidouble:
+        case TYdouble_alias:
+            p = &e->EV.Vdouble;
+            assert(sz == sizeof(e->EV.Vdouble));
+            break;
+
+        case TYldouble:
+        case TYildouble:
+            /* The size, alignment, and padding of long doubles may be different
+             * from host to target
+             */
+            p = buffer;
+            memset(buffer, 0, sz);                      // ensure padding is 0
+            memcpy(buffer, &e->EV.Vldouble, 10);
+            break;
+
+        case TYcfloat:
+            p = &e->EV.Vcfloat;
+            assert(sz == sizeof(e->EV.Vcfloat));
+            break;
+
+        case TYcdouble:
+            p = &e->EV.Vcdouble;
+            assert(sz == sizeof(e->EV.Vcdouble));
+            break;
+
+        case TYcldouble:
+            p = buffer;
+            memset(buffer, 0, sz);
+            memcpy(buffer, &e->EV.Vcldouble.re, 10);
+            memcpy(buffer + tysize(TYldouble), &e->EV.Vcldouble.im, 10);
+            break;
+
+        default:
+            assert(0);
     }
-#endif
-#if LNGDBLSIZE == 16
-    if ((sz == 16 && !tycomplex(e->Ety)) || sz == 32)
-    {
-        unsigned short *p = (unsigned short *)&e->EV.Vfloat;
-        p[5] = 0;               // fill in 6 byte hole
-        p[6] = 0;
-        p[7] = 0;
-        if (sz == 32)
-        {   p[13] = 0;          // other 6 byte hole
-            p[14] = 0;
-            p[15] = 0;
-        }
-    }
-#endif
 #if 0
+    printf("%gL+%gLi\n", (double)e->EV.Vcldouble.re, (double)e->EV.Vcldouble.im);
     printf("el_convfloat() %g %g sz=%d\n", e->EV.Vcdouble.re, e->EV.Vcdouble.im, sz);
 printf("el_convfloat(): sz = %d\n", sz);
 unsigned short *p = (unsigned short *)&e->EV.Vcldouble;
 for (int i = 0; i < sz/2; i++) printf("%04x ", p[i]);
 printf("\n");
 #endif
-    symbol *s  = out_readonly_sym(e->Ety, &e->EV.Vfloat, sz);
-    tym_t ty = e->Ety;
+    symbol *s  = out_readonly_sym(ty, p, sz);
     el_free(e);
     e = el_var(s);
     e->Ety = ty;
@@ -1955,15 +1899,6 @@ elem *el_convstring(elem *e)
     }
 #endif
 
-#if TARGET_68K
-    /*
-     * When using PC relative strings, strings cannot be saved because this
-     * would lead to problems.  We do not know how to emit PC-relative
-     * relocations for stuff in other functions.
-     */
-    if (!(PCrel_option & PC_STRINGS))
-#endif
-
     if (eecontext.EEin)                 // if compiling debugger expression
     {
         s = out_readonly_sym(e->Ety, p, len);
@@ -1986,7 +1921,6 @@ elem *el_convstring(elem *e)
     // Replace string with a symbol that refers to that string
     // in the DATA segment
 
-#if TX86
     if (eecontext.EEcompile)
         s = symboldata(Doffset,e->Ety);
     else
@@ -1999,50 +1933,6 @@ elem *el_convstring(elem *e)
     stable[stable_si].len = len;
     stable[stable_si].sym = s;
     stable_si = (stable_si + 1) & (arraysize(stable) - 1);
-
-#else
-#if TARGET_POWERPC
-    s = symbol_generate( SCstatic, obj_charstr_type(len));
-    s->Sfl = FLdatseg;
-    obj_module( s, STYP_DATA, 0 );
-    obj_bytes( STYP_DATA, len, p );
-#else
-    s = symboldata(Doffset,e->Ety);
-#if TARGET_68K
-    if (PCrel_option & PC_STRINGS)
-    {   s = symbol_generate(SCstatic,type_fake(e->Ety));
-        s->Sfl = FLoffset;              // relative offset from code
-        symbol_keep(s);
-        s->Sidnum = obj_PCrel_start();
-        for (i=0; i<len; ++i)
-            obj_PCrel_byte(p[i]);
-    }
-    else
-#endif
-    {   s->Sfl = FLdatseg;              // string in data segment
-        s->Sidnum = obj_module(DATA,SClocstat,0);
-        obj_bytes(DATA,0,len,p);
-    }
-#endif
-
-#if TARGET_68K
-    /*
-     * When using PC relative strings, strings cannot be saved because this
-     * would lead to problems.  We do not know how to emit PC-relative
-     * relocations for stuff in other functions.
-     */
-    if (!(PCrel_option & PC_STRINGS))
-#endif
-    {
-        // Remember the string for possible reuse later
-        //dbg_printf("Adding %d, '%s'\n",stable_si,p);
-        MEM_PH_FREE(stable[stable_si].p);
-        stable[stable_si].p   = p;
-        stable[stable_si].len = len;
-        stable[stable_si].sym = s;
-        stable_si = (stable_si + 1) & (arraysize(stable) - 1);
-    }
-#endif
 
 L1:
     // Refer e to the symbol generated
@@ -2079,7 +1969,6 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
          */
         volatile long double v = e->EV.Vldouble;
         volatile double vDouble;
-        volatile double z = v;
         *(&vDouble) = v;
         if (v == vDouble)       // This will fail if compiler does NaN incorrectly!
         {
@@ -2180,12 +2069,62 @@ elem * el_const(tym_t ty,union eve *pconst)
     return e;
 }
 
-#if SCPP
 
 /**************************
  * Insert constructor information into tree.
+ *      e       code to construct the object
+ *      decl    VarDeclaration of variable being constructed
  */
 
+#if MARS
+elem *el_dctor(elem *e,void *decl)
+{
+    elem *ector = el_calloc();
+    ector->Eoper = OPdctor;
+    ector->Ety = TYvoid;
+    ector->EV.ed.Edecl = decl;
+    if (e)
+        e = el_bin(OPinfo,e->Ety,ector,e);
+    else
+        /* Remember that a "constructor" may execute no code, hence
+         * the need for OPinfo if there is code to execute.
+         */
+        e = ector;
+    return e;
+}
+#endif
+
+/**************************
+ * Insert destructor information into tree.
+ *      e       code to destruct the object
+ *      decl    VarDeclaration of variable being destructed
+ *              (must match decl for corresponding OPctor)
+ */
+
+#if MARS
+elem *el_ddtor(elem *e,void *decl)
+{
+    /* A destructor always executes code, or we wouldn't need
+     * eh for it.
+     * An OPddtor must match 1:1 with an OPdctor
+     */
+    elem *edtor = el_calloc();
+    edtor->Eoper = OPddtor;
+    edtor->Ety = TYvoid;
+    edtor->EV.ed.Edecl = decl;
+    edtor->EV.ed.Eleft = e;
+    return edtor;
+}
+#endif
+
+/**************************
+ * Insert constructor information into tree.
+ *      ector   pointer to object being constructed
+ *      e       code to construct the object
+ *      sdtor   function to destruct the object
+ */
+
+#if SCPP
 elem *el_ctor(elem *ector,elem *e,symbol *sdtor)
 {
     //printf("el_ctor(ector = %p, e = %p, sdtor = %p)\n", ector, e, sdtor);
@@ -2217,7 +2156,6 @@ elem *el_ctor(elem *ector,elem *e,symbol *sdtor)
         else
         {
             ector = el_unat(OPctor,ector->ET,ector);
-            symbol_debug(sdtor);
             ector->EV.eop.Edtor = sdtor;
             symbol_debug(sdtor);
             if (e)
@@ -2228,9 +2166,12 @@ elem *el_ctor(elem *ector,elem *e,symbol *sdtor)
     }
     return e;
 }
+#endif
 
 /**************************
  * Insert destructor information into tree.
+ *      edtor   pointer to object being destructed
+ *      e       code to do the destruction
  */
 
 elem *el_dtor(elem *edtor,elem *e)
@@ -2245,8 +2186,6 @@ elem *el_dtor(elem *edtor,elem *e)
     }
     return e;
 }
-
-#endif
 
 /**********************************
  * Create an elem of the constant 0, of the type t.
@@ -2327,8 +2266,11 @@ L1:
         }
         tym = tybasic(tym);
         tym2 = tybasic(tym2);
-        if (tyequiv[tym] != tyequiv[tym2])
+        if (tyequiv[tym] != tyequiv[tym2] &&
+            !((gmatch2 & 8) && touns(tym) == touns(tym2))
+           )
             goto nomatch;
+        gmatch2 &= ~8;
     }
 
   if (OTunary(op))
@@ -2344,7 +2286,7 @@ L1:
         else if (OPTIMIZER)
         {
             if (op == OPstrpar || op == OPstrctor)
-            {   if (n1->Enumbytes != n2->Enumbytes)
+            {   if (/*n1->Enumbytes != n2->Enumbytes ||*/ n1->ET != n2->ET)
                     goto nomatch;
             }
             n1 = n1->E1;
@@ -2367,7 +2309,7 @@ L1:
         if (!PARSER)
         {
             if (op == OPstreq)
-            {   if (n1->Enumbytes != n2->Enumbytes)
+            {   if (/*n1->Enumbytes != n2->Enumbytes ||*/ n1->ET != n2->ET)
                     goto nomatch;
             }
         }
@@ -2399,10 +2341,6 @@ L1:
                     case TYlong:
                     case TYulong:
                     case TYdchar:
-#if TARGET_MAC
-                    case TYfptr:
-                    case TYvptr:
-#endif
                     case_long:
                         if (n1->EV.Vlong != n2->EV.Vlong)
                                 goto nomatch;
@@ -2411,6 +2349,12 @@ L1:
                     case TYullong:
                     case_llong:
                         if (n1->EV.Vllong != n2->EV.Vllong)
+                                goto nomatch;
+                        break;
+                    case TYcent:
+                    case TYucent:
+                        if (n1->EV.Vcent.lsw != n2->EV.Vcent.lsw ||
+                            n1->EV.Vcent.msw != n2->EV.Vcent.msw)
                                 goto nomatch;
                         break;
                     case TYenum:
@@ -2462,7 +2406,6 @@ L1:
                             goto nomatch;
                         break;
 #endif
-#if !DDRT
                         /* Compare bit patterns w/o worrying about
                            exceptions, unordered comparisons, etc.
                          */
@@ -2510,27 +2453,6 @@ L1:
 #endif
                             goto nomatch;
                         break;
-#else /* DDRT */
-                    case TYfloat:
-                        if (memcmp(&n1->EV.Vfloat,&n2->EV.Vfloat,FLOATSIZE))
-                            goto nomatch;
-                        break;
-                    case TYdouble:
-                        if (memcmp(&n1->EV.Vdouble,&n2->EV.Vdouble,DOUBLESIZE))
-                            goto nomatch;
-                    case TYldouble:
-#if TARGET_POWERPC
-                        if (config.flags & CFGldblisdbl)
-                        {
-                            if (memcmp(&n1->EV.Vdouble,&n2->EV.Vdouble,DOUBLESIZE))
-                                goto nomatch;
-                        }
-                        else
-#endif
-                        if (memcmp(&n1->EV.Vldouble,&n2->EV.Vldouble,LNGDBLSIZE))
-                                goto nomatch;
-                        break;
-#endif /* DDRT */
                     case TYvoid:
                         break;                  // voids always match
 #if SCPP
@@ -2576,15 +2498,6 @@ L1:
                 }
                 break;
             case OPasm:
-#if TARGET_MAC
-                if ((n1->Eflags&EFsmasm && !(n2->Eflags&EFsmasm)) ||
-                    (n2->Eflags&EFsmasm && !(n1->Eflags&EFsmasm)) ||
-                    (n1->EV.mac.Vasmdat[0] != n2->EV.mac.Vasmdat[0]) ||
-                   (n1->EV.mac.Vasmdat[1] != n2->EV.mac.Vasmdat[1]) )
-                        goto nomatch;
-                if (n1->Eflags&EFsmasm)
-                        break;          /* flags & data match,otherwise check strings */
-#endif
             case OPstring:
             case OPhstring:
                 if (n1->EV.ss.Vstrlen != (n = n2->EV.ss.Vstrlen) ||
@@ -2651,6 +2564,19 @@ int el_match4(elem *n1,elem *n2)
 {   int result;
 
     gmatch2 = 2|4;
+    result = el_match(n1,n2);
+    gmatch2 = 0;
+    return result;
+}
+
+/*********************************
+ * Kludge on el_match(). Same, but regard signed/unsigned as equivalent.
+ */
+
+int el_match5(elem *n1,elem *n2)
+{   int result;
+
+    gmatch2 = 8;
     result = el_match(n1,n2);
     gmatch2 = 0;
     return result;
@@ -2741,15 +2667,6 @@ L1:
             assert(0);
 #endif
 
-#if TARGET_MAC // DJB
-        case TYint:
-            if (intsize == SHORTSIZE)
-                goto Ishort;
-            goto Ulong;
-#if SCPP
-        case TYenum:
-#endif
-#endif
         case TYuint:
             if (intsize == SHORTSIZE)
                 goto Ushort;
@@ -2793,11 +2710,7 @@ L1:
         case TYcldouble:
         case TYcdouble:
         case TYcfloat:
-#if !DDRT
             result = (targ_llong)el_toldouble(e);
-#else
-            result = Xxtoi(el_toldouble(e));
-#endif
             break;
 
 #if SCPP
@@ -2805,11 +2718,19 @@ L1:
             ty = tybasic(tym_conv(e->ET));
             goto L1;
 #endif
+
+        case TYcent:
+        case TYucent:
+            goto Ullong; // should do better than this when actually doing arithmetic on cents
+
         default:
 #if SCPP
             // Can happen as result of syntax errors
             assert(errcnt);
 #else
+#ifdef DEBUG
+            elem_print(e);
+#endif
             assert(0);
 #endif
     }
@@ -2836,7 +2757,7 @@ int el_allbits(elem *e,int bit)
                 break;
         case 2: value = (short) value;
                 break;
-        case 4: value = (long) value;
+        case 4: value = (int) value;
                 break;
         case 8: break;
         default:
@@ -2847,6 +2768,22 @@ int el_allbits(elem *e,int bit)
     else if (bit == 1)
         value--;
     return value == 0;
+}
+
+/********************************************
+ * Determine if constant e is a 32 bit or less value, or is a 32 bit value sign extended to 64 bits.
+ */
+
+int el_signx32(elem *e)
+{
+    elem_debug(e);
+    assert(e->Eoper == OPconst);
+    if (tysize(e->Ety) == 8)
+    {
+        if (e->EV.Vullong != (int)e->EV.Vullong)
+            return FALSE;
+    }
+    return TRUE;
 }
 
 /******************************
@@ -2860,20 +2797,26 @@ targ_ldouble el_toldouble(elem *e)
     elem_debug(e);
     assert(cnst(e));
 #if TX86
-    switch (tysize(typemask(e)))
+    switch (tybasic(typemask(e)))
     {
-        case FLOATSIZE:         // TYfloat
+        case TYfloat:
+        case TYifloat:
             result = e->EV.Vfloat;
             break;
-        case DOUBLESIZE:        // TYdouble
+        case TYdouble:
+        case TYidouble:
+        case TYdouble_alias:
             result = e->EV.Vdouble;
             break;
-        case LNGDBLSIZE:        // TYldouble
+        case TYldouble:
+        case TYildouble:
             result = e->EV.Vldouble;
+            break;
+        default:
+            result = 0;
             break;
     }
 #else
-#if !DDRT
     switch (tysize[tybasic(typemask(e))])
     {
     case FLOATSIZE:             // TYfloat
@@ -2887,37 +2830,13 @@ targ_ldouble el_toldouble(elem *e)
 #ifdef LNGHDBLSIZE
     case LNGHDBLSIZE:
 #endif
-#if (TARGET_POWERPC)
-        if (config.flags & CFGldblisdbl)
-            result = e->EV.Vdouble;
-        else
-#endif
             result = e->EV.Vldouble;
         break;
 #endif
-    }
-#else /* DDRT */
-    switch (tysize[tybasic(typemask(e))])
-    {
-        case FLOATSIZE:         // TYfloat
-            result = Xftox(e->EV.Vfloat);
-            break;
-        case DOUBLESIZE:        // TYdouble
-            result = Xdtox(e->EV.Vdouble);
-            break;
-        case LNGDBLSIZE:        // TYldouble
-#ifdef LNGHDBLSIZE
-        case LNGHDBLSIZE:
-#endif
-#if TARGET_POWERPC
-            if (config.flags & CFGldblisdbl)
-                result = Xdtox(e->EV.Vdouble);
-            else
-#endif
-                result = e->EV.Vldouble;
+        default:
+            result = 0;
             break;
     }
-#endif /* DDRT */
 #endif
     return result;
 }
@@ -2946,6 +2865,22 @@ int el_isdependent(elem *e)
             break;
     }
     return 0;
+}
+
+/****************************************
+ * Return alignment size of elem.
+ */
+
+unsigned el_alignsize(elem *e)
+{
+    tym_t tym = tybasic(e->Ety);
+    unsigned alignsize = tyalignsize(tym);
+    if (alignsize == (unsigned)-1)
+    {
+        assert(e->ET);
+        alignsize = type_alignsize(e->ET);
+    }
+    return alignsize;
 }
 
 /*******************************
@@ -2993,19 +2928,7 @@ void elem_print(elem *e)
   elem_debug(e);
   if (configv.addlinenumbers)
   {
-#if TX86
-#if MARS
-        dbg_printf("fil=%p lin=%u ",e->Esrcpos.Sfilename,e->Esrcpos.Slinnum);
-#elif SCPP
-        dbg_printf("fil=%p lin=%u ",e->Esrcpos.Sfilptr,e->Esrcpos.Slinnum);
-#endif
-#else
-        dbg_printf("fil=%d lin=%u ",((struct ELEMsrcpos *)e)->Esrcpos.Sfilnum,
-        ((struct ELEMsrcpos *)e)->Esrcpos.Slinnum);
-#endif
-#if TARGET_MAC && SOURCE_OFFSETS
-        dbg_printf("off %d) ",((struct ELEMsrcpos *)e)->Esrcpos.Sfiloff);
-#endif
+        e->Esrcpos.print("elem_print");
   }
   if (!PARSER)
   {     dbg_printf("cnt=%d ",e->Ecount);
@@ -3023,7 +2946,7 @@ void elem_print(elem *e)
  && (e->PEFflags & PEFstrsize)
 #endif
                )
-                dbg_printf("%d ",e->Enumbytes);
+                dbg_printf("%d ", (int)type_size(e->ET));
             WRTYxx(e->ET->Tty);
         }
   }
@@ -3031,7 +2954,8 @@ void elem_print(elem *e)
   {
         if ((e->Eoper == OPstrpar || e->Eoper == OPstrctor || e->Eoper == OPstreq) ||
             e->Ety == TYstruct)
-            dbg_printf("%d ",e->Enumbytes);
+            if (e->ET)
+                dbg_printf("%d ", (int)type_size(e->ET));
         WRTYxx(e->Ety);
   }
   if (OTunary(e->Eoper))
@@ -3045,7 +2969,7 @@ void elem_print(elem *e)
   else if (OTbinary(e->Eoper))
   {
         if (!PARSER && e->Eoper == OPstreq)
-                dbg_printf("bytes=%d ",e->Enumbytes);
+                dbg_printf("bytes=%d ", (int)type_size(e->ET));
         dbg_printf("%p %p\n",e->E1,e->E2);
         elem_print(e->E1);
         elem_print(e->E2);
@@ -3055,18 +2979,18 @@ void elem_print(elem *e)
         switch (e->Eoper)
         {
             case OPrelconst:
-                dbg_printf(" %d+&",e->Eoffset);
+                dbg_printf(" %lld+&",(unsigned long long)e->Eoffset);
                 dbg_printf(" %s",e->EV.sp.Vsym->Sident);
                 break;
             case OPvar:
                 if (e->Eoffset)
-                    dbg_printf(" %d+",e->Eoffset);
+                    dbg_printf(" %lld+",(unsigned long long)e->Eoffset);
                 dbg_printf(" %s",e->EV.sp.Vsym->Sident);
                 break;
             case OPasm:
             case OPstring:
             case OPhstring:
-                dbg_printf(" '%s',%d\n",e->EV.ss.Vstring,e->EV.ss.Voffset);
+                dbg_printf(" '%s',%lld\n",e->EV.ss.Vstring,(unsigned long long)e->EV.ss.Voffset);
                 break;
             case OPconst:
                 tym = tybasic(typemask(e));
@@ -3113,7 +3037,7 @@ void elem_print(elem *e)
                     case TYchar16:
                     L3:
 #if TX86
-                        dbg_printf("%hd ",e->EV.Vint);
+                        dbg_printf("%d ",e->EV.Vint);
                         break;
 #endif
                     case TYlong:
@@ -3125,7 +3049,7 @@ void elem_print(elem *e)
                     case TYhptr:
 #endif
                     L1:
-                        dbg_printf("%ldL ",e->EV.Vlong);
+                        dbg_printf("%dL ",e->EV.Vlong);
                         break;
 
                     case TYllong:
@@ -3137,6 +3061,11 @@ void elem_print(elem *e)
                         dbg_printf("%lluLL ",e->EV.Vullong);
                         break;
 
+                    case TYcent:
+                    case TYucent:
+                        dbg_printf("%lluLL+%lluLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
+                        break;
+
                     case TYfloat:
                         dbg_printf("%gf ",(double)e->EV.Vfloat);
                         break;
@@ -3145,28 +3074,7 @@ void elem_print(elem *e)
                         dbg_printf("%g ",(double)e->EV.Vdouble);
                         break;
                     case TYldouble:
-#if TARGET_MAC
-#if (TARGET_POWERPC)
-                        if (config.flags & CFGldblisdbl)
-                            dbg_printf("%gL ",e->EV.Vdouble);
-                        else
-#endif
-#if !DDRT
-                            dbg_printf("%LgL ",e->EV.Vldouble);
-#else /* DDRT */
-                        {
-                            static char buffer[75];
-                            __g_fmt(buffer, (DD)e->EV.Vldouble);
-                            dbg_printf("%sL", buffer);
-                        }
-#endif /* DDRT */
-                        break;
-                    case TYvptr:
-                        dbg_printf("%ldL ",e->EV.Vlong);
-                        break;
-#else
-                        dbg_printf("%gL ",(double)e->EV.Vldouble);
-#endif
+                        dbg_printf("%Lg ", e->EV.Vldouble);
                         break;
 
                     case TYifloat:
@@ -3235,13 +3143,10 @@ void el_hydrate(elem **pe)
 #endif
     debug_assert(e->Eoper < OPMAX);
     type_hydrate(&e->ET);
-#if TARGET_MAC
-#else
     if (configv.addlinenumbers)
     {   filename_translate(&e->Esrcpos);
         srcpos_hydrate(&e->Esrcpos);
     }
-#endif
     if (EOP(e))
     {   el_hydrate(&e->E1);
         if (EBIN(e))

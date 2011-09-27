@@ -53,7 +53,7 @@ typedef enum
 #define SHELLING        4
 #define PACKING         5
 #define MAKING          6
-#define LIBBING		7
+#define LIBBING         7
 
 extern tToolInfo *FindDll(char *);
 extern DllErrorCode RunDll(tToolInfo *, int, char **, tToolCallbacks *); // ret 0 if OK

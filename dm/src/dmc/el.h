@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1995 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -18,10 +18,6 @@
 
 #ifndef EL_H
 #define EL_H    1
-
-#if TARGET_MAC
-#include "TGel.h"
-#endif
 
 /******************************************
  * Elems:
@@ -43,15 +39,15 @@ struct elem
     unsigned char Eoper;        // operator (OPxxxx)
     unsigned char Ecount;       // # of parents of this elem - 1,
                                 // always 0 until CSE elimination is done
+    unsigned char Eflags;
+    #define EFLAGS_variadic 1   // variadic function call
+
     union eve EV;               // variants for each type of elem
     union
     {
         // PARSER
         struct
         {
-            struct TYPE *ET_;   // pointer to type of elem
-            #define ET _EU._EP.ET_
-
             unsigned PEFflags_;
             #define PEFflags _EU._EP.PEFflags_
                 #define PEFnotlvalue    1       // although elem may look like
@@ -97,6 +93,7 @@ struct elem
                                         // propagate this assignment into a paramter list
                                         // (see glocal.c)
 #endif
+                #define NFLtouns 0x80   // relational operator was changed from signed to unsigned
 #if MARS
             unsigned char Ejty_;                // original Jupiter/Mars type
             #define Ejty _EU._EO.Ejty_
@@ -114,19 +111,10 @@ struct elem
                                         // first, intermediate, and last references
                                         // to a CSE)
             #define Ecomsub _EU._EC.Ecomsub_
-
-#if TARGET_POWERPC
-            unsigned char Gflags;
-            #define     GFLassrval      1               // element is rvalue of an assign
-            #define     GFLsignok       2               // element does not need sign extend
-            #define     GFLstrthis_fixed        4       // strthis child elem has been fixed
-                                                        // on first pass, do not do it again
-#endif
         }_EC;
     }_EU;
 
-    targ_size_t Enumbytes;      // number of bytes for type if TYstruct | TYarray
-    TARGET_structELEM           // target specific additions
+    struct TYPE *ET;            // pointer to type of elem if TYstruct | TYarray
     Srcpos Esrcpos;             // source file position
 };
 
@@ -156,6 +144,8 @@ elem_p el_combine(elem_p ,elem_p);
 elem_p el_param(elem_p ,elem_p);
 elem_p el_params(elem_p , ...);
 elem *el_params(void **args, int length);
+elem *el_combines(void **args, int length);
+int el_nparams(elem *e);
 elem_p el_pair(tym_t, elem_p, elem_p);
 #if TX86 || DEBUG
 void el_copy(elem_p ,elem_p);
@@ -168,6 +158,7 @@ elem_p el_selecte2(elem_p);
 elem_p el_copytree(elem_p);
 void   el_replace_sym(elem *e,symbol *s1,symbol *s2);
 elem_p el_scancommas(elem_p);
+int el_countCommas(elem_p);
 int el_sideeffect(elem_p);
 #if TX86
 int el_depends(elem *ea,elem *eb);
@@ -180,6 +171,7 @@ targ_long el_tolongt(elem_p);
 targ_long el_tolong(elem_p);
 #endif
 int el_allbits(elem_p,int);
+int el_signx32(elem_p);
 targ_ldouble el_toldouble(elem_p);
 void el_toconst(elem_p);
 elem_p el_same(elem_p *);
@@ -187,6 +179,7 @@ int el_match(elem_p ,elem_p);
 int el_match2(elem_p ,elem_p);
 int el_match3(elem_p ,elem_p);
 int el_match4(elem_p ,elem_p);
+int el_match5(elem_p ,elem_p);
 
 int el_appears(elem *e,symbol *s);
 Symbol *el_basesym(elem *e);
@@ -217,6 +210,8 @@ elem_p el_long(tym_t,targ_long);
 
 int ERTOL(elem_p);
 int el_noreturn(elem_p);
+elem *el_dctor(elem *e,void *decl);
+elem *el_ddtor(elem *e,void *decl);
 elem *el_ctor(elem *ector,elem *e,symbol *sdtor);
 elem *el_dtor(elem *edtor,elem *e);
 elem *el_zero(type *t);
@@ -234,12 +229,7 @@ elem *el_convfloat(elem *);
 elem *el_convstring(elem *);
 elem *el_convert(elem *e);
 int el_isdependent(elem *);
-
-
-#if  (TARGET_POWERPC)
-// convert float | double constants to memory constants
-void el_convconst(elem *);
-#endif
+unsigned el_alignsize(elem *);
 
 void elem_print(elem *);
 void el_hydrate(elem **);

@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -41,7 +41,7 @@ int _binary[] =
          OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
          OPinfo,OParray,OPfield,OPnewarray,OPmultinewarray,OPinstanceof,OPfinalinstanceof,
          OPcheckcast,OPpair,OPrpair,
-         OPbt,OPbtc,OPbtr,OPbts,
+         OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,
          OPscale,OPremquo,OPyl2x,OPyl2xp1,
         };
 int _unary[] =
@@ -55,13 +55,12 @@ int _unary[] =
          OPd_ld, OPld_d,OPc_r,OPc_i,
          OPu32_64,OPlngllng,OP64_32,OPmsw,
          OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
-#if TARGET_MAC
-         OPsfltdbl,OPdblsflt,
-#endif
+         OP128_64,OPs64_128,OPu64_128,
          OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPdbluns,
          OPinp,OPptrlptr,OPtofar16,OPfromfar16,OParrow,OPnegass,
          OPctor,OPdtor,OPsetjmp,OPvoid,OParraylength,
          OPbsf,OPbsr,OPbswap,
+         OPddtor,
         };
 int _commut[] = {OPadd,OPand,OPor,OPxor,OPmul,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
          OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
@@ -81,7 +80,8 @@ int _wid[] =
         };
 int _eop0e[] =
         {OPadd,OPmin,OPxor,OPor,OPshl,OPshr,OPashr,OPpostinc,OPpostdec,OPaddass,
-         OPminass,OPshrass,OPashrass,OPshlass,OPxorass,OPorass
+         OPminass,OPshrass,OPashrass,OPshlass,OPxorass,OPorass,
+         OPror,OProl,
         };
 int _eop00[] = {OPmul,OPand,OPmulass,OPandass};
 int _eop1e[] = {OPmul,OPdiv,OPmulass,OPdivass};
@@ -108,7 +108,7 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPinp,OPoutp,OPnegass,OPctor,OPdtor,OPmark,OPvoid,OPnewarray,
                 OPmultinewarray,OPcheckcast,OPnullcheck,
                 OPbtc,OPbtr,OPbts,
-                OPhalt,
+                OPhalt,OPdctor,OPddtor,
                 };
 int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
@@ -128,14 +128,13 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPd_ld,OPld_d,OPc_r,OPc_i,
                 OPu32_64,OPlngllng,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
-#if TARGET_MAC
-                OPsfltdbl,OPdblsflt,
-#endif
+                OP128_64,OPs64_128,OPu64_128,
                 OPsizeof,OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,
                 OPcallns,OPucallns,OPnullcheck,OPpair,OPrpair,
                 OPbsf,OPbsr,OPbt,OPbswap,OPb_8,
                 OPgot,OPremquo,
                 OPnullptr,
+                OProl,OPror,
                 /*OPcomma,OPbit,OPoror,OPandand,OPcond,OPcolon,OPcolon2*/};
 int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPsin,OPcos,OPscale,OPyl2x,OPyl2xp1,
@@ -151,15 +150,14 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPd_ld, OPld_d,OPc_r,OPc_i,
                 OPu32_64,OPlngllng,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
-#if TARGET_MAC
-                OPsfltdbl,OPdblsflt,
-#endif
+                OP128_64,OPs64_128,OPu64_128,
                 OPbit,OPind,OPucall,OPucallns,OPnullcheck,
                 OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,OPhstring,
                 OPcall,OPcallns,OPeq,OPstreq,OPpostinc,OPpostdec,
                 OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,OPoror,OPandand,OPcond,
                 OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,
+                OProl,OPror,
                 OPpair,OPrpair,OPframeptr,OPgot,OPremquo,
                 OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass};
 int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
@@ -167,9 +165,7 @@ int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPf_d,OPvptrfptr,OPcvptrfptr,OPu8int,OPs8_16,
                 OPd_ld, OPld_d,
                 OPu32_64,OPlngllng,/*OP64_32,OPmsw,*/
-#if TARGET_MAC
-                OPsfltdbl,OPdblsflt,
-#endif
+                OPs64_128,OPu64_128,
                 OPu16_d,OPptrlptr,OPb_8,
                 OPnullptr,
                 };
@@ -205,6 +201,8 @@ int cost(unsigned op)
             case OPmul: c += 3; break;
             case OPdiv:
             case OPmod: c += 4; break;
+            case OProl:
+            case OPror:
             case OPshl:
             case OPashr:
             case OPshr: c += 2; break;
@@ -430,7 +428,7 @@ void dotab()
         case OPremquo:  X("/%",         elremquo, cdmul);
         case OPdiv:     X("/",          eldiv,  cdmul);
         case OPmod:     X("%",          elmod,  cdmul);
-        case OPxor:     X("^",          elbitwise,cdorth);
+        case OPxor:     X("^",          elxor,  cdorth);
         case OPvptrfptr: X("vptrfptr",  elvptrfptr,cdcnvt);
         case OPcvptrfptr: X("cvptrfptr", elvptrfptr,cdcnvt);
         case OPstring:  X("string",     elstring,cderr);
@@ -439,6 +437,8 @@ void dotab()
         case OPoutp:    X("outp",       elzot, cdport);
         case OPasm:     X("asm",        elzot, cdasm);
         case OPinfo:    X("info",       elinfo,cdinfo);
+        case OPdctor:   X("dctor",      elzot, cddctor);
+        case OPddtor:   X("ddtor",      elddtor, cdddtor);
         case OPctor:    X("ctor",       elinfo,cdctor);
         case OPdtor:    X("dtor",       elinfo,cddtor);
         case OPmark:    X("mark",       elinfo,cdmark);
@@ -459,9 +459,11 @@ void dotab()
         case OPhstring: X("hstring",    elhstring,cderr);
         case OPnullcheck: X("nullcheck", elnullcheck,cdnullcheck);
 
-        case OPor:      X("|",          elbitwise,cdorth);
+        case OPor:      X("|",          elor,   cdorth);
         case OPoror:    X("||",         eloror, cdloglog);
         case OPandand:  X("&&",         elandand,cdloglog);
+        case OProl:     X("<<|",        elshl,  cdshift);
+        case OPror:     X(">>|",        elshl,  cdshift);
         case OPshl:     X("<<",         elshl,  cdshift);
         case OPshr:     X(">>>",        elshr,  cdshift);
         case OPashr:    X(">>",         elshr,  cdshift);
@@ -562,6 +564,9 @@ void dotab()
         case OPu32_64:  X("u32_64",     evalu8, cdshtlng);
         case OPs32_64:  X("s32_64",     evalu8, cdshtlng);
         case OP64_32:   X("64_32",      el64_32, cdlngsht);
+        case OPu64_128: X("u64_128",    evalu8, cdshtlng);
+        case OPs64_128: X("s64_128",    evalu8, cdshtlng);
+        case OP128_64:  X("128_64",     el64_32, cdlngsht);
         case OPmsw:     X("msw",        evalu8, cdmsw);
 
         case OPd_s64:   X("d_s64",      evalu8, cdcnvt);
@@ -569,10 +574,6 @@ void dotab()
         case OPd_u64:   X("d_u64",      evalu8, cdcnvt);
         case OPu64_d:   X("u64_d",      evalu8, cdcnvt);
         case OPld_u64:  X("ld_u64",     evalu8, cdcnvt);
-#if TARGET_MAC
-        case OPsfltdbl: X("sfltdbl",    evalu8, cdcnvt);
-        case OPdblsflt: X("dblsflt",    evalu8, cdcnvt);
-#endif
         case OPparam:   X("param",      elparam, cderr);
         case OPsizeof:  X("sizeof",     elzot,  cderr);
         case OParrow:   X("->",         elzot,  cderr);
@@ -627,7 +628,7 @@ void dotab()
   fclose(f);
 
   f = fopen("elxxx.c","w");
-  fprintf(f,"elem *(*elxxx[OPMAX]) (elem *) = \n\t{\n");
+  fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *) = \n\t{\n");
   for (i = 0; i < OPMAX - 1; i++)
         fprintf(f,"\t%s,\n",elxxx[i]);
   fprintf(f,"\t%s\n\t};\n",elxxx[i]);
@@ -645,10 +646,10 @@ void fltables()
         static char indatafl[] =        /* is FLxxxx a data type?       */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLpara,FLextern,FLtmp,
           FLcs,FLfltreg,FLallocatmp,FLdatseg,FLndp,FLfardata,FLtlsdata,FLbprel,
-          FLstack };
+          FLstack,FLregsave };
 
         static char instackfl[] =       /* is FLxxxx a stack data type? */
-        { FLauto,FLpara,FLtmp,FLcs,FLfltreg,FLallocatmp,FLndp,FLbprel,FLstack };
+        { FLauto,FLpara,FLtmp,FLcs,FLfltreg,FLallocatmp,FLndp,FLbprel,FLstack,FLregsave };
 
         static char inflinsymtab[] =    /* is FLxxxx in the symbol table? */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLpara,FLextern,FLtmp,FLfunc,
@@ -693,6 +694,7 @@ void fltables()
                 case FLblock:   segfl[i] = CS;  break;
                 case FLblockoff: segfl[i] = CS; break;
                 case FLcs:      segfl[i] = SS;  break;
+                case FLregsave: segfl[i] = SS;  break;
                 case FLcsdata:  segfl[i] = CS;  break;
                 case FLndp:     segfl[i] = SS;  break;
                 case FLswitch:  segfl[i] = -1;  break;
@@ -703,20 +705,15 @@ void fltables()
                 case FLctor:    segfl[i] = -1;  break;
                 case FLdtor:    segfl[i] = -1;  break;
                 case FLdsymbol: segfl[i] = -1;  break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 case FLgot:     segfl[i] = -1;  break;
                 case FLgotoff:  segfl[i] = -1;  break;
 #endif
-#if TARGET_MAC
-                case FLsf:      segfl[i] = -1;  break;
-                case FLpaspara: segfl[i] = -1;  break;
-#else
                 case FLlocalsize: segfl[i] = -1;        break;
                 case FLtlsdata: segfl[i] = -1;  break;
                 case FLframehandler:    segfl[i] = -1;  break;
                 case FLasm:     segfl[i] = -1;  break;
                 case FLallocatmp:       segfl[i] = SS;  break;
-#endif
                 default:
                         printf("error in segfl[%d]\n", i);
                         exit(1);
@@ -763,34 +760,26 @@ void dotytab()
     static tym_t _integral[] = { TYbool,TYchar,TYschar,TYuchar,TYshort,
                                  TYwchar_t,TYushort,TYenum,TYint,TYuint,
                                  TYlong,TYulong,TYllong,TYullong,TYdchar,
-                                 TYchar16 };
+                                 TYchar16, TYcent, TYucent };
     static tym_t _ref[]      = { TYnref,TYfref,TYref };
-#if TARGET_MAC
-    static tym_t _func[]     = { TYnfunc,TYffunc,TYnpfunc,TYfpfunc,TYpsfunc,
-                                 TYnsfunc,TYfsfunc };
-#else
     static tym_t _func[]     = { TYnfunc,TYffunc,TYnpfunc,TYfpfunc,TYf16func,
                                  TYnsfunc,TYfsfunc,TYifunc,TYmfunc,TYjfunc,
                                  TYnsysfunc,TYfsysfunc, TYhfunc };
-#endif
     static tym_t _uns[]     = { TYuchar,TYushort,TYuint,TYulong,
 #if MARS
                                 TYwchar_t,
 #endif
-                                TYdchar,TYullong,TYchar16 };
+                                TYdchar,TYullong,TYucent,TYchar16 };
     static tym_t _mptr[]    = { TYmemptr };
     static tym_t _nullptr[] = { TYnullptr };
+#if OMFOBJ
     static tym_t _fv[]      = { TYfptr, TYvptr };
+#endif
 #if TARGET_WINDOS
     static tym_t _farfunc[] = { TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc };
 #endif
-#if TARGET_MAC
-    static tym_t _pasfunc[] = { TYnpfunc,TYfpfunc,TYpsfunc,TYnsfunc,TYfsfunc };
-    static tym_t _revfunc[] = { TYnpfunc,TYfpfunc,TYpsfunc };
-#else
     static tym_t _pasfunc[] = { TYnpfunc,TYfpfunc,TYf16func,TYnsfunc,TYfsfunc,TYmfunc,TYjfunc };
     static tym_t _revfunc[] = { TYnpfunc,TYfpfunc,TYf16func,TYjfunc };
-#endif
     static tym_t _short[]     = { TYbool,TYchar,TYschar,TYuchar,TYshort,
                                   TYwchar_t,TYushort,TYchar16 };
     static tym_t _aggregate[] = { TYstruct,TYarray };
@@ -816,7 +805,7 @@ void dotytab()
 "wchar_t",      TYwchar_t,      TYwchar_t, TYint,       SHORTSIZE, 0x85,0x71,
 "unsigned short",TYushort,      TYushort,  TYint,       SHORTSIZE, 0x85,0x21,
 
-// These values are adjusted for 32 bit ints in cv_init() and util_set386()
+// These values are adjusted for 32 bit ints in cv_init() and util_set32()
 "enum",         TYenum,         TYuint,    TYint,       -1,        0x81,0x72,
 "int",          TYint,          TYuint,    TYint,       2,         0x81,0x72,
 "unsigned",     TYuint,         TYuint,    TYint,       2,         0x85,0x73,
@@ -826,6 +815,8 @@ void dotytab()
 "dchar",        TYdchar,        TYdchar,   TYlong,      4,         0x86,0x78,
 "long long",    TYllong,        TYullong,  TYllong,     LLONGSIZE, 0x82,0x13,
 "uns long long",TYullong,       TYullong,  TYllong,     LLONGSIZE, 0x86,0x23,
+"cent",         TYcent,         TYucent,   TYcent,      16,        0x82,0x13,
+"ucent",        TYucent,        TYucent,   TYcent,      16,        0x86,0x23,
 "float",        TYfloat,        TYfloat,   TYfloat,     FLOATSIZE, 0x88,0x40,
 "double",       TYdouble,       TYdouble,  TYdouble,    DOUBLESIZE,0x89,0x41,
 "double alias", TYdouble_alias, TYdouble_alias,  TYdouble_alias,8, 0x89,0x41,
@@ -864,15 +855,9 @@ void dotytab()
 "member func",  TYmfunc,        TYmfunc,   TYmfunc,     -1,     0x64,   0,
 "D func",        TYjfunc,       TYjfunc,   TYjfunc,     -1,     0x74,   0,
 "interrupt func", TYifunc,      TYifunc,   TYifunc,     -1,     0x64,   0,
-#if TARGET_MAC
-"near Cpp func", TYnpfunc,      TYnpfunc,  TYnpfunc,    -1,     0x74,   0,
-"far Cpp func",  TYfpfunc,      TYfpfunc,  TYfpfunc,    -1,     0x73,   0,
-"far pascal func",  TYpsfunc,   TYpsfunc,  TYpsfunc,    -1,     0x75,   0,
-#else
 "_far16 Pascal func", TYf16func, TYf16func, TYf16func,  -1,     0x63,   0,
 "Pascal func",  TYnpfunc,       TYnpfunc,  TYnpfunc,    -1,     0x74,   0,
 "far Pascal func",  TYfpfunc,   TYfpfunc,  TYfpfunc,    -1,     0x73,   0,
-#endif
 "void",         TYvoid,         TYvoid,    TYvoid,      -1,     0x85,   3,
 "memptr",       TYmemptr,       TYmemptr,  TYmemptr,    -1,     0,      0,
 "ident",        TYident,        TYident,   TYident,     -1,     0,      0,
@@ -957,7 +942,7 @@ void dotytab()
     }
     fprintf(f,"const tym_t tytouns[] =\n{ ");
     for (i = 0; i < arraysize(tytouns); i++)
-    {   fprintf(f,"0x%02lx,",tytouns[i]);
+    {   fprintf(f,"0x%02x,",tytouns[i]);
         if ((i & 7) == 7 && i < arraysize(tytouns) - 1)
             fprintf(f,"\n  ");
     }
@@ -978,13 +963,47 @@ void dotytab()
     }
     fprintf(f,"\n};\n");
 
+    for (i = 0; i < arraysize(tysize); i++)
+        tysize[i] = 0;
+    for (i = 0; i < arraysize(typetab); i++)
+    {   signed char sz = typetab[i].size;
+        switch (typetab[i].ty)
+        {
+            case TYldouble:
+            case TYildouble:
+            case TYcldouble:
+#if TARGET_OSX
+                sz = 16;
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                sz = 4;
+#elif TARGET_WINDOS
+                sz = 2;
+#else
+#error "fix this"
+#endif
+                break;
+        }
+        tysize[typetab[i].ty | 0x00] = sz;
+        tysize[typetab[i].ty | 0x40] = sz;
+        tysize[typetab[i].ty | 0x80] = sz;
+        tysize[typetab[i].ty | 0xC0] = sz;
+        /*printf("tyalignsize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
+    }
+    fprintf(f,"signed char tyalignsize[] =\n{ ");
+    for (i = 0; i < arraysize(tysize); i++)
+    {   fprintf(f,"%d,",tysize[i]);
+        if ((i & 7) == 7 && i < arraysize(tysize) - 1)
+            fprintf(f,"\n  ");
+    }
+    fprintf(f,"\n};\n");
+
     for (i = 0; i < arraysize(typetab); i++)
     {   _tyrelax[typetab[i].ty] = typetab[i].relty;
         /*printf("_tyrelax[%d] = %d\n",typetab[i].ty,typetab[i].relty);*/
     }
     fprintf(f,"unsigned char _tyrelax[] =\n{ ");
     for (i = 0; i < arraysize(_tyrelax); i++)
-    {   fprintf(f,"0x%02lx,",_tyrelax[i]);
+    {   fprintf(f,"0x%02x,",_tyrelax[i]);
         if ((i & 7) == 7 && i < arraysize(_tyrelax) - 1)
             fprintf(f,"\n  ");
     }
@@ -995,13 +1014,13 @@ void dotytab()
         _tyequiv[i] = i;
     _tyequiv[TYchar] = TYschar;         /* chars are signed by default  */
 
-    // These values are adjusted in util_set386() for 32 bit ints
+    // These values are adjusted in util_set32() for 32 bit ints
     _tyequiv[TYint] = TYshort;
     _tyequiv[TYuint] = TYushort;
 
     fprintf(f,"unsigned char tyequiv[] =\n{ ");
     for (i = 0; i < arraysize(_tyequiv); i++)
-    {   fprintf(f,"0x%02lx,",_tyequiv[i]);
+    {   fprintf(f,"0x%02x,",_tyequiv[i]);
         if ((i & 7) == 7 && i < arraysize(_tyequiv) - 1)
             fprintf(f,"\n  ");
     }

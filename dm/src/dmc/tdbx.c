@@ -12,17 +12,17 @@
 
 #if !SPP
 
-#include	<stdio.h>
-#include	<string.h>
-#include	<malloc.h>
-#include	<time.h>
-#include	"cc.h"
-#include	"global.h"
-#include	"cgcv.h"
-#include	"tdb.h"
+#include        <stdio.h>
+#include        <string.h>
+#include        <malloc.h>
+#include        <time.h>
+#include        "cc.h"
+#include        "global.h"
+#include        "cgcv.h"
+#include        "tdb.h"
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
 static TDBhandle_t h;
 
@@ -61,10 +61,10 @@ STATIC void tdb_loaddll()
 void tdb_error(unsigned line)
 {
 #if MARS
-	printf("Fatal error with file '%s'\n", ftdbname);
-	err_exit();
+        printf("Fatal error with file '%s'\n", ftdbname);
+        err_exit();
 #else
-	err_fatal(EM_tdb,ftdbname, line);		// error
+        err_fatal(EM_tdb,ftdbname, line);               // error
 #endif
 }
 
@@ -77,11 +77,11 @@ void tdb_open()
     int createflag;
 
     tdb_loaddll();
-    //createflag = 0;			// open existing
-    //if (config.flags2 & CFG2phgen)	// if generate pch
-	createflag = 1;			// create new tdb
+    //createflag = 0;                   // open existing
+    //if (config.flags2 & CFG2phgen)    // if generate pch
+        createflag = 1;                 // create new tdb
     if (OpenDatabase(&h,ftdbname,createflag))
-	tdb_error(__LINE__);		// can't open type database
+        tdb_error(__LINE__);            // can't open type database
 #endif
 }
 
@@ -94,7 +94,7 @@ void tdb_term()
 #if _WIN32
     if (h && CloseDatabase(h,0))
     {
-	tdb_error(__LINE__);		// error
+        tdb_error(__LINE__);            // error
     }
 #endif
 }
@@ -109,10 +109,10 @@ unsigned long tdb_gettimestamp()
     int stamp;
 
     if (!h)
-	tdb_open();
+        tdb_open();
 
     if (GetTDBTimeStamp(h,&stamp))
-	tdb_error(__LINE__);		// error
+        tdb_error(__LINE__);            // error
 
     return stamp;
 #endif
@@ -128,11 +128,11 @@ void tdb_write(void *buf,unsigned size,unsigned numindices)
     void *indexhandle;
 
     if (!h)
-	tdb_open();
+        tdb_open();
 
     if (SubmitTypes(h,buf,size,numindices,&indexhandle,malloc,free))
-    {	CloseDatabase(h,0);
-	tdb_error(__LINE__);		// error
+    {   CloseDatabase(h,0);
+        tdb_error(__LINE__);            // error
     }
 
     tdb_term();
@@ -153,9 +153,9 @@ unsigned long tdb_typidx(void *buf)
     //printf("tdb_typidx(%p)\n",buf);
     if (GetTypeIndex(h,buf,&Index))
     {
-	//printf("1\n");
-	CloseDatabase(h,0);
-	tdb_error(__LINE__);		// error
+        //printf("1\n");
+        CloseDatabase(h,0);
+        tdb_error(__LINE__);            // error
     }
     //printf("2\n");
 
@@ -171,13 +171,13 @@ unsigned long tdb_typidx(unsigned char *buf,unsigned length)
     //printf("tdb_typidx(%p,%d)\n",buf,length);
     assert(h);
     if (SubmitTypes(h,buf,length,1,&indexhandle,malloc,free))
-    {	CloseDatabase(h,0);
-	tdb_error(__LINE__);		// error
+    {   CloseDatabase(h,0);
+        tdb_error(__LINE__);            // error
     }
 
     if (ReceiveTypes(indexhandle,&pGlobalIndices))
-    {	CloseDatabase(h,0);
-	tdb_error(__LINE__);		// error
+    {   CloseDatabase(h,0);
+        tdb_error(__LINE__);            // error
     }
 
     return pGlobalIndices[0];

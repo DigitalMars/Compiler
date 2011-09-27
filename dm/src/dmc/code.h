@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1996 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -32,15 +32,34 @@ struct Declaration;
 #define SI      6
 #define DI      7
 
-#define ES      9
-#define PSW     10
-#define STACK   11      // top of stack
-#define MEM     12      // memory
-#define OTHER   13      // other things
-#define ST0     14      // 8087 top of stack register
-#define ST01    15      // top two 8087 registers; for complex types
+#define R8      8
+#define R9      9
+#define R10     10
+#define R11     11
+#define R12     12
+#define R13     13
+#define R14     14
+#define R15     15
 
-#define NOREG   100     // no register
+#define XMM0    16
+#define XMM1    17
+#define XMM2    18
+#define XMM3    19
+#define XMM4    20
+#define XMM5    21
+#define XMM6    22
+#define XMM7    23
+/* There are also XMM8..XMM14 */
+#define XMM15   31
+
+
+#define ES      24
+#define PSW     25
+#define STACK   26      // top of stack
+#define ST0     27      // 8087 top of stack register
+#define ST01    28      // top two 8087 registers; for complex types
+
+#define NOREG   29     // no register
 
 #define AL      0
 #define CL      1
@@ -59,21 +78,39 @@ struct Declaration;
 #define mBP     0x20
 #define mSI     0x40
 #define mDI     0x80
-#define mES     (1 << ES)       // 0x200
-#define mPSW    (1 << PSW)      // 0x400
 
-#define mSTACK  (1 << STACK)    // 0x800
-#define mMEM    (1 << MEM)      // 0x1000
-#define mOTHER  (1 << OTHER)    // 0x2000
+#define mR8     (1 << R8)
+#define mR9     (1 << R9)
+#define mR10    (1 << R10)
+#define mR11    (1 << R11)
+#define mR12    (1 << R12)
+#define mR13    (1 << R13)
+#define mR14    (1 << R14)
+#define mR15    (1 << R15)
 
-#define mST0    (1 << ST0)      // 0x4000
-#define mST01   (1 << ST01)     // 0x8000
+#define mXMM0   (1 << XMM0)
+#define mXMM1   (1 << XMM1)
+#define mXMM2   (1 << XMM2)
+#define mXMM3   (1 << XMM3)
+#define mXMM4   (1 << XMM4)
+#define mXMM5   (1 << XMM5)
+#define mXMM6   (1 << XMM6)
+#define mXMM7   (1 << XMM7)
+#define XMMREGS  (mXMM0 |mXMM1 |mXMM2 |mXMM3 |mXMM4 |mXMM5 |mXMM6 |mXMM7)
+
+#define mES     (1 << ES)       // 0x1000000
+#define mPSW    (1 << PSW)      // 0x2000000
+
+#define mSTACK  (1 << STACK)    // 0x4000000
+
+#define mST0    (1 << ST0)      // 0x20000000
+#define mST01   (1 << ST01)     // 0x40000000
 
 // Flags for getlvalue (must fit in regm_t)
-#define RMload  0x4000
-#define RMstore 0x8000
+#define RMload  (1 << 30)
+#define RMstore (1 << 31)
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // To support positional independent code,
     // must be able to remove BX from available registers
 extern regm_t ALLREGS;
@@ -93,6 +130,11 @@ extern regm_t BYTEREGS;
    we used ALLREGS, it would interfere with mMSW
  */
 #define IDXREGS         (mBX|mSI|mDI)
+
+#define FLOATREGS_64    mAX
+#define FLOATREGS2_64   mDX
+#define DOUBLEREGS_64   mAX
+#define DOUBLEREGS2_64  mDX
 
 #define FLOATREGS_32    mAX
 #define FLOATREGS2_32   mDX
@@ -126,7 +168,7 @@ extern regm_t BYTEREGS;
 #define mLSW    (mAX|mBX|mSI|mDI)       /* least significant regs       */
 #endif
 
-/* Return !=0 if there is an SIB byte   */
+/* Return !=0 if there is a SIB byte   */
 #define issib(rm)       (((rm) & 7) == 4 && ((rm) & 0xC0) != 0xC0)
 
 #if 0
@@ -140,7 +182,7 @@ extern regm_t BYTEREGS;
 //
 // Note: even for linux targets, CFaddrsize can be set by the inline
 // assembler.
-#define is32bitaddr(x,Iflags) ((x) ^(((Iflags) & CFaddrsize) !=0))
+#define is32bitaddr(x,Iflags) (I64 || ((x) ^(((Iflags) & CFaddrsize) !=0)))
 #endif
 
 /*******************
@@ -154,6 +196,7 @@ extern regm_t BYTEREGS;
 #define SEGFS   0x64
 #define SEGGS   0x65
 
+#define CALL    0xE8
 #define JMP     0xE9    /* Intra-Segment Direct */
 #define JMPS    0xEB    /* JMP SHORT            */
 #define JCXZ    0xE3
@@ -189,29 +232,48 @@ extern regm_t BYTEREGS;
                         // (Iop2 is the type of special information)
                         // (Same as DS:, but we will never generate
                         // a separate DS: opcode anyway)
-    #define ESClinnum   1       // line number information
-    #define ESCctor     2       // object is constructed
-    #define ESCdtor     3       // object is destructed
-    #define ESCmark     4       // mark eh stack
-    #define ESCrelease  5       // release eh stack
-    #define ESCoffset   6       // set code offset for eh
-    #define ESCadjesp   7       // adjust ESP by IEV2.Vint
-    #define ESCmark2    8       // mark eh stack
-    #define ESCrelease2 9       // release eh stack
-    #define ESCframeptr 10      // replace with load of frame pointer
+    #define ESClinnum   (1 << 8)       // line number information
+    #define ESCctor     (2 << 8)       // object is constructed
+    #define ESCdtor     (3 << 8)       // object is destructed
+    #define ESCmark     (4 << 8)       // mark eh stack
+    #define ESCrelease  (5 << 8)       // release eh stack
+    #define ESCoffset   (6 << 8)       // set code offset for eh
+    #define ESCadjesp   (7 << 8)       // adjust ESP by IEV2.Vint
+    #define ESCmark2    (8 << 8)       // mark eh stack
+    #define ESCrelease2 (9 << 8)       // release eh stack
+    #define ESCframeptr (10 << 8)      // replace with load of frame pointer
+    #define ESCdctor    (11 << 8)      // D object is constructed
+    #define ESCddtor    (12 << 8)      // D object is destructed
+    #define ESCadjfpu   (13 << 8)      // adjust fpustackused by IEV2.Vint
 
 #define ASM     0x36    // string of asm bytes, actually an SS: opcode
 
 /*********************************
  * Macros to ease generating code
  * modregrm:    generate mod reg r/m field
+ * modregxrm:   reg could be R8..R15
+ * modregrmx:   rm could be R8..R15
+ * modregxrmx:  reg or rm could be R8..R15
  * NEWREG:      change reg field of x to r
  * genorreg:    OR  t,f
  */
 
-#define modregrm(m,r,rm)        (((m)<<6)+((r)<<3)+(rm))
+#define modregrm(m,r,rm)        (((m)<<6)|((r)<<3)|(rm))
+#define modregxrm(m,r,rm)       ((((r)&8)<<15)|modregrm((m),(r)&7,rm))
+#define modregrmx(m,r,rm)       ((((rm)&8)<<13)|modregrm((m),r,(rm)&7))
+#define modregxrmx(m,r,rm)      ((((r)&8)<<15)|(((rm)&8)<<13)|modregrm((m),(r)&7,(rm)&7))
+
+#define NEWREXR(x,r)            ((x)=((x)&~REX_R)|(((r)&8)>>1))
 #define NEWREG(x,r)             ((x)=((x)&~(7<<3))|((r)<<3))
+#define code_newreg(c,r)        (NEWREG((c)->Irm,(r)&7),NEWREXR((c)->Irex,(r)))
+
 #define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
+
+#define REX     0x40            // REX prefix byte, OR'd with the following bits:
+#define REX_W   8               // 0 = default operand size, 1 = 64 bit operand size
+#define REX_R   4               // high bit of reg field of modregrm
+#define REX_X   2               // high bit of sib index reg
+#define REX_B   1               // high bit of rm field, sib base reg, or opcode reg
 
 /**********************
  * C library routines.
@@ -274,6 +336,8 @@ union evc
     targ_int    Vint;           // also used for tmp numbers (FLtmp)
     targ_uns    Vuns;
     targ_long   Vlong;
+    targ_llong  Vllong;
+    targ_size_t Vsize_t;
     struct
     {   targ_size_t Vpointer;
         int Vseg;               // segment the pointer is in
@@ -301,7 +365,7 @@ union evc
     } lab;
 #endif
     struct
-    {   unsigned len;
+    {   size_t len;
         char *bytes;
     } as;                       // asm node (FLasm)
 };
@@ -331,19 +395,40 @@ struct code
 #define CFtarg2      0x8000     // like CFtarg, but we can't optimize this away
 #define CFvolatile  0x10000     // volatile reference, do not schedule
 #define CFclassinit 0x20000     // class init code
+#define CFoffset64  0x40000     // offset is 64 bits
+#define CFpc32      0x80000     // I64: PC relative 32 bit fixup
 
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
 
-    unsigned char Ijty;         // type of operand, 0 if unknown
+    /* The op code can be 1 to 3 bytes
+     */
+    unsigned Iop;
 
-    unsigned char Iop;
-    unsigned char Irm;          // reg/mode
+    /* The _EA is the "effective address" for the instruction, and consists of the modregrm byte,
+     * the sib byte, and the REX prefix byte. The 16 bit code generator just used the modregrm,
+     * the 32 bit x86 added the sib, and the 64 bit one added the rex.
+     */
+    union
+    {   unsigned _Iea;
+        struct
+        {
+            unsigned char _Irm;          // reg/mode
+            unsigned char _Isib;         // SIB byte
+            unsigned char _Irex;         // REX prefix
+        } _ea;
+    } _EA;
 
-    unsigned char Iop2;         // second opcode byte
-    unsigned char Isib;         // SIB byte
+#define Iea _EA._Iea
+#define Irm _EA._ea._Irm
+#define Isib _EA._ea._Isib
+#define Irex _EA._ea._Irex
 
-    unsigned char Iop3;         // third opcode byte
+
+    /* IFL1 and IEV1 are the first operand, which usually winds up being the offset to the Effective
+     * Address. IFL1 is the tag saying which variant type is in IEV1. IFL2 and IEV2 is the second
+     * operand, usually for immediate instructions.
+     */
 
     unsigned char IFL1,IFL2;    // FLavors of 1st, 2nd operands
     union evc IEV1;             // 1st operand, if any
@@ -362,9 +447,23 @@ struct code
       #define IEVoffset2  IEV2.sp.Voffset
       #define IEVlsym2    IEV2.lab.Vsym
       #define IEVint2     IEV2.Vint
+      #define IEVllong2   IEV2.Vllong
     void print();               // pretty-printer
 
-    code() { Ijty = 0; Isib = 0; }      // constructor
+    code() { Irex = 0; Isib = 0; }      // constructor
+
+    void orReg(unsigned reg)
+    {   if (reg & 8)
+            Irex |= REX_R;
+        Irm |= modregrm(0, reg & 7, 0);
+    }
+
+    void setReg(unsigned reg)
+    {
+        Irex &= ~REX_R;
+        Irm &= ~modregrm(0, 7, 0);
+        orReg(reg);
+    }
 };
 
 // !=0 if we have to add FWAIT to floating point ops
@@ -429,6 +528,26 @@ struct NDP
 
 extern NDP _8087elems[8];
 
+/************************************
+ * Register save state.
+ */
+
+extern "C++"
+{
+struct REGSAVE
+{
+    targ_size_t off;            // offset on stack
+    unsigned top;               // high water mark
+    unsigned idx;               // current number in use
+    int alignment;              // 8 or 16
+
+    void reset();
+    code *save(code *c, int reg, unsigned *pidx);
+    code *restore(code *c, int reg, unsigned idx);
+};
+}
+extern REGSAVE regsave;
+
 /*******************************
  * As we generate code, collect information about
  * what parts of NT exception handling we need.
@@ -476,6 +595,7 @@ extern  targ_size_t localsize,Toff,Poff,Aoff,
         Aoffset,Toffset,EEoffset;
 extern  int Aalign;
 extern  int cseg;
+extern  int STACKALIGN;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
 #endif
@@ -503,7 +623,6 @@ extern  code *(*cdxxx[])(elem *,regm_t *);
 
 void stackoffsets(int);
 void codgen (void );
-regm_t regmask (tym_t tym, tym_t tyf );
 #ifdef DEBUG
 unsigned findreg (regm_t regm , int line , const char *file );
 #define findreg(regm) findreg((regm),__LINE__,__FILE__)
@@ -528,7 +647,9 @@ void cssave (elem *e , regm_t regm , unsigned opsflag );
 bool evalinregister (elem *e );
 regm_t getscratch();
 code *codelem (elem *e , regm_t *pretregs , bool constflag );
-char *regm_str(regm_t rm);
+code *scodelem (elem *e , regm_t *pretregs , regm_t keepmsk , bool constflag );
+const char *regm_str(regm_t rm);
+int numbitsset(regm_t);
 
 /* cod1.c */
 extern int clib_inited;
@@ -536,19 +657,21 @@ extern int clib_inited;
 int isscaledindex(elem *);
 int ssindex(int op,targ_uns product);
 void buildEA(code *c,int base,int index,int scale,targ_size_t disp);
+unsigned buildModregrm(int mod, int reg, int rm);
 void andregcon (con_t *pregconsave);
+void genEEcode();
 code *docommas (elem **pe );
-code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag);
 void gensaverestore(regm_t, code **, code **);
+void gensaverestore2(regm_t regm,code **csave,code **crestore);
 code *genstackclean(code *c,unsigned numpara,regm_t keepmsk);
 code *logexp (elem *e , int jcond , unsigned fltarg , code *targ );
-code *loadea (elem *e , code __ss *cs , unsigned op , unsigned reg , targ_size_t offset , regm_t keepmsk , regm_t desmsk );
+code *loadea (elem *e , code *cs , unsigned op , unsigned reg , targ_size_t offset , regm_t keepmsk , regm_t desmsk );
 unsigned getaddrmode (regm_t idxregs );
+void setaddrmode(code *c, regm_t idxregs);
 void getlvalue_msw(code *);
 void getlvalue_lsw(code *);
-code *getlvalue (code __ss *pcs , elem *e , regm_t keepmsk );
-code *scodelem (elem *e , regm_t *pretregs , regm_t keepmsk , bool constflag );
-code *fltregs (code __ss *pcs , tym_t tym );
+code *getlvalue (code *pcs , elem *e , regm_t keepmsk );
+code *fltregs (code *pcs , tym_t tym );
 code *tstresult (regm_t regm , tym_t tym , unsigned saveflag );
 code *fixresult (elem *e , regm_t retregs , regm_t *pretregs );
 code *callclib (elem *e , unsigned clib , regm_t *pretregs , regm_t keepmask );
@@ -559,7 +682,7 @@ code *offsetinreg (elem *e , regm_t *pretregs );
 code *loaddata (elem *e , regm_t *pretregs );
 
 /* cod2.c */
-regm_t idxregm (unsigned rm,unsigned sib);
+regm_t idxregm(code *c);
 #if TARGET_WINDOS
 code *opdouble (elem *e , regm_t *pretregs , unsigned clib );
 #endif
@@ -573,7 +696,7 @@ void WRcodlst (code *c );
 cd_t cdcomma;
 cd_t cdloglog;
 cd_t cdshift;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 cd_t cdindpic;
 #endif
 cd_t cdind;
@@ -592,6 +715,8 @@ cd_t cdabs;
 cd_t cdpost;
 cd_t cderr;
 cd_t cdinfo;
+cd_t cddctor;
+cd_t cdddtor;
 cd_t cdctor;
 cd_t cddtor;
 cd_t cdmark;
@@ -603,14 +728,26 @@ extern int BPoff;
 
 int cod3_EA(code *c);
 regm_t cod3_useBP();
-void cod3_set386 (void );
+void cod3_set32 (void );
 void cod3_set64 (void );
 void cod3_align (void );
+regm_t regmask(tym_t tym, tym_t tyf);
+void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
 void doswitch (block *b );
 void outjmptab (block *b );
 void outswitab (block *b );
 int jmpopcode (elem *e );
-void cod3_ptrchk(code * __ss *pc,code __ss *pcs,regm_t keepmsk);
+void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk);
+code *genregs (code *c , unsigned op , unsigned dstreg , unsigned srcreg );
+code *gentstreg (code *c , unsigned reg );
+code *genpush (code *c , unsigned reg );
+code *genpop (code *c , unsigned reg );
+code* gensavereg(unsigned& reg, targ_uns slot);
+code *genmovreg (code *c , unsigned to , unsigned from );
+code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm);
+code *genshift(code *);
+code *movregconst (code *c , unsigned reg , targ_size_t value , regm_t flags );
+code *genjmp (code *c , unsigned op , unsigned fltarg , block *targ );
 code *prolog (void );
 void epilog (block *b);
 cd_t cdframeptr;
@@ -627,9 +764,9 @@ targ_size_t cod3_bpoffset(symbol *s);
 void pinholeopt (code *c , block *bn );
 void jmpaddr (code *c );
 int code_match(code *c1,code *c2);
-targ_size_t calcblksize (code *c);
-targ_size_t calccodsize(code *c);
-targ_size_t codout (code *c );
+unsigned calcblksize (code *c);
+unsigned calccodsize(code *c);
+unsigned codout (code *c );
 void addtofixlist (symbol *s , targ_size_t soffset , int seg , targ_size_t val , int flags );
 void searchfixlist (symbol *s );
 void outfixlist (void );
@@ -640,7 +777,7 @@ void code_dehydrate(code **pc);
 extern  const unsigned dblreg[];
 extern int cdcmp_flag;
 
-code *modEA (unsigned Irm );
+code *modEA(code *c);
 cd_t cdeq;
 cd_t cdaddass;
 cd_t cdmulass;
@@ -712,6 +849,7 @@ regm_t iasm_regs( block *bp );
 code *nteh_prolog(void);
 code *nteh_epilog(void);
 void nteh_usevars(void);
+void nteh_filltables(void);
 void nteh_gentables(void);
 code *nteh_setsp(int op);
 code *nteh_filter(block *b);
@@ -724,6 +862,8 @@ code *nteh_monitor_epilog(regm_t retregs);
 // cgen.c
 code *code_last(code *c);
 void code_orflag(code *c,unsigned flag);
+void code_orrex(code *c,unsigned rex);
+code *setOpcode(code *c, code *cs, unsigned op);
 code * __pascal cat (code *c1 , code *c2 );
 code * cat3 (code *c1 , code *c2 , code *c3 );
 code * cat4 (code *c1 , code *c2 , code *c3 , code *c4 );
@@ -732,26 +872,21 @@ code *gen (code *c , code *cs );
 code *gen1 (code *c , unsigned op );
 code *gen2 (code *c , unsigned op , unsigned rm );
 code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib);
-code *genregs (code *c , unsigned op , unsigned dstreg , unsigned srcreg );
-code *gentstreg (code *c , unsigned reg );
 code *genasm (code *c , char *s , unsigned slen );
-code *genmovreg (code *c , unsigned to , unsigned from );
-code *genjmp (code *c , unsigned op , unsigned fltarg , block *targ );
 code *gencsi (code *c , unsigned op , unsigned rm , unsigned FL2 , SYMIDX si );
 code *gencs (code *c , unsigned op , unsigned rm , unsigned FL2 , symbol *s );
-code *genc2 (code *c , unsigned op , unsigned rm , targ_uns EV2 );
-code *genc1 (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_uns EV1 );
-code *genc (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_uns EV1 , unsigned FL2 , targ_uns EV2 );
-code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm);
+code *genc2 (code *c , unsigned op , unsigned rm , targ_size_t EV2 );
+code *genc1 (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 );
+code *genc (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 , unsigned FL2 , targ_size_t EV2 );
 code *genlinnum(code *,Srcpos);
 void cgen_linnum(code **pc,Srcpos srcpos);
 void cgen_prelinnum(code **pc,Srcpos srcpos);
 code *genadjesp(code *c, int offset);
+code *genadjfpu(code *c, int offset);
 code *gennop(code *);
-code *genshift(code *);
-code *movregconst (code *c , unsigned reg , targ_int value , regm_t flags );
-bool reghasvalue (regm_t regm , targ_int value , unsigned *preg );
-code *regwithvalue (code *c , regm_t regm , targ_int value , unsigned *preg , regm_t flags );
+code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag);
+bool reghasvalue (regm_t regm , targ_size_t value , unsigned *preg );
+code *regwithvalue (code *c , regm_t regm , targ_size_t value , unsigned *preg , regm_t flags );
 
 // cgreg.c
 void cgreg_init();
@@ -799,7 +934,7 @@ typedef unsigned int IDXSYM;
 
 struct linnum_data
 {
-    char *filename;
+    const char *filename;
     unsigned filenumber;        // corresponding file number for DW_LNS_set_file
 
     unsigned linoff_count;

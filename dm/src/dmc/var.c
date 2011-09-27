@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -16,7 +16,6 @@
 #include        <time.h>
 
 #include        "cc.h"
-#include        "parser.h"
 #include        "global.h"
 #include        "oper.h"
 #include        "type.h"
@@ -41,7 +40,6 @@ char PARSER;                    // indicate we're in the parser
 char OPTIMIZER;                 // indicate we're in the optimizer
 int structalign;                /* alignment for members of structures  */
 char dbcs;                      // current double byte character set
-linkage_t linkage;
 
 int TYptrdiff = TYint;
 int TYsize = TYuint;
@@ -51,6 +49,8 @@ int TYsize_t = TYuint;
 char debuga,debugb,debugc,debugd,debuge,debugf,debugr,debugs,debugt,debugu,debugw,debugx,debugy;
 #endif
 
+#if !MARS
+linkage_t linkage;
 int linkage_spec = 0;           /* using the default                    */
 
 /* Function types       */
@@ -58,16 +58,11 @@ int linkage_spec = 0;           /* using the default                    */
 #if MEMMODELS == 1
 tym_t functypetab[LINK_MAXDIM] =
 {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     TYnfunc,
     TYnpfunc,
     TYnpfunc,
     TYnfunc,
-#elif TARGET_MAC
-    TYffunc,
-    TYfpfunc,
-    TYpsfunc,
-    TYpsfunc,
 #endif
 };
 #else
@@ -91,7 +86,6 @@ tym_t functypetab[LINK_MAXDIM][MEMMODELS] =
 /* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall */
 mangle_t funcmangletab[LINK_MAXDIM] =
 {
-#if TX86
     mTYman_c,
     mTYman_cpp,
     mTYman_pas,
@@ -99,13 +93,6 @@ mangle_t funcmangletab[LINK_MAXDIM] =
     mTYman_sys,
     mTYman_std,
     mTYman_d,
-#endif
-#if TARGET_MAC
-    mTYman_c,
-    mTYman_c,
-    mTYman_c,
-    mTYman_c,
-#endif
 };
 
 /* Name mangling for global variables   */
@@ -119,6 +106,7 @@ mangle_t varmangletab[LINK_MAXDIM] =
 #endif
     mTYman_pas,mTYman_for,mTYman_sys,mTYman_std,mTYman_d
 };
+#endif
 
 targ_size_t     dsout = 0;      /* # of bytes actually output to data   */
                                 /* segment, used to pad for alignment   */
@@ -167,14 +155,17 @@ int level = 0;                  /* declaration level                    */
                                 /* 3+: compound statement decls         */
 
 param_t *paramlst = NULL;       /* function parameter list              */
-tym_t pointertype;              /* default data pointer type            */
+tym_t pointertype = TYnptr;     /* default data pointer type            */
 
 /************************
  * Bit masks
  */
 
-const unsigned mask[16] =
-        {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,0x8000};
+const unsigned mask[32] =
+        {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,0x8000,
+         0x10000,0x20000,0x40000,0x80000,0x100000,0x200000,0x400000,0x800000,
+         0x1000000,0x2000000,0x4000000,0x8000000,
+         0x10000000,0x20000000,0x40000000,0x80000000};
 
 #if 0
 const unsigned long maskl[32] =
@@ -232,9 +223,10 @@ vec_t   defkill = NULL,         /* vector of AEs killed by an ambiguous */
 
 /* From debug.c */
 #if DEBUG
-const char *regstring[16] = {"AX","CX","DX","BX","SP","BP","SI","DI",
-                            "8","ES","PSW","STACK","MEM","OTHER",
-                                "ST0", "ST01"};
+const char *regstring[32] = {"AX","CX","DX","BX","SP","BP","SI","DI",
+                             "R8","R9","R10","R11","R12","R13","R14","R15",
+                             "XMM0","XMM1","XMM2","XMM3","XMM4","XMM5","XMM6","XMM7",
+                             "ES","PSW","STACK","ST0","ST01","NOREG","RMload","RMstore"};
 #endif
 
 /* From nwc.c */

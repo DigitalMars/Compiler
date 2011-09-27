@@ -99,15 +99,21 @@ enum TYM
     TYhfunc             = 0x39, // C function with hidden parameter
     TYnref              = 0x3A, // near reference
     TYfref              = 0x3B, // far reference
-    TYMAX               = 0x3C,
+
+    TYcent              = 0x3C, // 128 bit signed integer
+    TYucent             = 0x3D, // 128 bit unsigned integer
 
 #if MARS
 #define TYaarray        TYnptr
-#define TYdelegate      TYllong
-#define TYdarray        TYullong
+#define TYdelegate      (I64 ? TYcent : TYllong)
+#define TYdarray        (I64 ? TYucent : TYullong)
 #endif
+#endif
+
+    TYMAX               = 0x3E,
 };
 
+#if TX86
 // These change depending on memory model
 extern int TYptrdiff, TYsize, TYsize_t;
 
@@ -193,6 +199,9 @@ extern unsigned tytab[];
 
 #define tyreal(ty)      (tytab[(ty) & 0xFF] & TYFLreal)
 
+// Fits into 64 bit register
+#define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr) && tysize(ty) <= NPTRSIZE)
+
 #ifndef tyshort
 /* Types that are chars or shorts       */
 #define tyshort(ty)     (tytab[(ty) & 0xFF] & TYFLshort)
@@ -230,9 +239,11 @@ extern unsigned tytab[];
 
 /* Array to give the size in bytes of a type, -1 means error    */
 extern signed char tysize[];
+extern signed char tyalignsize[];
 
 // Give size of type
 #define tysize(ty)      tysize[(ty) & 0xFF]
+#define tyalignsize(ty) tyalignsize[(ty) & 0xFF]
 
 /* All data types that fit in exactly 8 bits    */
 #ifndef tybyte
@@ -249,7 +260,7 @@ extern signed char tysize[];
 #define tyfunc(ty)      (tytab[(ty) & 0xFF] & TYFLfunc)
 #endif
 
-/* Detect function type where parameters are pushed in reverse order    */
+/* Detect function type where parameters are pushed left to right    */
 #ifndef tyrevfunc
 #define tyrevfunc(ty)   (tytab[(ty) & 0xFF] & TYFLrevparam)
 #endif
@@ -286,7 +297,7 @@ extern const tym_t tytouns[];
 
 // Determine if parameter can go in register for TYjfunc
 #ifndef tyjparam
-#define tyjparam(ty)    (tysize(ty) <= intsize && !tyfloating(ty) && tybasic(ty) != TYstruct && tybasic(ty) != TYarray)
+#define tyjparam(ty)    (tysize(ty) <= NPTRSIZE && !tyfloating(ty) && tybasic(ty) != TYstruct && tybasic(ty) != TYarray)
 #endif
 
 /* Determine relaxed type       */
@@ -297,7 +308,7 @@ extern const tym_t tytouns[];
 /* Array to give the 'relaxed' type for relaxed type checking   */
 extern unsigned char _tyrelax[];
 #define type_relax      (config.flags3 & CFG3relax)     // !=0 if relaxed type checking
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define type_semirelax  (config.flags3 & CFG3semirelax) // !=0 if semi-relaxed type checking
 #else
 #define type_semirelax  type_relax

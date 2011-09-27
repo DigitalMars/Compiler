@@ -134,7 +134,7 @@ OBJ1c=getcmd.obj ini.obj init.obj inline.obj loadline.obj cppman.obj msc.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=struct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj
-OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj
+OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj code.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj
@@ -242,7 +242,7 @@ msgs2.h msgs2.c : msgsx.exe
         msgsx
 
 msgsx.exe : msgsx.c
-        sc msgsx -D$(TARGET)
+        dmc msgsx -D$(TARGET)
 
 ##################### ZIP ################################
 
@@ -263,7 +263,8 @@ SRC=    tassert.h html.h html.c \
         pragma.c cod1.c cg87.c cod4.c cgobj.c nwc.c getcmd.c tk.c cdef.h \
         cgelem.c rtlsym.h dt.c strtold.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
-        aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c
+        aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
+	ti_pvoid.c
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c
@@ -277,17 +278,23 @@ BUILDSRC= sppn.tra sccn.tra htodn.tra scppn.tra makefile
 
 LICENSE= backendlicense.txt artistic.txt gpl.txt
 
-VERSION=852
+VERSION=854
 
 zip:
         del dm$(VERSION).zip
         zip32 -u dm$(VERSION) $(RELEASE)
         del dm$(VERSION)src.zip
-        zip32 -u dm$(VERSION)src $(SRC) tdb.lib $(LICENSE)
+        zip32 -u dm$(VERSION)src $(SRC) tdb.lib $(LICENSE) backend.txt
         zip32 -u dm$(VERSION)src $(TKSRC)
         zip32 -u dm$(VERSION)src $(SHELLSRC)
         zip32 -u dm$(VERSION)src $(LIBSRC)
         zip32 -u dm$(VERSION)src $(BUILDSRC)
+
+detab:
+	detab $(SRC) $(TKSRC) $(SHELLSRC)
+
+tolf:
+	tolf $(SRC) $(TKSRC) $(SHELLSRC)
 
 install:
         cp $(SRC) $(BUILDSRC) tdb.lib $(LICENSE) \dm\src\dmc
@@ -350,10 +357,11 @@ objrecor.obj : $(DEP) $(objrecor.dep) objrecor.c
 out.obj : $(DEP) $(out.dep) out.c
 pragma.obj : $(DEP) $(pragma.dep) pragma.c
 pseudo.obj : $(DEP) $(pseudo.dep) pseudo.c
-ptrntab.obj : $(DEP) $(ptrntab.dep) ptrntab.c
+ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
 speller.obj : speller.h speller.c
 template.obj : $(DEP) $(template.dep) template.c
 ti_achar.obj : tinfo.h ti_achar.c
+ti_pvoid.obj : tinfo.h ti_pvoid.c
 tk.obj : $(DEP) $(tk.dep) tk.c
 type.obj : $(DEP) $(type.dep) type.c
 utf.obj : utf.h utf.c
@@ -369,7 +377,7 @@ func.obj : $(DEP) $(func.dep) func.c
 adl.obj : $(DEP) $(adl.dep) adl.c
 nspace.obj : $(DEP) $(nspace.dep) nspace.c
 nwc.obj : $(DEP) $(nwc.dep) nwc.c
-iasm.obj : $(DEP) $(iasm.dep) iasm.c
+iasm.obj : $(DEP) $(iasm.dep) iasm.h iasm.c
 go.obj : $(DEP) $(go.dep) go.c
 struct.obj : $(DEP) $(struct.dep) struct.c
 gflow.obj : $(DEP) $(gflow.dep) gflow.c

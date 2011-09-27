@@ -20,44 +20,44 @@ typedef symbol * (*scope_fp)(const char *id,void *root);
 struct Scope
 {
 #ifdef DEBUG
-    unsigned short	id;
-#define IDscope	0xDEAF
+    unsigned short      id;
+#define IDscope 0xDEAF
 #define scope_debug(s) assert((s)->id == IDscope)
 #else
 #define scope_debug(s)
 #endif
 
-    struct Scope *next;		// enclosing scope
-    void *root;			// root of symbol table
-    unsigned sctype;		// scope type
-#	define SCTglobal         1   // global table
-#	define SCTlocal	         2   // local table
-#	define SCTlabel	         4   // statement labels
-#	define SCTclass	         8   // class
-#	define SCTwith	      0x10   // with scope
-#	define SCTtempsym     0x20   // template symbol table
-#	define SCTtemparg     0x40   // template argument table
-#	define SCTmfunc	      0x80   // member function scope (like SCTclass,
-				     // but with implied "this" added)
-#	define SCTtag	     0x100   // tag symbol
-#	define SCTglobaltag  0x200   // global tag symbol
-#	define SCTnspace     0x400   // namespace
-#	define SCTparameter  0x800   // function prototype
-#	define SCTcglobal   0x1000   // extern "C" globals
+    struct Scope *next;         // enclosing scope
+    void *root;                 // root of symbol table
+    unsigned sctype;            // scope type
+#       define SCTglobal         1   // global table
+#       define SCTlocal          2   // local table
+#       define SCTlabel          4   // statement labels
+#       define SCTclass          8   // class
+#       define SCTwith        0x10   // with scope
+#       define SCTtempsym     0x20   // template symbol table
+#       define SCTtemparg     0x40   // template argument table
+#       define SCTmfunc       0x80   // member function scope (like SCTclass,
+                                     // but with implied "this" added)
+#       define SCTtag        0x100   // tag symbol
+#       define SCTglobaltag  0x200   // global tag symbol
+#       define SCTnspace     0x400   // namespace
+#       define SCTparameter  0x800   // function prototype
+#       define SCTcglobal   0x1000   // extern "C" globals
 
 // Modifiers:
-#	define SCTcover		0x2000	// pick Scover if there is one
-#	define SCTnoalias	0x4000	// don't do SCalias substitution
-#	define SCTcolcol	0x8000	// ignore symbols that are not
-					// class-names or namespace-names
-#	define SCTjoin		0x10000 // don't allow redefinition of names
-					// that appear in enclosing scope
+#       define SCTcover         0x2000  // pick Scover if there is one
+#       define SCTnoalias       0x4000  // don't do SCalias substitution
+#       define SCTcolcol        0x8000  // ignore symbols that are not
+                                        // class-names or namespace-names
+#       define SCTjoin          0x10000 // don't allow redefinition of names
+                                        // that appear in enclosing scope
 
-    scope_fp fpsearch;		// search function
-    Scope *using_scope;		// named during using-directive
-    list_t using_list;		// cleanup list
+    scope_fp fpsearch;          // search function
+    Scope *using_scope;         // named during using-directive
+    list_t using_list;          // cleanup list
 
-    symlist_t friends;		// SCTlocal: hidden friend class symbols
+    symlist_t friends;          // SCTlocal: hidden friend class symbols
 
     static void setScopeEnd(Scope *s_end);
     static int inTemplate();
@@ -65,7 +65,7 @@ struct Scope
     inline Symbol *checkSequence(Symbol *s);
 };
 
-extern Scope *scope_end;	// pointer to innermost scope
+extern Scope *scope_end;        // pointer to innermost scope
 
 void scope_print();
 Scope *scope_find(unsigned sct);

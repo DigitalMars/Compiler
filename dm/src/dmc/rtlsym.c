@@ -1,5 +1,5 @@
 // Copyright (C) 1996-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -27,7 +27,8 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 Symbol *rtlsym[RTLSYM_MAX];
 
 #if MARS
-#define FREGSAVED       (mES | mBP | mBX | mSI | mDI)
+// This varies depending on C ABI
+#define FREGSAVED       fregsaved
 #else
 #define FREGSAVED       (mBP | mBX | mSI | mDI)
 #endif
@@ -41,17 +42,13 @@ static Symbol rtlsym2[RTLSYM_MAX];
 void rtlsym_init()
 {
     static int inited;
-    type *t;
-    int i;
 
     if (!inited)
     {   inited++;
 
-#if MARS
-        fregsaved = FREGSAVED;
-#endif
+        //printf("rtlsym_init(%s)\n", regm_str(FREGSAVED));
 
-        for (i = 0; i < RTLSYM_MAX; i++)
+        for (int i = 0; i < RTLSYM_MAX; i++)
         {
             rtlsym[i] = &rtlsym2[i];
 #ifdef DEBUG
@@ -69,9 +66,14 @@ void rtlsym_init()
         }
 
 #if MARS
-        t = type_fake(LARGECODE ? TYffunc : TYnfunc);
+        type *t = type_fake(LARGECODE ? TYffunc : TYnfunc);
         t->Tmangle = mTYman_c;
         t->Tcount++;
+
+        // Variadic function
+        type *tv = type_fake(LARGECODE ? TYffunc : TYnfunc);
+        tv->Tmangle = mTYman_c;
+        tv->Tcount++;
 #endif
 
 #if MACHOBJ

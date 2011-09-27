@@ -10,38 +10,38 @@
  * For any other uses, please contact Digital Mars.
  */
 
-/* Read in characters from a block.			*/
+/* Read in characters from a block.                     */
 
 #if TX86 && __INTSIZE == 2 && !(__SMALL__ || __COMPACT__)
 //#pragma ZTC cseg TOKEN
 #pragma ZTC cseg TOKEN_TEXT
 #endif
 
-#include	<stdio.h>
+#include        <stdio.h>
 #ifdef THINK_CPLUS
 #include "transio.h"
 #endif
 
-#include	<string.h>
-#include	<malloc.h>
-#include	"ctype.h"
-#include	"cc.h"
-#include	"global.h"
-#include	"parser.h"
-#include	"token.h"
+#include        <string.h>
+#include        <malloc.h>
+#include        "ctype.h"
+#include        "cc.h"
+#include        "global.h"
+#include        "parser.h"
+#include        "token.h"
 #if TARGET_MAC
-#include	"TG.h"
+#include        "TG.h"
 #endif
-#include	"filespec.h"
-#include	"outbuf.h"
+#include        "filespec.h"
+#include        "outbuf.h"
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
-#if linux || __APPLE__ || __FreeBSD__
-#define PATS_FIXES	1
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#define PATS_FIXES      1
 #else
-#define PATS_FIXES	0
+#define PATS_FIXES      0
 #endif
 
 #if TX86
@@ -53,35 +53,35 @@ INITIALIZED_STATIC_DEF blklst * last_blsave;
 STATIC void freeblk(blklst *);
 
 #if TARGET_MAC
-INITIALIZED_STATIC_DEF blklst *bl_freelist = NULL;	/* pointer to next free blk	*/
-#elif TX86 
-static blklst *bl_freelist = NULL;	/* pointer to next free blk	*/
+INITIALIZED_STATIC_DEF blklst *bl_freelist = NULL;      /* pointer to next free blk     */
+#elif TX86
+static blklst *bl_freelist = NULL;      /* pointer to next free blk     */
 #endif
 
-Srcpos lastpos = { 
-0, 	// line number
+Srcpos lastpos = {
+0,      // line number
 #if TX86
-0,	// file number
+0,      // file number
 #else
--1,	// file number
+-1,     // file number
 #endif
 #if SOURCE_OFFSETS
-0 	// byte offset
+0       // byte offset
 #endif
-};	// last filename/line seen
+};      // last filename/line seen
 
 #if TX86
-blklst * bl = NULL;	/* current block pointer		*/
-unsigned char * btextp = NULL;	// set to bl->BLtextp
+blklst * bl = NULL;     /* current block pointer                */
+unsigned char * btextp = NULL;  // set to bl->BLtextp
 
 
 /* Expanded version of source file: */
 
 char *eline = NULL;
-int elinmax = 0;		/* # of chars in buffer eline[]		*/
-int elini = 0;			/* index into eline[]			*/
-int elinnum = 1;		/* expanded line number			*/
-int expflag = 0;		/* != 0 means not expanding list file	*/
+int elinmax = 0;                /* # of chars in buffer eline[]         */
+int elini = 0;                  /* index into eline[]                   */
+int elinnum = 1;                /* expanded line number                 */
+int expflag = 0;                /* != 0 means not expanding list file   */
 #endif
 
 STATIC unsigned char * stringize(unsigned char *text);
@@ -89,7 +89,7 @@ STATIC unsigned char * stringize(unsigned char *text);
 /************************************
  * Get and return current file block pointer.
  * Returns:
- *	NULL	if no more files
+ *      NULL    if no more files
  */
 
 blklst *blklst_getfileblock()
@@ -100,17 +100,17 @@ blklst *blklst_getfileblock()
     b = bl;
     while (1)
     {
-	if (b)
-	{   if (b->BLtyp == BLfile)
-		break;
-	    b = b->BLprev;
-	}
-	else if (i)
-	    break;
-	else
-	{   b = last_blsave;
-	    i++;
-	}
+        if (b)
+        {   if (b->BLtyp == BLfile)
+                break;
+            b = b->BLprev;
+        }
+        else if (i)
+            break;
+        else
+        {   b = last_blsave;
+            i++;
+        }
     }
     return b;
 }
@@ -123,75 +123,75 @@ void putback(int c)
 {
     if (c != PRE_EOF)
     {
-	//printf("putback('%c')\n", c);
-	//if (c == PRE_SPACE) *(char*)0=0;
+        //printf("putback('%c')\n", c);
+        //if (c == PRE_SPACE) *(char*)0=0;
 #ifdef DEBUG
-	assert(btextp > bl->BLtext);
+        assert(btextp > bl->BLtext);
 #endif
-	*--btextp = c;
+        *--btextp = c;
     }
 }
 
 /**********************************
  * Take care of expanded listing.
  * Input:
- *	c	=	expanded character
- *	expflag	=	if !=0, then don't insert chars in eline[]
+ *      c       =       expanded character
+ *      expflag =       if !=0, then don't insert chars in eline[]
  * Output:
- *	eline[] =	current line of expanded output
- *	elini =		index into eline[] to last char to be read
- *	elinnum =	line number of expanded output
+ *      eline[] =       current line of expanded output
+ *      elini =         index into eline[] to last char to be read
+ *      elinnum =       line number of expanded output
  */
 
 void explist(HINT c)
 {
     if (expflag)
-	return;
+        return;
     if (c == PRE_SPACE)
-	return;
+        return;
 //  if (c == ' ' && (bl && bl->BLflags & BLspace))
-//	return;	
+//      return;
     //printf("explist('%c', %x), elini = %d\n",c,c,elini);
-    if (elini && (iseol(eline[elini - 1])	// if end of line character
+    if (elini && (iseol(eline[elini - 1])       // if end of line character
 #if SPP
-	|| c == PRE_EOF
+        || c == PRE_EOF
 #endif
        ))
     {
 #if SPP
-	int linnum;
-	blklst *b;
+        int linnum;
+        blklst *b;
 
-	if (*eline && *eline != '\n')	/* if line is not blank		*/
-	{
-	    b = cstate.CSfilblk;
-	    if (b)
-	    {
-		linnum = b->BLsrcpos.Slinnum - 1;
-		if (!lastpos.Sfilptr || *lastpos.Sfilptr != *b->BLsrcpos.Sfilptr)
-		{   char *p;
+        if (*eline && *eline != '\n')   /* if line is not blank         */
+        {
+            b = cstate.CSfilblk;
+            if (b)
+            {
+                linnum = b->BLsrcpos.Slinnum - 1;
+                if (!lastpos.Sfilptr || *lastpos.Sfilptr != *b->BLsrcpos.Sfilptr)
+                {   char *p;
 
-		    lastpos.Sfilptr = b->BLsrcpos.Sfilptr;
-		    if (!(config.flags3 & CFG3noline))
-		        fprintf(fout,"#line %d \"%s\"\n",linnum,srcpos_name(lastpos));
-		}
-		else if (linnum != elinnum)
-		{
-		    if (linnum == elinnum + 1)
-			fputc('\n',fout);
-		    else if (!(config.flags3 & CFG3noline))
-			fprintf(fout,"#line %d\n",linnum);
-		}
-		elinnum = linnum;
-	    }
-	}
-	wrtexp(fout);
+                    lastpos.Sfilptr = b->BLsrcpos.Sfilptr;
+                    if (!(config.flags3 & CFG3noline))
+                        fprintf(fout,"#line %d \"%s\"\n",linnum,srcpos_name(lastpos));
+                }
+                else if (linnum != elinnum)
+                {
+                    if (linnum == elinnum + 1)
+                        fputc('\n',fout);
+                    else if (!(config.flags3 & CFG3noline))
+                        fprintf(fout,"#line %d\n",linnum);
+                }
+                elinnum = linnum;
+            }
+        }
+        wrtexp(fout);
 #else
-	if (flst) wrtexp(flst);		/* if we're making a list file	*/
+        if (flst) wrtexp(flst);         /* if we're making a list file  */
 #endif
-	elini = 0;
-	eline[0] = 0;
-	elinnum++;			/* line number			*/
+        elini = 0;
+        eline[0] = 0;
+        elinnum++;                      /* line number                  */
     }
     expinsert(c);
 }
@@ -214,10 +214,10 @@ void expstring(char *p)
 void expinsert(int c)
 {
   if (!(config.flags2 & CFG2expand) || !c || c == PRE_SPACE)
-	return;
+        return;
   if (elini + 1 >= elinmax)
-  {	elinmax += 80;
-	eline = (char *) MEM_PERM_REALLOC(eline,elinmax);
+  {     elinmax += 80;
+        eline = (char *) MEM_PERM_REALLOC(eline,elinmax);
   }
   eline[elini++] = c;
   eline[elini] = 0;
@@ -239,8 +239,8 @@ void expbackup()
     if (config.flags2 & CFG2expand && EXPANDING_LISTING() && elini != 0)
 #endif
     {
-	//printf("expbackup()\n");
-	eline[--elini] = 0;
+        //printf("expbackup()\n");
+        eline[--elini] = 0;
     }
 }
 
@@ -253,46 +253,46 @@ void expbackup()
 void wrtexp(FILE *fstream)
 {
     if (!eline)
-	return;
+        return;
 
     for (char *p = eline; 1; p++)
-    {	unsigned char c = *p;
+    {   unsigned char c = *p;
 
-	switch (c)
-	{
-	    case 0:
-		crlf(fstream);
-		return;
+        switch (c)
+        {
+            case 0:
+                crlf(fstream);
+                return;
 
-	    case CR:
-	    case LF:
-		break;
+            case CR:
+            case LF:
+                break;
 
-	    case PRE_BRK:
-		if (eline < p && p[1] != 0)
-		{   unsigned char xclast, xcnext;
+            case PRE_BRK:
+                if (eline < p && p[1] != 0)
+                {   unsigned char xclast, xcnext;
 
-		    xclast = p[-1];
-		    while (1)
-		    {
-			xcnext = p[1];
-			if (xcnext != PRE_BRK)
-			    break;
-			p++;
-		    }
+                    xclast = p[-1];
+                    while (1)
+                    {
+                        xcnext = p[1];
+                        if (xcnext != PRE_BRK)
+                            break;
+                        p++;
+                    }
 
-		    if (!isspace(xclast) && !isspace(xcnext) &&
-			insertSpace(xclast, xcnext))
-		    {
-			fputc(' ', fstream);
-		    }
-		}
-		break;
+                    if (!isspace(xclast) && !isspace(xcnext) &&
+                        insertSpace(xclast, xcnext))
+                    {
+                        fputc(' ', fstream);
+                    }
+                }
+                break;
 
-	    default:
-		fputc(c, fstream);
-		break;
-	}
+            default:
+                fputc(c, fstream);
+                break;
+        }
     }
 }
 
@@ -310,18 +310,18 @@ unsigned char *trimWhiteSpace(unsigned char *text)
     // Remove leading
     while (1)
     {
-	if (*p == ' ' || *p == PRE_BRK)
-	{
-	    memmove(p, p + 1, len);
-	    len--;
-	}
-	else if (*p == PRE_SPACE)
-	{
-	    len--;
-	    p++;
-	}
-	else
-	    break;
+        if (*p == ' ' || *p == PRE_BRK)
+        {
+            memmove(p, p + 1, len);
+            len--;
+        }
+        else if (*p == PRE_SPACE)
+        {
+            len--;
+            p++;
+        }
+        else
+            break;
     }
 
     // Remove trailing
@@ -329,20 +329,20 @@ unsigned char *trimWhiteSpace(unsigned char *text)
     p += len;
     while (len)
     {
-	p--;
-	if (*p == ' ' || *p == PRE_BRK)
-	    len--;
-	else if (*p == PRE_SPACE)
-	{   n++;
-	    len--;
-	}
-	else
-	{   p++;
-	    break;
-	}
+        p--;
+        if (*p == ' ' || *p == PRE_BRK)
+            len--;
+        else if (*p == PRE_SPACE)
+        {   n++;
+            len--;
+        }
+        else
+        {   p++;
+            break;
+        }
     }
     if (n)
-	memset(p, PRE_SPACE, n);
+        memset(p, PRE_SPACE, n);
     p[n] = 0;
 
     //printf("-trimWhiteSpace('%s')\n", text);
@@ -363,29 +363,29 @@ unsigned char *trimPreWhiteSpace(unsigned char *text)
     // Remove leading
     while (1)
     {
-	if (*p == ' ' || *p == PRE_SPACE || *p == PRE_BRK)
-	{
-	    memmove(p, p + 1, len);
-	    len--;
-	}
-	else
-	    break;
+        if (*p == ' ' || *p == PRE_SPACE || *p == PRE_BRK)
+        {
+            memmove(p, p + 1, len);
+            len--;
+        }
+        else
+            break;
     }
 
     while (len)
     {
-	if (*p == PRE_SPACE || *p == PRE_BRK)
-	{
-	    memmove(p, p + 1, len);
-	}
-	else
-	    p++;
-	len--;
+        if (*p == PRE_SPACE || *p == PRE_BRK)
+        {
+            memmove(p, p + 1, len);
+        }
+        else
+            p++;
+        len--;
     }
 
     // Remove trailing
     while (p > text && p[-1] == ' ')
-	p--;
+        p--;
     *p = 0;
 
     //printf("-trimPreWhiteSpace('%s')\n", text);
@@ -399,19 +399,19 @@ unsigned char *trimPreWhiteSpace(unsigned char *text)
 unsigned char *getIthArg(list_t args, int argi)
 {
     while (1)
-    {	if (!args)
-	    return NULL;
- 	if (argi == 1)
-	    return (unsigned char *)list_ptr(args);
-	args = list_next(args);
-	argi--;
+    {   if (!args)
+            return NULL;
+        if (argi == 1)
+            return (unsigned char *)list_ptr(args);
+        args = list_next(args);
+        argi--;
     }
 }
 
 /*******************************************
  * Build macro replacement text.
  * Returns:
- *	string that must be parc_free'd
+ *      string that must be parc_free'd
  */
 
 unsigned char *macro_replacement_text(macro_t *m, list_t args)
@@ -428,131 +428,131 @@ unsigned char *macro_replacement_text(macro_t *m, list_t args)
 
     for (unsigned char *q = (unsigned char *)m->Mtext; *q; q++)
     {
-	if (*q == PRE_ARG)
-	{   unsigned char argi;
-	    unsigned char *a;
-	    unsigned char argj;
-	    unsigned char *b;
-	    int expand = 1;
-	    int trimleft = 0;
-	    int trimright = 0;
+        if (*q == PRE_ARG)
+        {   unsigned char argi;
+            unsigned char *a;
+            unsigned char argj;
+            unsigned char *b;
+            int expand = 1;
+            int trimleft = 0;
+            int trimright = 0;
 
-	Lagain2:
-	    argi = *++q;
-	    switch (argi)
-	    {
-		case PRE_ARG:		// PRE_ARG was 'quoted'
-		    buffer.writeByte(xc);
-		    continue;
+        Lagain2:
+            argi = *++q;
+            switch (argi)
+            {
+                case PRE_ARG:           // PRE_ARG was 'quoted'
+                    buffer.writeByte(xc);
+                    continue;
 
-		case PRE_STR:		// stringize argument
-		    argi = *++q;
-		    a = getIthArg(args, argi);
-		    a = stringize(a);
-		    buffer.write(a);
-		    parc_free(a);
-		    continue;
+                case PRE_STR:           // stringize argument
+                    argi = *++q;
+                    a = getIthArg(args, argi);
+                    a = stringize(a);
+                    buffer.write(a);
+                    parc_free(a);
+                    continue;
 
-		case PRE_CAT:
-		    if (q[1] == PRE_ARG)
-		    {	expand = 0;
-			trimleft = 1;
-			q++;
-			goto Lagain2;
-		    }
-		    continue;		// ignore
+                case PRE_CAT:
+                    if (q[1] == PRE_ARG)
+                    {   expand = 0;
+                        trimleft = 1;
+                        q++;
+                        goto Lagain2;
+                    }
+                    continue;           // ignore
 
-		default:
-		    // If followed by CAT, don't expand
-		    if (q[1] == PRE_ARG && q[2] == PRE_CAT)
-		    {	expand = 0;
-			trimright = 1;
+                default:
+                    // If followed by CAT, don't expand
+                    if (q[1] == PRE_ARG && q[2] == PRE_CAT)
+                    {   expand = 0;
+                        trimright = 1;
 
-			/* Special case of PRE_ARG i PRE_ARG PRE_CAT PRE_ARG j
-			 * Paul Mensonides writes:
-			 * In summary, blue paint (PRE_EXP) on either operand of
-			 * ## should be discarded unless the concatenation doesn't
-			 * produce a new identifier--which can only happen (in
-			 * well-defined code) via the concatenation of a
-			 * placemarker.  (Concatenation that doesn't produce a
-			 * single preprocessing token produces undefined
-			 * behavior.)
-			 */
-			if (q[3] == PRE_ARG &&
-			    (argj = q[4]) != PRE_ARG &&
-			    argj != PRE_STR &&
-			    argj != PRE_CAT)
-			{
-			    //printf("\tspecial CAT case\n");
-			    a = getIthArg(args, argi);
-			    size_t len = strlen((char *) a);
-			    while (len && (a[len - 1] == ' ' || a[len - 1] == PRE_SPACE))
-				len--;
+                        /* Special case of PRE_ARG i PRE_ARG PRE_CAT PRE_ARG j
+                         * Paul Mensonides writes:
+                         * In summary, blue paint (PRE_EXP) on either operand of
+                         * ## should be discarded unless the concatenation doesn't
+                         * produce a new identifier--which can only happen (in
+                         * well-defined code) via the concatenation of a
+                         * placemarker.  (Concatenation that doesn't produce a
+                         * single preprocessing token produces undefined
+                         * behavior.)
+                         */
+                        if (q[3] == PRE_ARG &&
+                            (argj = q[4]) != PRE_ARG &&
+                            argj != PRE_STR &&
+                            argj != PRE_CAT)
+                        {
+                            //printf("\tspecial CAT case\n");
+                            a = getIthArg(args, argi);
+                            size_t len = strlen((char *) a);
+                            while (len && (a[len - 1] == ' ' || a[len - 1] == PRE_SPACE))
+                                len--;
 
-			    b = getIthArg(args, argj);
-			    unsigned char *bstart = b;
-			    while (*b == ' ' || *b == PRE_SPACE || *b == PRE_EXP)
-				b++;
-			    if (!isidchar(*b))
-				break;
-			    if (!len && b > bstart && b[-1] == PRE_EXP)
-			     {	// Keep the PRE_EXP
-				buffer.write(b - 1);
-				q += 4;
-				continue;
-			     }
+                            b = getIthArg(args, argj);
+                            unsigned char *bstart = b;
+                            while (*b == ' ' || *b == PRE_SPACE || *b == PRE_EXP)
+                                b++;
+                            if (!isidchar(*b))
+                                break;
+                            if (!len && b > bstart && b[-1] == PRE_EXP)
+                             {  // Keep the PRE_EXP
+                                buffer.write(b - 1);
+                                q += 4;
+                                continue;
+                             }
 
-			    unsigned char *pe = (unsigned char *)strrchr((char *)a, PRE_EXP);
-			    if (!pe)
-				break;
-			    if (!isidstart(pe[1]))
-				break;
+                            unsigned char *pe = (unsigned char *)strrchr((char *)a, PRE_EXP);
+                            if (!pe)
+                                break;
+                            if (!isidstart(pe[1]))
+                                break;
 
-			    for (size_t k = pe + 1 - a; k < len; k++)
-			    {
-				if (!isidchar(a[k]))
-				    goto L1;
-			    }
+                            for (size_t k = pe + 1 - a; k < len; k++)
+                            {
+                                if (!isidchar(a[k]))
+                                    goto L1;
+                            }
 
-			    buffer.write(a, pe - a);
-			    buffer.write(pe + 1, len - (pe + 1 - a));
-			    buffer.write(b);
-			    q += 4;
-			    continue;
-			}
-		    }
-		    break;
-	    }
-	L1:
-	    a = getIthArg(args, argi);
-	    //printf("\targ[%d] = '%s'\n", argi, a);
-	    if (expand)
-	    {
-		a = macro_expand(a);
-		trimPreWhiteSpace(a);
-		buffer.write(a);
-		parc_free(a);
-	    }
-	    else
-	    {	unsigned char *p = a;
-		size_t len = strlen((char *) p);
-		if (trimleft)
-		{
-		    while (len && (*p == ' ' || *p == PRE_SPACE || *p == PRE_EXP))
-		    {	p++;
-			len--;
-		    }
-		}
-		if (trimright)
-		{
-		    while (len && (p[len - 1] == ' ' || p[len - 1] == PRE_SPACE))
-			len--;
-		}
-		buffer.write(p, len);
-	    }
-	}
-	else
-	    buffer.writeByte(*q);
+                            buffer.write(a, pe - a);
+                            buffer.write(pe + 1, len - (pe + 1 - a));
+                            buffer.write(b);
+                            q += 4;
+                            continue;
+                        }
+                    }
+                    break;
+            }
+        L1:
+            a = getIthArg(args, argi);
+            //printf("\targ[%d] = '%s'\n", argi, a);
+            if (expand)
+            {
+                a = macro_expand(a);
+                trimPreWhiteSpace(a);
+                buffer.write(a);
+                parc_free(a);
+            }
+            else
+            {   unsigned char *p = a;
+                size_t len = strlen((char *) p);
+                if (trimleft)
+                {
+                    while (len && (*p == ' ' || *p == PRE_SPACE || *p == PRE_EXP))
+                    {   p++;
+                        len--;
+                    }
+                }
+                if (trimright)
+                {
+                    while (len && (p[len - 1] == ' ' || p[len - 1] == PRE_SPACE))
+                        len--;
+                }
+                buffer.write(p, len);
+            }
+        }
+        else
+            buffer.writeByte(*q);
     }
 
     list_free(&args,MEM_PARF_FREEFP);
@@ -568,7 +568,7 @@ unsigned char *macro_replacement_text(macro_t *m, list_t args)
 /********************************************
  * Rescan macro replacement text.
  * Returns:
- *	string that must be parc_free'd
+ *      string that must be parc_free'd
  */
 
 unsigned char *macro_rescan(macro_t *m, unsigned char *text)
@@ -581,11 +581,11 @@ unsigned char *macro_rescan(macro_t *m, unsigned char *text)
 
     if (!*result)
     {
-	// result is empty, replace with a PRE_SPACE
-	parc_free(result);
-	result = (unsigned char *)parc_malloc(2);
-	result[0] = PRE_SPACE;
-	result[1] = 0;
+        // result is empty, replace with a PRE_SPACE
+        parc_free(result);
+        result = (unsigned char *)parc_malloc(2);
+        result[0] = PRE_SPACE;
+        result[1] = 0;
     }
     return result;
 }
@@ -594,20 +594,20 @@ unsigned char *macro_rescan(macro_t *m, unsigned char *text)
 /*****************************************
  * Return copied string which is a fully macro expanded text.
  * Returns:
- *	string that must be parc_free'd
+ *      string that must be parc_free'd
  */
 
 unsigned char *macro_expand(unsigned char *text)
 {
-#define LOG_MACRO_EXPAND	0
+#define LOG_MACRO_EXPAND        0
 
 #if LOG_MACRO_EXPAND
     printf("+macro_expand(text = '%s')\n", text);
 #endif
 
-    int tc;				// terminating char of string
-    int notinstr = 1;			// 0 if we're in a string
-    int lastxc = ' ';			// last char read
+    int tc;                             // terminating char of string
+    int notinstr = 1;                   // 0 if we're in a string
+    int lastxc = ' ';                   // last char read
     unsigned char blflags = 0;
 
     // ==========
@@ -638,152 +638,152 @@ unsigned char *macro_expand(unsigned char *text)
 
     while (1)
     {
-	buffer.reserve(4);
+        buffer.reserve(4);
 
-	//printf("xc = '%c'\n", xc);
-	switch (xc)
-	{
-	    case '\\':
-		if (lastxc == '\\')
-		{   lastxc = ' ';
-		    goto L1;
-		}
-		break;
+        //printf("xc = '%c'\n", xc);
+        switch (xc)
+        {
+            case '\\':
+                if (lastxc == '\\')
+                {   lastxc = ' ';
+                    goto L1;
+                }
+                break;
 
-	    case '\'':
-	    case '"':			// if a string delimiter
-		if (!notinstr)		// if already in a string
-		{   if (xc == tc && lastxc != '\\')
-		    notinstr = 1;	// drop out of string
-		}
-		else
-		{   tc = xc;		// terminating char of string
-		    notinstr = 0;	// we're in a string
-		}
-		break;
+            case '\'':
+            case '"':                   // if a string delimiter
+                if (!notinstr)          // if already in a string
+                {   if (xc == tc && lastxc != '\\')
+                    notinstr = 1;       // drop out of string
+                }
+                else
+                {   tc = xc;            // terminating char of string
+                    notinstr = 0;       // we're in a string
+                }
+                break;
 
-	    case PRE_EXP:
-		if (notinstr)
-		{
-		    buffer.writeByte(PRE_EXP);
-		    egchar();
-		    if (isidstart(xc))
-		    {	/* Read in identifier, but do not check to
-			 * see if it is a macro.
-			 * Just pass it through.
-			 */
-			inident();
-			buffer.write(tok_ident);
-			lastxc = ' ';
-			continue;
-		    }
-		}
-		break;
+            case PRE_EXP:
+                if (notinstr)
+                {
+                    buffer.writeByte(PRE_EXP);
+                    egchar();
+                    if (isidstart(xc))
+                    {   /* Read in identifier, but do not check to
+                         * see if it is a macro.
+                         * Just pass it through.
+                         */
+                        inident();
+                        buffer.write(tok_ident);
+                        lastxc = ' ';
+                        continue;
+                    }
+                }
+                break;
 
-	    case PRE_EOB:		// if end of text[]
-		goto Ldone;
+            case PRE_EOB:               // if end of text[]
+                goto Ldone;
 
-	    default:
-		if (dbcs && ismulti(xc))	// if asian 2 byte char
-		{   buffer.writeByten(xc);
-		    lastxc = xc;
-		L2:
-		    xc = egchar();	// no processing for this char
-		    goto L1;
-		}
+            default:
+                if (dbcs && ismulti(xc))        // if asian 2 byte char
+                {   buffer.writeByten(xc);
+                    lastxc = xc;
+                L2:
+                    xc = egchar();      // no processing for this char
+                    goto L1;
+                }
 
-		if (notinstr && isidstart(xc))
-		{
-		    macro_t *m;
+                if (notinstr && isidstart(xc))
+                {
+                    macro_t *m;
 
-		    blflags = bl->BLflags;
-		    inident();		// read in identifier
+                    blflags = bl->BLflags;
+                    inident();          // read in identifier
 
 #if LOG_MACRO_EXPAND
-		    printf("\ttok_ident[] = '%s'\n", tok_ident);
+                    printf("\ttok_ident[] = '%s'\n", tok_ident);
 #endif
-		    /* Handle case of 1234ULL.
-		     * BUG: still regards ABC as a macro in: 0x123.ABC
-		     */
-		    if (!isdigit(lastxc))
-		    {
-			// Determine if tok_ident[] is a macro
-			char *idsave = tok.TKid;
-			tok.TKid = tok_ident;
-			if (blflags & BLexpanded && bl && bl->BLflags & BLexpanded)
-			{   /* Identifier was already scanned, and is
-			     * not the last token in the scanned text.
-			     */
-			    tok.TKid = idsave;
-			    buffer.write(tok_ident);
-			    lastxc = ' ';
-			    continue;
-			}
-			m = macfind();
-			tok.TKid = idsave;
+                    /* Handle case of 1234ULL.
+                     * BUG: still regards ABC as a macro in: 0x123.ABC
+                     */
+                    if (!isdigit(lastxc))
+                    {
+                        // Determine if tok_ident[] is a macro
+                        char *idsave = tok.TKid;
+                        tok.TKid = tok_ident;
+                        if (blflags & BLexpanded && bl && bl->BLflags & BLexpanded)
+                        {   /* Identifier was already scanned, and is
+                             * not the last token in the scanned text.
+                             */
+                            tok.TKid = idsave;
+                            buffer.write(tok_ident);
+                            lastxc = ' ';
+                            continue;
+                        }
+                        m = macfind();
+                        tok.TKid = idsave;
 
-			if (m && m->Mflags & Mdefined)
-			{   list_t args;
+                        if (m && m->Mflags & Mdefined)
+                        {   list_t args;
 
-			    if (m->Mflags & Minuse)
-			    {
-				// Mark this identifier as being disabled
-				buffer.writeByten(PRE_EXP);
-			    }
-			    else if (!m->Mtext)
-			    {	// Predefined macro
-				unsigned char *p = macro_predefined(m);
-				putback(xc);
-				if (p)
-				    insblk2(p, BLstr);
-				egchar();
-				lastxc = ' ';
-				continue;
-			    }
-			    else if (macprocess(m, &args, &blsave))
-			    {	unsigned char *p;
-				unsigned char *q;
-				unsigned char xcnext = xc;
-				unsigned char xclast;
-				static unsigned char brk[2] = { PRE_BRK, 0 };
+                            if (m->Mflags & Minuse)
+                            {
+                                // Mark this identifier as being disabled
+                                buffer.writeByten(PRE_EXP);
+                            }
+                            else if (!m->Mtext)
+                            {   // Predefined macro
+                                unsigned char *p = macro_predefined(m);
+                                putback(xc);
+                                if (p)
+                                    insblk2(p, BLstr);
+                                egchar();
+                                lastxc = ' ';
+                                continue;
+                            }
+                            else if (macprocess(m, &args, &blsave))
+                            {   unsigned char *p;
+                                unsigned char *q;
+                                unsigned char xcnext = xc;
+                                unsigned char xclast;
+                                static unsigned char brk[2] = { PRE_BRK, 0 };
 
-				putback(xc);
-				p = macro_replacement_text(m, args);
-				q = macro_rescan(m, p);
-				parc_free(p);
+                                putback(xc);
+                                p = macro_replacement_text(m, args);
+                                q = macro_rescan(m, p);
+                                parc_free(p);
 
-				/*
-				 * Insert break if necessary to prevent
-				 * token concatenation.
-				 */
-				if (!isspace(xcnext))
-				{
-				    insblk2(brk, BLrtext);
-				}
+                                /*
+                                 * Insert break if necessary to prevent
+                                 * token concatenation.
+                                 */
+                                if (!isspace(xcnext))
+                                {
+                                    insblk2(brk, BLrtext);
+                                }
 
-				insblk2(q, BLstr);
-				bl->BLflags |= BLexpanded;
-				insblk2(brk, BLrtext);
-				egchar();
-				lastxc = ' ';
-				continue;
-			    }
-			}
-		    }
-		    buffer.write(tok_ident);
-		    lastxc = ' ';
-		    continue;
-		}
-		break;
-	}
-	lastxc = xc;
+                                insblk2(q, BLstr);
+                                bl->BLflags |= BLexpanded;
+                                insblk2(brk, BLrtext);
+                                egchar();
+                                lastxc = ' ';
+                                continue;
+                            }
+                        }
+                    }
+                    buffer.write(tok_ident);
+                    lastxc = ' ';
+                    continue;
+                }
+                break;
+        }
+        lastxc = xc;
 
     L1:
 #if LOG_MACRO_EXPAND
-	printf("\twriteByten('%c', x%02x)\n", xc, xc);
+        printf("\twriteByten('%c', x%02x)\n", xc, xc);
 #endif
-	buffer.writeByten(xc);
-	egchar();
+        buffer.writeByten(xc);
+        egchar();
     }
 
   Ldone:
@@ -808,7 +808,7 @@ unsigned char *macro_expand(unsigned char *text)
 #if LOG_MACRO_EXPAND
     printf("\tlen = %d\n", len);
 //    for (int i = 0; i < len; i++)
-//	printf("\tx%02x\n", string[i]);
+//      printf("\tx%02x\n", string[i]);
     printf("-macro_expand() = '%s', expflag = %d\n", string, expflag);
 #endif
     return string;
@@ -819,7 +819,7 @@ unsigned char *macro_expand(unsigned char *text)
  * Bugs: Comments are not dealt with in text string.
  * Input:
  * Returns:
- *	string that must be parc_free'd
+ *      string that must be parc_free'd
  */
 
 STATIC unsigned char * stringize(unsigned char *text)
@@ -836,14 +836,14 @@ STATIC unsigned char * stringize(unsigned char *text)
 
     // Trim leading whitespace
     while (*text == ' ' || *text == PRE_SPACE || *text == PRE_BRK)
-	text++;
+        text++;
 
     len = strlen((char *)text);
 
     // Trim trailing whitespace
     while (len && ((c = text[len - 1]) == ' ' ||
-	   c == PRE_SPACE || c == PRE_BRK))
-	len--;
+           c == PRE_SPACE || c == PRE_BRK))
+        len--;
 
     buffer.reserve(len + 2 + 1);
     buffer.writeByten('"');
@@ -852,42 +852,42 @@ STATIC unsigned char * stringize(unsigned char *text)
     esc = 0;
     for (size_t i = 0; i < len; i++)
     {
-	unsigned char c = text[i];
-	switch (c)
-	{
-	    case '"':
-		buffer.writeByte('\\');
-	    case '\'':
-		if (tc)
-		{
-		   if (tc == c && !esc)
-			tc = 0;
-		}
-		else
-		    tc = c;
-		esc = 0;
-		break;
+        unsigned char c = text[i];
+        switch (c)
+        {
+            case '"':
+                buffer.writeByte('\\');
+            case '\'':
+                if (tc)
+                {
+                   if (tc == c && !esc)
+                        tc = 0;
+                }
+                else
+                    tc = c;
+                esc = 0;
+                break;
 
-	    case '?':
-		buffer.writeByte('\\');
-		break;
+            case '?':
+                buffer.writeByte('\\');
+                break;
 
-	    case '\\':
-		if (tc)
-		{   buffer.writeByte('\\');
-		    esc ^= 1;
-		}
-		break;
+            case '\\':
+                if (tc)
+                {   buffer.writeByte('\\');
+                    esc ^= 1;
+                }
+                break;
 
-	    case PRE_EXP:
-	    case PRE_BRK:
-		continue;		// skip markers
+            case PRE_EXP:
+            case PRE_BRK:
+                continue;               // skip markers
 
-	    default:
-		esc = 0;
-		break;
-	}
-	buffer.writeByte(c);
+            default:
+                esc = 0;
+                break;
+        }
+        buffer.writeByte(c);
     }
 
   Ldone:
@@ -908,12 +908,12 @@ STATIC unsigned char * stringize(unsigned char *text)
  * Back up a block if the current one ran out.
  * Substitute arguments.
  * Input:
- *	bl ->	current block
+ *      bl ->   current block
  * Output:
- *	bl ->	current block (may be previous one)
+ *      bl ->   current block (may be previous one)
  * Returns:
- *	char
- *	0 if end of input
+ *      char
+ *      0 if end of input
  */
 
 UHINT egchar2()
@@ -922,61 +922,61 @@ UHINT egchar2()
 Lagain:
     while (1)
     {
-	debug_assert(bl);
-	//dbg_printf("egchar2 xc '%c'\n",*btextp);
-	if ((xc = *btextp++) == PRE_EOB)
-	{   char btyp = bl->BLtyp;
+        debug_assert(bl);
+        //dbg_printf("egchar2 xc '%c'\n",*btextp);
+        if ((xc = *btextp++) == PRE_EOB)
+        {   char btyp = bl->BLtyp;
 
-	    if (btyp == BLfile)
-	    {
+            if (btyp == BLfile)
+            {
 #if EECONTEXT
-		//printf("EEpending = %d, EElinnum = %d\n",eecontext.EEpending,eecontext.EElinnum);
-		if (eecontext.EEpending &&
-		    bl->BLsrcpos.Slinnum == eecontext.EElinnum &&
-		    srcpos_sfile(bl->BLsrcpos).SFflags & SFtop
-		   )
-		{
-		    btextp--;
-		    insblk2((unsigned char *)eecontext.EEexpr,BLrtext);
-		    eecontext.EEpending = 0;	// no longer pending
-		    eecontext.EEimminent = 1;	// but imminent
-		    goto Lagain;
-		}
+                //printf("EEpending = %d, EElinnum = %d\n",eecontext.EEpending,eecontext.EElinnum);
+                if (eecontext.EEpending &&
+                    bl->BLsrcpos.Slinnum == eecontext.EElinnum &&
+                    srcpos_sfile(bl->BLsrcpos).SFflags & SFtop
+                   )
+                {
+                    btextp--;
+                    insblk2((unsigned char *)eecontext.EEexpr,BLrtext);
+                    eecontext.EEpending = 0;    // no longer pending
+                    eecontext.EEimminent = 1;   // but imminent
+                    goto Lagain;
+                }
 #endif
-		do
-		{
-		    if (readln())	/* read in next line		*/
-		    {
+                do
+                {
+                    if (readln())       /* read in next line            */
+                    {
 #if HTOD
-			htod_writeline();
+                        htod_writeline();
 #else
-			if (flst && !(config.flags2 & CFG2expand))
-			    wrtlst(flst);	/* send line to .LST file */
+                        if (flst && !(config.flags2 & CFG2expand))
+                            wrtlst(flst);       /* send line to .LST file */
 #endif
-		    }
-		    else
-			goto L1;
-		} while ((xc = *btextp++) == PRE_EOB);
-		bl->BLtextp = btextp;
-		break;			/* xc better not be an arg!	*/
-	    }
-	    else
-	    {
-	      L1:
-		freeblk(bl);	// back up one block
-		if (!bl)
-		{   xc = PRE_EOF;
-		    break;
-		}
-	    }
-	}
-	else
-	    break;
+                    }
+                    else
+                        goto L1;
+                } while ((xc = *btextp++) == PRE_EOB);
+                bl->BLtextp = btextp;
+                break;                  /* xc better not be an arg!     */
+            }
+            else
+            {
+              L1:
+                freeblk(bl);    // back up one block
+                if (!bl)
+                {   xc = PRE_EOF;
+                    break;
+                }
+            }
+        }
+        else
+            break;
   }
 L2:
     if (!(config.flags2 & CFG2expand))
-	return xc;
-    explist(xc);		/* do expanded listing		*/
+        return xc;
+    explist(xc);                /* do expanded listing          */
     return xc;
 }
 
@@ -990,30 +990,30 @@ __declspec(naked) UHINT egchar()
 {
     _asm
     {
-	xor	EAX,EAX
-	mov	ECX,btextp
-	mov	DL,switch_E
-	mov	AL,[ECX]
-	inc	ECX
-	mov	byte ptr xc,AL
-	test	AL,AL
-	mov	btextp,ECX
-	jle	L1
-L2:	cmp	DL,AH
-	jne	L3
-	ret
+        xor     EAX,EAX
+        mov     ECX,btextp
+        mov     DL,switch_E
+        mov     AL,[ECX]
+        inc     ECX
+        mov     byte ptr xc,AL
+        test    AL,AL
+        mov     btextp,ECX
+        jle     L1
+L2:     cmp     DL,AH
+        jne     L3
+        ret
 
-L1:	jz	L4
-	cmp	AL,0FFh
-	jne	L2
+L1:     jz      L4
+        cmp     AL,0FFh
+        jne     L2
 L4:
-	dec	btextp
-	jmp	egchar2
+        dec     btextp
+        jmp     egchar2
 
-L3:	push	EAX
-	call	explist
-	mov	EAX,xc
-	ret
+L3:     push    EAX
+        call    explist
+        mov     EAX,xc
+        ret
     }
 }
 
@@ -1023,21 +1023,21 @@ UHINT egchar()
 {
     _asm
     {
-	les	BX,btextp
-	mov	AL,ES:[BX]
-	xor	AH,AH
-	mov	xc,AX
-	test	AL,AL
-	jle	L1
-L2:	inc	BX
-	mov	word ptr btextp,BX
-	cmp	byte ptr switch_E,AH
-	jne	L4
-	retf
+        les     BX,btextp
+        mov     AL,ES:[BX]
+        xor     AH,AH
+        mov     xc,AX
+        test    AL,AL
+        jle     L1
+L2:     inc     BX
+        mov     word ptr btextp,BX
+        cmp     byte ptr switch_E,AH
+        jne     L4
+        retf
 
-L1:	jz	L3
-	cmp	AL,0FFh
-	jne	L2
+L1:     jz      L3
+        cmp     AL,0FFh
+        jne     L2
     }
 L3:
     return egchar2();
@@ -1055,15 +1055,15 @@ UHINT egchar()
     debug_assert(bl);
     if ((xc = *btextp) != PRE_EOB && xc != PRE_ARG)
     {
-	btextp++;
+        btextp++;
 #if TARGET_MAC
-	bl->BLcurcnt++;
+        bl->BLcurcnt++;
 #endif
-	//if (!(config.flags2 & CFG2expand))
-	if (!switch_E)
-	    return xc;
-	explist(xc);		/* do expanded listing		*/
-	return xc;
+        //if (!(config.flags2 & CFG2expand))
+        if (!switch_E)
+            return xc;
+        explist(xc);            /* do expanded listing          */
+        return xc;
     }
     return egchar2();
 }
@@ -1076,22 +1076,22 @@ UHINT egchar()
 /***********************************************
  * Install a block, of the type specified
  * Input:
- *	text ->		text string of block (must be free-able)
- *			For BLfile, text -> a file name
- *			string, or NULL for stdin.
- *	typ =		BLxxxx
- *	aargs ->	list of actual arguments
- *	nargs ->	number of dummy arguments
- *			(also used as flag if BLfile)
- *	m ->		macro (BLmacr)
- *	bl ->		currently open block
+ *      text ->         text string of block (must be free-able)
+ *                      For BLfile, text -> a file name
+ *                      string, or NULL for stdin.
+ *      typ =           BLxxxx
+ *      aargs ->        list of actual arguments
+ *      nargs ->        number of dummy arguments
+ *                      (also used as flag if BLfile)
+ *      m ->            macro (BLmacr)
+ *      bl ->           currently open block
  * Output:
- *	bl ->		newly installed block
+ *      bl ->           newly installed block
  */
 
 void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
 {   blklst *p;
-    int flag = nargs;			// so we won't destroy nargs
+    int flag = nargs;                   // so we won't destroy nargs
     int n;
 
 #if !SPP
@@ -1099,58 +1099,58 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
 #endif
     if (bl_freelist)
     {
-	p = bl_freelist;
-	bl_freelist = p->BLprev;
-	memset(p, 0, sizeof(blklst));
+        p = bl_freelist;
+        bl_freelist = p->BLprev;
+        memset(p, 0, sizeof(blklst));
     }
     else
     {
 #if TX86 || PRAGMA_ONCE
-	p = (blklst *) MEM_PH_CALLOC(sizeof(blklst));
-					/* Needed in PH for pragma once */		
+        p = (blklst *) MEM_PH_CALLOC(sizeof(blklst));
+                                        /* Needed in PH for pragma once */
 #else
-	p = (blklst *) MEM_PARC_CALLOC(sizeof(blklst));
+        p = (blklst *) MEM_PARC_CALLOC(sizeof(blklst));
 #endif
     }
-    p->BLtyp = typ;			/* = BLxxxx			*/
-    p->BLtext = text;			/* text of block		*/
+    p->BLtyp = typ;                     /* = BLxxxx                     */
+    p->BLtext = text;                   /* text of block                */
     //printf("insblk() typ %d: text [%s]\n",typ,text);
     switch (typ)
     {
-	case BLfile:
+        case BLfile:
 #if TX86
 #if !INDIVFILEIO
-			p->BLtext = (unsigned char *) util_calloc(1,80);
+                        p->BLtext = (unsigned char *) util_calloc(1,80);
 #endif
 #else
-			p->BLtext = (unsigned char *) MEM_PARC_CALLOC(80);
+                        p->BLtext = (unsigned char *) MEM_PARC_CALLOC(80);
 #endif
-						/* text not in PH */
-			p->BLtextmax = 80;
-			afopen((char *) text,p,flag);	/* open input file */
-			cstate.CSfilblk = p;
-			sfile_debug(&srcpos_sfile(cstate.CSfilblk->BLsrcpos));
+                                                /* text not in PH */
+                        p->BLtextmax = 80;
+                        afopen((char *) text,p,flag);   /* open input file */
+                        cstate.CSfilblk = p;
+                        sfile_debug(&srcpos_sfile(cstate.CSfilblk->BLsrcpos));
 #if IMPLIED_PRAGMA_ONCE
-			p->BLflags |= BLnew;	/* at the start of a new file */
-			TokenCnt = 0;		/* count tokens till first #if */
+                        p->BLflags |= BLnew;    /* at the start of a new file */
+                        TokenCnt = 0;           /* count tokens till first #if */
 #endif
-			break;
+                        break;
 #if TARGET_MAC
-	case BLpdef:	p->BLflags |= BFpdef;	/* flag pre_compilation data */
-			p->BLtyp = BLarg;
+        case BLpdef:    p->BLflags |= BFpdef;   /* flag pre_compilation data */
+                        p->BLtyp = BLarg;
 #endif
-			break;
-	case BLstr:
-	case BLarg:
-	case BLrtext:
-			break;
-	default:	assert(0);
+                        break;
+        case BLstr:
+        case BLarg:
+        case BLrtext:
+                        break;
+        default:        assert(0);
     }
     if (bl)
-	bl->BLtextp = btextp;
-    btextp = p->BLtext;			// point to start of text
-    p->BLprev = bl;			// point to enclosing block
-    bl = p;				// point to new block
+        bl->BLtextp = btextp;
+    btextp = p->BLtext;                 // point to start of text
+    p->BLprev = bl;                     // point to enclosing block
+    bl = p;                             // point to new block
     //dbg_printf("-insblk()\n");
 }
 
@@ -1166,37 +1166,37 @@ void insblk2(unsigned char *text, int typ)
 #endif
     if (bl_freelist)
     {
-	p = bl_freelist;
-	bl_freelist = p->BLprev;
-	memset(p, 0, sizeof(blklst));
+        p = bl_freelist;
+        bl_freelist = p->BLprev;
+        memset(p, 0, sizeof(blklst));
     }
     else
     {
 #if TX86 || PRAGMA_ONCE
-	p = (blklst *) MEM_PH_CALLOC(sizeof(blklst));
-					// Needed in PH for pragma once
+        p = (blklst *) MEM_PH_CALLOC(sizeof(blklst));
+                                        // Needed in PH for pragma once
 #else
-	p = (blklst *) MEM_PARC_CALLOC(sizeof(blklst));
+        p = (blklst *) MEM_PARC_CALLOC(sizeof(blklst));
 #endif
     }
-    p->BLtyp = typ;			// = BLxxxx
-    p->BLtext = text;			// text of block
+    p->BLtyp = typ;                     // = BLxxxx
+    p->BLtext = text;                   // text of block
     //dbg_printf("insblk2(typ %d: text [%s]\n",typ,text);
 #ifdef DEBUG
     switch (typ)
     {
-	case BLstr:
-	case BLarg:
-	case BLrtext:
-			break;
-	default:	assert(0);
+        case BLstr:
+        case BLarg:
+        case BLrtext:
+                        break;
+        default:        assert(0);
     }
 #endif
     if (bl)
-	bl->BLtextp = btextp;
-    btextp = p->BLtext;			// point to start of text
-    p->BLprev = bl;			// point to enclosing block
-    bl = p;				// point to new block
+        bl->BLtextp = btextp;
+    btextp = p->BLtext;                 // point to start of text
+    p->BLprev = bl;                     // point to enclosing block
+    bl = p;                             // point to new block
     //dbg_printf("-insblk2()\n");
 }
 
@@ -1204,7 +1204,7 @@ void insblk2(unsigned char *text, int typ)
 /************************************
  * Free a block.
  * Output:
- *	bl	pointer to previous block, NULL if no more blocks.
+ *      bl      pointer to previous block, NULL if no more blocks.
  */
 
 STATIC void freeblk(blklst *p)
@@ -1212,72 +1212,72 @@ STATIC void freeblk(blklst *p)
     assert(p);
     bl = p->BLprev;
     if (bl)
-	btextp = bl->BLtextp;
+        btextp = bl->BLtextp;
     switch (p->BLtyp)
     {
-	case BLfile:
-		cstate.CSfilblk = blklst_getfileblock();
-		lastpos = p->BLsrcpos;		/* remember last line #	*/
+        case BLfile:
+                cstate.CSfilblk = blklst_getfileblock();
+                lastpos = p->BLsrcpos;          /* remember last line # */
 #if INDIVFILEIO
-		util_free(p->BLbuf);
+                util_free(p->BLbuf);
 #endif
 #if TX86
 #if !INDIVFILEIO
-		util_free(p->BLtext);		/* free file data	*/
+                util_free(p->BLtext);           /* free file data       */
 #endif
 #else
-		MEM_PARC_FREE(p->BLtext);	/* free file data	*/
+                MEM_PARC_FREE(p->BLtext);       /* free file data       */
 #endif
 #if SOURCE_OFFSETS
-		lastpos.Sfiloff = p->Bfoffset+p->Blincnt;
+                lastpos.Sfiloff = p->Bfoffset+p->Blincnt;
 #endif
 #if PRAGMA_ONCE
-		if(p->BLflags & BLponce || 
-		   (!OPTnotonce && p->BLflags & BLckonce && TokenCnt == 1))
-		    {				/* do not read this file again */
-		    p->BLprev = Once;		/* save name in read once list */
-		    Once = p;
-		    return;
-		    }
+                if(p->BLflags & BLponce ||
+                   (!OPTnotonce && p->BLflags & BLckonce && TokenCnt == 1))
+                    {                           /* do not read this file again */
+                    p->BLprev = Once;           /* save name in read once list */
+                    Once = p;
+                    return;
+                    }
 #endif
 #if IMPLIED_PRAGMA_ONCE
-		// See if file was totally wrapped in #ifdef xxx #define xxx ... #endif
-		if(((p->BLflags & BLckonce) == BLckonce) && (TokenCnt == 0))
-		{				// Mark file to only include once
-		    srcpos_sfile(p->BLsrcpos).SFflags |= SFonce;
-		    //dbg_printf("Setting the once flag\n");
-		}
+                // See if file was totally wrapped in #ifdef xxx #define xxx ... #endif
+                if(((p->BLflags & BLckonce) == BLckonce) && (TokenCnt == 0))
+                {                               // Mark file to only include once
+                    srcpos_sfile(p->BLsrcpos).SFflags |= SFonce;
+                    //dbg_printf("Setting the once flag\n");
+                }
 #endif
 
 #if HEADER_LIST
-		// See if we need to start reading in another
-		// of the include files specified on the command line
-		if (headers)
-		{   assert(bl);
-		    if (!bl->BLprev)
-		    {   pragma_include((char *)list_ptr(headers),FQcwd | FQpath);
-			headers = list_next(headers);
-		    }
-		}
+                // See if we need to start reading in another
+                // of the include files specified on the command line
+                if (headers)
+                {   assert(bl);
+                    if (!bl->BLprev)
+                    {   pragma_include((char *)list_ptr(headers),FQcwd | FQpath);
+                        headers = list_next(headers);
+                    }
+                }
 #endif
-		break;
+                break;
 
-	case BLstr:
+        case BLstr:
 #if TX86
-		parc_free(p->BLtext);
+                parc_free(p->BLtext);
 #else
-		MEM_PARC_FREE(p->BLtext);
+                MEM_PARC_FREE(p->BLtext);
 #endif
-		break;
-	case BLarg:				/* don't free BLtext	*/
-	case BLrtext:
+                break;
+        case BLarg:                             /* don't free BLtext    */
+        case BLrtext:
 #if (TARGET_MAC)
-		if (CPP && p->BLflags & BFpdef)
-		    ANSI = ansi_opt;	/* now turn on ansi checking */
+                if (CPP && p->BLflags & BFpdef)
+                    ANSI = ansi_opt;    /* now turn on ansi checking */
 #endif
-		break;
-	default:
-		assert(0);
+                break;
+        default:
+                assert(0);
     }
 
 #ifdef DEBUG
@@ -1292,50 +1292,50 @@ STATIC void freeblk(blklst *p)
  * Do not do this if we're in an include file, because that mucks up
  * debuggers.
  * Returns:
- *	source file position
+ *      source file position
  */
 
 Srcpos getlinnum()
-{	blklst *b;
+{       blklst *b;
 
 #if TARGET_MAC
-	if (FromTokenList)		/* rescanning old tokens */
-	    return tok.TKsrcpos;
+        if (FromTokenList)              /* rescanning old tokens */
+            return tok.TKsrcpos;
 #endif
 #if TX86
-	b = cstate.CSfilblk;
+        b = cstate.CSfilblk;
 #else
-	b = blklst_getfileblock();
+        b = blklst_getfileblock();
 #endif
 #if HOST_MPW
 #if SOURCE_OFFSETS
-	if (b)				/* get file offset also */
-	    b->BLsrcpos.Sfiloff = b->BLfoffset+b->BLlincnt;
+        if (b)                          /* get file offset also */
+            b->BLsrcpos.Sfiloff = b->BLfoffset+b->BLlincnt;
 #endif
 #endif
-	// If past end of file, use last known position
-	return b ? b->BLsrcpos : lastpos;
+        // If past end of file, use last known position
+        return b ? b->BLsrcpos : lastpos;
 }
 
 #if SOURCE_4SYMS || SOURCE_4TYPES || SOURCE_4PARAMS
 /*****************************
  * Get current character position into TkIdStrtSrcpos.
- *	source file position
+ *      source file position
  */
 
 void getcharnum()
-{	blklst *b; long i;
+{       blklst *b; long i;
 
-	b = cstate.CSfilblk;
-	if (b)
-	{
-	    TkIdStrtSrcpos = b->BLsrcpos;
+        b = cstate.CSfilblk;
+        if (b)
+        {
+            TkIdStrtSrcpos = b->BLsrcpos;
 #if SOURCE_OFFSETS
-	    TkIdStrtSrcpos.Sfiloff = b->Bfoffset+b->Blincnt + (b->BLtextp-b->BLtext) - 1;
+            TkIdStrtSrcpos.Sfiloff = b->Bfoffset+b->Blincnt + (b->BLtextp-b->BLtext) - 1;
 #endif
-	}
-	else
-	    TkIdStrtSrcpos = lastpos;
+        }
+        else
+            TkIdStrtSrcpos = lastpos;
 }
 #endif
 
@@ -1344,10 +1344,10 @@ void *once_dehydrate()
     {
     blklst *bl,*bl_next;
     for(bl=Once; bl; bl=bl_next)
-  	{
-	bl_next = bl->BLprev;
-	ph_dehydrate(&bl->BLprev);
-	};
+        {
+        bl_next = bl->BLprev;
+        ph_dehydrate(&bl->BLprev);
+        };
     return (void *)Once;
     }
 
@@ -1364,26 +1364,26 @@ void once_hydrate(blklst *bl)
     if (last_bl)
     {
 
-	/* find the last block */
+        /* find the last block */
 
-	while (last_bl->BLprev)
-    	    last_bl = last_bl->BLprev;
+        while (last_bl->BLprev)
+            last_bl = last_bl->BLprev;
 
-	/* point it at the start of the dehyrated Once list */
-	
-	last_bl->BLprev = bl;
+        /* point it at the start of the dehyrated Once list */
+
+        last_bl->BLprev = bl;
     }
-    
+
     /* if Once list is empty, use dehydrated bl to start list */
 
     else
         Once = bl;
-    
+
     /* rehydrate the Once list in place */
-    
+
     while (bl)
     {
-	bl = (blklst *)ph_hydrate(&bl->BLprev);	/* get link to previous block */
+        bl = (blklst *)ph_hydrate(&bl->BLprev); /* get link to previous block */
     }
 }
 #endif
@@ -1401,9 +1401,9 @@ void blklst_term()
 
     for (b = bl_freelist; b; )
     {
-	b = bl_freelist->BLprev;
-	mem_free(bl_freelist);
-	bl_freelist = b;
+        b = bl_freelist->BLprev;
+        mem_free(bl_freelist);
+        bl_freelist = b;
     }
 #endif
 }
@@ -1420,24 +1420,24 @@ void blklst_term()
 void once_hydrate_loaded(blklst *bl)
 {
     blklst *last_bl = Once;
-    
+
     if (last_bl)
     {
 
-	/* find the last block */
+        /* find the last block */
 
-	while (last_bl->BLprev)
-    	    last_bl = last_bl->BLprev;
+        while (last_bl->BLprev)
+            last_bl = last_bl->BLprev;
 
-	/* point it at the start of the dehyrated Once list */
-	
-	last_bl->BLprev = bl;
+        /* point it at the start of the dehyrated Once list */
+
+        last_bl->BLprev = bl;
     }
-    
+
     /* if Once list is empty, use dehydrated bl to start list */
 
     else
-        Once = bl;   
+        Once = bl;
 }
 #endif
 
@@ -1445,16 +1445,16 @@ void once_hydrate_loaded(blklst *bl)
 #if !TX86
 void blklst_reinit(void)
 {
-	last_blsave = NULL;
-	bl_freelist = NULL;
-	btextp = NULL;		// block list text pointer
-	bl = NULL;
-	eline = NULL;
-	elinmax = 0;
-	elini = 0;
-	elinnum = 1;
-	expflag = 0;
-	xc = ' ';
+        last_blsave = NULL;
+        bl_freelist = NULL;
+        btextp = NULL;          // block list text pointer
+        bl = NULL;
+        eline = NULL;
+        elinmax = 0;
+        elini = 0;
+        elinnum = 1;
+        expflag = 0;
+        xc = ' ';
 
 }
 #endif
@@ -1464,7 +1464,7 @@ void blklst_reinit(void)
  * Determine current file and line number.
  * If file is different, a new filename is output.
  * Returns:
- *	line number
+ *      line number
  */
 
 unsigned blklst_linnum()
@@ -1472,14 +1472,14 @@ unsigned blklst_linnum()
 
     if (config.flags2 & CFG2browse)
     {
-	b = blklst_getfileblock();
-	if (b)
-	{
+        b = blklst_getfileblock();
+        if (b)
+        {
 #if !SPP
-	    outfilename(blklst_filename(b),b->BLcondlin);
+            outfilename(blklst_filename(b),b->BLcondlin);
 #endif
-	    return b->BLsrcpos.Slinnum;
-	}
+            return b->BLsrcpos.Slinnum;
+        }
     }
     return lastpos.Slinnum;
 }
@@ -1493,9 +1493,9 @@ void blklst_setcondlin()
 
     if (config.flags2 & CFG2browse)
     {
-	b = blklst_getfileblock();
-	if (b)
-	    b->BLcondlin = b->BLsrcpos.Slinnum;
+        b = blklst_getfileblock();
+        if (b)
+            b->BLcondlin = b->BLsrcpos.Slinnum;
     }
 }
 
@@ -1512,7 +1512,7 @@ void BLKLST::print()
 
     printf("  %p BL%s", this, bltyp[BLtyp]);
     if (BLtyp == BLarg || BLtyp == BLrtext)
-	printf(" Btext='%s', Btextp='%s'", BLtext, BLtextp);
+        printf(" Btext='%s', Btextp='%s'", BLtext, BLtextp);
     printf("\n");
 #endif
 }

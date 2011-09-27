@@ -170,16 +170,8 @@ STATIC void ecom(elem **pe)
   switch (op)
   {
     case OPconst:
-#if TARGET_MAC
-        if (tyfloating(tym) || C_S8_VAL(e->EV.Vlong))
-            return;             /* don't cse small constants or SANE consts */
-#endif
     case OPvar:
     case OPrelconst:
-#if TARGET_68K
-        if (tyfloating(tym) && !config.inline68881)
-            return;                     /* don't cse float vars for SANE */
-#endif
         break;
     case OPstreq:
     case OPpostinc:
@@ -269,6 +261,7 @@ STATIC void ecom(elem **pe)
 #if TX86
     case OPinp:                 /* never CSE the I/O instruction itself */
 #endif
+    case OPdctor:
         ecom(&e->E1);
         /* FALL-THROUGH */
     case OPasm:
@@ -280,6 +273,9 @@ STATIC void ecom(elem **pe)
     case OPmark:
         return;
 
+    case OPddtor:
+        return;
+
     case OPparam:
 #if TX86
     case OPoutp:
@@ -288,12 +284,11 @@ STATIC void ecom(elem **pe)
     case OPinfo:
         ecom(&e->E2);
         return;
-#if !TX86
     case OPcomma:
+    case OPremquo:
         ecom(&e->E1);
         ecom(&e->E2);
         break;
-#endif
     case OPvptrfptr:
     case OPcvptrfptr:
         ecom(&e->E1);
@@ -322,7 +317,6 @@ STATIC void ecom(elem **pe)
         if (!EBIN(e)) WROP(e->Eoper);
 #endif
         assert(EBIN(e));
-    case OPcomma:
     case OPadd:
     case OPmin:
     case OPmul:
@@ -333,7 +327,6 @@ STATIC void ecom(elem **pe)
     case OPeqeq:
     case OPne:
     case OPscale:
-    case OPremquo:
     case OPyl2x:
     case OPyl2xp1:
         ecom(&e->E1);
@@ -371,11 +364,9 @@ STATIC void ecom(elem **pe)
     case OPd_ld: case OPld_d:
     case OPc_r: case OPc_i:
     case OPu8int: case OPs8int: case OPint8:
-    case OPulngllng: case OPlngllng: case OP64_32: case OPmsw:
+    case OPu32_64: case OPlngllng: case OP64_32: case OPmsw:
+    case OPu64_128: case OPs64_128: case OP128_64:
     case OPd_s64: case OPs64_d: case OPd_u64: case OPu64_d:
-#if TARGET_MAC
-    case OPsfltdbl: OPcase OPdblsflt:
-#endif
     case OPstrctor: case OPu16_d: case OPdbluns:
     case OPptrlptr: case OPtofar16: case OPfromfar16: case OParrow:
     case OPvoid: case OPnullcheck:
@@ -392,9 +383,6 @@ STATIC void ecom(elem **pe)
   if (tym == TYstruct ||
       tym == TYvoid ||
       e->Ety & mTYvolatile
-#if TARGET_68K
-      || (tyfloating(tym) && !config.inline68881)
-#endif
 #if TX86
     // don't CSE doubles if inline 8087 code (code generator can't handle it)
       || (tyfloating(tym) && config.inline8087)
@@ -470,14 +458,14 @@ STATIC unsigned cs_comphash(elem *e)
     hash = e->Ety + op;
 #endif
     if (!OTleaf(op))
-    {   hash += (int) e->E1;
+    {   hash += (size_t) e->E1;
         if (OTbinary(op))
-                hash += (int) e->E2;
+                hash += (size_t) e->E2;
     }
     else
     {   hash += e->EV.Vint;
         if (op == OPvar || op == OPrelconst)
-                hash += (int) e->EV.sp.Vsym;
+                hash += (size_t) e->EV.sp.Vsym;
     }
     return hash;
 }
@@ -493,13 +481,8 @@ STATIC void addhcstab(elem *e,int hash)
   if (h >= hcsmax)                      /* need to reallocate table     */
   {
         assert(h == hcsmax);
-#if TARGET_MAC
-        hcsmax += (hcsmax + 64);        /* This space is not returned */
-                                        /* multiple reallocs costly */
-#else
         // With 32 bit compiles, we've got memory to burn
         hcsmax += (__INTSIZE == 4) ? (hcsmax + 128) : 100;
-#endif
         assert(h < hcsmax);
 #if TX86
         hcstab = (hcs *) util_realloc(hcstab,hcsmax,sizeof(hcs));
@@ -536,10 +519,6 @@ STATIC void touchlvalue(elem *e)
 
   for (i = hcstop; --i >= 0;)
   {     if (hcstab[i].Helem &&
-#if TARGET_MAC  // Vsym should be valid before compare
-            !EOP(hcstab[i].Helem) &&
-            hcstab[i].Helem->Eoper != OPconst &&
-#endif
             hcstab[i].Helem->EV.sp.Vsym == e->EV.sp.Vsym)
                 hcstab[i].Helem = NULL;
   }

@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -28,6 +28,12 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
 STATIC void el_weights(int bi,elem *e,unsigned weight);
+
+#ifndef __DMC__
+#undef __cdecl
+#define __cdecl
+#endif
+
 static int __cdecl weight_compare(const void *e1,const void *e2);
 
 static int nretblocks;
@@ -68,9 +74,7 @@ void cgreg_init()
     // Make adjustments to symbols we might stick in registers
     for (int i = 0; i < globsym.top; i++)
     {   unsigned sz;
-        symbol *s;
-
-        s = globsym.tab[i];
+        symbol *s = globsym.tab[i];
 
         if (s->Srange)
             s->Srange = vec_realloc(s->Srange,dfotop);
@@ -80,8 +84,8 @@ void cgreg_init()
             !s->Srange ||
             (sz = type_size(s->Stype)) == 0 ||
             (tysize(s->ty()) == -1) ||
-            (!I32 && sz > REGSIZE) ||
-            (I32 && tyfloating(s->ty()))
+            (I16 && sz > REGSIZE) ||
+            ((I32 || I64) && tyfloating(s->ty()))
            )
         {
             s->Sflags &= ~GTregcand;
@@ -396,13 +400,11 @@ int cgreg_gotoepilog(block *b,Symbol *s)
 {
     list_t bl;
     int bi;
-    int si;
     int gotoepilog;
     int inoutp;
     int inout;
 
     bi = b->Bdfoidx;
-    si = s->Ssymnum;
 
     if (vec_testbit(bi,s->Slvreg))
         inout = 1;
@@ -563,11 +565,13 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload)
                                         // working for us
         cs.Iop ^= (sz == 1);
         c = getlvalue(&cs,e,keepmsk);
-        cs.Irm |= modregrm(0,s->Sreglsw,0);
+        cs.orReg(s->Sreglsw);
+        if (I64 && sz == 1 && s->Sreglsw >= 4)
+            cs.Irex |= REX;
         c = gen(c,&cs);
         if (sz > REGSIZE)
         {
-            NEWREG(cs.Irm,s->Sregmsw);
+            cs.setReg(s->Sregmsw);
             getlvalue_msw(&cs);
             c = gen(c,&cs);
         }
@@ -661,11 +665,13 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
                                         // working for us
         cs.Iop ^= (sz == 1);
         c = getlvalue(&cs,e,keepmsk);
-        cs.Irm |= modregrm(0,s->Sreglsw,0);
+        cs.orReg(s->Sreglsw);
+        if (I64 && sz == 1 && s->Sreglsw >= 4)
+            cs.Irex |= REX;
         c = gen(c,&cs);
         if (sz > REGSIZE)
         {
-            NEWREG(cs.Irm,s->Sregmsw);
+            cs.setReg(s->Sregmsw);
             getlvalue_msw(&cs);
             c = gen(c,&cs);
         }
@@ -688,7 +694,7 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
 
 void cgreg_map(Symbol *s, unsigned regmsw, unsigned reglsw)
 {
-    assert(reglsw < 8);
+    assert(I64 || reglsw < 8);
 
     if (vec_disjoint(s->Srange,regrange[reglsw]) &&
         (regmsw == NOREG || vec_disjoint(s->Srange,regrange[regmsw]))
@@ -902,18 +908,8 @@ int cgreg_assign(Symbol *retsym)
             continue;
         }
 
-        // For pointer types, try to pick index register first
-        static char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
-        // Otherwise, try to pick index registers last
-        static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
-#if 0
-        static char seqlsw[] = {AX,BX,SI,NOREG};
-        static char seqmsw[] = {CX,DX,DI};
-#else
-        static char seqlsw[] = {AX,BX,SI,DI,NOREG};
-        static char seqmsw[] = {CX,DX};
-#endif
         char *pseq;
+        char *pseqmsw = NULL;
 
         ty = s->ty();
         sz = tysize(ty);
@@ -921,15 +917,56 @@ int cgreg_assign(Symbol *retsym)
         #ifdef DEBUG
             if (debugr)
             {   printf("symbol '%3s', ty x%x weight x%x sz %d\n   ",
-                s->Sident,ty,s->Sweight,sz);
+                s->Sident,ty,s->Sweight,(int)sz);
                 vec_println(s->Srange);
             }
         #endif
 
-        if (I32)
-            pseq = (sz == REGSIZE * 2) ? seqlsw : sequence;
+        if (I64)
+        {
+            if (sz == REGSIZE * 2)
+            {
+                static char seqmsw[] = {CX,DX,NOREG};
+                static char seqlsw[] = {AX,BX,SI,DI,NOREG};
+                pseq = seqlsw;
+                pseqmsw = seqmsw;
+            }
+            else
+            {   // R10 is reserved for the static link
+                static char sequence[] = {AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG};
+                pseq = sequence;
+            }
+        }
+        else if (I32)
+        {
+            if (sz == REGSIZE * 2)
+            {
+                static char seqlsw[] = {AX,BX,SI,DI,NOREG};
+                static char seqmsw[] = {CX,DX,NOREG};
+                pseq = seqlsw;
+                pseqmsw = seqmsw;
+            }
+            else
+            {
+                static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+                pseq = sequence;
+            }
+        }
         else
-            pseq = typtr(ty) ? seqidx : sequence;
+        {   assert(I16);
+            if (typtr(ty))
+            {
+                // For pointer types, try to pick index register first
+                static char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
+                pseq = seqidx;
+            }
+            else
+            {
+                // Otherwise, try to pick index registers last
+                static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+                pseq = sequence;
+            }
+        }
 
         u.benefit = 0;
         for (int i = 0; pseq[i] != NOREG; i++)
@@ -970,9 +1007,10 @@ int cgreg_assign(Symbol *retsym)
                 {   unsigned regj;
 
                     for (regj = 0; 1; regj++)
-                    {   if (regj == arraysize(seqmsw))
+                    {
+                        regmsw = pseqmsw[regj];
+                        if (regmsw == NOREG)
                             goto Ltried;
-                        regmsw = seqmsw[regj];
                         if (regmsw == reg)
                             continue;
                         #ifdef DEBUG
@@ -1006,7 +1044,7 @@ Ltried:     ;
     }
 
     // See if any registers have become available that we can use.
-    if (I32 && !flag && (mfuncreg & ~fregsaved) & ALLREGS &&
+    if ((I32 || I64) && !flag && (mfuncreg & ~fregsaved) & ALLREGS &&
         !(funcsym_p->Sflags & SFLexit))
     {
         for (int i = 0; i < globsym.top; i++)

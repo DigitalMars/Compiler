@@ -22,7 +22,7 @@ const char idchars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123
  */
 
 void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
-	const char *charset, int flag)
+        const char *charset, int flag)
 {
     if (!seedlen)
         return NULL;
@@ -30,12 +30,12 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
     char tmp[30];
     char *buf;
     if (seedlen <= sizeof(tmp) - 2)
-	buf = tmp;
+        buf = tmp;
     else
     {
-	buf = (char *)alloca(seedlen + 2);    // leave space for extra char
-	if (!buf)
-	    return NULL;                      // no matches
+        buf = (char *)alloca(seedlen + 2);    // leave space for extra char
+        if (!buf)
+            return NULL;                      // no matches
     }
 
     /* Deletions */

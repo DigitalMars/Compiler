@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -18,6 +18,8 @@
         __DMC__         Digital Mars compiler
         _MSC_VER        Microsoft compiler
         __GNUC__        Gnu compiler
+        __clang__       Clang compiler
+        __llvm__        Compiler using LLVM as backend (LLVM-GCC/Clang)
 
     Host operating system:
         _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s, Windows 2000
@@ -25,6 +27,7 @@
         linux           Linux
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
+        __OpenBSD__     OpenBSD
         __sun&&__SVR4   Solaris, OpenSolaris (yes, both macros are necessary)
         __OS2__         IBM OS/2
         DOS386          32 bit DOS extended executable
@@ -43,14 +46,6 @@
         DOS386          32 bit DOS extended executable
         DOS16RM         Rational Systems 286 DOS extender
         _MSDOS          MSDOS
-
-Host systems no longer supported:
-
-        HOST_THINK
-        HOST_RAINBOW
-        HOST_MPW        Macintosh Programmers' Workbench
-        HOST_UNIX       Unix systems other than linux
-        HOST_MAC
 
 One and only one of these macros must be set by the makefile:
 
@@ -119,6 +114,21 @@ One and only one of these macros must be set by the makefile:
  * with these goals, and should be fixed.
  */
 
+/* OpenBSD Version
+ * -------------
+ * There are two main issues: hosting the compiler on OpenBSD,
+ * and generating (targetting) OpenBSD executables.
+ * The "__OpenBSD__" and "__GNUC__" macros control hosting issues
+ * for operating system and compiler dependencies, respectively.
+ * To target OpenBSD executables, use ELFOBJ for things specific to the
+ * ELF object file format, and TARGET_FREEBSD for things specific to
+ * the OpenBSD memory model.
+ * If this is all done right, one could generate a OpenBSD object file
+ * even when compiling on win32, and vice versa.
+ * The compiler source code currently uses these macros very inconsistently
+ * with these goals, and should be fixed.
+ */
+
 /* Solaris Version
  * -------------
  * There are two main issues: hosting the compiler on Solaris,
@@ -137,9 +147,9 @@ One and only one of these macros must be set by the makefile:
 #ifndef CDEF_H
 #define CDEF_H  1
 
-#define VERSION "8.52.5"        // for banner and imbedding in .OBJ file
-#define VERSIONHEX "0x852"      // for __DMC__ macro
-#define VERSIONINT 0x852        // for precompiled headers and DLL version
+#define VERSION "8.54.0"        // for banner and imbedding in .OBJ file
+#define VERSIONHEX "0x854"      // for __DMC__ macro
+#define VERSIONINT 0x854        // for precompiled headers and DLL version
 
 
 /***********************************
@@ -147,9 +157,6 @@ One and only one of these macros must be set by the makefile:
  */
 
 #define TX86            1               // target is Intel 80X86 processor
-#define TARGET_68K      0               // target is a 68K processor
-#define TARGET_POWERPC  0               // target is a PPC processor
-#define TARGET_MAC      0               // target is a macintosh
 
 // Set to 1 using the makefile
 #ifndef TARGET_LINUX
@@ -167,13 +174,18 @@ One and only one of these macros must be set by the makefile:
 #endif
 
 // Set to 1 using the makefile
+#ifndef TARGET_OPENBSD
+#define TARGET_OPENBSD  0               // target is an OpenBSD executable
+#endif
+
+// Set to 1 using the makefile
 #ifndef TARGET_SOLARIS
 #define TARGET_SOLARIS  0               // target is a Solaris executable
 #endif
 
 // This is the default
 #ifndef TARGET_WINDOS
-#define TARGET_WINDOS   (!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS))
+#define TARGET_WINDOS   (!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS))
 #endif
 
 #if __GNUC__
@@ -242,7 +254,7 @@ One and only one of these macros must be set by the makefile:
 
 // Precompiled header variations
 #define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
-#define MMFIO           (_WIN32 || linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4)  // if memory mapped files
+#define MMFIO           (_WIN32 || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4)  // if memory mapped files
 #define LINEARALLOC     _WIN32  // if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
@@ -294,13 +306,6 @@ One and only one of these macros must be set by the makefile:
 #define NEWSTATICDTOR           1       // support new style static destructors
 
 // For Shared Code Base
-#define TARGET_structBLOCK
-#define TARGET_structFUNC_S
-#define TARGET_structSTRUCT
-#define TARGET_structPARAM
-#define TARGET_structBLKLST
-#define TARGET_structELEM
-#define TARGET_structSYMBOL
 #define TARGET_INLINEFUNC_NAMES
 #define PASCAL pascal
 #define HINT int
@@ -407,7 +412,7 @@ One and only one of these macros must be set by the makefile:
 /* Take advantage of machines that can store a word, lsb first  */
 #if _M_I86              // if Intel processor
 #define TOWORD(ptr,val) (*(unsigned short *)(ptr) = (unsigned short)(val))
-#define TOLONG(ptr,val) (*(unsigned long *)(ptr) = (unsigned long)(val))
+#define TOLONG(ptr,val) (*(unsigned *)(ptr) = (unsigned)(val))
 #else
 #define TOWORD(ptr,val) (((ptr)[0] = (unsigned char)(val)),\
                          ((ptr)[1] = (unsigned char)((val) >> 8)))
@@ -428,8 +433,8 @@ typedef unsigned char   targ_uchar;
 typedef signed char     targ_schar;
 typedef short           targ_short;
 typedef unsigned short  targ_ushort;
-typedef long            targ_long;
-typedef unsigned long   targ_ulong;
+typedef int             targ_long;
+typedef unsigned        targ_ulong;
 #if LONGLONG
 typedef long long               targ_llong;
 typedef unsigned long long      targ_ullong;
@@ -444,21 +449,21 @@ typedef long double     targ_ldouble;
 // Extract most significant register from constant
 #define MSREG(p)        ((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))
 
-typedef long            targ_int;
-typedef unsigned long   targ_uns;
+typedef int             targ_int;
+typedef unsigned        targ_uns;
 
 /* Sizes of base data types in bytes */
 
 #define CHARSIZE        1
 #define SHORTSIZE       2
-#define WCHARSIZE       2       // 2 for WIN32, 4 for linux/OSX/FreeBSD/Solaris
+#define WCHARSIZE       2       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/Solaris
 #define LONGSIZE        4
 #define LLONGSIZE       8
 #define FLOATSIZE       4
 #define DOUBLESIZE      8
 #if TARGET_OSX
 #define LNGDBLSIZE      16      // 80 bit reals
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define LNGDBLSIZE      12      // 80 bit reals
 #else
 #define LNGDBLSIZE      10      // 80 bit reals
@@ -477,8 +482,13 @@ typedef unsigned long   targ_uns;
 #define FPTRSIZE        tysize[TYfptr]
 #define REGMASK         0xFFFF
 
+#if TARGET_LINUX || TARGET_FREEBSD
+typedef targ_llong      targ_ptrdiff_t; /* ptrdiff_t for target machine  */
+typedef targ_ullong     targ_size_t;    /* size_t for the target machine */
+#else
 typedef targ_int        targ_ptrdiff_t; /* ptrdiff_t for target machine  */
 typedef targ_uns        targ_size_t;    /* size_t for the target machine */
+#endif
 
 /* Enable/disable various features
    (Some features may no longer work the old way when compiled out,
@@ -504,7 +514,7 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define OMFOBJ          TARGET_WINDOS
 #endif
 #ifndef ELFOBJ
-#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS)
+#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 #endif
 #ifndef MACHOBJ
 #define MACHOBJ         TARGET_OSX
@@ -554,15 +564,9 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define KEEPBITFIELDS 0 /* 0 means code generator cannot handle bit fields, */
                         /* so replace them with shifts and masks        */
 
-#if TARGET_OSX
-#define STACKALIGN      16
-#else
-#define STACKALIGN      0
-#endif
+#define REGMAX  29      // registers are numbered 0..10
 
-#define REGMAX  10      // registers are numbered 0..10
-
-typedef unsigned long   tym_t;          // data type big enough for type masks
+typedef unsigned        tym_t;          // data type big enough for type masks
 typedef int             SYMIDX;         // symbol table index
 
 #if 0
@@ -584,6 +588,15 @@ typedef int bool;
 #define near
 #define _near
 #define __near
+#endif
+
+// gcc defines this for us, dmc doesn't, so look for it's __I86__
+#if ! (defined(LITTLE_ENDIAN) || defined(BIG_ENDIAN) )
+#if defined(__I86__) || defined(i386) || defined(__x86_64__)
+#define LITTLE_ENDIAN 1
+#else
+#error unknown platform, so unknown endianness
+#endif
 #endif
 
 #if _WINDLL
@@ -705,9 +718,12 @@ struct Config
 #define EX_FREEBSD64    0x80000
 #define EX_SOLARIS      0x100000
 #define EX_SOLARIS64    0x200000
+#define EX_OPENBSD      0x400000
+#define EX_OPENBSD64    0x800000
 
 #define EX_flat         (EX_OS2 | EX_NT | EX_LINUX | EX_WIN64 | EX_LINUX64 | \
                          EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | \
+                         EX_OPENBSD | EX_OPENBSD64 | \
                          EX_SOLARIS | EX_SOLARIS64)
 #define EX_dos          (EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP | \
                          EX_COM | EX_MZ /*| EX_WIN16*/)
@@ -715,7 +731,7 @@ struct Config
 /* CFGX: flags ignored in precompiled headers
  * CFGY: flags copied from precompiled headers into current config
  */
-    unsigned long flags;
+    unsigned flags;
 #define CFGuchar        1       // chars are unsigned
 #define CFGsegs         2       // new code seg for each far func
 #define CFGtrace        4       // output trace functions
@@ -729,7 +745,7 @@ struct Config
 #define CFGnoinlines    0x1000  // do not inline functions
 #define CFGnowarning    0x8000  // disable warnings
 #define CFGX    (CFGnowarning)
-    unsigned long flags2;
+    unsigned flags2;
 #define CFG2comdat      1       // use initialized common blocks
 #define CFG2nodeflib    2       // no default library imbedded in OBJ file
 #define CFG2browse      4       // generate browse records
@@ -749,7 +765,7 @@ struct Config
 #define CFGX2   (CFG2warniserr | CFG2phuse | CFG2phgen | CFG2phauto | \
                  CFG2once | CFG2hdrdebug | CFG2noobj | CFG2noerrmax | \
                  CFG2expand | CFG2nodeflib)
-    unsigned long flags3;
+    unsigned flags3;
 #define CFG3ju          1       // char == unsigned char
 #define CFG3eh          4       // generate exception handling stuff
 #define CFG3strcod      8       // strings are placed in code segment
@@ -761,7 +777,7 @@ struct Config
 #define CFG3relax       0x200   // relaxed type checking (C only)
 #define CFG3cpp         0x400   // C++ compile
 #define CFG3igninc      0x800   // ignore standard include directory
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define CFG3mars        0x1000  // use mars libs and headers
 #define NO_FAR          (TRUE)  // always ignore __far and __huge keywords
 #else
@@ -773,13 +789,13 @@ struct Config
 #define CFG3cppcomment  0x8000  // allow C++ style comments
 #define CFG3wkfloat     0x10000 // make floating point references weak externs
 #define CFG3digraphs    0x20000 // support ANSI C++ digraphs
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define CFG3semirelax   0x40000 // moderate relaxed type checking
 #endif
 #define CFG3pic         0x80000 // position independent code
 #define CFGX3   (CFG3strcod | CFG3ptrchk)
 
-    unsigned long flags4;
+    unsigned flags4;
 #define CFG4speed       1       // optimized for speed
 #define CFG4space       2       // optimized for space
 #define CFG4optimized   (CFG4speed | CFG4space)
@@ -816,7 +832,7 @@ struct Config
                          CFG4enumoverload | CFG4implicitfromvoid | \
                          CFG4wchar_is_long | CFG4underscore)
 
-    unsigned long flags5;
+    unsigned flags5;
 #define CFG5debug       1       // compile in __debug code
 #define CFG5in          2       // compile in __in code
 #define CFG5out         4       // compile in __out code
@@ -859,9 +875,9 @@ struct Symbol;
 struct LIST;
 struct elem;
 
-typedef unsigned short regm_t;  // Register mask type
+typedef unsigned regm_t;        // Register mask type
 struct immed_t
-{   targ_int value[REGMAX];     // immediate values in registers
+{   targ_size_t value[REGMAX];  // immediate values in registers
     regm_t mval;                // Mask of which values in regimmed.value[] are valid
 };
 
@@ -895,6 +911,12 @@ struct con_t
  * size of the data on the TARGET, not the host.
  */
 
+struct Cent
+{
+    targ_ullong lsw;
+    targ_ullong msw;
+};
+
 union eve
 {
         targ_char       Vchar;
@@ -908,12 +930,13 @@ union eve
         targ_ulong      Vulong;
         targ_llong      Vllong;
         targ_ullong     Vullong;
+        Cent            Vcent;
         targ_float      Vfloat;
         targ_double     Vdouble;
         targ_ldouble    Vldouble;
-        Complex_f       Vcfloat;
-        Complex_d       Vcdouble;
-        Complex_ld      Vcldouble;
+        Complex_f       Vcfloat;   // 2x float
+        Complex_d       Vcdouble;  // 2x double
+        Complex_ld      Vcldouble; // 2x long double
         targ_size_t     Vpointer;
         targ_ptrdiff_t  Vptrdiff;
         targ_uchar      Vreg;   // register number for OPreg elems
@@ -949,6 +972,13 @@ union eve
             elem *Eright;       // right child for binary nodes
             Symbol *Edtor;      // OPctor: destructor
         } eop;
+#if MARS
+        struct
+        {
+            elem *Eleft;        // left child for OPddtor
+            void *Edecl;        // VarDeclaration being constructed
+        } ed;                   // OPdctor,OPddtor
+#endif
 };                              // variants for each type of elem
 
 // Symbols
@@ -969,7 +999,7 @@ union eve
 #define SYMBOLZERO
 #endif
 
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define UNIXFIELDS      (unsigned)-1,(unsigned)-1,0,0,
 #elif TARGET_OSX
 #define UNIXFIELDS      (unsigned)-1,(unsigned)-1,0,0,0,
@@ -977,9 +1007,9 @@ union eve
 #define UNIXFIELDS
 #endif
 
-typedef unsigned long SYMFLGS;
+typedef unsigned SYMFLGS;
 #if MARS
-#define SYM_PREDEF_SZ 35
+#define SYM_PREDEF_SZ 40
 #else
 #define SYM_PREDEF_SZ 22
 #endif

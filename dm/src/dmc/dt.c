@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -19,7 +19,6 @@
 #include        "cc.h"
 #include        "oper.h"
 #include        "global.h"
-#include        "parser.h"
 #include        "el.h"
 #include        "type.h"
 #include        "dt.h"
@@ -45,11 +44,7 @@ dt_t *dt_calloc(char dtx)
         *dt = dtzero;
     }
     else
-#if TX86
         dt = (dt_t *) mem_fcalloc(sizeof(dt_t));
-#else
-        dt = (dt_t *) MEM_PH_MALLOC(sizeof(dt_t));
-#endif
     dt->dt = dtx;
     return dt;
 }
@@ -87,11 +82,7 @@ void dt_term()
 
     while (dt_freelist)
     {   dtn = dt_freelist->DTnext;
-#if TX86
         mem_ffree(dt_freelist);
-#else
-        MEM_PH_FREE(dt_freelist);
-#endif
         dt_freelist = dtn;
     }
 #endif
@@ -190,14 +181,37 @@ dt_t **dtabytes(dt_t **pdtend,tym_t ty, targ_size_t offset, targ_size_t size, co
  * Construct a DTibytes record, and return it.
  */
 
-dt_t ** dtdword(dt_t **pdtend,long value)
+dt_t ** dtdword(dt_t **pdtend, int value)
 {   dt_t *dt;
 
     while (*pdtend)
         pdtend = &((*pdtend)->DTnext);
     dt = dt_calloc(DT_ibytes);
     dt->DTn = 4;
-    *(long *)dt->DTdata = value;
+
+    union { char* cp; int* lp; } u;
+    u.cp = dt->DTdata;
+    *u.lp = value;
+
+    *pdtend = dt;
+    pdtend = &dt->DTnext;
+    return pdtend;
+}
+
+dt_t ** dtsize_t(dt_t **pdtend, targ_size_t value)
+{   dt_t *dt;
+
+    while (*pdtend)
+        pdtend = &((*pdtend)->DTnext);
+    dt = dt_calloc(DT_ibytes);
+    dt->DTn = NPTRSIZE;
+
+    union { char* cp; int* lp; } u;
+    u.cp = dt->DTdata;
+    *u.lp = value;
+    if (NPTRSIZE == 8)
+        u.lp[1] = value >> 32;
+
     *pdtend = dt;
     pdtend = &dt->DTnext;
     return pdtend;
@@ -354,7 +368,7 @@ unsigned dt_size(dt_t *dtstart)
                 break;
             default:
 #ifdef DEBUG
-                dbg_printf("dt = x%p, dt = %d\n",dt,dt->dt);
+                dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
 #endif
                 assert(0);
         }

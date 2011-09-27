@@ -22,8 +22,6 @@
 #include        "oper.h"
 #include        "global.h"
 #include        "type.h"
-#include        "parser.h"
-#include        "cpp.h"
 #include        "exh.h"
 #include        "list.h"
 
@@ -60,13 +58,13 @@ struct Cinfo
 #define CIFLnostage     4       // don't stage these instructions
 #define CIFLpush        8       // it's a push we can swap around
 
-    unsigned long r;    // read mask
-    unsigned long w;    // write mask
-    unsigned long a;    // registers used in addressing mode
+    unsigned r;         // read mask
+    unsigned w;         // write mask
+    unsigned a;         // registers used in addressing mode
     unsigned char reg;  // reg field of modregrm byte
     unsigned char uops; // Pentium Pro micro-ops
     unsigned sibmodrm;  // (sib << 8) + mod__rm byte
-    long spadjust;      // if !=0, then amount ESP changes as a result of this
+    unsigned spadjust;  // if !=0, then amount ESP changes as a result of this
                         // instruction being executed
     int fpuadjust;      // if !=0, then amount FPU stack changes as a result
                         // of this instruction being executed
@@ -90,7 +88,8 @@ void cgsched_pentium(code **pc,regm_t scratch)
     //printf("scratch = x%02x\n",scratch);
     if (config.target_scheduler >= TARGET_80486)
     {
-        *pc = peephole(*pc,0);
+        if (!I64)
+            *pc = peephole(*pc,0);
         if (I32)                        // forget about 16 bit code
         {
             if (config.target_cpu == TARGET_Pentium ||
@@ -152,15 +151,16 @@ static unsigned char pentcycl[256] =
  * For each opcode, determine read [0] and written [1] masks.
  */
 
-#define F       mPSW            // flags
-#define EA      0x10000
-#define R       0x20000         // register (reg of modregrm field)
-#define N       0x40000         // other things modified, not swappable
-#define B       0x80000         // it's a byte operation
-#define C       0x100000        // floating point flags
-#define S       mST0            // floating point stack
+#define EA      0x100000
+#define R       0x200000        // register (reg of modregrm field)
+#define N       0x400000        // other things modified, not swappable
+#define B       0x800000        // it's a byte operation
+#define C       0x1000000       // floating point flags
+#define mMEM    0x2000000       // memory
+#define S       0x4000000       // floating point stack
+#define F       0x8000000       // flags
 
-static unsigned long oprw[256][2] =
+static unsigned oprw[256][2] =
 {
         // 00
         EA|R|B, F|EA|B,         // ADD
@@ -487,7 +487,7 @@ static unsigned long oprw[256][2] =
  * Same thing, but for groups.
  */
 
-static unsigned long grprw[8][8][2] =
+static unsigned grprw[8][8][2] =
 {
         // Grp 1
         EA,     F|EA,           // ADD
@@ -547,7 +547,7 @@ static unsigned long grprw[8][8][2] =
  *          [1] = write
  */
 
-static unsigned long grpf1[8][8][2] =
+static unsigned grpf1[8][8][2] =
 {
         // 0xD8
         EA|S,   S|C,    // FADD  float
@@ -776,7 +776,9 @@ STATIC int uops(code *c)
     int op;
     int op2;
 
-    op = c->Iop;
+    op = c->Iop & 0xFF;
+    if ((c->Iop & 0xFF00) == 0x0F00)
+        op = 0x0F;
     n = insuops[op];
     if (!n)                             // if special case
     {   unsigned char irm,mod,reg,rm;
@@ -981,7 +983,7 @@ STATIC int uops(code *c)
                 break;
 
             case 0x0F:
-                op2 = c->Iop2;
+                op2 = c->Iop & 0xFF;
                 if ((op2 & 0xF0) == 0x80)       // Jcc
                 {   n = 1;
                     break;
@@ -1023,7 +1025,9 @@ STATIC int pair_class(code *c)
     // Of course, with Intel this is *never* simple, and Intel's
     // documentation is vague about the specifics.
 
-    op = c->Iop;
+    op = c->Iop & 0xFF;
+    if ((c->Iop & 0xFF00) == 0x0F00)
+        op = 0x0F;
     pc = pentcycl[op];
     a32 = I32;
     if (c->Iflags & CFaddrsize)
@@ -1035,7 +1039,7 @@ STATIC int pair_class(code *c)
     switch (op)
     {
         case 0x0F:                              // 2 byte opcode
-            if ((c->Iop2 & 0xF0) == 0x80)       // if Jcc
+            if ((c->Iop & 0xF0) == 0x80)        // if Jcc
                 pc = PV | PF;
             break;
 
@@ -1176,13 +1180,15 @@ STATIC void getinfo(Cinfo *ci,code *c)
     unsigned char irm,mod,reg,rm;
     unsigned a32;
     int pc;
-    unsigned long r,w;
+    unsigned r,w;
     int sz = I32 ? 4 : 2;
 
     ci->r = 0;
     ci->w = 0;
     ci->a = 0;
-    op = c->Iop;
+    op = c->Iop & 0xFF;
+    if ((c->Iop & 0xFF00) == 0x0F00)
+        op = 0x0F;
     //printf("\tgetinfo %x, op %x \n",c,op);
     pc = pentcycl[op];
     a32 = I32;
@@ -1310,10 +1316,10 @@ STATIC void getinfo(Cinfo *ci,code *c)
             break;
 
         case 0x0F:
-            op2 = c->Iop2;
+            op2 = c->Iop & 0xFF;
             if ((op2 & 0xF0) == 0x80)           // if Jxx instructions
             {
-                ci->r = mPSW | N;
+                ci->r = F | N;
                 ci->w = N;
                 goto Lret;
             }
@@ -1340,6 +1346,11 @@ STATIC void getinfo(Cinfo *ci,code *c)
         case 0x3D:                              // CMP EAX,imm32
             // For CMP opcodes, always test for flags
             c->Iflags |= CFpsw;
+            break;
+
+        case ESCAPE:
+            if (c->Iop == (ESCAPE | ESCadjfpu))
+                ci->fpuadjust = c->IEV1.Vint;
             break;
 
         case 0xD0:
@@ -1659,9 +1670,9 @@ Lret:
 STATIC int pair_test(Cinfo *cu,Cinfo *cv)
 {   unsigned pcu;
     unsigned pcv;
-    unsigned long r1,w1;
-    unsigned long r2,w2;
-    unsigned long x;
+    unsigned r1,w1;
+    unsigned r2,w2;
+    unsigned x;
 
     pcu = cu->pair;
     if (!(pcu & PU))
@@ -1704,7 +1715,7 @@ Lnopair:
  */
 
 STATIC int pair_agi(Cinfo *c1,Cinfo *c2)
-{   unsigned long x;
+{   unsigned x;
 
     x = c1->w & c2->a;
     return x && !(x == mSP && c1->pair & c2->pair & PE);
@@ -1759,7 +1770,7 @@ STATIC code * cnext(code *c)
         if (c->Iflags & (CFtarg | CFtarg2))
             break;
         if (!(c->Iop == NOP ||
-              (c->Iop == ESCAPE && c->Iop2 == ESClinnum)))
+              c->Iop == (ESCAPE | ESClinnum)))
             break;
     }
     return c;
@@ -1787,11 +1798,11 @@ STATIC code * cnext(code *c)
 //                      if 2, then adjust ci1 as well as ci2
 
 STATIC int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
-{   code *c;
+{
     code *c1;
     code *c2;
-    unsigned long r1,w1,a1;
-    unsigned long r2,w2,a2;
+    unsigned r1,w1,a1;
+    unsigned r2,w2,a2;
     int sz1,sz2;
     int i = 0;
     int delay_clocks;
@@ -1869,12 +1880,12 @@ if (c2->IEVpointer1 + sz2 <= c1->IEVpointer1) printf("t5\n");
         // If other than the memory reference is a conflict
         if (w1 & r2 & ~mMEM || (r1 | w1) & w2 & ~mMEM)
         {   if (i) printf("\t1\n");
-            if (i) printf("r1=%lx, w1=%lx, a1=%lx, sz1=%d, r2=%lx, w2=%lx, a2=%lx, sz2=%d\n",r1,w1,a1,sz1,r2,w2,a2,sz2);
+            if (i) printf("r1=%x, w1=%x, a1=%x, sz1=%d, r2=%x, w2=%x, a2=%x, sz2=%d\n",r1,w1,a1,sz1,r2,w2,a2,sz2);
             goto Lconflict;
         }
 
         // If referring to distinct types, then no dependency
-        if (c1->Ijty && c2->Ijty && c1->Ijty != c2->Ijty)
+        if (c1->Irex && c2->Irex && c1->Irex != c2->Irex)
             goto Lswap;
 
         ifl1 = c1->IFL1;
@@ -1882,7 +1893,7 @@ if (c2->IEVpointer1 + sz2 <= c1->IEVpointer1) printf("t5\n");
 
         // Special case: Allow indexed references using registers other than
         // ESP and EBP to be swapped with PUSH instructions
-        if (((c1->Iop & 0xF8) == 0x50 ||        // PUSH reg
+        if (((c1->Iop & ~7) == 0x50 ||          // PUSH reg
              c1->Iop == 0x6A ||                 // PUSH imm8
              c1->Iop == 0x68 ||                 // PUSH imm16/imm32
              (c1->Iop == 0xFF && ci1->reg == 6) // PUSH EA
@@ -1902,7 +1913,7 @@ if (c2->IEVpointer1 + sz2 <= c1->IEVpointer1) printf("t5\n");
 
         // Special case: Allow indexed references using registers other than
         // ESP and EBP to be swapped with PUSH instructions
-        if (((c2->Iop & 0xF8) == 0x50 ||        // PUSH reg
+        if (((c2->Iop & ~7) == 0x50 ||          // PUSH reg
              c2->Iop == 0x6A ||                 // PUSH imm8
              c2->Iop == 0x68 ||                 // PUSH imm16/imm32
              (c2->Iop == 0xFF && ci2->reg == 6) // PUSH EA
@@ -2297,7 +2308,7 @@ int Schedule::insert(Cinfo *ci)
 
         // Look for special case swap
         if (movesp &&
-            (cit->c->Iop & 0xF8) == 0x50 &&             // if PUSH reg1
+            (cit->c->Iop & ~7) == 0x50 &&               // if PUSH reg1
             (cit->c->Iop & 7) != reg2 &&                // if reg1 != reg2
             ((signed char)c->IEVpointer1) >= -cit->spadjust
            )
@@ -2321,7 +2332,7 @@ int Schedule::insert(Cinfo *ci)
 
         clocks = conflict(cit,ci,1);
         if (clocks)
-        {   int k,j;
+        {   int j;
 
             ic = i;                     // where the conflict occurred
             clocks &= 0xFF;             // convert to delay count
@@ -2520,7 +2531,7 @@ Linsert:
                     break;
 
             if (i >= j && tbl[i - j] &&
-                   (tbl[i - j]->c->Iop & 0xF8) == 0x50 &&       // if PUSH reg1
+                   (tbl[i - j]->c->Iop & ~7) == 0x50 &&       // if PUSH reg1
                    (tbl[i - j]->c->Iop & 7) != reg2 &&  // if reg1 != reg2
                    (signed char)c->IEVpointer1 >= REGSIZE)
             {
@@ -2553,7 +2564,6 @@ int Schedule::stage(code *c)
     list_t l;
     list_t ln;
     int agi;
-    int op;
 
     //printf("stage: "); c->print();
     if (cinfomax == TBLMAX)             // if out of space
@@ -2662,7 +2672,7 @@ STATIC code * csnip(code *c)
             if (c->Iflags & (CFtarg | CFtarg2))
                 break;
             if (!(c->Iop == NOP ||
-                  (c->Iop == ESCAPE && c->Iop2 == ESClinnum) ||
+                  c->Iop == (ESCAPE | ESClinnum) ||
                   c->Iflags & iflags))
                 break;
         }
@@ -2686,7 +2696,9 @@ code *schedule(code *c,regm_t scratch)
     sch.initialize(0);                  // initialize scheduling table
     while (c)
     {
-        if ((c->Iop == NOP || c->Iop == ESCAPE || c->Iflags & CFclassinit) &&
+        if ((c->Iop == NOP ||
+             ((c->Iop & 0xFF) == ESCAPE && c->Iop != (ESCAPE | ESCadjfpu)) ||
+             c->Iflags & CFclassinit) &&
             !(c->Iflags & (CFtarg | CFtarg2)))
         {   code *cn;
 
@@ -2830,7 +2842,7 @@ code *peephole(code *cstart,regm_t scratch)
     //  OP ?,r2
     // to improve pairing
     code *c;
-    code *c1,*c2,*c3;
+    code *c1;
     unsigned r1,r2;
     unsigned mod,reg,rm;
 
@@ -2849,7 +2861,7 @@ code *peephole(code *cstart,regm_t scratch)
 
         // Do:
         //      PUSH    reg
-        if (I32 && (c->Iop & 0xF8) == 0x50)
+        if (I32 && (c->Iop & ~7) == 0x50)
         {   unsigned reg = c->Iop & 7;
 
             //  MOV     [ESP],reg       =>      NOP
@@ -3146,7 +3158,7 @@ code *simpleops(code *c,regm_t scratch)
 }
 
 #if DEBUG
-static char *fpops[] = {"fstp","fld","fop"};
+static const char *fpops[] = {"fstp","fld","fop"};
 void Cinfo::print()
 {
     Cinfo *ci = this;
@@ -3157,7 +3169,7 @@ void Cinfo::print()
         return;
     }
 
-    printf("Cinfo %x:  c %x, pair %x, sz %d, isz %d, flags - ",
+    printf("Cinfo %p:  c %p, pair %x, sz %d, isz %d, flags - ",
            ci,c,pair,sz,isz);
     if (ci->flags & CIFLarraybounds)
         printf("arraybounds,");
@@ -3169,8 +3181,8 @@ void Cinfo::print()
         printf("push,");
     if (ci->flags & ~(CIFLarraybounds|CIFLnostage|CIFLpush|CIFLea))
         printf("bad flag,");
-    printf("\n\tr %x w %x a %x reg %x uops %x sibmodrm %x spadjust %d\n",
-            r,w,a,reg,uops,sibmodrm,spadjust);
+    printf("\n\tr %lx w %lx a %lx reg %x uops %x sibmodrm %x spadjust %ld\n",
+            (long)r,(long)w,(long)a,reg,uops,sibmodrm,(long)spadjust);
     if (ci->fp_op)
         printf("\tfp_op %s, fxch_pre %x, fxch_post %x\n",
                 fpops[fp_op-1],fxch_pre,fxch_post);

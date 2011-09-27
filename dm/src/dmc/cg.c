@@ -40,8 +40,8 @@ targ_size_t localsize,          /* amt subtracted from SP for local vars */
         Toff,                   /* base for temporaries                 */
         Poff,Aoff;              // comsubexps, params, regs, autos
 
-/* The following are initialized for the 8088. cod3_set386() will
-   change them if generating code for the 386.
+/* The following are initialized for the 8088. cod3_set32() or cod3_set64()
+ * will change them as appropriate.
  */
 int     BPRM = 6;               /* R/M value for [BP] or [EBP]          */
 regm_t  fregsaved = mBP | mSI | mDI;    // mask of registers saved across
@@ -53,3 +53,9 @@ regm_t  DOUBLEREGS = DOUBLEREGS_16;
 
 symbol *localgot;               // reference to GOT for this function
 symbol *tls_get_addr_sym;       // function __tls_get_addr
+
+#if TARGET_OSX
+int STACKALIGN = 16;
+#else
+int STACKALIGN = 0;
+#endif

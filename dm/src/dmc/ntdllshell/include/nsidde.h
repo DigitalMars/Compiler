@@ -26,31 +26,31 @@ typedef struct
    int version;
 #define VERSION_TOOLCALLBACKS 2
    int  (CALLBACK _far *ReportProgress) (const NetCommAddress __far *server,
-   					  int jobSequence,
-   					  long);
+                                          int jobSequence,
+                                          long);
    void (CALLBACK _far *ReportOutput)   (const NetCommAddress __far *server,
-   					  int jobSequence,
-   					  const char __far *output);
+                                          int jobSequence,
+                                          const char __far *output);
    void (CALLBACK _far *ReportMessage)  (const NetCommAddress __far *server,
-   					  int jobSequence,
-   					  const tToolMsg __far *message);
+                                          int jobSequence,
+                                          const tToolMsg __far *message);
    void (CALLBACK _far *ReportTarget)   (const NetCommAddress __far *server,
-   					  int jobSequence,
-   					  const char __far *target);
-   void (CALLBACK _far *ReportFile)	 (const NetCommAddress __far *server,
-   					  int jobSequence,
-   					  const char __far *file,
-   					  int level);
+                                          int jobSequence,
+                                          const char __far *target);
+   void (CALLBACK _far *ReportFile)      (const NetCommAddress __far *server,
+                                          int jobSequence,
+                                          const char __far *file,
+                                          int level);
    void (CALLBACK _far *ReportActivity) (const NetCommAddress __far *server,
-   					  int jobSequence,
-   					  const tToolData __far *activity);
+                                          int jobSequence,
+                                          const tToolData __far *activity);
    tStackMode StackMode;
    tYieldMode YieldMode;
-   tReportMode LineReportMode;   					  
+   tReportMode LineReportMode;
 } tServerCallbacks;
 */
 
-typedef enum 
+typedef enum
 {
   NetSpawnInstallNoError = 0,
   NetSpawnInstallCantFindDll,
@@ -73,16 +73,16 @@ typedef struct
 } tServerCallbacks;
 
 NETSPAWNSTATUS NetSpawnInstall (char *clientID, char *controlDirectory,
-				tServerCallbacks *callbacks, tToolCallbacks *clientcallback);
+                                tServerCallbacks *callbacks, tToolCallbacks *clientcallback);
 void NetSpawnSetControlDirectory (char *controlDirectory);
 NETSPAWNSTATUS NetSpawnUninstall();
 
 void NetSpawnSetDistribute (BOOL dist); // cd be done in NetSpawnInstall
 
 BOOL NetSpawnOpenServerList(char *control_directory);
-BOOL NetSpawnGetFirstServer(char *name, NetCommAddress *node);    
-BOOL NetSpawnGetNextServer(char *name, NetCommAddress *node);    
-void NetSpawnCloseServerList();  
+BOOL NetSpawnGetFirstServer(char *name, NetCommAddress *node);
+BOOL NetSpawnGetNextServer(char *name, NetCommAddress *node);
+void NetSpawnCloseServerList();
 void NetSpawnImprovedSleep(short time);
 void NetSpawnSaveEnvironment(char *CurrentDirectory);
 void NetSpawnDumpCompileContext();

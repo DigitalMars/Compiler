@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -33,6 +33,7 @@
 #include        "cv4.h"
 #include        "global.h"
 #if SCPP
+#include        "parser.h"
 #include        "cpp.h"
 #endif
 
@@ -302,8 +303,12 @@ idx_t cv_debtyp(debtyp_t *d)
         hash = length;
         if (length >= sizeof(unsigned))
         {
-            hash += *(unsigned *)(d->data) +
-                    *(unsigned *)(&d->data[length - sizeof(unsigned)]);
+            // Hash consists of the sum of the first 4 bytes with the last 4 bytes
+            union { unsigned char* cp; unsigned* up; } u;
+            u.cp = d->data;
+            hash += *u.up;
+            u.cp += length - sizeof(unsigned);
+            hash += *u.up;
         }
         hashi = hash % DEBTYPHASHDIM;
         hash %= DEBTYPVECDIM;
@@ -2015,7 +2020,7 @@ STATIC void cv4_outsym(symbol *s)
     unsigned length;
     unsigned u;
     tym_t tym;
-    char *id;
+    const char *id;
     unsigned char __ss *debsym;
 
     //dbg_printf("cv4_outsym(%s)\n",s->Sident);
@@ -2047,7 +2052,7 @@ STATIC void cv4_outsym(symbol *s)
             id = prettyident(s);
         }
 #else
-        id = s->Sident;
+        id = s->prettyIdent ? s->prettyIdent : s->Sident;
 #endif
         len = cv_stringbytes(id);
 
@@ -2144,7 +2149,11 @@ STATIC void cv4_outsym(symbol *s)
         idx_t typidx;
 
         typidx = cv4_typidx(t);
+#if MARS
+        id = s->prettyIdent ? s->prettyIdent : prettyident(s);
+#else
         id = prettyident(s);
+#endif
         len = strlen(id);
         debsym = (unsigned char __ss *) alloca(39 + IDOHD + len);
         switch (s->Sclass)

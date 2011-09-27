@@ -10,20 +10,20 @@
  * For any other uses, please contact Digital Mars.
  */
 
-#include	<stdio.h>
-#include	<string.h>
-#include	<stdlib.h>
-#include	<time.h>
-#include	"cc.h"
-#include	"global.h"
+#include        <stdio.h>
+#include        <string.h>
+#include        <stdlib.h>
+#include        <time.h>
+#include        "cc.h"
+#include        "global.h"
 #if TARGET_MAC
-#include	"TGvers.h"
+#include        "TGvers.h"
 #endif
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
-#include	"msgs2.c"
+#include        "msgs2.c"
 
 void errmsgs_init();
 
@@ -38,7 +38,7 @@ char *dlcmsgs(int n)
     //errmsgs_init();
     p = msgtbl[n][configv.language];
     if (!p)
-	p = msgtbl[n][LANGenglish];
+        p = msgtbl[n][LANGenglish];
 
     return p;
 }
@@ -54,11 +54,11 @@ void errmsgs_init()
     int i;
 
     if (inited)
-	return;
+        return;
     inited++;
     for (i = 0; i < arraysize(msgtbl); i++)
     {
-	printf("%d: %s\n",i,msgtbl[i][LANGenglish]);
+        printf("%d: %s\n",i,msgtbl[i][LANGenglish]);
     }
 #endif
 }

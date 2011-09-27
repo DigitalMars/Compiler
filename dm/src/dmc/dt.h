@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1995 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -47,7 +47,7 @@ struct dt_t
         struct                          // DTibytes
         {   char DTn_;                  // number of bytes
             #define DTn _DU._DI.DTn_
-            char DTdata_[7];            // data
+            char DTdata_[8];            // data
             #define DTdata _DU._DI.DTdata_
         }_DI;
         char DTonebyte_;                // DT1byte
@@ -94,14 +94,12 @@ enum
 dt_t *dt_calloc(char dtx);
 void dt_free(dt_t *);
 void dt_term(void);
-#elif TARGET_MAC
-dt_t *dt_calloc(void);
-void dt_free(dt_t *);
 #endif
 
 dt_t **dtnbytes(dt_t **,targ_size_t,const char *);
 dt_t **dtabytes(dt_t **pdtend,tym_t ty, targ_size_t offset, targ_size_t size, const char *ptr);
-dt_t **dtdword(dt_t **,long value);
+dt_t **dtdword(dt_t **, int value);
+dt_t **dtsize_t(dt_t **, targ_size_t value);
 dt_t **dtnzeros(dt_t **pdtend,targ_size_t size);
 dt_t **dtxoff(dt_t **pdtend,symbol *s,targ_size_t offset,tym_t ty);
 dt_t **dtselfoff(dt_t **pdtend,targ_size_t offset,tym_t ty);

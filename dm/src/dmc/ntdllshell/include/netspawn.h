@@ -10,7 +10,7 @@
  */
 
 #ifndef __NETSPAWN_H
-#define __NETSPAWN_H	1
+#define __NETSPAWN_H    1
 
 #if __cplusplus
 extern "C" {
@@ -72,7 +72,7 @@ typedef enum
     eMsgLinkerExport = 48   // message is a DEF file export
 } tToolMsgType;
 
-typedef enum 		    // ignored in this version (no stack switching)
+typedef enum                // ignored in this version (no stack switching)
 {
     stkNormal,
     stkDoSwitch,
@@ -156,7 +156,7 @@ typedef void (__cdecl *tHookFP)(void);
 -- Build Process Status Flags -----------------------------------------------
 ---------------------------------------------------------------------------*/
 
-#define NETSPAWN_FIRST_COMPILE	       0x00000001
+#define NETSPAWN_FIRST_COMPILE         0x00000001
 #define NETSPAWN_DUMP_COMPILE_CONTEXT  0x00000002
 #define NETSPAWN_FIRST_ASSEMBLY        0x00000004
 #define NETSPAWN_BUILD_SERVER          0x00000008
@@ -184,7 +184,7 @@ void           NETSPAWNAPI NetSpawnFile (const char *, int);
 unsigned long  NETSPAWNAPI NetSpawnGetCompilerFlags();
 unsigned long  NETSPAWNAPI NetSpawnGetShellFlags();
 int            NETSPAWNAPI NetSpawnGetReturnCode();
-void	       NETSPAWNAPI NetSpawnHookDetach(tHookFP fp);
+void           NETSPAWNAPI NetSpawnHookDetach(tHookFP fp);
 void           NETSPAWNAPI NetSpawnInitializeBuild();
 NETSPAWNSTATUS NETSPAWNAPI NetSpawnMakeInitialize ();
 NETSPAWNSTATUS NETSPAWNAPI NetSpawnMakeUninitialize ();

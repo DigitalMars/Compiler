@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -140,10 +140,6 @@ static  bool addblk;                    /* if TRUE, then we added a block */
 /****************************
  */
 
-#if !(TARGET_MAC)
-/* These routines are not used for the Mac compiler build */
-
-
 void famlist::print()
 {
 #ifdef DEBUG
@@ -173,12 +169,9 @@ void Iv::print()
 #endif
 }
 
-#endif  /* !(TARGET_MAC) */
-
 /***********************
  * Write loop.
  */
-
 
 void loop::print()
 {
@@ -682,21 +675,6 @@ STATIC int looprotate(loop *l)
         assert(0);
 
     L1:
-#if !TX86
-        if (config.flags3 & CFG3eh)
-        {
-            if (!(b->Bflags & BFLlooprt))
-            {
-                b->Boldnext = b->Bnext;
-                b->Bflags |= BFLlooprt;
-            }
-            if (!(head->Bflags & BFLlooprt))
-            {
-                head->Boldnext = head->Bnext;
-                head->Bflags |= BFLlooprt;
-            }
-        }
-#endif
         b->Bnext = head->Bnext;
         head->Bnext = tail->Bnext;
         tail->Bnext = head;
@@ -760,7 +738,6 @@ restart:
     addblk = FALSE;                     /* assume no blocks added        */
     for (l = startloop; l; l = l->Lnext)/* for each loop                 */
     {
-        T68000(file_progress();)
 #ifdef DEBUG
         //if (debugc) l->print();
 #endif
@@ -1028,10 +1005,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPstrlen:
         case OPinp:
 #endif
-#if TARGET_MAC
-        case OPvptrfptr:
-        case OPcvptrfptr:
-#endif
                 markinvar(n->E1,rd);
                 break;
         case OPcond:
@@ -1084,41 +1057,23 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPu16_d:   case OPdbluns:
         case OPs8int:   case OPint8:
         case OPd_u32:   case OPu32_d:
-#if TARGET_68K
-        case OPacos:
-        case OPasin:
-        case OPatan:
-        case OPatanh:
-        case OPcos:
-        case OPcosh:
-        case OPexp:
-        case OPexp1:
-        case OPexp10:
-        case OPlog:
-        case OPlog10:
-        case OPlog2:
-        case OPsin:
-        case OPsincos:
-        case OPsinh:
-        case OPtan:
-        case OPtanh:
-#endif
 
 #if LONGLONG
-        case OPlngllng: case OPulngllng:
+        case OPlngllng: case OPu32_64:
         case OP64_32:
         case OPd_s64:   case OPd_u64:
         case OPs64_d:
         case OPu64_d:
+        case OP128_64:
+        case OPs64_128:
+        case OPu64_128:
 #endif
-#if !(TARGET_POWERPC)
         case OPabs:
         case OPsqrt:
         case OPrndtol:
         case OPsin:
         case OPcos:
         case OPrint:
-#endif
 #if TX86
         case OPvptrfptr: /* BUG for MacHandles */
         case OPtofar16: case OPfromfar16: case OPoffset: case OPptrlptr:
@@ -1127,8 +1082,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPbsf:
         case OPbsr:
         case OPbswap:
-#else
-        case OPsfltdbl: case OPdblsflt:
 #endif
                 markinvar(n->E1,rd);
                 if (isLI(n->E1))        /* if child is LI               */
@@ -1170,6 +1123,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPshl:     case OPshr:     case OPeqeq:    case OPne:
         case OPlt:      case OPle:      case OPgt:      case OPge:
         case OPashr:
+        case OPror:     case OProl:
 
         case OPunord:   case OPlg:      case OPleg:     case OPule:
         case OPul:      case OPuge:     case OPug:      case OPue:
@@ -1288,6 +1242,8 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPmark:
         case OPctor:
         case OPdtor:
+        case OPdctor:
+        case OPddtor:
         case OPhalt:
         case OPgot:                     // shouldn't OPgot be makeLI ?
                 break;
@@ -1335,7 +1291,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
         targ_size_t tsize;
         targ_size_t ttop;
 
-        tsize = (op == OPstreq) ? n->Enumbytes : tysize(t->Ety);
+        tsize = (op == OPstreq) ? type_size(n->ET) : tysize(t->Ety);
         ttop = toff + tsize;
 
         //printf("updaterd: "); WReqn(n); printf(" toff=%d, tsize=%d\n", toff, tsize);
@@ -1361,7 +1317,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
 
             // If t completely overlaps tn1
             tn1size = (tn->Eoper == OPstreq)
-                ? tn->Enumbytes : tysize(tn1->Ety);
+                ? type_size(tn->ET) : tysize(tn1->Ety);
             if (toff <= tn1->EV.sp.Voffset &&
                 tn1->EV.sp.Voffset + tn1size <= ttop)
             {
@@ -1614,7 +1570,6 @@ STATIC void movelis(elem *n,block *b,loop *l,int *pdomexit)
   register list_t nl;
   symbol *v;
   tym_t ty;
-  tym_t jty;
 
 Lnextlis:
   //if (isLI(n)) { printf("movelis("); WReqn(n); printf(")\n"); }
@@ -2078,18 +2033,8 @@ STATIC famlist * newfamlist(tym_t ty)
                 c.Vdouble = 1;
                 break;
             case TYldouble:
-#if TARGET_68K && __POWERPC
-                c.Vldouble = Xone();
-#else
                 c.Vldouble = 1;
-#endif
                 break;
-#if TARGET_68K && !__POWERPC
-            case TYcomp:
-                c.Vldouble = 1;
-                ty = TYldouble;
-                break;
-#endif
 #if _MSDOS || __OS2__ || _WIN32         // if no byte ordering problems
             case TYsptr:
             case TYcptr:
@@ -2137,6 +2082,8 @@ STATIC famlist * newfamlist(tym_t ty)
             case TYfptr:
             case TYvptr:
                 ty = TYint;
+                if (I64)
+                    ty = TYllong;
                 /* FALL-THROUGH */
             case TYint:
             case TYuint:
@@ -2165,6 +2112,8 @@ STATIC famlist * newfamlist(tym_t ty)
         {
 #if TX86
             ty = (tybasic(ty) == TYhptr) ? TYlong : TYint;
+            if (I64)
+                ty = TYllong;
 #else
             ty = TYint;
 #endif
@@ -2195,7 +2144,8 @@ STATIC void loopiv(register loop *l)
   elimfrivivs(l);               /* eliminate less useful family IVs     */
   intronvars(l);                /* introduce new variables              */
   elimbasivs(l);                /* eliminate basic IVs                  */
-  elimopeqs(l);                 // eliminate op= variables
+  if (!addblk)                  // adding a block changes the Binlv
+      elimopeqs(l);             // eliminate op= variables
 
   freeivlist(l->Livlist);       // free up IV list
   l->Livlist = NULL;
@@ -2507,6 +2457,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
   if (OTunary(op))
   {     ivfamelems(biv,&n->E1);
         n1 = n->E1;
+        n2 = NULL;
   }
   else if (OTbinary(op))
   {     ivfamelems(biv,&n->E1);
@@ -2600,7 +2551,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
                                         c2ty = TYlong;
                                     else
 #endif
-                                        c2ty = TYint;
+                                        c2ty = I64 ? TYllong : TYint;
                                 }
                           L1:
                                 fl->c2 = el_bin(op,c2ty,fl->c2,el_copytree(n2));
@@ -2690,7 +2641,7 @@ cmes2("nfams = %d\n",nfams);
 cmes2("nrefs = %d\n",nrefs);
         assert(nrefs + 1 >= nfams);
         if (nrefs > nfams ||            // if we won't eliminate the biv
-            (I32 && nrefs == nfams))
+            (!I16 && nrefs == nfams))
         {   /* Eliminate any family ivs that only differ by a constant  */
             /* from biv                                                 */
             for (fl = biv->IVfamily; fl; fl = fl->FLnext)
@@ -2702,7 +2653,7 @@ cmes2("nrefs = %d\n",nrefs);
                         ||
                     // Eliminate fl's that can be represented by
                     // an addressing mode
-                    (I32 && ec1->Eoper == OPconst && tyintegral(ec1->Ety) &&
+                    (!I16 && ec1->Eoper == OPconst && tyintegral(ec1->Ety) &&
                      ((c = el_tolong(ec1)) == 2 || c == 4 || c == 8)
                     )
 #endif
@@ -2798,39 +2749,6 @@ STATIC void intronvars(loop *l)
             /* of a previous induction variable, skip it.                */
             if (funcprev(biv,fl))
                 continue;
-
-#if TARGET_POWERPC
- extern INT32 numbitsset(UINT32);
-
-            if (!fl->c1) {
-                fl->FLtemp = FLELIM;
-                continue;
-
-            }
-
-
-
-
-            if (cnst(fl->c1))
-            {
-                elem * ec1 = fl->c1;
-                if (tyfloating(tybasic(ec1->Ety)))
-                        goto create_temp;
-
-                {
-                targ_llong v = el_tolong(ec1);
-                if (numbitsset((UINT32) v) != 1)
-                    goto create_temp;
-
-                fl->FLtemp = FLELIM;
-
-                continue;
-                }
-            }
-
-create_temp:
-
-#endif
 
             ty = fl->FLty;
             T = el_alloctmp(ty);        /* allocate temporary T          */
@@ -2934,10 +2852,6 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     continue;           /* can't increase size of var   */
 #endif
                 flse1 = el_var(fls->FLtemp);
-#if TARGET_MAC
-                if (tysize(fl->FLty) > tysize(flse1->Ety))
-                    goto L1;            /* can't increase size of var   */
-#endif
                 flse1->Ety = fl->FLty;
                 goto L2;
         }
@@ -2976,7 +2890,7 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     tymin = TYlong;
                 else
 #endif
-                    tymin = TYint;              /* type of (ptr - ptr) */
+                    tymin = I64 ? TYllong : TYint;         /* type of (ptr - ptr) */
         }
 
 #if TX86
@@ -3148,7 +3062,7 @@ STATIC void elimbasivs(register loop *l)
                          c1 & ~0x7FFFFFFFL)
                        )
                         continue;
-#if LONGLONG && __INTSIZE == 4
+#if LONGLONG && __INTSIZE >= 4
                     if (sz == LLONGSIZE &&
                         ((ref->E2->Eoper == OPconst &&
                         c1 * el_tolong(ref->E2) & ~0x7FFFFFFFFFFFFFFFLL) ||
@@ -3156,6 +3070,17 @@ STATIC void elimbasivs(register loop *l)
                        )
                         continue;
 #endif
+                }
+
+                /* If loop started out with a signed conditional that was
+                 * replaced with an unsigned one, don't do it if c2
+                 * is less than 0.
+                 */
+                if (ref->Nflags & NFLtouns && fl->c2->Eoper == OPconst)
+                {
+                    targ_llong c2 = el_tolong(fl->c2);
+                    if (c2 < 0)
+                        continue;
                 }
 
                 elem *refE2 = el_copytree(ref->E2);
@@ -3167,11 +3092,7 @@ STATIC void elimbasivs(register loop *l)
                  */
                 if (!tyuns(ty) &&
                     (tyintegral(ty) && el_tolong(fl->c1) < 0 ||
-#if TARGET_68K && __POWERPC
-                     tyfloating(ty) && Xlt(el_toldouble(fl->c1),Xzero()) ))
-#else
                      tyfloating(ty) && el_toldouble(fl->c1) < 0.0))
-#endif
                         refEoper = swaprel(refEoper);
 
                 /* Replace (X relop e) with (X relop (short)e)
@@ -3296,7 +3217,7 @@ STATIC void elimbasivs(register loop *l)
 #if TX86
                                 if (tybasic(ne->E1->Ety) == TYfptr &&
                                     tybasic(ne->E2->Ety) == TYfptr)
-                                {   ne->Ety = TYint;
+                                {   ne->Ety = I64 ? TYllong : TYint;
                                     if (tylong(ty) && intsize == 2)
                                         ne = el_una(OPshtlng,ty,ne);
                                 }
@@ -3372,7 +3293,7 @@ STATIC void elimbasivs(register loop *l)
                         }
                 }
 
-                cmes3("No uses, eliminating basic IV '%s' (%d)\n",(X->Sident)
+                cmes3("No uses, eliminating basic IV '%s' (%p)\n",(X->Sident)
                         ? (char *)X->Sident : "",X);
 
                 /* Dump the increment elem                              */
@@ -3393,11 +3314,10 @@ STATIC void elimbasivs(register loop *l)
  */
 
 STATIC void elimopeqs(register loop *l)
-{   famlist *fl;
+{
     Iv *biv;
     unsigned i;
-    tym_t ty;
-    elem **pref,*fofe,*C2;
+    elem **pref;
     symbol *X;
     int refcount;
 
@@ -3413,7 +3333,6 @@ STATIC void elimopeqs(register loop *l)
 
         X = biv->IVbasic;
         assert(symbol_isintab(X));
-        ty = X->ty();
         pref = onlyref(X,l,*biv->IVincr,&refcount);
 
         // if only ref of X is of the form (X) or (X relop e) or (e relop X)
@@ -3435,7 +3354,7 @@ STATIC void elimopeqs(register loop *l)
                 }
             }
 
-            cmes3("No uses, eliminating opeq IV '%s' (%d)\n",(X->Sident)
+            cmes3("No uses, eliminating opeq IV '%s' (%p)\n",(X->Sident)
                     ? (char *)X->Sident : "",X);
 
             // Dump the increment elem
@@ -3560,13 +3479,14 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
                         goto Lf2;
                 break;
             case TYldouble:
-#if TARGET_68K && __POWERPC
-                if (Xis1(t2->Vldouble) ||
-                    !(Xis1(t2->Vldouble)) && Xis0(f2->c2->EV.Vldouble) )
-#else
                 if (t2->Vldouble == 1.0 ||
                     t1->Vldouble != 1.0 && f2->c2->EV.Vldouble == 0)
-#endif
+                        goto Lf2;
+                break;
+            case TYllong:
+            case TYullong:
+                if (t2->Vllong == 1 ||
+                    t1->Vllong != 1 && f2->c2->EV.Vllong == 0)
                         goto Lf2;
                 break;
             default:
@@ -3607,7 +3527,7 @@ STATIC elem ** onlyref(symbol *x,loop *l,elem *incn,int *prefcount)
   sincn = incn;
 #ifdef DEBUG
   if (!(X->Ssymnum < globsym.top && l && incn))
-        dbg_printf("X = %d, globsym.top = %d, l = x%lx, incn = x%lx\n",X->Ssymnum,globsym.top,l,incn);
+        dbg_printf("X = %d, globsym.top = %d, l = %p, incn = %p\n",X->Ssymnum,globsym.top,l,incn);
 #endif
   assert(X->Ssymnum < globsym.top && l && incn);
   count = 0;

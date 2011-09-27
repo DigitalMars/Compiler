@@ -15,9 +15,9 @@
 extern "C"
 {
 
-#define TDBVERSION	0x0000
+#define TDBVERSION      0x0000
 
-#define TDBFUNC	__stdcall
+#define TDBFUNC __stdcall
 
 typedef void *TDBhandle_t;
 
@@ -27,9 +27,9 @@ int TDBFUNC GetTDBEngineVersion(void);
 int TDBFUNC OpenDatabase(TDBhandle_t *ph, const char *Asciz, int CreateFlag);
 int TDBFUNC GetTDBTimeStamp(TDBhandle_t h, int *TimeStamp);
 int TDBFUNC SubmitTypes(TDBhandle_t h, void *pTypes, unsigned SizeTypes,
-	unsigned Count, void **IndexHandle,
-	void * __cdecl (*pmalloc)(unsigned),
-	void __cdecl (*pfree)(void *));
+        unsigned Count, void **IndexHandle,
+        void * __cdecl (*pmalloc)(unsigned),
+        void __cdecl (*pfree)(void *));
 int TDBFUNC ReceiveTypes(void *IndexHandle, int **pGlobalIndexes);
 int TDBFUNC CloseDatabase(TDBhandle_t h, int DeleteFlag);
 int TDBFUNC GetTypeIndex(TDBHandle_t h, void *pType, int *Index);
@@ -43,13 +43,13 @@ typedef int TDBFUNC (*GetTDBEngineVersion_t)(void);
 typedef int TDBFUNC (*OpenDatabase_t)(TDBhandle_t *ph, const char *Asciz, int CreateFlag);
 typedef int TDBFUNC (*GetTDBTimeStamp_t)(TDBhandle_t h, int *TimeStamp);
 typedef int TDBFUNC (*SubmitTypes_t)(TDBhandle_t h, void *pTypes, unsigned SizeTypes,
-	unsigned Count, void **IndexHandle,
+        unsigned Count, void **IndexHandle,
 #if __GNUC__
-	void * (*pmalloc)(unsigned),
-	void (*pfree)(void *));
+        void * (*pmalloc)(unsigned),
+        void (*pfree)(void *));
 #else
-	void * __cdecl (*pmalloc)(unsigned),
-	void __cdecl (*pfree)(void *));
+        void * __cdecl (*pmalloc)(unsigned),
+        void __cdecl (*pfree)(void *));
 #endif
 typedef int TDBFUNC (*ReceiveTypes_t)(void *IndexHandle, int **pGlobalIndexes);
 typedef int TDBFUNC (*CloseDatabase_t)(TDBhandle_t h, int DeleteFlag);
@@ -66,13 +66,13 @@ GetTypeIndex_t GetTypeIndex;
 // Ordinal numbers
 enum TDB_Ordinal
 {
-	OpenDatabase_o = 1,
-	CloseDatabase_o = 2,
-	GetTDBEngineVersion_o = 3,
-	GetTDBTimeStamp_o = 4,
-	SubmitTypes_o = 5,
-	ReceiveTypes_o = 6,
-	GetTypeIndex_o = 9
+        OpenDatabase_o = 1,
+        CloseDatabase_o = 2,
+        GetTDBEngineVersion_o = 3,
+        GetTDBTimeStamp_o = 4,
+        SubmitTypes_o = 5,
+        ReceiveTypes_o = 6,
+        GetTypeIndex_o = 9
 };
 
 #endif

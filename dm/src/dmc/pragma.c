@@ -12,60 +12,60 @@
 
 // Pragma and macro processor
 
-#include	<stdio.h>
-#include	<string.h>
-#include	<stdlib.h>
-#include	<ctype.h>
-#include	"cc.h"
-#include	"token.h"
-#include	"global.h"
-#include	"oper.h"
-#include	"parser.h"
-#include	"type.h"
-#include	"scope.h"
-#include	"filespec.h"
+#include        <stdio.h>
+#include        <string.h>
+#include        <stdlib.h>
+#include        <ctype.h>
+#include        "cc.h"
+#include        "token.h"
+#include        "global.h"
+#include        "oper.h"
+#include        "parser.h"
+#include        "type.h"
+#include        "scope.h"
+#include        "filespec.h"
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
 #if TX86
-#define macro_textfree(m)	mem_ffree((m)->Mtext)
+#define macro_textfree(m)       mem_ffree((m)->Mtext)
 #elif DEBUG
-#define macro_textfree(m)	if ((m)->Mtext) MEM_PH_FREE((m)->Mtext)
+#define macro_textfree(m)       if ((m)->Mtext) MEM_PH_FREE((m)->Mtext)
 #else
 #define macro_textfree(m)
 #endif
 
 // Other primes: 547,739,1009,2003,3001,4001,5003,6007,7001,8009
 #if _WIN32
-#define MACROHASHSIZE	2003		// size of macro hash table (prime)
+#define MACROHASHSIZE   2003            // size of macro hash table (prime)
 #elif __INTSIZE == 4
-#define MACROHASHSIZE	1009		// size of macro hash table (prime)
+#define MACROHASHSIZE   1009            // size of macro hash table (prime)
 #else
-#define MACROHASHSIZE	547		// size of macro hash table (prime)
+#define MACROHASHSIZE   547             // size of macro hash table (prime)
 #endif
 
 // Convert hash to [0 .. MACROHASHSIZE-1]
-#define hashtoidx(h)	((unsigned)(h) % MACROHASHSIZE)
+#define hashtoidx(h)    ((unsigned)(h) % MACROHASHSIZE)
 
 #if 0
 #undef MACROHASHSIZE
 #undef hashtoidx
-#define MACROHASHSIZE	2048
-#define hashtoidx(h)	(((h) + ((h)>>16)) & 0x7FF)
+#define MACROHASHSIZE   2048
+#define hashtoidx(h)    (((h) + ((h)>>16)) & 0x7FF)
 #endif
 
-static macro_t **mactabroot;		// root of macro symbol table
+static macro_t **mactabroot;            // root of macro symbol table
 static macro_t **mac_array;
 
 #if TERMCODE
-static macro_t *premacdefs;		// threaded list of predefined macros
+static macro_t *premacdefs;             // threaded list of predefined macros
 #endif
 
 #if HOST_THINK
-#include	"callbacks.h"
-#include	"dataview.h"
-static macro_t **head_mactabroot;	/* root of precompiled header macro symbol table */
+#include        "callbacks.h"
+#include        "dataview.h"
+static macro_t **head_mactabroot;       /* root of precompiled header macro symbol table */
 #define strcmpl(s1,s2) strcmp(s1,s2)
 #endif
 
@@ -84,7 +84,7 @@ STATIC void prmessage(void);
 STATIC void prstring(int flag);
 STATIC void prident(void);
 STATIC void prcomment(void);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 STATIC void prassert(void);
 STATIC void prassertid(void);
 STATIC void prwarning(void);
@@ -117,56 +117,56 @@ STATIC void macrotable_balance(macro_t **ps);
  */
 
 static struct IFNEST
-{	char IFseen;
-#define IF_IF		0
-#define IF_ELIF		1	/* seen #elif			*/
-#define IF_ELSE		2	/* seen #else			*/
+{       char IFseen;
+#define IF_IF           0
+#define IF_ELIF         1       /* seen #elif                   */
+#define IF_ELSE         2       /* seen #else                   */
 #if IMPLIED_PRAGMA_ONCE
-	char IF_1STIF;		/* flag if #if is 1st token in file */
+        char IF_1STIF;          /* flag if #if is 1st token in file */
 #endif
 } *ifn;
 
-static unsigned ifnidx = 0;	/* index into ifn[]			*/
-static unsigned ifnmax = 0;	/* # of entries alloced for ifn[]	*/
+static unsigned ifnidx = 0;     /* index into ifn[]                     */
+static unsigned ifnmax = 0;     /* # of entries alloced for ifn[]       */
 
 #if IMPLIED_PRAGMA_ONCE
-static char *inc_once_id;		/* save the 1st #ifndef id */
+static char *inc_once_id;               /* save the 1st #ifndef id */
 static unsigned inc_once_ifnidx;
 static struct BLKLST *inc_once_filblk;
 #endif
 
-static list_t pack_stack;	// stack of struct packing alignment
-static list_t dbcs_stack;	// stack of dbcs flag
+static list_t pack_stack;       // stack of struct packing alignment
+static list_t dbcs_stack;       // stack of dbcs flag
 
 /************************************************
  */
 
-static char *abuf;		// allocated part of buf[]
-static char *buf;		// macro text buffer
-static int bufmax;		// allocated length of buf[]
+static char *abuf;              // allocated part of buf[]
+static char *buf;               // macro text buffer
+static int bufmax;              // allocated length of buf[]
 
 void textbuf_init()
 {
     if (bufmax == 0)
-    {	bufmax = 80;
+    {   bufmax = 80;
 
-	// allocate text buffer
+        // allocate text buffer
 #if TX86
-	abuf = (char *) parc_malloc(1 + bufmax);
+        abuf = (char *) parc_malloc(1 + bufmax);
 #else
-	abuf = (char *) MEM_PARC_MALLOC(1 + bufmax);
+        abuf = (char *) MEM_PARC_MALLOC(1 + bufmax);
 #endif
-	abuf[0] = 0;			// so we can index buf[-1]
-	buf = abuf + 1;
+        abuf[0] = 0;                    // so we can index buf[-1]
+        buf = abuf + 1;
     }
 }
 
 void textbuf_term()
 {
 #if TX86
-    parc_free(abuf);			// macro text buffer
+    parc_free(abuf);                    // macro text buffer
 #else
-    MEM_PARC_FREE(abuf);		// macro text buffer
+    MEM_PARC_FREE(abuf);                // macro text buffer
 #endif
 }
 
@@ -177,29 +177,29 @@ inline char *textbuf_reserve(char *pbuf, int n)
 
     buflen = pbuf - buf;
     newlen = buflen + n;
-    if (newlen > bufmax)		// if potential buffer overflow
+    if (newlen > bufmax)                // if potential buffer overflow
     {   unsigned newmax;
 
-	#define TEXTMAX 0x3FF0		// must fit in PH buffer
-	if (newlen > TEXTMAX)
-	{
-	    err_fatal(EM_max_macro_text,"macro text",TEXTMAX);	// too long
-	}
+        #define TEXTMAX 0x3FF0          // must fit in PH buffer
+        if (newlen > TEXTMAX)
+        {
+            err_fatal(EM_max_macro_text,"macro text",TEXTMAX);  // too long
+        }
 
-	newmax = bufmax * 2;
-	if (newmax < newlen)
-	    newmax = newlen;
-	else if (newmax > TEXTMAX)
-	    newmax = TEXTMAX;
+        newmax = bufmax * 2;
+        if (newmax < newlen)
+            newmax = newlen;
+        else if (newmax > TEXTMAX)
+            newmax = TEXTMAX;
 
-	bufmax = newmax;
+        bufmax = newmax;
 #if TX86
-	abuf = (char *) parc_realloc(abuf,1 + bufmax);
+        abuf = (char *) parc_realloc(abuf,1 + bufmax);
 #else
-	abuf = (char *) MEM_PARC_REALLOC(abuf,1 + bufmax);
+        abuf = (char *) MEM_PARC_REALLOC(abuf,1 + bufmax);
 #endif
-	buf = abuf + 1;
-	pbuf = buf + buflen;
+        buf = abuf + 1;
+        pbuf = buf + buflen;
     }
     return pbuf;
 }
@@ -211,73 +211,73 @@ inline char *textbuf_reserve(char *pbuf, int n)
  * Use ENUMPRMAC macro to generate parallel data structures.
  */
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 
-#define ENUMPRMAC	\
-	X(assert,	prassert)	\
-	X(cpu,		prassertid)	\
-	X(define,	prdefine)	\
-	X(elif,		prelif)		\
-	X(else,		prelse)		\
-	X(elseif,	prelseif)	\
-	X(endif,	prendif)	\
-	X(error,	prerror)	\
-	X(ident,	prident)	\
-	X(if,		prif)		\
-	X(ifdef,	prifdef)	\
-	X(ifndef,	prifndef)	\
-	X(include,	princlude)	\
-	X(include_next,	princlude_next)	\
-	X(line,		prline)		\
-	X(lint,		prassertid)	\
-	X(machine,	prassertid)	\
-	X(pragma,	prpragma)	\
-	X(system,	prassertid)	\
- 	X(unassert,	prassert)	\
-	X(undef,	prundef)	\
-	X(warning,	prwarning)	\
+#define ENUMPRMAC       \
+        X(assert,       prassert)       \
+        X(cpu,          prassertid)     \
+        X(define,       prdefine)       \
+        X(elif,         prelif)         \
+        X(else,         prelse)         \
+        X(elseif,       prelseif)       \
+        X(endif,        prendif)        \
+        X(error,        prerror)        \
+        X(ident,        prident)        \
+        X(if,           prif)           \
+        X(ifdef,        prifdef)        \
+        X(ifndef,       prifndef)       \
+        X(include,      princlude)      \
+        X(include_next, princlude_next) \
+        X(line,         prline)         \
+        X(lint,         prassertid)     \
+        X(machine,      prassertid)     \
+        X(pragma,       prpragma)       \
+        X(system,       prassertid)     \
+        X(unassert,     prassert)       \
+        X(undef,        prundef)        \
+        X(warning,      prwarning)      \
 
 #else
-#define ENUMPRMAC	\
-	X(define,	prdefine)	\
-	X(elif,		prelif)		\
-	X(else,		prelse)		\
-	X(elseif,	prelseif)	\
-	X(endif,	prendif)	\
-	X(error,	prerror)	\
-	X(ident,	prident)	\
-	X(if,		prif)		\
-	X(ifdef,	prifdef)	\
-	X(ifndef,	prifndef)	\
-	X(include,	princlude)	\
-	X(line,		prline)		\
-	X(pragma,	prpragma)	\
-	X(undef,	prundef)	\
+#define ENUMPRMAC       \
+        X(define,       prdefine)       \
+        X(elif,         prelif)         \
+        X(else,         prelse)         \
+        X(elseif,       prelseif)       \
+        X(endif,        prendif)        \
+        X(error,        prerror)        \
+        X(ident,        prident)        \
+        X(if,           prif)           \
+        X(ifdef,        prifdef)        \
+        X(ifndef,       prifndef)       \
+        X(include,      princlude)      \
+        X(line,         prline)         \
+        X(pragma,       prpragma)       \
+        X(undef,        prundef)        \
 
 #endif
 
 enum PR {
-    #define X(a,b)	PR##a,
-	ENUMPRMAC	// generate the enum values
-	PRMAX		// array dimension
+    #define X(a,b)      PR##a,
+        ENUMPRMAC       // generate the enum values
+        PRMAX           // array dimension
     #undef X
 };
 
 // String table indexed by enum PR
 static const char *pragtab[PRMAX] =
-{	
-	#define X(a,b)	#a,
-	ENUMPRMAC
-	#undef X
+{
+        #define X(a,b)  #a,
+        ENUMPRMAC
+        #undef X
 
 };
 
 // Function table indexed by enum PR
 static void (*pragfptab[PRMAX])() =
-{	
-	#define X(a,b)	b,
-	ENUMPRMAC
-	#undef X
+{
+        #define X(a,b)  b,
+        ENUMPRMAC
+        #undef X
 
 };
 
@@ -286,14 +286,14 @@ int pragma_search(char *id)
 #if TX86 && __INTSIZE == 4 && !__GNUC__
     // Assume id[] is big enough to do this
     if (((int *)id)[0] == 'ifed' &&
-	((id[7] = 0),(((int *)id)[1] == 'en'))
+        ((id[7] = 0),(((int *)id)[1] == 'en'))
        )
 #else
     if (id[0] == 'd' && memcmp(id + 1,"efine",6) == 0)
 #endif
-	return PRdefine;		// most common case
+        return PRdefine;                // most common case
     else
-	return binary(id,pragtab,PRMAX);	/* search for pragma	*/
+        return binary(id,pragtab,PRMAX);        /* search for pragma    */
 }
 
 /********************************
@@ -303,7 +303,7 @@ int pragma_search(char *id)
  */
 
 #if SPP
-#define exp_ppon()	(expflag--, assert(expflag >= 0))
+#define exp_ppon()      (expflag--, assert(expflag >= 0))
 #else
 #define exp_ppon()
 #endif
@@ -315,42 +315,42 @@ int pragma_search(char *id)
 void pragma_process()
 {
 #if !SPP && TX86
-	if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
-	    (tok.TKutok.pragma == PRdefine ||
-	     tok.TKutok.pragma == PRundef  ||
-	     tok.TKutok.pragma == PRpragma) &&
-	    bl->BLtyp == BLfile && !bl->BLprev)
-	{
-	    if (pstate.STflags & PFLhxgen)
-		ph_autowrite();
-	}
+        if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
+            (tok.TKutok.pragma == PRdefine ||
+             tok.TKutok.pragma == PRundef  ||
+             tok.TKutok.pragma == PRpragma) &&
+            bl->BLtyp == BLfile && !bl->BLprev)
+        {
+            if (pstate.STflags & PFLhxgen)
+                ph_autowrite();
+        }
 #endif
 
 #if IMPLIED_PRAGMA_ONCE
-	if (inc_once_id && (tok.TKutok.pragma != PRdefine))
-	{
-	    parc_free(inc_once_id);
-	    inc_once_id = NULL;
-	    inc_once_filblk->BLflags &= BLclear;
-	    inc_once_filblk = NULL;
-	    inc_once_ifnidx = 0;
-	}
+        if (inc_once_id && (tok.TKutok.pragma != PRdefine))
+        {
+            parc_free(inc_once_id);
+            inc_once_id = NULL;
+            inc_once_filblk->BLflags &= BLclear;
+            inc_once_filblk = NULL;
+            inc_once_ifnidx = 0;
+        }
 #endif
-	if (tok.TKutok.pragma != -1)
-	{
-	    pstate.STflags |= PFLpreprocessor;	// in preprocessor
-	    assert(tok.TKutok.pragma < PRMAX);
-	    (*pragfptab[tok.TKutok.pragma])();
-	    pstate.STflags &= ~PFLpreprocessor;	// exiting preprocessor
-	    return;
-	}
-	lexerr(EM_preprocess);		// unrecognized pragma
+        if (tok.TKutok.pragma != -1)
+        {
+            pstate.STflags |= PFLpreprocessor;  // in preprocessor
+            assert(tok.TKutok.pragma < PRMAX);
+            (*pragfptab[tok.TKutok.pragma])();
+            pstate.STflags &= ~PFLpreprocessor; // exiting preprocessor
+            return;
+        }
+        lexerr(EM_preprocess);          // unrecognized pragma
 }
 
 /***************************
  * Insert macro in symbol table, if it's not already there.
  * Returns:
- *	pointer to macro table entry
+ *      pointer to macro table entry
  */
 
 STATIC macro_t ** macinsert(const char *p,unsigned hashval)
@@ -360,9 +360,9 @@ STATIC macro_t ** macinsert(const char *p,unsigned hashval)
 
     if (!*mp)
     {
-	// Insert macro into table
-	m = macro_calloc(p);
-	*mp = m;				// link new entry into tree
+        // Insert macro into table
+        m = macro_calloc(p);
+        *mp = m;                                // link new entry into tree
     }
     return mp;
 }
@@ -380,66 +380,66 @@ macro_t * macfind()
   int len;
 
 #if 0 && TX86 && __INTSIZE == 4 && !defined(_MSC_VER) && !M_UNIX
-    m = mactabroot[hashtoidx(idhash)]; /* root of macro table	*/
+    m = mactabroot[hashtoidx(idhash)]; /* root of macro table   */
     if (!m)
-	return (macro_t *) NULL; 
+        return (macro_t *) NULL;
     __asm
     {
 #if !_WIN32
-	push	DS
-	pop	ES
+        push    DS
+        pop     ES
 #endif
-	mov	EDI,tok.TKid
-	mov	EDX,tok.TKid
-	mov	ECX,-1
-	mov	AL,0
-	repne	scasb
-	not	ECX
-	mov	AL,[EDX]
-	dec	ECX
-	inc	EDX
-	mov	len,ECX
-	mov	EBX,m
-	jmp	short L1
+        mov     EDI,tok.TKid
+        mov     EDX,tok.TKid
+        mov     ECX,-1
+        mov     AL,0
+        repne   scasb
+        not     ECX
+        mov     AL,[EDX]
+        dec     ECX
+        inc     EDX
+        mov     len,ECX
+        mov     EBX,m
+        jmp     short L1
 
-L3:		mov	EBX,macro_t.ML[EBX]
-L1:		test	EBX,EBX
-		je	L4
-		cmp	AL,macro_t.Mid[EBX]
-		js	L3
-		je	L2
-L6:		mov	EBX,macro_t.MR[EBX]
-		test	EBX,EBX
-		je	L4
-		cmp	AL,macro_t.Mid[EBX]
-		js	L3
-		jne	L6
+L3:             mov     EBX,macro_t.ML[EBX]
+L1:             test    EBX,EBX
+                je      L4
+                cmp     AL,macro_t.Mid[EBX]
+                js      L3
+                je      L2
+L6:             mov     EBX,macro_t.MR[EBX]
+                test    EBX,EBX
+                je      L4
+                cmp     AL,macro_t.Mid[EBX]
+                js      L3
+                jne     L6
 
-L2:		mov	ESI,EDX
-		lea	EDI,macro_t.Mid+1[EBX]
-		mov	ECX,len
-		rep	cmpsb
-		js	L3
-		jne	L6
+L2:             mov     ESI,EDX
+                lea     EDI,macro_t.Mid+1[EBX]
+                mov     ECX,len
+                rep     cmpsb
+                js      L3
+                jne     L6
 
-L4:	mov	EAX,EBX
+L4:     mov     EAX,EBX
     }
 #else
   c = tok.TKid[0];
   len = strlen(tok.TKid);
-  m = mactabroot[hashtoidx(idhash)]; /* root of macro table	*/
-  while (m)					/* while more tree	*/
-  {	macro_debug(m);
-	if ((cmp = c - m->Mid[0]) == 0)
-	{   cmp = memcmp(tok.TKid + 1,m->Mid + 1,len);	/* compare identifiers	*/
-	    if (cmp == 0)			/* got it!		*/
-	    {
-		//dbg_printf("found macro %p %s flags = %X\n",m, m->Mid, m->Mflags);
-		//dbg_printf("found macro %s\n",m->Mid);
-		return m;
-	    }
-	}
-	m = (cmp < 0) ? m->ML : m->MR;	/* select correct child		*/
+  m = mactabroot[hashtoidx(idhash)]; /* root of macro table     */
+  while (m)                                     /* while more tree      */
+  {     macro_debug(m);
+        if ((cmp = c - m->Mid[0]) == 0)
+        {   cmp = memcmp(tok.TKid + 1,m->Mid + 1,len);  /* compare identifiers  */
+            if (cmp == 0)                       /* got it!              */
+            {
+                //dbg_printf("found macro %p %s flags = %X\n",m, m->Mid, m->Mflags);
+                //dbg_printf("found macro %s\n",m->Mid);
+                return m;
+            }
+        }
+        m = (cmp < 0) ? m->ML : m->MR;  /* select correct child         */
   }
   return NULL;
 #endif
@@ -457,17 +457,17 @@ STATIC macro_t ** macfindparent(const char *p,unsigned hashval)
 
   c = *p;
   len = strlen(p);
-  mp = &mactabroot[hashtoidx(hashval)];		// root of macro table
+  mp = &mactabroot[hashtoidx(hashval)];         // root of macro table
   m = *mp;
-  while (m)					/* while more tree	*/
-  {	macro_debug(m);
-	if ((cmp = c - m->Mid[0]) == 0)
-	{   cmp = memcmp(p + 1,m->Mid + 1,len);	/* compare identifiers	*/
-	    if (cmp == 0)			/* got it!		*/
-		return mp;
-	}
-	mp = (cmp < 0) ? &m->ML : &m->MR;	// select correct child
-	m = *mp;
+  while (m)                                     /* while more tree      */
+  {     macro_debug(m);
+        if ((cmp = c - m->Mid[0]) == 0)
+        {   cmp = memcmp(p + 1,m->Mid + 1,len); /* compare identifiers  */
+            if (cmp == 0)                       /* got it!              */
+                return mp;
+        }
+        mp = (cmp < 0) ? &m->ML : &m->MR;       // select correct child
+        m = *mp;
   }
   return mp;
 }
@@ -480,12 +480,12 @@ void listident()
 {
     //printf("listident('%s'), expflag = %d\n", tok.TKid, expflag);
     if (config.flags2 & CFG2expand)
-    {	expflag--;			/* expanding again		*/
-	assert(tok.TKval == TKident);
+    {   expflag--;                      /* expanding again              */
+        assert(tok.TKval == TKident);
 if (expflag < 0) *(char*)0=0;
-	assert(expflag >= 0);
-	expstring(tok.TKid);		/* send ident to exp listing	*/
-	explist(xc);
+        assert(expflag >= 0);
+        expstring(tok.TKid);            /* send ident to exp listing    */
+        explist(xc);
     }
 }
 
@@ -500,18 +500,18 @@ char *filename_stringize(char *name)
     int i;
     char *s3;
 
-    /* The trick for MS-DOS is to double up any \ in the	*/
-    /* path name, so they don't disappear entirely.		*/
+    /* The trick for MS-DOS is to double up any \ in the        */
+    /* path name, so they don't disappear entirely.             */
     i = 0;
     for (s = name; *s; s++)
-	    i += (*s == '\\');	/* count up slashes	*/
+            i += (*s == '\\');  /* count up slashes     */
     s2 = (char *) parc_malloc(s - name + i + 2 + 1);
     s3 = s2;
     *s3++ = '"';
     for (s = name; *s; s++)
     {   *s3++ = *s;
-	    if (*s == '\\')
-		*s3++ = '\\';
+            if (*s == '\\')
+                *s3++ = '\\';
     }
     *s3++ = '"';
     *s3 = 0;
@@ -537,45 +537,45 @@ unsigned char *macro_predefined(macro_t *m)
 
     b = cstate.CSfilblk;
     if (!b)
-	return NULL;
+        return NULL;
     if (!strcmp(m->Mid,"__LINE__"))
     {
-	s = (unsigned char *)parc_malloc(sizeof(unsigned) * 3 + 1);
-	sprintf((char *)s, "%u", b->BLsrcpos.Slinnum);
+        s = (unsigned char *)parc_malloc(sizeof(unsigned) * 3 + 1);
+        sprintf((char *)s, "%u", b->BLsrcpos.Slinnum);
     }
     else if (!strcmp(m->Mid,"__FILE__"))
     {
-	s = (unsigned char *)filename_stringize(blklst_filename(b));
+        s = (unsigned char *)filename_stringize(blklst_filename(b));
     }
     else if (!strcmp(m->Mid,"__FUNC__")
-	    || !strcmp(m->Mid,"__FUNCTION__")
-	    || !strcmp(m->Mid,"__PRETTY_FUNCTION__")
-	    )
+            || !strcmp(m->Mid,"__FUNCTION__")
+            || !strcmp(m->Mid,"__PRETTY_FUNCTION__")
+            )
     {
-	if (funcsym_p)
-	{   char *p;
-	    size_t len;
+        if (funcsym_p)
+        {   char *p;
+            size_t len;
 
-	    // This is obsolete per C99 6.4.2.2. Should use
-	    // __func__ instead. Perhaps we should print
-	    // a warning here.
+            // This is obsolete per C99 6.4.2.2. Should use
+            // __func__ instead. Perhaps we should print
+            // a warning here.
 
-	    if (m->Mid[3] == 'F')
-		p = funcsym_p->Sident;
-	    else
-		p = prettyident(funcsym_p);
-	    len = strlen(p);
-	    s = (unsigned char *)parc_malloc(1 + len + 2);
-	    *s = '"';
-	    memcpy(s + 1,p,len);
-	    s[1 + len] = '"';
-	    s[1 + len + 1] = 0;
-	}
-	else
-	    s = NULL;
+            if (m->Mid[3] == 'F')
+                p = funcsym_p->Sident;
+            else
+                p = prettyident(funcsym_p);
+            len = strlen(p);
+            s = (unsigned char *)parc_malloc(1 + len + 2);
+            *s = '"';
+            memcpy(s + 1,p,len);
+            s[1 + len] = '"';
+            s[1 + len + 1] = 0;
+        }
+        else
+            s = NULL;
     }
     else
-	    assert(0);
+            assert(0);
     return s;
 }
 
@@ -584,23 +584,23 @@ unsigned char *macro_predefined(macro_t *m)
  * arg_char ::= all chars except the delimiters ) and ,
  * Delimiters protected by ' " or () are not delimiters
  * Input:
- *	xc =	first char of argument
+ *      xc =    first char of argument
  * Output:
- *	xc =	"," or ")"
- *	tok_arg[] =	the argument
- *	if (ellispsisit) all the remaining args are combined
+ *      xc =    "," or ")"
+ *      tok_arg[] =     the argument
+ *      if (ellispsisit) all the remaining args are combined
  * Returns:
- *	pointer to the argument
+ *      pointer to the argument
  */
 
 STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
 {   int i;
-    int parencnt = 0;			// paren nesting count
-    int tc;				// terminating char of string
-    int notinstr = 1;			// 0 if we're in a string
-    int lastxc = ' ';			// last char read
-    int sawexp = 0;			// checks for commas in expansion
-    int pastend = 0;			// if past end of input
+    int parencnt = 0;                   // paren nesting count
+    int tc;                             // terminating char of string
+    int notinstr = 1;                   // 0 if we're in a string
+    int lastxc = ' ';                   // last char read
+    int sawexp = 0;                     // checks for commas in expansion
+    int pastend = 0;                    // if past end of input
     unsigned char blflags = 0;
 
     //printf("+inarg()\n");
@@ -608,144 +608,144 @@ STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
     i = 0;
     while (1)
     {
-	if (i + 4 > argmax)
-	{   argmax += 50;
-	    if (argmax >= 16000)	// guard against argmax overflow
-	    {   preerr(EM_macarg);
-		err_nomem();		// out of memory
-	    }
-	    tok_arg = (char *) MEM_PARC_REALLOC(tok_arg,argmax);
-	}
-	//printf("\txc = '%c', 0x%02x\n", xc, xc);
-	switch (xc)
-	{
-	    case '\t':
-	    case LF:
-	    case 0x0B:
-	    case 0x0C:
-	    case CR:
-	    case ' ':			/* all the isspace characters	*/
-		if (notinstr)
-		{
-		    do
-			;
-		    while (isspace(egchar()));
-		    tok_arg[i++] = ' ';	/* replace with a single space	*/
-		    continue;
-		}
-		break;
-	    case '*':			/* check for start of comment	*/
-	    case '/':
-		if (notinstr && i && tok_arg[i - 1] == '/')
-		{
+        if (i + 4 > argmax)
+        {   argmax += 50;
+            if (argmax >= 16000)        // guard against argmax overflow
+            {   preerr(EM_macarg);
+                err_nomem();            // out of memory
+            }
+            tok_arg = (char *) MEM_PARC_REALLOC(tok_arg,argmax);
+        }
+        //printf("\txc = '%c', 0x%02x\n", xc, xc);
+        switch (xc)
+        {
+            case '\t':
+            case LF:
+            case 0x0B:
+            case 0x0C:
+            case CR:
+            case ' ':                   /* all the isspace characters   */
+                if (notinstr)
+                {
+                    do
+                        ;
+                    while (isspace(egchar()));
+                    tok_arg[i++] = ' '; /* replace with a single space  */
+                    continue;
+                }
+                break;
+            case '*':                   /* check for start of comment   */
+            case '/':
+                if (notinstr && i && tok_arg[i - 1] == '/')
+                {
 #if SPP
-		    if (igncomment)
-		    {	expbackup();
-			expbackup();
-		    }
+                    if (igncomment)
+                    {   expbackup();
+                        expbackup();
+                    }
 #endif
-		    if (xc == '*')
-			comment();
-		    else
-			cppcomment();
-		    while (isspace(xc))
-			egchar();
-		    if (i > 1 && tok_arg[i - 2] == ' ')
-			i -= 1;
-		    else
-			// Replace comment with single space
-			tok_arg[i - 1] = ' ';
-		    continue;
-		}
-		break;
-	    case ')':			/* could be end of argument	*/
-		if (i>0 && tok_arg[i-1] == ' ')
-			i--;		// remove superfluous space
-		if (parencnt != 0)
-		{   parencnt -= notinstr; /* -1 if not in a string	*/
-		    break;
-		}
-		goto Lcomma;
+                    if (xc == '*')
+                        comment();
+                    else
+                        cppcomment();
+                    while (isspace(xc))
+                        egchar();
+                    if (i > 1 && tok_arg[i - 2] == ' ')
+                        i -= 1;
+                    else
+                        // Replace comment with single space
+                        tok_arg[i - 1] = ' ';
+                    continue;
+                }
+                break;
+            case ')':                   /* could be end of argument     */
+                if (i>0 && tok_arg[i-1] == ' ')
+                        i--;            // remove superfluous space
+                if (parencnt != 0)
+                {   parencnt -= notinstr; /* -1 if not in a string      */
+                    break;
+                }
+                goto Lcomma;
 
-	    case ',':
-		if (ellipsisit)		// , is part of argument for ...
-		    break;
-		if (sawexp) 
-		    break;
-	    Lcomma:
-		if (notinstr && parencnt == 0)
-		{
-		Lret:
-		    tok_arg[i] = 0;	// terminate string
+            case ',':
+                if (ellipsisit)         // , is part of argument for ...
+                    break;
+                if (sawexp)
+                    break;
+            Lcomma:
+                if (notinstr && parencnt == 0)
+                {
+                Lret:
+                    tok_arg[i] = 0;     // terminate string
 #ifdef DEBUG
-		    assert(i + 1 <= argmax);
+                    assert(i + 1 <= argmax);
 #endif
-		    //printf("\tinarg returning [%s]\n",tok_arg);
-		    //printf("-inarg: "); macrotext_print(tok_arg); printf("\n");
+                    //printf("\tinarg returning [%s]\n",tok_arg);
+                    //printf("-inarg: "); macrotext_print(tok_arg); printf("\n");
 
-		    if (pastend)
-		    {
-			blsave->BSbl = bl;
-			blsave->BSbtextp = btextp;
-			blsave->BSxc = xc;
-			bl = NULL;
-			btextp = NULL;
-			xc = 0;
-		    }
+                    if (pastend)
+                    {
+                        blsave->BSbl = bl;
+                        blsave->BSbtextp = btextp;
+                        blsave->BSxc = xc;
+                        bl = NULL;
+                        btextp = NULL;
+                        xc = 0;
+                    }
 
-		    return tok_arg;
-		}
-		break;
-	    case '(':
-		parencnt += notinstr;	/* +1 if not in a string	*/
-		break;
-	    case '\\':
-		if (lastxc == '\\')
-		{   lastxc = ' ';
-		    goto L1;
-		}
-		break;
-	    case '\'':
-	    case '"':			/* if a string delimiter	*/
-		if (!notinstr)		/* if already in a string	*/
-		{   if (xc == tc && lastxc != '\\')
-		    notinstr = 1;	/* drop out of string		*/
-		}
-		else
-		{   tc = xc;		/* terminating char of string	*/
-		    notinstr = 0;	/* we're in a string		*/
-		}
-		break;
+                    return tok_arg;
+                }
+                break;
+            case '(':
+                parencnt += notinstr;   /* +1 if not in a string        */
+                break;
+            case '\\':
+                if (lastxc == '\\')
+                {   lastxc = ' ';
+                    goto L1;
+                }
+                break;
+            case '\'':
+            case '"':                   /* if a string delimiter        */
+                if (!notinstr)          /* if already in a string       */
+                {   if (xc == tc && lastxc != '\\')
+                    notinstr = 1;       /* drop out of string           */
+                }
+                else
+                {   tc = xc;            /* terminating char of string   */
+                    notinstr = 0;       /* we're in a string            */
+                }
+                break;
 
-	    case PRE_EOB:		/* if end of file		*/
-		if (!pastend && blsave)
-		{
-		    pastend = 1;
-		    bl = blsave->BSbl;
-		    btextp = blsave->BSbtextp;
-		    xc = blsave->BSxc;
-		    continue;
-		}
-		preerr(EM_macarg);
-		goto Lret;
+            case PRE_EOB:               /* if end of file               */
+                if (!pastend && blsave)
+                {
+                    pastend = 1;
+                    bl = blsave->BSbl;
+                    btextp = blsave->BSbtextp;
+                    xc = blsave->BSxc;
+                    continue;
+                }
+                preerr(EM_macarg);
+                goto Lret;
 
-	    default:
-		if (dbcs && ismulti(xc))	// if asian 2 byte char
-		{   tok_arg[i++] = xc;
-		    lastxc = xc;
-		L2:
-		    xc = egchar();	/* no processing for this char	*/
-		    goto L1;
-		}
-		break;
-	} /* switch (xc) */
-	lastxc = xc;
+            default:
+                if (dbcs && ismulti(xc))        // if asian 2 byte char
+                {   tok_arg[i++] = xc;
+                    lastxc = xc;
+                L2:
+                    xc = egchar();      /* no processing for this char  */
+                    goto L1;
+                }
+                break;
+        } /* switch (xc) */
+        lastxc = xc;
 
     L1:
-	tok_arg[i++] = xc;
-	egchar();
+        tok_arg[i++] = xc;
+        egchar();
 #ifdef DEBUG
-	assert(i <= argmax);
+        assert(i <= argmax);
 #endif
     }
     /* NOTREACHED */
@@ -755,14 +755,14 @@ STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
  * Read in argument list.
  * arg_list ::= "(" [arg {,arg}] ")"
  * Input:
- *	xc =	on the opening '('
+ *      xc =    on the opening '('
  * Output:
- *	xc =	char past closing ')'
+ *      xc =    char past closing ')'
  * Returns:
- *	Pointer to argument list. NULL if no argument list, or if the
- *	list was blank. The args in arglst are stored in order of their
- *	appearance.
- *	Dummy up an argument list if there is an error.
+ *      Pointer to argument list. NULL if no argument list, or if the
+ *      list was blank. The args in arglst are stored in order of their
+ *      appearance.
+ *      Dummy up an argument list if there is an error.
  */
 
 list_t inarglst(macro_t *m, BlklstSave *blsave)
@@ -775,47 +775,47 @@ list_t inarglst(macro_t *m, BlklstSave *blsave)
   assert(!(m->Mflags & Mnoparen));
   nargs = list_nitems(m->Marglist);
   assert(xc == '(');
-  egchar();				// get char past '('
+  egchar();                             // get char past '('
   while (TRUE)
   {
-	if ((m->Mflags & Mellipsis) && (n == (nargs-1)))
-	    arg = inarg(TRUE, blsave);
-	else
-	    arg = inarg(FALSE, blsave);
-	//printf("arg[%d] = '%s'\n", n, arg);
-	if (*arg || nargs)
-	    n++;
-	if (nargs)
-	    list_append(&al,(char *) MEM_PH_STRDUP(arg));
-	if (xc == ',')
-	{   egchar();
-	    continue;
-	}
+        if ((m->Mflags & Mellipsis) && (n == (nargs-1)))
+            arg = inarg(TRUE, blsave);
+        else
+            arg = inarg(FALSE, blsave);
+        //printf("arg[%d] = '%s'\n", n, arg);
+        if (*arg || nargs)
+            n++;
+        if (nargs)
+            list_append(&al,(char *) MEM_PH_STRDUP(arg));
+        if (xc == ',')
+        {   egchar();
+            continue;
+        }
 
-	// If we're short the last argument, and the last argument is ...
-	if ((m->Mflags & Mellipsis) && (n == (nargs-1)))
-	{   // __VA_ARGS__ will be ""
-	    list_append(&al,(char *) MEM_PH_STRDUP(""));
-	    n++;
-	}
+        // If we're short the last argument, and the last argument is ...
+        if ((m->Mflags & Mellipsis) && (n == (nargs-1)))
+        {   // __VA_ARGS__ will be ""
+            list_append(&al,(char *) MEM_PH_STRDUP(""));
+            n++;
+        }
 
-	switch (xc)
-	{
-	    case ')':			/* end of arg list		*/
-		break;
-	    case 0:
-		return al;
-	    default:
-		assert(0);		/* invalid end of argument	*/
-	}
-	break;
+        switch (xc)
+        {
+            case ')':                   /* end of arg list              */
+                break;
+            case 0:
+                return al;
+            default:
+                assert(0);              /* invalid end of argument      */
+        }
+        break;
   }
 
   if (n != nargs)
-  {	if (ANSI)
-	    preerr(EM_num_args,nargs,m->Mid,n); 	// wrong # of args
-	else
-	    warerr(WM_num_args,nargs,m->Mid,n); 	// wrong # of args
+  {     if (ANSI)
+            preerr(EM_num_args,nargs,m->Mid,n);         // wrong # of args
+        else
+            warerr(WM_num_args,nargs,m->Mid,n);         // wrong # of args
   }
   egchar();
   return al;
@@ -824,15 +824,15 @@ list_t inarglst(macro_t *m, BlklstSave *blsave)
 /********************************
  * Process macro we discovered in the source.
  * Input:
- *	m ->	the macro we found
+ *      m ->    the macro we found
  * Returns:
- *	TRUE	macro installed
- *	FALSE	don't do this macro
+ *      TRUE    macro installed
+ *      FALSE   don't do this macro
  */
 
 int macprocess(macro_t *m, list_t *pargs, BlklstSave *blsave)
 {
-#define LOG_MACPROCESS	0
+#define LOG_MACPROCESS  0
 
 #if LOG_MACPROCESS
     printf("macprocess('%s'), expflag = %d\n", m->Mid, expflag);
@@ -841,68 +841,68 @@ int macprocess(macro_t *m, list_t *pargs, BlklstSave *blsave)
 #if 0
     if (bl)
     {
-	blklst *b;
-	dbg_printf("m = '%s',\tinuse=%x,defined=%x,Mnoparen=%x,Mtext '%s'\n",
-	    m->Mid, m->Mflags & Minuse, m->Mflags & Mdefined,
-	    m->Mflags & Mnoparen, m->Mtext);
-	bl->print();
-	for (b = bl->BLprev; b && b->BLtyp != BLfile; b = b->BLprev)
-	{
-	    b->print();
-	}
+        blklst *b;
+        dbg_printf("m = '%s',\tinuse=%x,defined=%x,Mnoparen=%x,Mtext '%s'\n",
+            m->Mid, m->Mflags & Minuse, m->Mflags & Mdefined,
+            m->Mflags & Mnoparen, m->Mtext);
+        bl->print();
+        for (b = bl->BLprev; b && b->BLtyp != BLfile; b = b->BLprev)
+        {
+            b->print();
+        }
     }
     else
-	dbg_printf("bl is NULL\n");
+        dbg_printf("bl is NULL\n");
 #endif
 #ifdef DEBUG
     if (controlc_saw)
-	exit(1);
+        exit(1);
     //static int xxx; if (++xxx == 5) exit(1);
 #endif
 
     if (m->Mflags & Mnoparen)
     {
-	*pargs = NULL;
+        *pargs = NULL;
     }
     else
     {   // If ( doesn't follow, then this isn't a macro
-	unsigned char bSpace = 0;
-	for (;;)			// skip whitespace
-	{
-	    if (isspace(xc) || xc == PRE_SPACE || xc == PRE_BRK)
-	    {
-		bSpace = xc;
-		egchar();
-	    }
-	    else if (xc == '/')
-	    {   if (egchar() == '*')
-		    comment();
-		else if (xc == '/')
-		    cppcomment();
-		else
-		{   putback(xc);
-		    xc = '/';
-		    break;
-		}
-	    }
-	    else
-		break;
-	}
-	if (xc != '(')
-	{
-	    // Handle case when a () macro
-	    // is followed by whitespace, it would not appear
-	    if (bSpace && xc != PRE_EOF)
-	    {
-		putback(xc);
-		xc = bSpace;	// restore the whitespace
-	    }
+        unsigned char bSpace = 0;
+        for (;;)                        // skip whitespace
+        {
+            if (isspace(xc) || xc == PRE_SPACE || xc == PRE_BRK)
+            {
+                bSpace = xc;
+                egchar();
+            }
+            else if (xc == '/')
+            {   if (egchar() == '*')
+                    comment();
+                else if (xc == '/')
+                    cppcomment();
+                else
+                {   putback(xc);
+                    xc = '/';
+                    break;
+                }
+            }
+            else
+                break;
+        }
+        if (xc != '(')
+        {
+            // Handle case when a () macro
+            // is followed by whitespace, it would not appear
+            if (bSpace && xc != PRE_EOF)
+            {
+                putback(xc);
+                xc = bSpace;    // restore the whitespace
+            }
 #if LOG_MACPROCESS
-	    printf("macprocess('%s') returns FALSE\n", m->Mid);
+            printf("macprocess('%s') returns FALSE\n", m->Mid);
 #endif
-	    return FALSE;
-	}
-	*pargs = inarglst(m, blsave);
+            return FALSE;
+        }
+        *pargs = inarglst(m, blsave);
     }
 
 #if LOG_MACPROCESS
@@ -922,12 +922,12 @@ macro_t *defkwd(const char *name, enum_TK val)
     pm = macfindparent(name,comphash(name));
     m = *pm;
     if (!m)
-    {	m = defmac(name,NULL);
-	m->Mflags = 0;
+    {   m = defmac(name,NULL);
+        m->Mflags = 0;
     }
     macro_debug(m);
     m->Mval = val;
-    m->Mflags |= Mkeyword;	// the macro is a C/C++ keyword
+    m->Mflags |= Mkeyword;      // the macro is a C/C++ keyword
 
     return m;
 }
@@ -948,21 +948,21 @@ void pragma_init()
 void pragma_term()
 {
     if (ifnidx)
-	preerr(EM_eof_endif);		// #if without #endif
+        preerr(EM_eof_endif);           // #if without #endif
 #if TERMCODE
     list_free(&pack_stack,FPNULL);
     list_free(&dbcs_stack,FPNULL);
     if (!(config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy)))
     {
-	list_free(&pstate.STincalias,FPNULL);
-	list_free(&pstate.STsysincalias,FPNULL);
-	macro_freelist(premacdefs);
-	filename_free();
-	//deletemactab();		/* get rid of this too		*/
-	MEM_PH_FREE(mactabroot);
-	textbuf_term();
-	mactabroot = NULL;
-	MEM_PARC_FREE(ifn);
+        list_free(&pstate.STincalias,FPNULL);
+        list_free(&pstate.STsysincalias,FPNULL);
+        macro_freelist(premacdefs);
+        filename_free();
+        //deletemactab();               /* get rid of this too          */
+        MEM_PH_FREE(mactabroot);
+        textbuf_term();
+        mactabroot = NULL;
+        MEM_PARC_FREE(ifn);
     }
 #endif
 #if TX86
@@ -988,7 +988,7 @@ STATIC macro_t * macro_calloc(const char *p)
 #ifdef DEBUG
     m->id = IDmacro;
 #endif
-    memcpy(m->Mid,p,len + 1);		/* copy in identifier		*/
+    memcpy(m->Mid,p,len + 1);           /* copy in identifier           */
     return m;
 }
 
@@ -999,19 +999,19 @@ void macro_freelist(macro_t *m)
 
     for (; m; m = mn)
     {
-	//printf("macro_free(%p,'%s')\n",m,m->Mid);
-	macro_debug(m);
+        //printf("macro_free(%p,'%s')\n",m,m->Mid);
+        macro_debug(m);
 #ifdef DEBUG
-	m->id = 0;
+        m->id = 0;
 #endif
-	mn = m->Mnext;
-	assert(!(m->Mflags & Minuse));
-	macro_textfree(m);
-	list_free(&m->Marglist,MEM_PH_FREEFP);
+        mn = m->Mnext;
+        assert(!(m->Mflags & Minuse));
+        macro_textfree(m);
+        list_free(&m->Marglist,MEM_PH_FREEFP);
 #if TX86
-	mem_ffree(m);
+        mem_ffree(m);
 #else
-	MEM_PH_FREE(m);
+        MEM_PH_FREE(m);
 #endif
     }
 }
@@ -1033,28 +1033,28 @@ macro_t *defmac(const char *name,const char *text)
 #else
     p = NULL;
     if (text)
-    {	p = (char *) MEM_PH_CALLOC(3 + strlen(text));
-	sprintf(p," %s ",text);
+    {   p = (char *) MEM_PH_CALLOC(3 + strlen(text));
+        sprintf(p," %s ",text);
     }
 #endif
     pm = macfindparent(name,comphash(name));
     m = *pm;
     if (m)
-    {	macro_debug(m);
-	assert(!m->Marglist);
+    {   macro_debug(m);
+        assert(!m->Marglist);
     }
     else
-    {	m = macro_calloc(name);
-	*pm = m;
+    {   m = macro_calloc(name);
+        *pm = m;
 #if TERMCODE
-	// Prepend to list of predefined macros
-	m->Mnext = premacdefs;
-	premacdefs = m;
+        // Prepend to list of predefined macros
+        m->Mnext = premacdefs;
+        premacdefs = m;
 #endif
     }
     macro_textfree(m);
     m->Mtext = p;
-    m->Mflags |= Mdefined | Mnoparen;	// the macro is now defined
+    m->Mflags |= Mdefined | Mnoparen;   // the macro is now defined
 
     return m;
 }
@@ -1098,19 +1098,19 @@ int pragma_defined()
     i = 0;
     paren = 0;
     if (token() == TKlpar)
-    {	paren = 1;
-	token();
+    {   paren = 1;
+        token();
     }
     if (tok.TKval != TKident)
-	synerr(EM_ident_exp);		// identifier expected
+        synerr(EM_ident_exp);           // identifier expected
     else
     {   if ((m = macfind()) != NULL && m->Mflags & Mdefined)
-	    i = 1;			/* macro is defined		*/
-	listident();
-	stoken();
+            i = 1;                      /* macro is defined             */
+        listident();
+        stoken();
     }
     if (paren)
-	chktok(TKrpar,EM_rpar);		/* ')' expected			*/
+        chktok(TKrpar,EM_rpar);         /* ')' expected                 */
     return i;
 }
 
@@ -1143,12 +1143,12 @@ STATIC void prdefine()
   assert(srcfiles.idx > 0);
   sf = cstate.CSfilblk ? &srcpos_sfile(cstate.CSfilblk->BLsrcpos) : &sfile(0);
   if (token() != TKident)
-  {	preerr(EM_ident_exp);		// identifier expected
-	eatrol();			/* scan to end of line		*/
-	return;
+  {     preerr(EM_ident_exp);           // identifier expected
+        eatrol();                       /* scan to end of line          */
+        return;
   }
     if (config.flags2 & CFG2expand)
-	listident();
+        listident();
 
     mflags = 0;
     flags = 0;
@@ -1156,32 +1156,32 @@ STATIC void prdefine()
     mold = *pm;
     if (mold)
     {
-	macro_debug(mold);
-	mflags = mold->Mflags;
-	flags |= mflags & Mkeyword;
-	if (mflags & (Mdefined | Mfixeddef))	// if macro is already defined
-	{
-	    if (mflags & (Minuse | Mfixeddef))	// if it's in use
-	    {   preerr(EM_undef,mold->Mid);	// would cause bugs
-		eatrol();
-		return;
-	    }
-	    assert(mold->Mtext);
-	}
+        macro_debug(mold);
+        mflags = mold->Mflags;
+        flags |= mflags & Mkeyword;
+        if (mflags & (Mdefined | Mfixeddef))    // if macro is already defined
+        {
+            if (mflags & (Minuse | Mfixeddef))  // if it's in use
+            {   preerr(EM_undef,mold->Mid);     // would cause bugs
+                eatrol();
+                return;
+            }
+            assert(mold->Mtext);
+        }
     }
 
 #if IMPLIED_PRAGMA_ONCE
     if (inc_once_id)
     {
-	if(!strcmp(inc_once_id,tok.TKid))
-	{
-	    //printf("\tset BLfndif flag\n");
-	    inc_once_filblk->BLflags |= BLfndif;
-	}
-	else
-	{
-	    ifn[inc_once_ifnidx].IF_1STIF = FALSE;
-	}
+        if(!strcmp(inc_once_id,tok.TKid))
+        {
+            //printf("\tset BLfndif flag\n");
+            inc_once_filblk->BLflags |= BLfndif;
+        }
+        else
+        {
+            ifn[inc_once_ifnidx].IF_1STIF = FALSE;
+        }
     parc_free(inc_once_id);
     inc_once_id = NULL;
     inc_once_filblk = NULL;
@@ -1193,48 +1193,48 @@ STATIC void prdefine()
 
     // Replace mold in place in macro table with m
     if (mold)
-    {	m->ML = mold->ML;
-	m->MR = mold->MR;
-	m->Mval = mold->Mval;
-	//mold->ML = mold->MR = NULL;	// this shouldn't be necessary
+    {   m->ML = mold->ML;
+        m->MR = mold->MR;
+        m->Mval = mold->Mval;
+        //mold->ML = mold->MR = NULL;   // this shouldn't be necessary
     }
 
     // Get argument list
-    if (xc == '(')			/* then macro has arguments	*/
-    {	
-	egchar();			// next character
-	al = gargs(&flags);		// get dummy arg list
-	n = list_nitems(al);
-	if (n > PRE_ARGMAX)
-	    preerr(EM_max_macro_params,n,PRE_ARGMAX);	// max number of args exceeded
+    if (xc == '(')                      /* then macro has arguments     */
+    {
+        egchar();                       // next character
+        al = gargs(&flags);             // get dummy arg list
+        n = list_nitems(al);
+        if (n > PRE_ARGMAX)
+            preerr(EM_max_macro_params,n,PRE_ARGMAX);   // max number of args exceeded
     }
     else
-    {	al = NULL;			/* no dummy arguments		*/
-	flags |= Mnoparen;		/* indicate no parentheses	*/
+    {   al = NULL;                      /* no dummy arguments           */
+        flags |= Mnoparen;              /* indicate no parentheses      */
     }
     m->Marglist = al;
     m->Mflags |= flags;
 
     // Get macro text
-    text = macrotext(m);		// read in macro text
+    text = macrotext(m);                // read in macro text
     assert(text);
     if (mflags & Mdefined &&
-	!(mold->Mflags & Mkeyword) &&
-	ANSI &&
-	(strcmp(text,mold->Mtext) ||
-	 (flags ^ (mflags & Mnoparen)) ||
-	 list_cmp(al,mold->Marglist,pragma_strcmp)
-	)
+        !(mold->Mflags & Mkeyword) &&
+        ANSI &&
+        (strcmp(text,mold->Mtext) ||
+         (flags ^ (mflags & Mnoparen)) ||
+         list_cmp(al,mold->Marglist,pragma_strcmp)
+        )
      )
-    {	preerr(EM_multiple_def,mold->Mid);		// already defined
+    {   preerr(EM_multiple_def,mold->Mid);              // already defined
 #ifdef DEBUG
-	dbg_printf("was: '%s'\n",mold->Mtext);
-	dbg_printf("is : '%s'\n",text);
+        dbg_printf("was: '%s'\n",mold->Mtext);
+        dbg_printf("is : '%s'\n",text);
 #endif
     }
 
     m->Mtext = text;
-    m->Mflags |= Mdefined;		// the macro is now defined
+    m->Mflags |= Mdefined;              // the macro is now defined
 
 #if HTOD
     htod_define(m);
@@ -1244,7 +1244,7 @@ STATIC void prdefine()
     // Thread definition onto list of #define's for this file
     sfile_debug(sf);
     if (!sf->SFpmacdefs)
-	sf->SFpmacdefs = &sf->SFmacdefs;
+        sf->SFpmacdefs = &sf->SFmacdefs;
     *sf->SFpmacdefs = m;
     sf->SFpmacdefs = &m->Mnext;
 
@@ -1254,11 +1254,11 @@ STATIC void prdefine()
 /********************************
  * Get dummy arg list.
  * Input:
- *	xc =	first char of first arg
+ *      xc =    first char of first arg
  * Output:
- *	xc =	char past closing ')'
+ *      xc =    char past closing ')'
  * Returns:
- *	pointer to arglist
+ *      pointer to arglist
  */
 
 STATIC list_t gargs(unsigned char *pflags)
@@ -1266,71 +1266,71 @@ STATIC list_t gargs(unsigned char *pflags)
     char *p;
     list_t l;
 
-    al = NULL;				// start out with NULL list
+    al = NULL;                          // start out with NULL list
     token();
 
     if (tok.TKval != TKrpar)
     {
-	while (1)
-	{
-	    switch (tok.TKval)
-	    {
-		case TKident:
-		    if (config.flags2 & CFG2expand)
-			listident();		// put it in eline[]
+        while (1)
+        {
+            switch (tok.TKval)
+            {
+                case TKident:
+                    if (config.flags2 & CFG2expand)
+                        listident();            // put it in eline[]
 
-		    // See if identifier is already in list
-		    for (l = al; l; l = list_next(l))
-			if (strcmp(tok.TKid,(char *)list_ptr(l)) == 0)
-			{   preerr(EM_multiple_def,tok.TKid);	// already defined
-			    break;
-			}
+                    // See if identifier is already in list
+                    for (l = al; l; l = list_next(l))
+                        if (strcmp(tok.TKid,(char *)list_ptr(l)) == 0)
+                        {   preerr(EM_multiple_def,tok.TKid);   // already defined
+                            break;
+                        }
 
-		    list_append(&al,MEM_PH_STRDUP(tok.TKid));
-		    token();			// get next token
-		    if (tok.TKval == TKident && config.flags2 & CFG2expand)
-			listident();		// put it in eline[]
+                    list_append(&al,MEM_PH_STRDUP(tok.TKid));
+                    token();                    // get next token
+                    if (tok.TKval == TKident && config.flags2 & CFG2expand)
+                        listident();            // put it in eline[]
 
-		    if (tok.TKval == TKcomma)	// id, case
-		    {
-			token();
-			continue;
-		    }
-		    if (tok.TKval == TKellipsis)	// id... case
-		    {
-			// #define X(y ...)	nonstandard GCC way
-			if (!ANSI)
-			{
-			    goto Lellipsis;	// treat same as X(y, ...)
-			}
-		    }
-		    break;
+                    if (tok.TKval == TKcomma)   // id, case
+                    {
+                        token();
+                        continue;
+                    }
+                    if (tok.TKval == TKellipsis)        // id... case
+                    {
+                        // #define X(y ...)     nonstandard GCC way
+                        if (!ANSI)
+                        {
+                            goto Lellipsis;     // treat same as X(y, ...)
+                        }
+                    }
+                    break;
 
-		case TKellipsis:
-		    // Be able to handle the following:
-		    //	#define X(...)
-		    //	#define X(y, ...)	C99 way
+                case TKellipsis:
+                    // Be able to handle the following:
+                    //  #define X(...)
+                    //  #define X(y, ...)       C99 way
 
-		    if (ANSI != 89)
-		    {
-		     Lellipsis:
-			*pflags |= Mellipsis;
-			token();		// skip over ...
-			// Treat the ... as if it were an argument named __VA_ARGS__
-			list_append(&al,MEM_PH_STRDUP("__VA_ARGS__"));
-		    }
-		    break;
+                    if (ANSI != 89)
+                    {
+                     Lellipsis:
+                        *pflags |= Mellipsis;
+                        token();                // skip over ...
+                        // Treat the ... as if it were an argument named __VA_ARGS__
+                        list_append(&al,MEM_PH_STRDUP("__VA_ARGS__"));
+                    }
+                    break;
 
-		default:
-		    preerr(EM_ident_exp);	// identifier expected
-		    break;
-	    }
-	    break;
-	}
-	if (tok.TKval != TKrpar)
-	    preerr(EM_rpar);		// ')' expected
+                default:
+                    preerr(EM_ident_exp);       // identifier expected
+                    break;
+            }
+            break;
+        }
+        if (tok.TKval != TKrpar)
+            preerr(EM_rpar);            // ')' expected
     }
-    return al;			// pointer to start of arg_list
+    return al;                  // pointer to start of arg_list
 }
 
 /*****************************
@@ -1338,18 +1338,18 @@ STATIC list_t gargs(unsigned char *pflags)
  * Replace comments with a single space.
  * Put a space at beginning and end of text.
  * This serves to:
- *	o prevent token concatenation
- *	o so argmatch() works on dummy args at the end of the text
- *	o so things like
- *		#define msdos msdos
- *	  don't cause an infinite loop
+ *      o prevent token concatenation
+ *      o so argmatch() works on dummy args at the end of the text
+ *      o so things like
+ *              #define msdos msdos
+ *        don't cause an infinite loop
  * Input:
- *	xc =	first char of text, or end_of_line
- *	al =	list of parameters
+ *      xc =    first char of text, or end_of_line
+ *      al =    list of parameters
  * Output:
- *	xc =	char past closing end_of_line
+ *      xc =    char past closing end_of_line
  * Returns:
- *	pointer to copied macro replacement text string
+ *      pointer to copied macro replacement text string
  */
 
 STATIC char * macrotext(macro_t *m)
@@ -1357,305 +1357,305 @@ STATIC char * macrotext(macro_t *m)
     char *pbuf;
     int hashidx;
     int buflen;
-    int instr;			// if " or ', we are in a string
-    int stringize;		// if next parameter is to be ##
+    int instr;                  // if " or ', we are in a string
+    int stringize;              // if next parameter is to be ##
     list_t al = m->Marglist;
 
     // It turns out that this can only happen when reading from
     // file. We can use this and the knowledge that an LF will be
     // found before the end of the buffer...
-#if TARGET_WINDOS	// for linux nwc_predefine add a define string
-    assert(bl->BLtyp == BLfile);	// make sure our assumption is correct
+#if TARGET_WINDOS       // for linux nwc_predefine add a define string
+    assert(bl->BLtyp == BLfile);        // make sure our assumption is correct
 #endif
 
-#define egchar3()	((xc = *btextp++), \
-			 (config.flags2 & CFG2expand && (explist(xc),1)), \
-			 xc)
+#define egchar3()       ((xc = *btextp++), \
+                         (config.flags2 & CFG2expand && (explist(xc),1)), \
+                         xc)
 
   Lrestart:
     // Skip leading whitespace
     if (xc == ' ' || xc == '\t')
     {
-	if (!(config.flags2 & CFG2expand))
-	{
-	    while (1)
-	    {
-		switch (*btextp)
-		{   case ' ':
-		    case '\t':
-			btextp++;
-			continue;
-		}
-		break;
-	    }
-	    xc = *btextp++;
-	}
-	else
-	    while (1)
-	    {
-		switch (xc)
-		{   case ' ':
-		    case '\t':
-			egchar3();
-			continue;
-		}
-		break;
-	    }
+        if (!(config.flags2 & CFG2expand))
+        {
+            while (1)
+            {
+                switch (*btextp)
+                {   case ' ':
+                    case '\t':
+                        btextp++;
+                        continue;
+                }
+                break;
+            }
+            xc = *btextp++;
+        }
+        else
+            while (1)
+            {
+                switch (xc)
+                {   case ' ':
+                    case '\t':
+                        egchar3();
+                        continue;
+                }
+                break;
+            }
     }
 
     instr = 0;
     stringize = 0;
     hashidx = -1;
-    lastxc = ' ';			// anything but end_of_line or /
+    lastxc = ' ';                       // anything but end_of_line or /
     pbuf = buf;
     while (1)
     {
-  	int istringize;
+        int istringize;
 
-	/* 6 == PRE_ARG + PRE_EXP + PRE_EXP + xc + ' ' + 0	*/
-	pbuf = textbuf_reserve(pbuf, 6);
-	istringize = stringize;
-	if (stringize)
-	    stringize--;
-	switch (xc)
-	{   // Sort most likely cases first
-	    case ' ':
-	    case '\t':
-		if (!instr)
-		{
-		    xc = ' ';
-		    if (pbuf[-1] == ' ')
-		    {   egchar3();
-			continue;
-		    }
-		}
-		break;
-	    case CR:			// ignore carriage returns
-		egchar3();
-		continue;
-	    case LF:			// if end of line char
-		goto done;
-	    case '0':
-		break;
-	    case '/':
-		if (!instr && pbuf[-1] == '/')	// if C++ style comment
-		{
-		    cppcomment();
-		    pbuf--;		/* back up to start of comment	*/
-		    goto done;
-		}
-		break;
-	    case '*':
-		if (!instr && pbuf[-1] == '/')	// if start of comment
-		{
-		    comment();
-		    if (buf + 1 == pbuf)
-		    {	// leading /* */ comment, ignore
-			goto Lrestart;
-		    }
-		    lastxc = pbuf[-1] = ' '; // replace with ' '
-		    if (pbuf[-2] == ' ')
-			pbuf--;
-		    if (istringize)	// If the loop started with a
-			stringize = 2;	// stringize, re-start it with
-					// a stringize
-		    continue;
-		}
-		break;
-	    case '\'':
-	    case '"':			// string delimiters
-		if (instr)
-		{   if (xc == instr && lastxc != '\\')
-			instr = 0;
-		}
-		else
-		    instr = xc;
-		break;
-	    case '\\':
-		if (lastxc == '\\')
-		{
-		    *pbuf++ = xc;
-		    lastxc = ' ';
-		    egchar();
-		    continue;
-		}
-		break;
+        /* 6 == PRE_ARG + PRE_EXP + PRE_EXP + xc + ' ' + 0      */
+        pbuf = textbuf_reserve(pbuf, 6);
+        istringize = stringize;
+        if (stringize)
+            stringize--;
+        switch (xc)
+        {   // Sort most likely cases first
+            case ' ':
+            case '\t':
+                if (!instr)
+                {
+                    xc = ' ';
+                    if (pbuf[-1] == ' ')
+                    {   egchar3();
+                        continue;
+                    }
+                }
+                break;
+            case CR:                    // ignore carriage returns
+                egchar3();
+                continue;
+            case LF:                    // if end of line char
+                goto done;
+            case '0':
+                break;
+            case '/':
+                if (!instr && pbuf[-1] == '/')  // if C++ style comment
+                {
+                    cppcomment();
+                    pbuf--;             /* back up to start of comment  */
+                    goto done;
+                }
+                break;
+            case '*':
+                if (!instr && pbuf[-1] == '/')  // if start of comment
+                {
+                    comment();
+                    if (buf + 1 == pbuf)
+                    {   // leading /* */ comment, ignore
+                        goto Lrestart;
+                    }
+                    lastxc = pbuf[-1] = ' '; // replace with ' '
+                    if (pbuf[-2] == ' ')
+                        pbuf--;
+                    if (istringize)     // If the loop started with a
+                        stringize = 2;  // stringize, re-start it with
+                                        // a stringize
+                    continue;
+                }
+                break;
+            case '\'':
+            case '"':                   // string delimiters
+                if (instr)
+                {   if (xc == instr && lastxc != '\\')
+                        instr = 0;
+                }
+                else
+                    instr = xc;
+                break;
+            case '\\':
+                if (lastxc == '\\')
+                {
+                    *pbuf++ = xc;
+                    lastxc = ' ';
+                    egchar();
+                    continue;
+                }
+                break;
 
-	    case ':':
-		// Digraphs:
-		//    %:   is #
-		//    %:%: is ##
+            case ':':
+                // Digraphs:
+                //    %:   is #
+                //    %:%: is ##
 
-		if (instr || !(config.flags3 & CFG3digraphs) || lastxc != '%')
-		    break;
-		pbuf--;
-		egchar();
-		if (xc == '%')
-		{   if (egchar() != ':')
-		    {
-			if (m->Mflags & Mnoparen)
-			{
-			    pbuf++;
-			    *pbuf++ = ':';
-			    *pbuf++ = '%';
-			    lastxc = '%';
-			    continue;
-			}
-			preerr(EM_hashparam);	// # must be followed by param
-		    }
-		    goto Lhashhash;
-		}
-		else
-		    goto Lhash;
+                if (instr || !(config.flags3 & CFG3digraphs) || lastxc != '%')
+                    break;
+                pbuf--;
+                egchar();
+                if (xc == '%')
+                {   if (egchar() != ':')
+                    {
+                        if (m->Mflags & Mnoparen)
+                        {
+                            pbuf++;
+                            *pbuf++ = ':';
+                            *pbuf++ = '%';
+                            lastxc = '%';
+                            continue;
+                        }
+                        preerr(EM_hashparam);   // # must be followed by param
+                    }
+                    goto Lhashhash;
+                }
+                else
+                    goto Lhash;
 
-	    case '#':
-		if (instr)		/* if inside a string		*/
-		    break;		/* ignore it			*/
-		egchar();
-		if (xc == '#')		/* if ##, token concatenation	*/
-		{
-	    Lhashhash:
-		    // Back up over spaces and tabs
-		    while (1)
-		    {	if (pbuf > buf)
-			{
-			    if (!isspace(pbuf[-1]))
-				break;
-			    pbuf--;
-			}
-			else
-			{   preerr(EM_hashhash_end); // ## can't appear at beg/end
-			    break;
-			}
-		    }
+            case '#':
+                if (instr)              /* if inside a string           */
+                    break;              /* ignore it                    */
+                egchar();
+                if (xc == '#')          /* if ##, token concatenation   */
+                {
+            Lhashhash:
+                    // Back up over spaces and tabs
+                    while (1)
+                    {   if (pbuf > buf)
+                        {
+                            if (!isspace(pbuf[-1]))
+                                break;
+                            pbuf--;
+                        }
+                        else
+                        {   preerr(EM_hashhash_end); // ## can't appear at beg/end
+                            break;
+                        }
+                    }
 
-		    // Skip following spaces and tabs
-		    while (1)
-		    {	lastxc = '#';
-			switch (egchar())
-			{   case ' ':
-			    case '\t':
-			    case CR:
-				continue;
-			}
-			break;
-		    }
-		    stringize = 2;
-		    *pbuf++ = PRE_ARG;
-		    *pbuf++ = PRE_CAT;
-		    m->Mflags |= Mconcat;	
-		}
-		else			/* else #, stringize token	*/
-		{
-	    Lhash:
-		    if (m->Mflags & Mnoparen)
-		    {	// C99 6.10.3.2-1 '#' is ignored for an object-like macro
-			*pbuf++ = '#';
-			lastxc = '#';
-			continue;
-		    }
-		    if (hashidx != -1)
-			preerr(EM_hashparam);	// # must be followed by param
-		    lastxc = '#';
-		    hashidx = pbuf - buf;
-		    *pbuf++ = '#';
-		}
-		continue;
-	    case PRE_ARG:
-		*pbuf++ = xc;			// double up the character
-		break;
+                    // Skip following spaces and tabs
+                    while (1)
+                    {   lastxc = '#';
+                        switch (egchar())
+                        {   case ' ':
+                            case '\t':
+                            case CR:
+                                continue;
+                        }
+                        break;
+                    }
+                    stringize = 2;
+                    *pbuf++ = PRE_ARG;
+                    *pbuf++ = PRE_CAT;
+                    m->Mflags |= Mconcat;
+                }
+                else                    /* else #, stringize token      */
+                {
+            Lhash:
+                    if (m->Mflags & Mnoparen)
+                    {   // C99 6.10.3.2-1 '#' is ignored for an object-like macro
+                        *pbuf++ = '#';
+                        lastxc = '#';
+                        continue;
+                    }
+                    if (hashidx != -1)
+                        preerr(EM_hashparam);   // # must be followed by param
+                    lastxc = '#';
+                    hashidx = pbuf - buf;
+                    *pbuf++ = '#';
+                }
+                continue;
+            case PRE_ARG:
+                *pbuf++ = xc;                   // double up the character
+                break;
 
-	    default:
-		if (dbcs && ismulti(xc))	// if 2-byte Asian char
-		{   *pbuf++ = xc;
-		    lastxc = xc;
-		    egchar();
-		    goto L2;
-		}
-		if (al && isidstart(xc) && !instr) // if possible parameter
-		{   list_t list;
-		    int n;
-		    int len;
+            default:
+                if (dbcs && ismulti(xc))        // if 2-byte Asian char
+                {   *pbuf++ = xc;
+                    lastxc = xc;
+                    egchar();
+                    goto L2;
+                }
+                if (al && isidstart(xc) && !instr) // if possible parameter
+                {   list_t list;
+                    int n;
+                    int len;
 
-		    inident();			// read in identifier
+                    inident();                  // read in identifier
 
-		    // loop through parameter list looking for ident
-		    n = 1;			// parameter number
-		    len = strlen(tok_ident);
-		    for (list = al; list; list = list_next(list))
-		    {	if (memcmp(tok_ident,(const char *) list_ptr(list),len + 1) == 0)
-			{
-			    // This is parameter n
-			    if (hashidx >= 0)	// if 'stringize' param
-			    {
-				// #param gets replaced with:
-				// PRE_ARG, PRE_STR, n
+                    // loop through parameter list looking for ident
+                    n = 1;                      // parameter number
+                    len = strlen(tok_ident);
+                    for (list = al; list; list = list_next(list))
+                    {   if (memcmp(tok_ident,(const char *) list_ptr(list),len + 1) == 0)
+                        {
+                            // This is parameter n
+                            if (hashidx >= 0)   // if 'stringize' param
+                            {
+                                // #param gets replaced with:
+                                // PRE_ARG, PRE_STR, n
 
-				assert(buf[hashidx] == '#');
-				pbuf = buf + hashidx;
-				*pbuf++ = PRE_ARG;
-				*pbuf++ = PRE_STR;
-				hashidx = -1;
-			    }
-			    else if (0 && stringize)
-			    {
-				// n ## m gets replaced with:
-				// PRE_ARG, PRE_EXP, n, PRE_ARG, PRE_CAT, PRE_ARG, PRE_EXP, m
-				if (	pbuf >= buf + 4 &&
-					pbuf[-4] == (char)PRE_ARG &&
-					pbuf[-2] == (char)PRE_ARG &&
-					pbuf[-1] == (char)PRE_CAT)
-				{   pbuf[-2] = pbuf[-3];
-				    pbuf[-3] = PRE_EXP;
-				    pbuf[-1] = PRE_ARG;
-				    pbuf[ 0] = PRE_CAT;
-				    pbuf++;
-				}
+                                assert(buf[hashidx] == '#');
+                                pbuf = buf + hashidx;
+                                *pbuf++ = PRE_ARG;
+                                *pbuf++ = PRE_STR;
+                                hashidx = -1;
+                            }
+                            else if (0 && stringize)
+                            {
+                                // n ## m gets replaced with:
+                                // PRE_ARG, PRE_EXP, n, PRE_ARG, PRE_CAT, PRE_ARG, PRE_EXP, m
+                                if (    pbuf >= buf + 4 &&
+                                        pbuf[-4] == (char)PRE_ARG &&
+                                        pbuf[-2] == (char)PRE_ARG &&
+                                        pbuf[-1] == (char)PRE_CAT)
+                                {   pbuf[-2] = pbuf[-3];
+                                    pbuf[-3] = PRE_EXP;
+                                    pbuf[-1] = PRE_ARG;
+                                    pbuf[ 0] = PRE_CAT;
+                                    pbuf++;
+                                }
 
-				*pbuf++ = PRE_ARG; /* param num prefix */
-				*pbuf++ = PRE_EXP;
-			    }
-			    else
-			    {
-				// param gets replace with:
-				// PRE_ARG, n
-				*pbuf++ = PRE_ARG; // param num prefix
-			    }
-			    *pbuf++ = n;	// which parameter
-			    lastxc = ' ';	// a safe value
-			    goto L1;
-			}
-			n++;
-		    }
-		    if (hashidx != -1)
-		    {	preerr(EM_hashparam);	// # must be followed by arg
-			hashidx = -1;
-		    }
+                                *pbuf++ = PRE_ARG; /* param num prefix */
+                                *pbuf++ = PRE_EXP;
+                            }
+                            else
+                            {
+                                // param gets replace with:
+                                // PRE_ARG, n
+                                *pbuf++ = PRE_ARG; // param num prefix
+                            }
+                            *pbuf++ = n;        // which parameter
+                            lastxc = ' ';       // a safe value
+                            goto L1;
+                        }
+                        n++;
+                    }
+                    if (hashidx != -1)
+                    {   preerr(EM_hashparam);   // # must be followed by arg
+                        hashidx = -1;
+                    }
 
-		    // tok_ident is not a parameter, so put it
-		    // into the buffer as it is.
-		    pbuf = textbuf_reserve(pbuf, len + 1);
-		    memcpy(pbuf,tok_ident,len);
-		    pbuf += len;
-		    lastxc = pbuf[-1];
-		    continue;
-		}
-		break;
-	}
-	lastxc = xc;
+                    // tok_ident is not a parameter, so put it
+                    // into the buffer as it is.
+                    pbuf = textbuf_reserve(pbuf, len + 1);
+                    memcpy(pbuf,tok_ident,len);
+                    pbuf += len;
+                    lastxc = pbuf[-1];
+                    continue;
+                }
+                break;
+        }
+        lastxc = xc;
     L2:
-	*pbuf++ = xc;			/* put char in buffer		*/
-	egchar3();			/* get next char		*/
-    L1:	;
+        *pbuf++ = xc;                   /* put char in buffer           */
+        egchar3();                      /* get next char                */
+    L1: ;
   }
 
 done:
     if (stringize)
-	preerr(EM_hashhash_end);	// ## can't appear at beg/end
+        preerr(EM_hashhash_end);        // ## can't appear at beg/end
     if (hashidx != -1)
-	preerr(EM_hashparam);		// # must be followed by param
+        preerr(EM_hashparam);           // # must be followed by param
     while (pbuf > buf && pbuf[-1] == ' ')
-	pbuf--;
+        pbuf--;
     *pbuf = 0;
     //printf("len = %d\n",strlen(buf));
 #if TX86
@@ -1679,28 +1679,28 @@ void macrotext_print(char *p)
     printf("[");
     for (; *p; p++)
     {
-	unsigned c = *p & 0xFF;
+        unsigned c = *p & 0xFF;
 
-	switch (c)
-	{
-	    case PRE_ARG:	printf("PRE_ARG"); break;
-	    case PRE_STR:	printf("PRE_STR"); break;
-	    case PRE_EXP:	printf("PRE_EXP"); break;
-	    case PRE_CAT:	printf("PRE_CAT"); break;
-	    case PRE_BRK:	printf("PRE_BRK"); break;
-	    case PRE_SPACE:	printf("PRE_SPACE"); break;
+        switch (c)
+        {
+            case PRE_ARG:       printf("PRE_ARG"); break;
+            case PRE_STR:       printf("PRE_STR"); break;
+            case PRE_EXP:       printf("PRE_EXP"); break;
+            case PRE_CAT:       printf("PRE_CAT"); break;
+            case PRE_BRK:       printf("PRE_BRK"); break;
+            case PRE_SPACE:     printf("PRE_SPACE"); break;
 
-	    default:
-		if (isprint(c))
-		    printf("'%c'", c);
-		else if (c < 10)
-		    printf("%d", c);
-		else
-		    printf("x%02x", c);
-		break;
-	}
-	if (p[1])
-	    printf(",");
+            default:
+                if (isprint(c))
+                    printf("'%c'", c);
+                else if (c < 10)
+                    printf("%d", c);
+                else
+                    printf("x%02x", c);
+                break;
+        }
+        if (p[1])
+            printf(",");
     }
     printf("]");
 #endif
@@ -1717,52 +1717,52 @@ STATIC void prundef()
     macro_t **pm;
     Sfile *sf;
 
-    /*	This works by creating a new definition of the macro, and then
-	marking that new definition as 'undefined'. The reason for this
-	is to keep things straight in precompiled headers.
+    /*  This works by creating a new definition of the macro, and then
+        marking that new definition as 'undefined'. The reason for this
+        is to keep things straight in precompiled headers.
      */
 
     sf = cstate.CSfilblk ? &srcpos_sfile(cstate.CSfilblk->BLsrcpos) : &sfile(0);
     if (token() != TKident)
-    {	preerr(EM_ident_exp);		// identifier expected
-	panic(TKeol);			/* scan to end of line		*/
-	exp_ppon();
-	return;
+    {   preerr(EM_ident_exp);           // identifier expected
+        panic(TKeol);                   /* scan to end of line          */
+        exp_ppon();
+        return;
     }
     listident();
 
-    /*	We always create a new macro, and replace the macro in the table
-	with the new one. This solves the problem of #undef's in
-	precompiled headers.
+    /*  We always create a new macro, and replace the macro in the table
+        with the new one. This solves the problem of #undef's in
+        precompiled headers.
      */
     m = macro_calloc(tok.TKid);
     pm = macfindparent(tok.TKid,idhash);
     mold = *pm;
     if (mold)
-    {	macro_debug(mold);
-	if (mold->Mflags & Mfixeddef)
-	    preerr(EM_undef,mold->Mid);	// can't #undef it
-	m->Mflags |= mold->Mflags & Mkeyword;
-	m->Mval = mold->Mval;
-	m->ML = mold->ML;
-	m->MR = mold->MR;
+    {   macro_debug(mold);
+        if (mold->Mflags & Mfixeddef)
+            preerr(EM_undef,mold->Mid); // can't #undef it
+        m->Mflags |= mold->Mflags & Mkeyword;
+        m->Mval = mold->Mval;
+        m->ML = mold->ML;
+        m->MR = mold->MR;
     }
     *pm = m;
 
     // Thread definition onto list of #define's for this file
     sfile_debug(sf);
     if (!sf->SFpmacdefs)
-	sf->SFpmacdefs = &sf->SFmacdefs;
+        sf->SFpmacdefs = &sf->SFmacdefs;
     *sf->SFpmacdefs = m;
     sf->SFpmacdefs = &m->Mnext;
 
     pstate.STflags |= PFLmacdef;
 
-    blankrol();				/* eat rest of line		*/
+    blankrol();                         /* eat rest of line             */
     exp_ppon();
 }
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 /*************************
  * #include_next "filename"
  * #include_next <filename>
@@ -1776,20 +1776,20 @@ STATIC void princlude_next()
     strtok = stoken();
     ininclude--;
     if (strtok != TKstring && strtok != TKfilespec)
-    {	preerr(EM_filespec);		// filespec expected
-	eatrol();
-	exp_ppon();
-	return;
+    {   preerr(EM_filespec);            // filespec expected
+        eatrol();
+        exp_ppon();
+        return;
     }
 
-    blankrol();				/* rest of line should be blank	*/
+    blankrol();                         /* rest of line should be blank */
     exp_ppon();
-    putback(LF);			/* put char (EOL) back in input	*/
-					/* (protect against no trailing	*/
-					/*  EOL in #include file)	*/
+    putback(LF);                        /* put char (EOL) back in input */
+                                        /* (protect against no trailing */
+                                        /*  EOL in #include file)       */
     if (config.flags2 & CFG2expand && elini)
-    {	elini = 0;
-	eline[0] = 0;			/* erase current line		*/
+    {   elini = 0;
+        eline[0] = 0;                   /* erase current line           */
     }
 
     pragma_include(tok.TKstr,FQnext);
@@ -1810,24 +1810,24 @@ STATIC void princlude()
     strtok = stoken();
     ininclude--;
     if (strtok != TKstring && strtok != TKfilespec)
-    {	preerr(EM_filespec);		// filespec expected
-	eatrol();
-	exp_ppon();
-	return;
+    {   preerr(EM_filespec);            // filespec expected
+        eatrol();
+        exp_ppon();
+        return;
     }
 
-    blankrol();				/* rest of line should be blank	*/
+    blankrol();                         /* rest of line should be blank */
     exp_ppon();
-    putback(LF);			/* put char (EOL) back in input	*/
-					/* (protect against no trailing	*/
-					/*  EOL in #include file)	*/
+    putback(LF);                        /* put char (EOL) back in input */
+                                        /* (protect against no trailing */
+                                        /*  EOL in #include file)       */
     if (config.flags2 & CFG2expand && elini)
-    {	elini = 0;
-	eline[0] = 0;			/* erase current line		*/
+    {   elini = 0;
+        eline[0] = 0;                   /* erase current line           */
     }
 
     pragma_include(tok.TKstr,((strtok == TKstring)
-		? FQcwd | FQpath : FQsystem | FQpath));
+                ? FQcwd | FQpath : FQsystem | FQpath));
     egchar();
 }
 
@@ -1835,7 +1835,7 @@ STATIC void princlude()
  * Given a #include'd filename, either read it in as a precompiled
  * header, or install it as a file to be read.
  * Input:
- *	flag	value for insblk()
+ *      flag    value for insblk()
  */
 
 void pragma_include(char *filename,int flag)
@@ -1844,31 +1844,31 @@ void pragma_include(char *filename,int flag)
     //dbg_printf("pragma_include(filename = '%s', flag = %d)\n",filename,flag);
 
     // Remove leading and trailing whitespace
-    {	char *p;
+    {   char *p;
 
-	while (isspace(*filename))
-	    filename++;
-	for (p = filename + strlen(filename);
-	     p > filename && isspace(p[-1]);
-	     *--p = 0)
-	    ;
+        while (isspace(*filename))
+            filename++;
+        for (p = filename + strlen(filename);
+             p > filename && isspace(p[-1]);
+             *--p = 0)
+            ;
     }
 
     // Look for alias
     for (al = (flag & FQsystem) ? pstate.STsysincalias : pstate.STincalias;
-	 al;
-	 al = list_next(al)
-	)
-    {	char *n;
+         al;
+         al = list_next(al)
+        )
+    {   char *n;
 
-	n = (char *)list_ptr(al);
-	al = list_next(al);
-	assert(n && al);
-	if (filename_cmp(filename,n) == 0)	// if file name matches
-	{
-	    filename = (char *)list_ptr(al);	// substitute alias
-	    break;
-	}
+        n = (char *)list_ptr(al);
+        al = list_next(al);
+        assert(n && al);
+        if (filename_cmp(filename,n) == 0)      // if file name matches
+        {
+            filename = (char *)list_ptr(al);    // substitute alias
+            break;
+        }
     }
 
 #if !SPP
@@ -1878,70 +1878,70 @@ void pragma_include(char *filename,int flag)
     char *of;
     for(olist = Once; olist; olist = olist->BLprev)
         {
-	of = srcpos_name(olist->BLsrcpos);
-	of = strrchr(of,':');
-	if (!of)
-	    of = srcpos_name(olist->BLsrcpos);
-	else
-	    of++;
-	if (filename_cmp(of,filename) == 0)
-	    {				/* this include file ifdef'd out, don't read */
-	    egchar();			/* skip over the putback EOL */
-	    goto ret;			/* don't waste time reading the file */
-	    }
-	}
+        of = srcpos_name(olist->BLsrcpos);
+        of = strrchr(of,':');
+        if (!of)
+            of = srcpos_name(olist->BLsrcpos);
+        else
+            of++;
+        if (filename_cmp(of,filename) == 0)
+            {                           /* this include file ifdef'd out, don't read */
+            egchar();                   /* skip over the putback EOL */
+            goto ret;                   /* don't waste time reading the file */
+            }
+        }
     // scan back through currently open blocks for #pragma once'd blocks
     for (olist = bl; olist; olist = olist->BLprev)
       {
-    	if (olist->Btyp != BLfile || olist->Bflags != BLponce)
-	    continue;			// skip non-files, non-pragma'd files
-	of = srcpos_name(olist->BLsrcpos);
-	of = strrchr(of,':');
-	if (!of)
-	    of = srcpos_name(olist->BLsrcpos);
-	else
-	    of++;
-	if (filename_cmp(of,filename) == 0)
-	    {				/* this include file ifdef'd out, don't read */
-	    egchar();			/* skip over the putback EOL */
-	    goto ret;			/* don't waste time reading the file */
-	    }
+        if (olist->Btyp != BLfile || olist->Bflags != BLponce)
+            continue;                   // skip non-files, non-pragma'd files
+        of = srcpos_name(olist->BLsrcpos);
+        of = strrchr(of,':');
+        if (!of)
+            of = srcpos_name(olist->BLsrcpos);
+        else
+            of++;
+        if (filename_cmp(of,filename) == 0)
+            {                           /* this include file ifdef'd out, don't read */
+            egchar();                   /* skip over the putback EOL */
+            goto ret;                   /* don't waste time reading the file */
+            }
       }
     }
 #endif
 
 #if HEADER_LIST
 #if TX86
-    if (file_qualify(&filename,flag) == 0)	// if file not found
+    if (file_qualify(&filename,flag) == 0)      // if file not found
     {
 #if M_UNIX || M_XENIX
-	char *name;
-	int line;
-	line = token_linnum().Slinnum;
-	if (cstate.CSfilblk)
-		name = srcfiles_name(cstate.CSfilblk->BLsrcpos.Sfilnum);
-	else
-		name = "preprocessed";
-	// Display the name and line number to allow emacs to use this information 
-	fprintf(stderr, "%s(%d) : ", name, line);
+        char *name;
+        int line;
+        line = token_linnum().Slinnum;
+        if (cstate.CSfilblk)
+                name = srcfiles_name(cstate.CSfilblk->BLsrcpos.Sfilnum);
+        else
+                name = "preprocessed";
+        // Display the name and line number to allow emacs to use this information
+        fprintf(stderr, "%s(%d) : ", name, line);
 #endif
-	err_fatal(EM_open_input,filename);	// open failure
+        err_fatal(EM_open_input,filename);      // open failure
     }
 
     // If filename doesn't end in .H or .HPP, and we are doing automatic
     // precompiled headers, then we are done with PH.
     if (config.flags2 & (CFG2phauto | CFG2phautoy))
-    {	char *ext;
+    {   char *ext;
 
-	ext = filespecdotext(filename);
-	if (filespeccmp(ext,".h") 
+        ext = filespecdotext(filename);
+        if (filespeccmp(ext,".h")
 #if M_UNIX || M_XENIX
-	&& filespeccmp(ext,".hxx")
+        && filespeccmp(ext,".hxx")
 #endif
-	&& filespeccmp(ext,".hpp"))
-	{   ph_testautowrite();
-	    goto text;
-	}
+        && filespeccmp(ext,".hpp"))
+        {   ph_testautowrite();
+            goto text;
+        }
     }
 
     // Determine if file has already been read in
@@ -1951,66 +1951,66 @@ void pragma_include(char *filename,int flag)
 
     // If already read in
     if (sf)
-    {	sfile_debug(sf);
-	//dbg_printf("\t File already read in\n");
+    {   sfile_debug(sf);
+        //dbg_printf("\t File already read in\n");
 
-	if (config.flags2 & CFG2once)	// if only #include files once
-	    goto Ldep;
+        if (config.flags2 & CFG2once)   // if only #include files once
+            goto Ldep;
 
-	// If file is in an hx file
-	if (sf->SFflags & SFhx)
-	{   ph_autoread(filename);
+        // If file is in an hx file
+        if (sf->SFflags & SFhx)
+        {   ph_autoread(filename);
 #if !SPP
-	    if (fdep)
-		fprintf(fdep, "%s ", filename);
+            if (fdep)
+                fprintf(fdep, "%s ", filename);
 #endif
-	    goto Ldep;
-	}
+            goto Ldep;
+        }
 
-	// If file is to be only #include'd once, skip it
-	// (Do this after check above)
-	if (sf->SFflags & SFonce)
-	{
-	    //dbg_printf("\tSFonce set\n");
-	    goto Ldep;
-	}
+        // If file is to be only #include'd once, skip it
+        // (Do this after check above)
+        if (sf->SFflags & SFonce)
+        {
+            //dbg_printf("\tSFonce set\n");
+            goto Ldep;
+        }
 
-	// If using an automatically precompiled header
-	if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
-	    !(pstate.STflags & (PFLhxwrote | PFLhxdone)))
-	{
-	Ldep:
-	    if (cstate.CSfilblk)
-		list_append(&srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFfillist,sf);
-	    goto ret;
-	}
+        // If using an automatically precompiled header
+        if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
+            !(pstate.STflags & (PFLhxwrote | PFLhxdone)))
+        {
+        Ldep:
+            if (cstate.CSfilblk)
+                list_append(&srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFfillist,sf);
+            goto ret;
+        }
     }
     else // File not already read in
     {
-	// If reading precompiled headers and we haven't already read in
-	// a precompiled header for this file, try reading file as a ph.
-	// (Note: This is intended for nuts who want to #include a file
-	// multiple times, but still use ph. The first read of a #include is
-	// a ph, subsequent reads are text)
-	if (config.flags2 & CFG2phuse)
-	    if (!ph_read(filename))	// if successfully read in ph
-	    {
+        // If reading precompiled headers and we haven't already read in
+        // a precompiled header for this file, try reading file as a ph.
+        // (Note: This is intended for nuts who want to #include a file
+        // multiple times, but still use ph. The first read of a #include is
+        // a ph, subsequent reads are text)
+        if (config.flags2 & CFG2phuse)
+            if (!ph_read(filename))     // if successfully read in ph
+            {
 #if !SPP
-		if (fdep)
-		    fprintf(fdep, "%s ", filename);
+                if (fdep)
+                    fprintf(fdep, "%s ", filename);
 #endif
-		goto ret;
-	    }
-	// If we read in an HX file, and we are reading in more .h files,
-	// then write a new HX file containing the new .h file.
-	if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
-	    !(pstate.STflags & (PFLhxwrote | PFLhxdone)))
-	    pstate.STflags |= PFLhxgen;
+                goto ret;
+            }
+        // If we read in an HX file, and we are reading in more .h files,
+        // then write a new HX file containing the new .h file.
+        if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
+            !(pstate.STflags & (PFLhxwrote | PFLhxdone)))
+            pstate.STflags |= PFLhxgen;
     }
     }
 text:
     // Parse #include file as text
-    pstate.STflags |= PFLinclude;		// BUG: -HI doesn't affect PFLinclude
+    pstate.STflags |= PFLinclude;               // BUG: -HI doesn't affect PFLinclude
     //dbg_printf("\tReading file %s\n",filename);
     insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag | FQqual,NULL);
 
@@ -2025,7 +2025,7 @@ ret:
 #endif
 }
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 /*************************
  * #warning string
  * #warning (string)
@@ -2034,12 +2034,12 @@ ret:
 STATIC void prwarning()
 {
     char *p;
-    targ_size_t len;  
+    targ_size_t len;
     ptoken();
     if (tok.TKval != TKstring)
-    {	preerr(EM_string);			// string expected
-	eatrol();
-	return;
+    {   preerr(EM_string);                      // string expected
+        eatrol();
+        return;
     }
     p = combinestrings(&len);
 #if !SPP
@@ -2047,7 +2047,7 @@ STATIC void prwarning()
 #endif
     MEM_PH_FREE(p);
     if (tok.TKval != TKeol)
-	blankrol();
+        blankrol();
 }
 #endif
 
@@ -2075,36 +2075,36 @@ STATIC void prstring(int flag)
   char paren;
 
   paren = 0;
-  if (tok.TKval == TKlpar)		// optionally enclose message in ()
-  {	paren++;
-	ptoken();
+  if (tok.TKval == TKlpar)              // optionally enclose message in ()
+  {     paren++;
+        ptoken();
   }
   if (tok.TKval != TKstring)
-  {     preerr(EM_string);		// string expected
+  {     preerr(EM_string);              // string expected
         eatrol();
         return;
   }
   p = combinestrings(&len);
   switch (flag)
-  {	case 1:				// message
+  {     case 1:                         // message
 #if TARGET_WINDOS
-	    dbg_printf("%s\n",p);
+            dbg_printf("%s\n",p);
 #endif
-	    break;
-	case 2:				// setlocale
-	    token_setlocale(p);
-	    break;
-	default:
-	    assert(0);
+            break;
+        case 2:                         // setlocale
+            token_setlocale(p);
+            break;
+        default:
+            assert(0);
   }
 #if TX86
   mem_free(p);
 #endif
   if (paren)
   {
-	if (tok.TKval != TKrpar)
-	    preerr(EM_rpar);			// ')' expected
-	ptoken();
+        if (tok.TKval != TKrpar)
+            preerr(EM_rpar);                    // ')' expected
+        ptoken();
   }
   if (tok.TKval != TKeol)
         blankrol();
@@ -2114,18 +2114,18 @@ STATIC void prstring(int flag)
  * #pragma comment string
  * Allowable uses:
  * #pragma comment(compiler)
- *	- No string, if one is supplied then a warning is generated.
- *	- Applies to OMF only and will add Compiler version to COMENT rec.
+ *      - No string, if one is supplied then a warning is generated.
+ *      - Applies to OMF only and will add Compiler version to COMENT rec.
  * #pragma comment(exestr,string)
- *	- OMF and COFF
- *	- string is added to .comment section or COMENT record and is
- *	  carried over to the executable file.
+ *      - OMF and COFF
+ *      - string is added to .comment section or COMENT record and is
+ *        carried over to the executable file.
  * #pragma comment(lib,"filespec")
- *	- OMF only same as #pragma ZTC includelib "filespec"
+ *      - OMF only same as #pragma ZTC includelib "filespec"
  * #pragma comment(user,string)
- *	- OMF only
- *	- string is added to a general COMENT record and is ignored
- *	  by the linker
+ *      - OMF only
+ *      - string is added to a general COMENT record and is ignored
+ *        by the linker
  * Coded by David Bustin.
  */
 
@@ -2135,55 +2135,55 @@ STATIC void prcomment()
     eatrol();
 #else
     static const char * commenttypes[] =
-    {	
-	"compiler",
-	"exestr",
-	"lib",
-	"linker",
-	"user"
+    {
+        "compiler",
+        "exestr",
+        "lib",
+        "linker",
+        "user"
     };
 
     enum PRC { PRC_compiler,PRC_exestr,PRC_lib,PRC_linker,PRC_user };
 
-    char *p;  
-    targ_size_t len;  
+    char *p;
+    targ_size_t len;
     enum PRC i;
 
     p = NULL;
     i = (enum PRC) binary(tok.TKid,commenttypes,arraysize(commenttypes));
-    ptoken();        
+    ptoken();
     if (tok.TKval == TKcomma)
     {
-	ptoken();
-	if (tok.TKval != TKstring)
-	{   preerr(EM_string);			// string expected
-	    goto Lerr;
-	}
-	p = combinestrings(&len);
+        ptoken();
+        if (tok.TKval != TKstring)
+        {   preerr(EM_string);                  // string expected
+            goto Lerr;
+        }
+        p = combinestrings(&len);
     }
 
     switch (i)
     {
         case PRC_compiler:
-	    obj_compiler();		// embed compiler version
-	    goto Lret;
+            obj_compiler();             // embed compiler version
+            goto Lret;
         case PRC_exestr:
-	    obj_exestr(p);		// put comment in executable
-	    goto Lret;
+            obj_exestr(p);              // put comment in executable
+            goto Lret;
         case PRC_lib:
-	    obj_includelib(tok.TKid);	// include library
-	    goto Lret;
-	case PRC_linker:
-	    eatrol();
-	    goto Lret;			// not implemented
+            obj_includelib(tok.TKid);   // include library
+            goto Lret;
+        case PRC_linker:
+            eatrol();
+            goto Lret;                  // not implemented
 #if 0
         case PRC_user:
-	    obj_user(p);		// put comment in object module
-	    goto Lret;
+            obj_user(p);                // put comment in object module
+            goto Lret;
 #endif
         default:
-	    preerr(EM_unknown_pragma);		// unrecognized pragma
-	    goto Lerr;
+            preerr(EM_unknown_pragma);          // unrecognized pragma
+            goto Lerr;
     }
 Lerr:
 Lret:
@@ -2200,13 +2200,13 @@ STATIC void prident()
   targ_size_t len;
 
   if (ANSI)
-	preerr(EM_unknown_pragma);		// unrecognized pragma
+        preerr(EM_unknown_pragma);              // unrecognized pragma
   ptoken();
   if (tok.TKval != TKstring)
-  {	preerr(EM_string);			// string expected
-	eatrol();
-	exp_ppon();
-	return;
+  {     preerr(EM_string);                      // string expected
+        eatrol();
+        exp_ppon();
+        return;
   }
   p = combinestrings(&len);
 #if !SPP
@@ -2214,7 +2214,7 @@ STATIC void prident()
 #endif
   MEM_PH_FREE(p);
   if (tok.TKval != TKeol)
-	blankrol();
+        blankrol();
   exp_ppon();
 }
 
@@ -2223,9 +2223,9 @@ STATIC void prassert()
 {
 
   if (config.ansi_c)
-	preerr(EM_unknown_pragma);		// unrecognized pragma
+        preerr(EM_unknown_pragma);              // unrecognized pragma
   eatrol();
-				// Simply do nothing
+                                // Simply do nothing
 }
 
 STATIC void prassertid()
@@ -2235,7 +2235,7 @@ STATIC void prassertid()
   targ_size_t len;
 
   if (config.ansi_c)
-	preerr(EM_unknown_pragma);		// unrecognized pragma
+        preerr(EM_unknown_pragma);              // unrecognized pragma
   //printf("Found assert('%s')\n",tok_ident);
 }
 
@@ -2250,14 +2250,14 @@ STATIC reg_decode(id)
     {
     short reg,i;
     if (id[4] != 0 && id[0] != '_' && id[1] != '_')
-    	return -1;
+        return -1;
     if (id[2] == 'A')
-	 reg = 1;
+         reg = 1;
     else if (id[2] == 'D')
-	 reg = 3;
+         reg = 3;
     i = id[3] - '0';
     if (i < 0 || i > 2)
-	return -1;
+        return -1;
     if (id[2] == 'A' && i == 2)
         return -1;
     return reg + i;
@@ -2267,8 +2267,8 @@ STATIC reg_decode(id)
 /***************************
  * Parse pack/dbcs pragma.
  * Input:
- *	flag	0	pack
- *		1	dbcs
+ *      flag    0       pack
+ *              1       dbcs
  */
 
 STATIC void pragma_setstructalign(int flag)
@@ -2277,95 +2277,95 @@ STATIC void pragma_setstructalign(int flag)
     pstack = flag ? &dbcs_stack : &pack_stack;
     switch (tok.TKval)
     {
-	case TKident:
-	    if (memcmp(tok.TKid,"push",5) == 0)
-	    {
-		list_prependdata(pstack,flag ? dbcs : structalign); // push onto stack
-		ptoken();
-		if (tok.TKval == TKrpar)	// pack(push)
-		    break;
-		if (tok.TKval != TKcomma)
-		    synerr(EM_punctuation);		// ',' expected
-		ptoken();
-		goto L2;
-	    }
-	    else if (memcmp(tok.TKid,"pop",4) == 0)
-	    {
-		if (!*pstack)
-		    preerr(EM_pop_wo_push);	// more pops than pushes
-		else
-		{
-		    if (flag)
-			dbcs = list_data(dbcs_stack);
-		    else
-			structalign = list_data(pack_stack);
-		    list_pop(pstack);
-		}
+        case TKident:
+            if (memcmp(tok.TKid,"push",5) == 0)
+            {
+                list_prependdata(pstack,flag ? dbcs : structalign); // push onto stack
+                ptoken();
+                if (tok.TKval == TKrpar)        // pack(push)
+                    break;
+                if (tok.TKval != TKcomma)
+                    synerr(EM_punctuation);             // ',' expected
+                ptoken();
+                goto L2;
+            }
+            else if (memcmp(tok.TKid,"pop",4) == 0)
+            {
+                if (!*pstack)
+                    preerr(EM_pop_wo_push);     // more pops than pushes
+                else
+                {
+                    if (flag)
+                        dbcs = list_data(dbcs_stack);
+                    else
+                        structalign = list_data(pack_stack);
+                    list_pop(pstack);
+                }
 
-		// Inconsistent docs on this, so just eat the rest of the syntax
-		do
-		    ptoken();
-		while (tok.TKval != TKrpar && tok.TKval != TKeol);
-	    }
-	    else
-		goto L1;
-	    break;
+                // Inconsistent docs on this, so just eat the rest of the syntax
+                do
+                    ptoken();
+                while (tok.TKval != TKrpar && tok.TKval != TKeol);
+            }
+            else
+                goto L1;
+            break;
 
-	case TKnum:
-	L2:
-	    if (flag)
-	    {
-		dbcs = msc_getnum();
-	    }
-	    else
-	    {
-		structalign = msc_getnum();
-		if (ispow2(structalign) == -1)
-		    preerr(EM_align);		// must be power of 2
-		structalign--;
-	    }
-	    break;
+        case TKnum:
+        L2:
+            if (flag)
+            {
+                dbcs = msc_getnum();
+            }
+            else
+            {
+                structalign = msc_getnum();
+                if (ispow2(structalign) == -1)
+                    preerr(EM_align);           // must be power of 2
+                structalign--;
+            }
+            break;
 
-	default:
-	L1:
-	    if (flag)
-	    {	dbcs = config.asian_char;
-		if ((unsigned char) dbcs > 3)
-		    synerr(EM_unknown_pragma);		// unrecognized pragma
-	    }
-	    else
-		structalign = config.defstructalign;
-	    break;
+        default:
+        L1:
+            if (flag)
+            {   dbcs = config.asian_char;
+                if ((unsigned char) dbcs > 3)
+                    synerr(EM_unknown_pragma);          // unrecognized pragma
+            }
+            else
+                structalign = config.defstructalign;
+            break;
     }
     if (flag)
-	token_setdbcs(dbcs);
+        token_setdbcs(dbcs);
 }
 
 /***************************
  * Recognize the pragmas:
- *	#pragma [SC] align [1|2|4]		(Macintosh)
- *	#pragma [SC] parameter reg (reg,...)	(Macintosh)
- *	#pragma [SC] once
- *	#pragma [SC] segment segid		(Macintosh)
- *	#pragma [SC] template(vector<int>)	(Macintosh and Unix)
- *	#pragma [SC] template_access access	(Macintosh and Unix)
- *	#pragma ZTC align [1|2|4]
- *	#pragma ZTC cseg name
- *	#pragma linkage( ... )
- *	#pragma pack(n)			n is blank, 1, 2 or 4
- *	#pragma init_seg( ... )
+ *      #pragma [SC] align [1|2|4]              (Macintosh)
+ *      #pragma [SC] parameter reg (reg,...)    (Macintosh)
+ *      #pragma [SC] once
+ *      #pragma [SC] segment segid              (Macintosh)
+ *      #pragma [SC] template(vector<int>)      (Macintosh and Unix)
+ *      #pragma [SC] template_access access     (Macintosh and Unix)
+ *      #pragma ZTC align [1|2|4]
+ *      #pragma ZTC cseg name
+ *      #pragma linkage( ... )
+ *      #pragma pack(n)                 n is blank, 1, 2 or 4
+ *      #pragma init_seg( ... )
  * For powerc compatibility:
- * 	#pragma options align=mac68k == #pragma align 2
- *	#pragma options align=reset == #pragma align
- * 	#pragma options align=power == #pragma align 4
+ *      #pragma options align=mac68k == #pragma align 2
+ *      #pragma options align=reset == #pragma align
+ *      #pragma options align=power == #pragma align 4
 */
 
 STATIC void prpragma()
 {
 #if TARGET_MAC
     while (isspace(xc))
-    	egchar();
-    if (xc == '$')			/* allow leading $ on names */
+        egchar();
+    if (xc == '$')                      /* allow leading $ on names */
         egchar();
 #endif
 #if SPP
@@ -2374,598 +2374,598 @@ STATIC void prpragma()
     if (xc == '$')
         expstring("#pragma $ ");
     else
-	expstring("#pragma  ");
+        expstring("#pragma  ");
 #else
     expstring("#pragma ");
 #endif
-    ptoken();		// BUG: shouldn't macro expand this if it is "STDC"
+    ptoken();           // BUG: shouldn't macro expand this if it is "STDC"
     if (tok.TKval == TKident && strcmp(tok.TKid,"STDC") == 0)
     {
-	// C99 6.10.6-2 No macro expansion
-	eatrol();
+        // C99 6.10.6-2 No macro expansion
+        eatrol();
     }
     else
     {
-	while (tok.TKval != TKeol)
-	    ptoken();
+        while (tok.TKval != TKeol)
+            ptoken();
     }
 #else
-    ptoken();		// BUG: shouldn't macro expand this if it is "STDC"
+    ptoken();           // BUG: shouldn't macro expand this if it is "STDC"
     if (tok.TKval == TKident || tok.TKval < KWMAX)
-    {	char sawztc = 0;
+    {   char sawztc = 0;
 
 // Parse flags for prxf[]
-#define PRXFparen	1	// take argument(s) enclosed by ()
-#define PRXFnoptoken	2	// don't call ptoken()
-#define PRXFident	4	// first argument must be TKident
+#define PRXFparen       1       // take argument(s) enclosed by ()
+#define PRXFnoptoken    2       // don't call ptoken()
+#define PRXFident       4       // first argument must be TKident
 
-	#define Y					\
-	X("STDC",	    PRXstdc,PRXFnoptoken),	\
-	X("alias",	    PRXalias,PRXFparen),	\
-	X("align",	    PRXalign,0),		\
-	X("auto_inline",    PRXauto_inline,0),		\
-	X("cfm_export",	    PRXCFMexport,PRXFident),	\
-	X("code_seg",	    PRXcode_seg,PRXFparen),	\
-	X("comment",	    PRXcomment,PRXFparen | PRXFident),	\
-	X("cseg",	    PRXcseg,PRXFident),		\
-	X("dbcs",	    PRXdbcs,PRXFparen),		\
-	X("dosseg",	    PRXdosseg,0),		\
-	X("function",	    PRXfunction,0),		\
-	X("hdrstop",	    PRXhdrstop,PRXFnoptoken),		\
-	X("include_alias",  PRXinclude_alias,PRXFparen | PRXFnoptoken),	\
-	X("includelib",	    PRXincludelib,PRXFnoptoken),	\
-	X("init_seg",	    PRXinit_seg,PRXFparen | PRXFident),	\
-	X("inline_depth",   PRXinline_depth,0),			\
-	X("inline_recursion", PRXinline_recursion,0),		\
-	X("intrinsic",	    PRXintrinsic,0),		\
-	X("linkage",	    PRXlinkage,PRXFparen | PRXFident),	\
-	X("message",	    PRXmessage,0),		\
-	X("mfc",	    PRXmfc,0),			\
-	X("noreturn",	    PRXnoreturn,PRXFparen | PRXFident),	\
-	X("once",	    PRXonce,0),			\
-	X("optimize",	    PRXoptimize,0),		\
-	X("options",	    PRXoptions,PRXFident),	\
-	X("pack",	    PRXpack,PRXFparen),		\
-	X("parameter",	    PRXparameter,PRXFident),	\
-	X("pascal_object",  PRXpasobj,0),		\
-	X("segment",	    PRXsegment,0),		\
-	X("setlocale",	    PRXsetlocale,0),		\
-	X("startaddress",   PRXstartaddress,PRXFparen | PRXFident),	\
-	X("template",	    PRXtemplate,PRXFnoptoken),	\
-	X("template_access",PRXtemp_access,PRXFident),	\
-	X("trace",	    PRXtrace,PRXFident),	\
-	X("warning",	    PRXwarning,0),
+        #define Y                                       \
+        X("STDC",           PRXstdc,PRXFnoptoken),      \
+        X("alias",          PRXalias,PRXFparen),        \
+        X("align",          PRXalign,0),                \
+        X("auto_inline",    PRXauto_inline,0),          \
+        X("cfm_export",     PRXCFMexport,PRXFident),    \
+        X("code_seg",       PRXcode_seg,PRXFparen),     \
+        X("comment",        PRXcomment,PRXFparen | PRXFident),  \
+        X("cseg",           PRXcseg,PRXFident),         \
+        X("dbcs",           PRXdbcs,PRXFparen),         \
+        X("dosseg",         PRXdosseg,0),               \
+        X("function",       PRXfunction,0),             \
+        X("hdrstop",        PRXhdrstop,PRXFnoptoken),           \
+        X("include_alias",  PRXinclude_alias,PRXFparen | PRXFnoptoken), \
+        X("includelib",     PRXincludelib,PRXFnoptoken),        \
+        X("init_seg",       PRXinit_seg,PRXFparen | PRXFident), \
+        X("inline_depth",   PRXinline_depth,0),                 \
+        X("inline_recursion", PRXinline_recursion,0),           \
+        X("intrinsic",      PRXintrinsic,0),            \
+        X("linkage",        PRXlinkage,PRXFparen | PRXFident),  \
+        X("message",        PRXmessage,0),              \
+        X("mfc",            PRXmfc,0),                  \
+        X("noreturn",       PRXnoreturn,PRXFparen | PRXFident), \
+        X("once",           PRXonce,0),                 \
+        X("optimize",       PRXoptimize,0),             \
+        X("options",        PRXoptions,PRXFident),      \
+        X("pack",           PRXpack,PRXFparen),         \
+        X("parameter",      PRXparameter,PRXFident),    \
+        X("pascal_object",  PRXpasobj,0),               \
+        X("segment",        PRXsegment,0),              \
+        X("setlocale",      PRXsetlocale,0),            \
+        X("startaddress",   PRXstartaddress,PRXFparen | PRXFident),     \
+        X("template",       PRXtemplate,PRXFnoptoken),  \
+        X("template_access",PRXtemp_access,PRXFident),  \
+        X("trace",          PRXtrace,PRXFident),        \
+        X("warning",        PRXwarning,0),
 
-	#define X(str,prx,prxf)		str
-	static const char *table[] = { Y };
-	#undef X
+        #define X(str,prx,prxf)         str
+        static const char *table[] = { Y };
+        #undef X
 
-	#define X(str,enum,prxf)	enum
-	enum PRX { Y };
-	#undef X
+        #define X(str,enum,prxf)        enum
+        enum PRX { Y };
+        #undef X
 
-	#define X(str,enum,prxf)	prxf
-	static unsigned char prxf[] = { PRXFnoptoken,Y };
-	#undef X
+        #define X(str,enum,prxf)        prxf
+        static unsigned char prxf[] = { PRXFnoptoken,Y };
+        #undef X
 
-	#undef Y
+        #undef Y
 
-	enum PRX i;
+        enum PRX i;
 
-	if (strcmp(tok.TKid,"ZTC") == 0 ||
-	    strcmp(tok.TKid,"SC") == 0  ||
-	    strcmp(tok.TKid,"DMC") == 0)
-	{   ptoken();
-	    sawztc++;
-	    if (tok.TKval != TKident)
-		goto err;
-	}
-	i = (enum PRX) binary(tok.TKid,table,arraysize(table));
+        if (strcmp(tok.TKid,"ZTC") == 0 ||
+            strcmp(tok.TKid,"SC") == 0  ||
+            strcmp(tok.TKid,"DMC") == 0)
+        {   ptoken();
+            sawztc++;
+            if (tok.TKval != TKident)
+                goto err;
+        }
+        i = (enum PRX) binary(tok.TKid,table,arraysize(table));
 
-	if (prxf[(int) i + 1] & PRXFparen)
-	{
-	    ptoken();
-	    if (tok.TKval != TKlpar)
-	    {	preerr(EM_lpar);		// '(' expected
-		goto err;
-	    }
-	}
-	if (!(prxf[(int) i + 1] & PRXFnoptoken))
-	    ptoken();
-	if (prxf[(int) i + 1] & PRXFident)
-	{   if (tok.TKval != TKident)
-	    {	preerr(EM_ident_exp);
-		goto err;		// identifier expected
-	    }
-	}
+        if (prxf[(int) i + 1] & PRXFparen)
+        {
+            ptoken();
+            if (tok.TKval != TKlpar)
+            {   preerr(EM_lpar);                // '(' expected
+                goto err;
+            }
+        }
+        if (!(prxf[(int) i + 1] & PRXFnoptoken))
+            ptoken();
+        if (prxf[(int) i + 1] & PRXFident)
+        {   if (tok.TKval != TKident)
+            {   preerr(EM_ident_exp);
+                goto err;               // identifier expected
+            }
+        }
 
-	switch (i)
-	{
-	    case PRXstdc:
-		eatrol();		// ignore
-		return;
+        switch (i)
+        {
+            case PRXstdc:
+                eatrol();               // ignore
+                return;
 
-	    case PRXalias:
-		// #pragma alias("string1","string2")
-		// #pragma alias(symbol,"string2")
-		{   char *str1,*str2;
-		    targ_size_t len1,len2;
-		    char name[IDMAX+IDOHD+1];
-		    size_t len;
+            case PRXalias:
+                // #pragma alias("string1","string2")
+                // #pragma alias(symbol,"string2")
+                {   char *str1,*str2;
+                    targ_size_t len1,len2;
+                    char name[IDMAX+IDOHD+1];
+                    size_t len;
 
-		    str1 = NULL;
-		    str2 = NULL;
-		    if (tok.TKval == TKident)
-		    {	symbol *s;
+                    str1 = NULL;
+                    str2 = NULL;
+                    if (tok.TKval == TKident)
+                    {   symbol *s;
 
-			s = scope_search(tok.TKid,SCTglobal | SCTnspace);
-			if (s)
-			{
-			    if (tyfunc(s->Stype->Tty))
-				nwc_mustwrite(s);
-			}
-			else
-			{   synerr(EM_undefined,tok.TKid);
-			    goto err;
-			}
-			len = obj_mangle(s,name);
-			assert(len < sizeof(name));
-			name[len] = 0;
-			str1 = mem_strdup(name);
-			stoken();
-		    }
-		    else if (tok.TKval == TKstring)
-			str1 = combinestrings(&len1);
-		    else
-		    {	preerr(EM_string);		// string expected
-			goto err;
-		    }
+                        s = scope_search(tok.TKid,SCTglobal | SCTnspace);
+                        if (s)
+                        {
+                            if (tyfunc(s->Stype->Tty))
+                                nwc_mustwrite(s);
+                        }
+                        else
+                        {   synerr(EM_undefined,tok.TKid);
+                            goto err;
+                        }
+                        len = obj_mangle(s,name);
+                        assert(len < sizeof(name));
+                        name[len] = 0;
+                        str1 = mem_strdup(name);
+                        stoken();
+                    }
+                    else if (tok.TKval == TKstring)
+                        str1 = combinestrings(&len1);
+                    else
+                    {   preerr(EM_string);              // string expected
+                        goto err;
+                    }
 
-		    if (tok.TKval != TKcomma)
-			preerr(EM_punctuation);		// ',' expected
+                    if (tok.TKval != TKcomma)
+                        preerr(EM_punctuation);         // ',' expected
 
-		    stoken();
-		    if (tok.TKval != TKstring)
-			preerr(EM_string);		// string expected
-		    else
-		    {	str2 = combinestrings(&len2);
-			obj_alias(str1,str2);
-			mem_free(str2);
-		    }
-		    mem_free(str1);
-		}
-		break;
+                    stoken();
+                    if (tok.TKval != TKstring)
+                        preerr(EM_string);              // string expected
+                    else
+                    {   str2 = combinestrings(&len2);
+                        obj_alias(str1,str2);
+                        mem_free(str2);
+                    }
+                    mem_free(str1);
+                }
+                break;
 
-	    case PRXalign:		/* align [1|2|4]		*/
-		pragma_setstructalign(0);
-		break;
+            case PRXalign:              /* align [1|2|4]                */
+                pragma_setstructalign(0);
+                break;
 
-	    case PRXcomment:
-		// Comment pragmas are enclosed in brackets so the
-		// following is the correct sequence:
-		//	#pragma comment(comment-type[,comment-string])
+            case PRXcomment:
+                // Comment pragmas are enclosed in brackets so the
+                // following is the correct sequence:
+                //      #pragma comment(comment-type[,comment-string])
 
-		prcomment();
-		break;
+                prcomment();
+                break;
 
-	    case PRXcseg:				/* segment segid */
-		if (level != 0)
-		    preerr(EM_cseg_global);	// only at global scope
-		output_func();		/* flush pending functions */
+            case PRXcseg:                               /* segment segid */
+                if (level != 0)
+                    preerr(EM_cseg_global);     // only at global scope
+                output_func();          /* flush pending functions */
 #if !SPP && !HOST_THINK
-		outcsegname(tok.TKid);
+                outcsegname(tok.TKid);
 #endif
-		ptoken();
-		break;
+                ptoken();
+                break;
 
-	    case PRXdbcs:
-		pragma_setstructalign(1);
-		break;
+            case PRXdbcs:
+                pragma_setstructalign(1);
+                break;
 
-	    case PRXmessage:
-		prmessage();
-		return;
+            case PRXmessage:
+                prmessage();
+                return;
 
-	    case PRXmfc:
-		config.flags4 |= CFG4nowchar_t;
-		if (pstate.STflags & PFLmfc)
-		    synerr(EM_mfc);
-		break;
+            case PRXmfc:
+                config.flags4 |= CFG4nowchar_t;
+                if (pstate.STflags & PFLmfc)
+                    synerr(EM_mfc);
+                break;
 
-	    case PRXnoreturn:
-		{   symbol *s;
+            case PRXnoreturn:
+                {   symbol *s;
 
-		    s = scope_search(tok.TKid,SCTglobal | SCTnspace);
-		    if (s)
-			s->Sflags |= SFLexit;
-		    else
-			synerr(EM_undefined,tok.TKid);
-		}
-		ptoken();
-		break;
+                    s = scope_search(tok.TKid,SCTglobal | SCTnspace);
+                    if (s)
+                        s->Sflags |= SFLexit;
+                    else
+                        synerr(EM_undefined,tok.TKid);
+                }
+                ptoken();
+                break;
 
-	    case PRXonce:			/* once */
+            case PRXonce:                       /* once */
 #if TARGET_MAC
-		bl->BLflags |= BLponce;
+                bl->BLflags |= BLponce;
 #else
-		if (cstate.CSfilblk)
-		    // Mark source file as only being #include'd once
-		    srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFflags |= SFonce;
+                if (cstate.CSfilblk)
+                    // Mark source file as only being #include'd once
+                    srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFflags |= SFonce;
 #endif
-		break;
+                break;
 
 #if TARGET_POWERPC
-	    case PRXoptions:
-	    	if (tok.TKval != TKident || strcmp( tok.TKid, "align" ) )
-	    	    goto err;
-	    	ptoken();
-	    	if (tok.TKval != TKeq)
-	    	    goto err;
-	    	ptoken();
-	    	if (tok.TKval != TKident)
-	    	    goto err;
-	    	if (!strcmp(tok.TKid, "mac68k"))
-	    	    structalign = 1;		// #pragma align 2 equivalent
-	    	else
-	    	if (!strcmp(tok.TKid, "reset" ))
-	    	    structalign = config.defstructalign;
-	    	else
-	    	if (!strcmp(tok.TKid, "power" ))
-	    	    structalign = 3;		// #pragma align 4 equivalent
-	    	else
-	    	    goto err;
-	    	break;
+            case PRXoptions:
+                if (tok.TKval != TKident || strcmp( tok.TKid, "align" ) )
+                    goto err;
+                ptoken();
+                if (tok.TKval != TKeq)
+                    goto err;
+                ptoken();
+                if (tok.TKval != TKident)
+                    goto err;
+                if (!strcmp(tok.TKid, "mac68k"))
+                    structalign = 1;            // #pragma align 2 equivalent
+                else
+                if (!strcmp(tok.TKid, "reset" ))
+                    structalign = config.defstructalign;
+                else
+                if (!strcmp(tok.TKid, "power" ))
+                    structalign = 3;            // #pragma align 4 equivalent
+                else
+                    goto err;
+                break;
 #endif
 
-	    case PRXsetlocale:
-		prstring(2);
-		return;
+            case PRXsetlocale:
+                prstring(2);
+                return;
 
 #if TARGET_MAC
-	    case PRXtemplate:
-	    	{
-		    char *text;
-		    
-		    while (iswhite(xc))
-			egchar();		/* skip white space	*/
-		    text = macrotext(NULL);	/* read like macro text	*/
-		    if (*text)
-			template_getcmd('I',text);
-		    else
-			goto err;
-		    return;
-		}
-		break;
+            case PRXtemplate:
+                {
+                    char *text;
 
-	    case PRXtemp_access:
-		{   char *s;
+                    while (iswhite(xc))
+                        egchar();               /* skip white space     */
+                    text = macrotext(NULL);     /* read like macro text */
+                    if (*text)
+                        template_getcmd('I',text);
+                    else
+                        goto err;
+                    return;
+                }
+                break;
 
-		    switch(tok.TKid[0])
-		    {
-			case 'e':
-		    	    s = "e";
-			    break;
-			case 'p':
-		    	    s = "p";
-			    break;
-			case 's':
-			    s = "s";
-			    break;
-			default:
-			    goto err;
-		    }
-		    if (template_getcmd('A',s))
-			goto err;
-		    ptoken();
-		    break;
-		}
-	    case PRXpasobj:
-	    	Add_pascal_object = TRUE;
-		break;
+            case PRXtemp_access:
+                {   char *s;
 
-	    case PRXparameter:			/* parameter [reg] func(reg,...) */
-	        {
-		int i;
-		if (ParamFunc)
-		        MEM_PARF_FREE(ParamFunc);
-		i = reg_decode(tok.TKid);
-		if (i < 0)
-		    {
-		    ParamFunc = (char *) MEM_PARF_STRDUP(tok.TKid);
-		    ParamRegs[0] = 0;
-		    }
-		else
-		    {
-		    ParamRegs[0] = i;
-		    ptoken();
-		    if (tok.TKval != TKident)
-			goto err;
-		    ParamFunc = (char *) MEM_PARF_STRDUP(tok.TKid);
-		    }
-		ptoken();
-		if (tok.TKval == TKeol)
-		    return;
-		if (tok.TKval != TKlpar)
-		    goto err;
-		ptoken();
-		for(pragma_param_cnt=1; tok.TKval != TKrpar; pragma_param_cnt++)
-		    {
-		    char flag[6] = {0,0,0,0,0,0};
-		    short reg;
-		    if (tok.TKval != TKident)
-			goto err;
-		    reg = ParamRegs[pragma_param_cnt] = reg_decode(tok.TKid);
-		    if(reg < 0 || flag[reg] != 0)
-			goto err;
-		    flag[reg] = 1;
-		    ptoken();
-		    if (tok.TKval == TKcomma)
-			ptoken();
-		    if (tok.TKval == TKeol)
-			goto err;
-		    }
-		ptoken();
-		break;
-		}
-	    case PRXtrace:				/* pragma trace */
-		if (strcmp(tok.TKid,"on") == 0)
-		    {
-		    if (!(PragmaStatus & P_TRACE_NEVER))
-			PragmaStatus |= P_TRACE_ON;
-		    }
-		else if (strcmp(tok.TKid,"off") == 0)
-		    {
-		    if (!(PragmaStatus & P_TRACE_ALWAYS))
-			PragmaStatus &= ~P_TRACE_ON;
-		    }
-		else
-		    preerr(EM_ident_exp);
-		ptoken();
-		break;
-#else				// 80x86 pragmas
-	    case PRXcode_seg:
-		{   char *segname;
-		    targ_size_t len;
+                    switch(tok.TKid[0])
+                    {
+                        case 'e':
+                            s = "e";
+                            break;
+                        case 'p':
+                            s = "p";
+                            break;
+                        case 's':
+                            s = "s";
+                            break;
+                        default:
+                            goto err;
+                    }
+                    if (template_getcmd('A',s))
+                        goto err;
+                    ptoken();
+                    break;
+                }
+            case PRXpasobj:
+                Add_pascal_object = TRUE;
+                break;
 
-		    segname = NULL;
-		    if (tok.TKval == TKstring)
-			segname = combinestrings(&len);
-		    if (level != 0)
-			preerr(EM_cseg_global);	// only at global scope
-		    output_func();	/* flush pending functions */
+            case PRXparameter:                  /* parameter [reg] func(reg,...) */
+                {
+                int i;
+                if (ParamFunc)
+                        MEM_PARF_FREE(ParamFunc);
+                i = reg_decode(tok.TKid);
+                if (i < 0)
+                    {
+                    ParamFunc = (char *) MEM_PARF_STRDUP(tok.TKid);
+                    ParamRegs[0] = 0;
+                    }
+                else
+                    {
+                    ParamRegs[0] = i;
+                    ptoken();
+                    if (tok.TKval != TKident)
+                        goto err;
+                    ParamFunc = (char *) MEM_PARF_STRDUP(tok.TKid);
+                    }
+                ptoken();
+                if (tok.TKval == TKeol)
+                    return;
+                if (tok.TKval != TKlpar)
+                    goto err;
+                ptoken();
+                for(pragma_param_cnt=1; tok.TKval != TKrpar; pragma_param_cnt++)
+                    {
+                    char flag[6] = {0,0,0,0,0,0};
+                    short reg;
+                    if (tok.TKval != TKident)
+                        goto err;
+                    reg = ParamRegs[pragma_param_cnt] = reg_decode(tok.TKid);
+                    if(reg < 0 || flag[reg] != 0)
+                        goto err;
+                    flag[reg] = 1;
+                    ptoken();
+                    if (tok.TKval == TKcomma)
+                        ptoken();
+                    if (tok.TKval == TKeol)
+                        goto err;
+                    }
+                ptoken();
+                break;
+                }
+            case PRXtrace:                              /* pragma trace */
+                if (strcmp(tok.TKid,"on") == 0)
+                    {
+                    if (!(PragmaStatus & P_TRACE_NEVER))
+                        PragmaStatus |= P_TRACE_ON;
+                    }
+                else if (strcmp(tok.TKid,"off") == 0)
+                    {
+                    if (!(PragmaStatus & P_TRACE_ALWAYS))
+                        PragmaStatus &= ~P_TRACE_ON;
+                    }
+                else
+                    preerr(EM_ident_exp);
+                ptoken();
+                break;
+#else                           // 80x86 pragmas
+            case PRXcode_seg:
+                {   char *segname;
+                    targ_size_t len;
+
+                    segname = NULL;
+                    if (tok.TKval == TKstring)
+                        segname = combinestrings(&len);
+                    if (level != 0)
+                        preerr(EM_cseg_global); // only at global scope
+                    output_func();      /* flush pending functions */
 #if !SPP && !HOST_THINK
-		    outcsegname(segname);
+                    outcsegname(segname);
 #endif
-		    mem_free(segname);
-		}
-		break;
+                    mem_free(segname);
+                }
+                break;
 
 #if !M_UNIX
-	    case PRXdosseg:
-		obj_dosseg();
-		break;
+            case PRXdosseg:
+                obj_dosseg();
+                break;
 #endif
 
-	    case PRXinclude_alias:
-		// #pragma include_alias("long_filename","short_filename")
-		// #pragma include_alias(<long_filename>,<short_filename>)
-		{   enum_TK tk;
-		    char *longname;
-		    char *shortname;
+            case PRXinclude_alias:
+                // #pragma include_alias("long_filename","short_filename")
+                // #pragma include_alias(<long_filename>,<short_filename>)
+                {   enum_TK tk;
+                    char *longname;
+                    char *shortname;
 
-		    ininclude++;
-		    stoken();
-		    ininclude--;
-		    if (tok.TKval != TKstring && tok.TKval != TKfilespec)
-		    {   preerr(EM_filespec);		// filespec expected
-			goto err;
-		    }
-		    tk = (enum_TK)tok.TKval;
-		    longname = mem_strdup(tok.TKstr);
+                    ininclude++;
+                    stoken();
+                    ininclude--;
+                    if (tok.TKval != TKstring && tok.TKval != TKfilespec)
+                    {   preerr(EM_filespec);            // filespec expected
+                        goto err;
+                    }
+                    tk = (enum_TK)tok.TKval;
+                    longname = mem_strdup(tok.TKstr);
 
-		    ptoken();
-		    if (tok.TKval != TKcomma)
-			preerr(EM_punctuation);		// ',' expected
+                    ptoken();
+                    if (tok.TKval != TKcomma)
+                        preerr(EM_punctuation);         // ',' expected
 
-		    ininclude++;
-		    stoken();
-		    ininclude--;
-		    if (tok.TKval != tk)
-		    {   preerr(EM_filespec);		// filespec expected
-			goto err;
-		    }
-		    shortname = mem_strdup(tok.TKstr);
-		    if (tk == TKstring)
-		    {	list_prepend(&pstate.STincalias,shortname);
-			list_prepend(&pstate.STincalias,longname);
-		    }
-		    else
-		    {	list_prepend(&pstate.STsysincalias,shortname);
-			list_prepend(&pstate.STsysincalias,longname);
-		    }
-		    ptoken();
-		}
-		break;
+                    ininclude++;
+                    stoken();
+                    ininclude--;
+                    if (tok.TKval != tk)
+                    {   preerr(EM_filespec);            // filespec expected
+                        goto err;
+                    }
+                    shortname = mem_strdup(tok.TKstr);
+                    if (tk == TKstring)
+                    {   list_prepend(&pstate.STincalias,shortname);
+                        list_prepend(&pstate.STincalias,longname);
+                    }
+                    else
+                    {   list_prepend(&pstate.STsysincalias,shortname);
+                        list_prepend(&pstate.STsysincalias,longname);
+                    }
+                    ptoken();
+                }
+                break;
 
-	    case PRXincludelib:
-		ininclude++;
-		stoken();
-		ininclude--;
-		if (tok.TKval != TKstring && tok.TKval != TKfilespec)
-		{   preerr(EM_filespec);		// filespec expected
-		    goto err;
-		}
-		obj_includelib(tok.TKstr);
-		ptoken();
-		break;
+            case PRXincludelib:
+                ininclude++;
+                stoken();
+                ininclude--;
+                if (tok.TKval != TKstring && tok.TKval != TKfilespec)
+                {   preerr(EM_filespec);                // filespec expected
+                    goto err;
+                }
+                obj_includelib(tok.TKstr);
+                ptoken();
+                break;
 
-	    case PRXinit_seg:
-		{   static const char * segtable[] =
-		    {	"compiler",
-			"lib",
-			"user",
-		    };
-		    int i;
+            case PRXinit_seg:
+                {   static const char * segtable[] =
+                    {   "compiler",
+                        "lib",
+                        "user",
+                    };
+                    int i;
 
-		    i = binary(tok.TKid,segtable,arraysize(segtable));
-		    if (i == -1)
-			goto err;
-		    pstate.STinitseg = 3 - i;
-		    ptoken();
-		    break;
-		}
+                    i = binary(tok.TKid,segtable,arraysize(segtable));
+                    if (i == -1)
+                        goto err;
+                    pstate.STinitseg = 3 - i;
+                    ptoken();
+                    break;
+                }
 
-	    case PRXlinkage:
-		{   static const char * linktable[] =
-		    {	/* optlink and fastcall not supported	*/
-			"_cdecl",
-			"_pascal",
-			"cdecl",
-			"far16",
-			"pascal",
-			"system",
-		    };
-		    enum PRL { PRL_cdecl,PRL_pascal,PRLcdecl,PRLfar16,
-				PRLpascal,PRLsystem };
-		    enum PRL i;
-		    long tym;
-		    mangle_t mangle;
-		    char *funcident = NULL;
+            case PRXlinkage:
+                {   static const char * linktable[] =
+                    {   /* optlink and fastcall not supported   */
+                        "_cdecl",
+                        "_pascal",
+                        "cdecl",
+                        "far16",
+                        "pascal",
+                        "system",
+                    };
+                    enum PRL { PRL_cdecl,PRL_pascal,PRLcdecl,PRLfar16,
+                                PRLpascal,PRLsystem };
+                    enum PRL i;
+                    long tym;
+                    mangle_t mangle;
+                    char *funcident = NULL;
 
-		    funcident = mem_strdup(tok.TKid);
-		    ptoken();
-		    if (tok.TKval != TKcomma)
-			preerr(EM_punctuation);		/* ',' expected		*/
-		    ptoken();
-		    if (tok.TKval != TKident)
-			preerr(EM_ident_exp);		/* identifier expected	*/
-		    i = (enum PRL) binary(tok.TKid,linktable,arraysize(linktable));
-		    ptoken();
-		    switch (i)
-		    {	case PRLsystem:
-			    if (I16)
-			    {	tym = mTYfar | mTYpascal;
-				mangle = mTYman_pas;
-			    }
-			    else
-			    {	tym = mTYcdecl;
-				mangle = mTYman_sys;
-			    }
-			    break;
-			case PRLfar16:
-			    mangle = mTYman_c;
+                    funcident = mem_strdup(tok.TKid);
+                    ptoken();
+                    if (tok.TKval != TKcomma)
+                        preerr(EM_punctuation);         /* ',' expected         */
+                    ptoken();
+                    if (tok.TKval != TKident)
+                        preerr(EM_ident_exp);           /* identifier expected  */
+                    i = (enum PRL) binary(tok.TKid,linktable,arraysize(linktable));
+                    ptoken();
+                    switch (i)
+                    {   case PRLsystem:
+                            if (I16)
+                            {   tym = mTYfar | mTYpascal;
+                                mangle = mTYman_pas;
+                            }
+                            else
+                            {   tym = mTYcdecl;
+                                mangle = mTYman_sys;
+                            }
+                            break;
+                        case PRLfar16:
+                            mangle = mTYman_c;
 #if TARGET_WINDOS
-			    if (I16)
-				tym = mTYfar;
-			    else if (config.exe & EX_flat)
-				tym = 8 /*mTY_far16*/ | mTYfar16;
-			    else
-				preerr(EM_far16_model); // only in flat memory model
+                            if (I16)
+                                tym = mTYfar;
+                            else if (config.exe & EX_flat)
+                                tym = 8 /*mTY_far16*/ | mTYfar16;
+                            else
+                                preerr(EM_far16_model); // only in flat memory model
 #endif
-			    if (tok.TKval != TKident)
-				break;
-			    i = (enum PRL) binary(tok.TKid,linktable,arraysize(linktable));
-			    ptoken();
-			    switch (i)
-			    {   case PRLcdecl:
-				case PRL_cdecl:
-				    tym |= mTYcdecl;
-				    mangle = mTYman_c;
-				    break;
-				case PRLpascal:
-				case PRL_pascal:
-				    tym |= mTYpascal;
-				    mangle = mTYman_pas;
-				    break;
-				default:
-				    mem_free(funcident);
-				    goto err;
-			    }
-			    break;
-			default:
-			    mem_free(funcident);
-			    goto err;
-		    }
-		    nwc_setlinkage(funcident,tym,mangle);
-		    mem_free(funcident);
-		    break;
-		}
+                            if (tok.TKval != TKident)
+                                break;
+                            i = (enum PRL) binary(tok.TKid,linktable,arraysize(linktable));
+                            ptoken();
+                            switch (i)
+                            {   case PRLcdecl:
+                                case PRL_cdecl:
+                                    tym |= mTYcdecl;
+                                    mangle = mTYman_c;
+                                    break;
+                                case PRLpascal:
+                                case PRL_pascal:
+                                    tym |= mTYpascal;
+                                    mangle = mTYman_pas;
+                                    break;
+                                default:
+                                    mem_free(funcident);
+                                    goto err;
+                            }
+                            break;
+                        default:
+                            mem_free(funcident);
+                            goto err;
+                    }
+                    nwc_setlinkage(funcident,tym,mangle);
+                    mem_free(funcident);
+                    break;
+                }
 
-	    case PRXpack:
-		pragma_setstructalign(0);
-		break;
+            case PRXpack:
+                pragma_setstructalign(0);
+                break;
 
-	    case PRXstartaddress:
-		{   symbol *s;
+            case PRXstartaddress:
+                {   symbol *s;
 
-		    s = scope_search(tok.TKid,SCTglobal | SCTnspace);
-		    if (s)
-		    {
-			obj_startaddress(s);
-			nwc_mustwrite(s);
-		    }
-		    else
-			synerr(EM_undefined,tok.TKid);
-		}
-		ptoken();
-		break;
+                    s = scope_search(tok.TKid,SCTglobal | SCTnspace);
+                    if (s)
+                    {
+                        obj_startaddress(s);
+                        nwc_mustwrite(s);
+                    }
+                    else
+                        synerr(EM_undefined,tok.TKid);
+                }
+                ptoken();
+                break;
 #endif /* TARGET_MAC */
 
-	    case PRXhdrstop:
+            case PRXhdrstop:
 #if !SPP && TX86
-		if (config.flags2 & (CFG2phauto | CFG2phautoy))
-		    ph_testautowrite();
+                if (config.flags2 & (CFG2phauto | CFG2phautoy))
+                    ph_testautowrite();
 #endif
-		eatrol();
-		return;
+                eatrol();
+                return;
 
-	    case PRXoptimize:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-	    	if (tok.TKval != TKident)
-	    	    goto err;
-	    	if (!strcmp(tok.TKid, "none"))
-		    go_flag("+none");
-	    	else if (!strcmp(tok.TKid, "all" ))
-		{
-		    printf("Calling go_flag with all\n");
-		    go_flag("+all");
-		}
-	    	else if (!strcmp(tok.TKid, "space" ))
-		    go_flag("+space");
-	    	else
-	    	    goto err;
-		break;
-#endif 
-	    case PRXauto_inline:
-	    case PRXfunction:
-	    case PRXinline_depth:
-	    case PRXinline_recursion:
-	    case PRXintrinsic:
-	    case PRXwarning:
-		eatrol();		// ignore
-		return;
+            case PRXoptimize:
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                if (tok.TKval != TKident)
+                    goto err;
+                if (!strcmp(tok.TKid, "none"))
+                    go_flag("+none");
+                else if (!strcmp(tok.TKid, "all" ))
+                {
+                    printf("Calling go_flag with all\n");
+                    go_flag("+all");
+                }
+                else if (!strcmp(tok.TKid, "space" ))
+                    go_flag("+space");
+                else
+                    goto err;
+                break;
+#endif
+            case PRXauto_inline:
+            case PRXfunction:
+            case PRXinline_depth:
+            case PRXinline_recursion:
+            case PRXintrinsic:
+            case PRXwarning:
+                eatrol();               // ignore
+                return;
 
-	    default:
-	    err:
-		if (sawztc)
-		    synerr(EM_unknown_pragma);
-		else if (!ANSI)
-		    warerr(WM_unknown_pragma);	// unrecognized pragma
-		goto Ldone;
-	}
-	if (prxf[(int) i + 1] & PRXFparen)
-	{
-	    if (tok.TKval != TKrpar)
-		preerr(EM_rpar);		// ')' expected
-	    ptoken();
-	}
-	if (tok.TKval == TKeol)
-	    return;
-	goto err;
+            default:
+            err:
+                if (sawztc)
+                    synerr(EM_unknown_pragma);
+                else if (!ANSI)
+                    warerr(WM_unknown_pragma);  // unrecognized pragma
+                goto Ldone;
+        }
+        if (prxf[(int) i + 1] & PRXFparen)
+        {
+            if (tok.TKval != TKrpar)
+                preerr(EM_rpar);                // ')' expected
+            ptoken();
+        }
+        if (tok.TKval == TKeol)
+            return;
+        goto err;
     }
 
 Ldone:
-    /* Ignore rest of line	*/
+    /* Ignore rest of line      */
     eatrol();
 #endif
 }
@@ -2983,15 +2983,15 @@ STATIC void prerror()
 
     line = token_linnum().Slinnum;
     if (cstate.CSfilblk)
-	name = srcpos_name(cstate.CSfilblk->BLsrcpos);
+        name = srcpos_name(cstate.CSfilblk->BLsrcpos);
     else
-	name = "preprocessed";
+        name = "preprocessed";
 
     while (xc && xc != LF)
     {
-	if (p < &buffer[sizeof(buffer) - 1])
-	    *p++ = xc;
-	egchar();
+        if (p < &buffer[sizeof(buffer) - 1])
+            *p++ = xc;
+        egchar();
     }
     *p = 0;
 #if HOST_THINK
@@ -3027,23 +3027,23 @@ STATIC void prif()
   stoken();
   n = msc_getnum();
   exp_ppon();
-  if (tok.TKval != TKeol)		// if not end of line
-  {	preerr(EM_eol);
-	eatrol();
-	return;
+  if (tok.TKval != TKeol)               // if not end of line
+  {     preerr(EM_eol);
+        eatrol();
+        return;
   }
 #if SPP
   else if (!isidstart(xc))
-	explist(xc);
+        explist(xc);
 #endif
-  incifn();				/* increase nesting level	*/
-  if (n)				/* if result was true		*/
+  incifn();                             /* increase nesting level       */
+  if (n)                                /* if result was true           */
   {
   }
-  else					/* false conditional		*/
-  {	expbackup();			/* dump first char of this line	*/
-	expflag++;			/* stop listing			*/
-	scantoelseend();		/* scan till #else or #end	*/
+  else                                  /* false conditional            */
+  {     expbackup();                    /* dump first char of this line */
+        expflag++;                      /* stop listing                 */
+        scantoelseend();                /* scan till #else or #end      */
   }
 }
 
@@ -3059,22 +3059,22 @@ STATIC void prelse()   { pragma_elif(IF_ELSE); }
 STATIC void prelseif()
 {
     if (ANSI)
-	lexerr(EM_preprocess,tok_ident);	// unrecognized pragma
-    pragma_elif(IF_ELIF);		// synonym for #elif
+        lexerr(EM_preprocess,tok_ident);        // unrecognized pragma
+    pragma_elif(IF_ELIF);               // synonym for #elif
 }
 
 STATIC void pragma_elif(int seen)
 {
-    eatrol();				/* scanto to next line		*/
+    eatrol();                           /* scanto to next line          */
     exp_ppon();
-    if (ifnidx == 0 ||			/* if #else without a #if	*/
-	ifn[ifnidx].IFseen == IF_ELSE)	/* if already seen #else	*/
-	preerr(EM_else);		// #else without a #if
+    if (ifnidx == 0 ||                  /* if #else without a #if       */
+        ifn[ifnidx].IFseen == IF_ELSE)  /* if already seen #else        */
+        preerr(EM_else);                // #else without a #if
     else
     {
-	ifn[ifnidx].IFseen = seen;	/* seen it now			*/
-	expflag++;			/* shut off listing		*/
-	scantoelseend();		/* scan till we find #end	*/
+        ifn[ifnidx].IFseen = seen;      /* seen it now                  */
+        expflag++;                      /* shut off listing             */
+        scantoelseend();                /* scan till we find #end       */
     }
 }
 
@@ -3085,28 +3085,28 @@ STATIC void pragma_elif(int seen)
 
 STATIC void prendif()
 {
-  blankrol();				/* scanto to next line		*/
+  blankrol();                           /* scanto to next line          */
   exp_ppon();
 #if IMPLIED_PRAGMA_ONCE
   if (ifnidx != 0 && ifn[ifnidx].IF_1STIF)
-  {					// Found closing #endif for 1st #if
-	ifn[ifnidx].IF_1STIF = 0;
-	if (cstate.CSfilblk &&		// canidate for single inclusion
-	    (cstate.CSfilblk->BLflags & (BLnew|BLfndif)) == BLnew|BLfndif)
-	{
-	    cstate.CSfilblk->BLflags |= BLckendif;
-      	    //dbg_printf("\tprendif setting BLckendif\n");
-	    TokenCnt = 0;		/* begin counting tokens after endif */
-	}
-  };		
+  {                                     // Found closing #endif for 1st #if
+        ifn[ifnidx].IF_1STIF = 0;
+        if (cstate.CSfilblk &&          // canidate for single inclusion
+            (cstate.CSfilblk->BLflags & (BLnew|BLfndif)) == BLnew|BLfndif)
+        {
+            cstate.CSfilblk->BLflags |= BLckendif;
+            //dbg_printf("\tprendif setting BLckendif\n");
+            TokenCnt = 0;               /* begin counting tokens after endif */
+        }
+  };
 #endif
 #if SPP
   explist(LF);
 #endif
   if (ifnidx == 0)
-	preerr(EM_endif);			// #endif without #if
+        preerr(EM_endif);                       // #endif without #if
   else
-	ifnidx--;
+        ifnidx--;
 }
 
 /*************************
@@ -3119,22 +3119,22 @@ STATIC void prifdef()
 
   token();
   if (tok.TKval != TKident)
-  {	preerr(EM_ident_exp);			/* identifier expected		*/
-	exp_ppon();
-	return;
+  {     preerr(EM_ident_exp);                   /* identifier expected          */
+        exp_ppon();
+        return;
   }
   listident();
-  blankrol();				/* finish off line		*/
+  blankrol();                           /* finish off line              */
   exp_ppon();
   incifn();
   m = macfind();
-  if (m != NULL &&			/* if macro is in table and	*/
-      m->Mflags & Mdefined)		/* it's defined			*/
+  if (m != NULL &&                      /* if macro is in table and     */
+      m->Mflags & Mdefined)             /* it's defined                 */
   {
   }
-  else					/* false conditional		*/
-  {	expflag++;			/* shut off listing		*/
-	scantoelseend();		/* scan till #else or #end	*/
+  else                                  /* false conditional            */
+  {     expflag++;                      /* shut off listing             */
+        scantoelseend();                /* scan till #else or #end      */
   }
 }
 
@@ -3148,36 +3148,36 @@ STATIC void prifndef()
 { macro_t *m;
 
   if (token() != TKident)
-  {	preerr(EM_ident_exp);			/* identifier expected		*/
-	exp_ppon();
-	return;
+  {     preerr(EM_ident_exp);                   /* identifier expected          */
+        exp_ppon();
+        return;
   }
   listident();
-  blankrol();				/* finish off line		*/
+  blankrol();                           /* finish off line              */
   exp_ppon();
   incifn();
   m = macfind();
-  if (m == NULL ||			/* if macro isn't in table or	*/
-      !(m->Mflags & Mdefined))		/* it isn't defined		*/
+  if (m == NULL ||                      /* if macro isn't in table or   */
+      !(m->Mflags & Mdefined))          /* it isn't defined             */
   {
 #if IMPLIED_PRAGMA_ONCE
-	if (cstate.CSfilblk && (TokenCnt == 1) &&
-	    (cstate.CSfilblk->BLflags & BLnew) == BLnew)
-	{					// Found #ifndef at start of file
-	    ifn[ifnidx].IF_1STIF = TRUE;
-	    cstate.CSfilblk->BLflags |= BLfndif;
-	    assert(tok.TKval == TKident);
-	    inc_once_id = parc_strdup(tok.TKid);	// Save the identifier
-	    inc_once_ifnidx = ifnidx;
-	    inc_once_filblk = cstate.CSfilblk;
-	    //dbg_printf("\tSetting BLfndif for token %s \n",inc_once_id);
-	    TokenCnt = 0;
-	}
+        if (cstate.CSfilblk && (TokenCnt == 1) &&
+            (cstate.CSfilblk->BLflags & BLnew) == BLnew)
+        {                                       // Found #ifndef at start of file
+            ifn[ifnidx].IF_1STIF = TRUE;
+            cstate.CSfilblk->BLflags |= BLfndif;
+            assert(tok.TKval == TKident);
+            inc_once_id = parc_strdup(tok.TKid);        // Save the identifier
+            inc_once_ifnidx = ifnidx;
+            inc_once_filblk = cstate.CSfilblk;
+            //dbg_printf("\tSetting BLfndif for token %s \n",inc_once_id);
+            TokenCnt = 0;
+        }
 #endif
   }
-  else					/* false conditional		*/
-  {	expflag++;
-	scantoelseend();		/* scan till #else or #end	*/
+  else                                  /* false conditional            */
+  {     expflag++;
+        scantoelseend();                /* scan till #else or #end      */
   }
 }
 
@@ -3191,7 +3191,7 @@ STATIC void prline()
 {
   long lLine, savenum = 0;
 #if SPP
-  /* Pass these on through to preprocessed output	*/
+  /* Pass these on through to preprocessed output       */
   exp_ppon();
   expstring("#line ");
 #endif
@@ -3199,62 +3199,62 @@ STATIC void prline()
   stoken();
   if (tok.TKval != TKnum)
   {
-	preerr(EM_linnum);			// line number expected
-	eatrol();
-	return;
+        preerr(EM_linnum);                      // line number expected
+        eatrol();
+        return;
   }
 
-  if (xc == '_')				// Maybe __LINE__ (fixes Defect #8792)
-  	{
-  	char buf[10];
-  	savenum = tok.TKutok.Vlong;
-  	ptoken();
-	if (tok.TKval == TKnum)
-		{
-		int i;
-		sprintf(buf,"%d", tok.TKutok.Vlong);
-		i = strlen(buf);
-		while (i-->0)
-			savenum *= 10;
-		}
-  	}
+  if (xc == '_')                                // Maybe __LINE__ (fixes Defect #8792)
+        {
+        char buf[10];
+        savenum = tok.TKutok.Vlong;
+        ptoken();
+        if (tok.TKval == TKnum)
+                {
+                int i;
+                sprintf(buf,"%d", tok.TKutok.Vlong);
+                i = strlen(buf);
+                while (i-->0)
+                        savenum *= 10;
+                }
+        }
   if (!cstate.CSfilblk)
-	return;
+        return;
   if (!iswhite(xc) && xc != CR && xc != LF && xc != PRE_SPACE && xc != PRE_BRK)
   {
-	preerr(EM_badtoken);			// Unrecognised token 
-	return;
+        preerr(EM_badtoken);                    // Unrecognised token
+        return;
   }
   cstate.CSfilblk->BLsrcpos.Slinnum = savenum + tok.TKutok.Vlong - 1;
-						  // line number for next line
+                                                  // line number for next line
   ininclude++;
   stoken();
   ininclude--;
   if (tok.TKval == TKstring)
-  {	targ_size_t len;
-	char *name;
+  {     targ_size_t len;
+        char *name;
 
-	if (tok.TKty == TYushort)
-	    preerr(EM_string);			// wide char string not allowed
-	name = combinestrings(&len);
-	if (cstate.CSfilblk)
-	    cstate.CSfilblk->BLsrcpos.Sfilptr = filename_indirect(filename_add(name));
-	MEM_PH_FREE(name);
+        if (tok.TKty == TYushort)
+            preerr(EM_string);                  // wide char string not allowed
+        name = combinestrings(&len);
+        if (cstate.CSfilblk)
+            cstate.CSfilblk->BLsrcpos.Sfilptr = filename_indirect(filename_add(name));
+        MEM_PH_FREE(name);
   }
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-  else 
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+  else
   {
 // PATN: lLine used before set
         cstate.CSfilblk->BLsrcpos.Slinnum = lLine;
   }
 #endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
   while (tok.TKval == TKnum)
-      stoken();				// skip over nesting numbers
+      stoken();                         // skip over nesting numbers
 #endif
   if (tok.TKval != TKeol)
-  {	lexerr(EM_eol);			// end of line expected
-	blankrol();
+  {     lexerr(EM_eol);                 // end of line expected
+        blankrol();
   }
 }
 
@@ -3270,152 +3270,152 @@ STATIC void scantoelseend()
     //printf("scantoelseend(): expflag = %d\n", expflag);
     while (1)
     {
-	switch (xc)
-	{
-	    default:
-		eatrol();		/* ignore the line		*/
-		/* FALL-THROUGH */
-	    case ' ':
-	    case LF:
-	    case '\t':
-	    case '\f':
-	    case '\13':
-	    case CR:
-		egchar();
-		continue;
-	    case '/':
-		egchar();
-		if (xc == '/')
-		{   cppcomment();
-		    continue;
-		}
-		else if (xc == '*')
-		{   comment();
-		    continue;		/* treat comment as whitespace	*/
-		}
-		break;
-	    case '#':			/* could be start of pragma	*/
-		break;
-	    case '%':
-		// %: is digraph for #
-		if (config.flags3 & CFG3digraphs && egchar() == ':')
-		{
+        switch (xc)
+        {
+            default:
+                eatrol();               /* ignore the line              */
+                /* FALL-THROUGH */
+            case ' ':
+            case LF:
+            case '\t':
+            case '\f':
+            case '\13':
+            case CR:
+                egchar();
+                continue;
+            case '/':
+                egchar();
+                if (xc == '/')
+                {   cppcomment();
+                    continue;
+                }
+                else if (xc == '*')
+                {   comment();
+                    continue;           /* treat comment as whitespace  */
+                }
+                break;
+            case '#':                   /* could be start of pragma     */
+                break;
+            case '%':
+                // %: is digraph for #
+                if (config.flags3 & CFG3digraphs && egchar() == ':')
+                {
 #if SPP
-		    expbackup();
+                    expbackup();
 #endif
-		    xc = '#';
-		}
-		break;
-	    case PRE_EOF:
-		preerr(EM_eof_endif);		// eof before #endif
-		err_fatal(EM_eof);		// premature end of source file
-		break;
-	}
-	token();
+                    xc = '#';
+                }
+                break;
+            case PRE_EOF:
+                preerr(EM_eof_endif);           // eof before #endif
+                err_fatal(EM_eof);              // premature end of source file
+                break;
+        }
+        token();
     L1:
-	if (tok.TKval == TKpragma)	/* if we read in a pragma	*/
-	{
-	    switch (tok.TKutok.pragma)	/* pragma number		*/
-	    {
-		case PRelif:
-		case PRelseif:
-		    if (ifn[ifnidx].IFseen == IF_ELSE)	/* already seen #else */
-			synerr(EM_else);		// #elif without #if
-		    if (ifn[ifnidx].IFseen == IF_IF &&
-			ifnidxstart == ifnidx)
-		    {
-			if (ifnidx > 0)
-			    ifnidx--;
-			expflag--;	/* start listing again		*/
+        if (tok.TKval == TKpragma)      /* if we read in a pragma       */
+        {
+            switch (tok.TKutok.pragma)  /* pragma number                */
+            {
+                case PRelif:
+                case PRelseif:
+                    if (ifn[ifnidx].IFseen == IF_ELSE)  /* already seen #else */
+                        synerr(EM_else);                // #elif without #if
+                    if (ifn[ifnidx].IFseen == IF_IF &&
+                        ifnidxstart == ifnidx)
+                    {
+                        if (ifnidx > 0)
+                            ifnidx--;
+                        expflag--;      /* start listing again          */
 #if !SPP
-			expstring("#elif ");
+                        expstring("#elif ");
 #endif
-			prif();		/* #else followed by #if	*/
-			return;
-		    }
-		    break;
-		case PRif:
-		case PRifdef:
-		case PRifndef:
-		    incifn();		/* bump nesting level		*/
-		    break;
-		case PRelse:
-		    blankrol();
-		    if (ifn[ifnidx].IFseen == IF_ELSE)	/* already seen #else */
-			synerr(EM_else);		// #else without #if
-		    if (ifnidxstart == ifnidx && ifn[ifnidx].IFseen == IF_IF)
-		    {	expflag--;	/* start listing again		*/
+                        prif();         /* #else followed by #if        */
+                        return;
+                    }
+                    break;
+                case PRif:
+                case PRifdef:
+                case PRifndef:
+                    incifn();           /* bump nesting level           */
+                    break;
+                case PRelse:
+                    blankrol();
+                    if (ifn[ifnidx].IFseen == IF_ELSE)  /* already seen #else */
+                        synerr(EM_else);                // #else without #if
+                    if (ifnidxstart == ifnidx && ifn[ifnidx].IFseen == IF_IF)
+                    {   expflag--;      /* start listing again          */
 #if !SPP
-			expstring("#else" LF_STR);
+                        expstring("#else" LF_STR);
 #endif
-			exp_ppon();
-			return;
-		    }
-		    ifn[ifnidx].IFseen = IF_ELSE;	/* seen the #else */
-		    break;
-		case PRendif:
-		    //printf("PRendif: expflag = %d\n", expflag);
-		    assert(ifnidx > 0);
-		    if (ifnidxstart == ifnidx--)
-		    {	expflag--;
+                        exp_ppon();
+                        return;
+                    }
+                    ifn[ifnidx].IFseen = IF_ELSE;       /* seen the #else */
+                    break;
+                case PRendif:
+                    //printf("PRendif: expflag = %d\n", expflag);
+                    assert(ifnidx > 0);
+                    if (ifnidxstart == ifnidx--)
+                    {   expflag--;
 #if !SPP
-			expstring("#endif ");
-			if (xc == LF)
-			    expstring(LF_STR);
+                        expstring("#endif ");
+                        if (xc == LF)
+                            expstring(LF_STR);
 #endif
-			blankrol();
-			exp_ppon();
-			return;
-		    }
-		    blankrol();
-		    break;
-		case PRdefine:
-		    scantodefine();
-		    break;
-		case PRline:
-		    if (token() != TKnum)
-			goto L1;
-		case PRinclude:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-		case PRinclude_next:
+                        blankrol();
+                        exp_ppon();
+                        return;
+                    }
+                    blankrol();
+                    break;
+                case PRdefine:
+                    scantodefine();
+                    break;
+                case PRline:
+                    if (token() != TKnum)
+                        goto L1;
+                case PRinclude:
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                case PRinclude_next:
 #endif
-		    //printf("PRinclude: expflag = %d\n", expflag);
-		    ininclude++;
-		    if (token() == TKident && config.flags2 & CFG2expand)
-			listident();
-		    ininclude--;
-		    if (tok.TKval == TKpragma)
-			goto L1;
-		    break;
-		case PRundef:
+                    //printf("PRinclude: expflag = %d\n", expflag);
+                    ininclude++;
+                    if (token() == TKident && config.flags2 & CFG2expand)
+                        listident();
+                    ininclude--;
+                    if (tok.TKval == TKpragma)
+                        goto L1;
+                    break;
+                case PRundef:
 #if 0
-		case PRexit:
-		case PRmessage:
+                case PRexit:
+                case PRmessage:
 #endif
-		case PRpragma:
-		case PRerror:
-		case PRident:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-		case PRassert:
-		case PRunassert:
-		case PRsystem:
-		case PRcpu:
-		case PRlint:
-		case PRmachine:
-		case PRwarning:
+                case PRpragma:
+                case PRerror:
+                case PRident:
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                case PRassert:
+                case PRunassert:
+                case PRsystem:
+                case PRcpu:
+                case PRlint:
+                case PRmachine:
+                case PRwarning:
 #endif
-		    break;		/* scanto these pragmas		*/
-		case -1:		// ignore unrecognized pragmas in
-					// false conditionals
-		    if (ANSI)
-			lexerr(EM_preprocess);
-		    break;
-		default:
-		    assert(0);
-	    } /* switch */
-	    eatrol();			/* scanto rest of line		*/
-	    exp_ppon();
-	} /* if */
+                    break;              /* scanto these pragmas         */
+                case -1:                // ignore unrecognized pragmas in
+                                        // false conditionals
+                    if (ANSI)
+                        lexerr(EM_preprocess);
+                    break;
+                default:
+                    assert(0);
+            } /* switch */
+            eatrol();                   /* scanto rest of line          */
+            exp_ppon();
+        } /* if */
   } /* while */
 }
 
@@ -3423,7 +3423,7 @@ STATIC void scantoelseend()
  * Skip over a #define. This requires care as it can be
  * a multi-line definition.
  * Output:
- *	xc is on EOL
+ *      xc is on EOL
  */
 
 STATIC void scantodefine()
@@ -3434,53 +3434,53 @@ STATIC void scantodefine()
     lastxc = ' ';
     while (1)
     {
-	switch (xc)
-	{
-	    case LF:
-	    case '\13':
-	    case '\f':
-		if (lastxc == '\\')
-		    break;
-	    case 0:
-		return;
+        switch (xc)
+        {
+            case LF:
+            case '\13':
+            case '\f':
+                if (lastxc == '\\')
+                    break;
+            case 0:
+                return;
 
-	    case CR:
-		egchar();
-		continue;
+            case CR:
+                egchar();
+                continue;
 
-	    case '/':
-		if (!instr && lastxc == '/')	/* if C++ style comment	*/
-		{   cppcomment();
-		    return;
-		}
-		break;
+            case '/':
+                if (!instr && lastxc == '/')    /* if C++ style comment */
+                {   cppcomment();
+                    return;
+                }
+                break;
 
-	    case '*':
-		if (!instr && lastxc == '/')
-		{   comment();
-		    lastxc = ' ';
-		    continue;
-		}
-		break;
+            case '*':
+                if (!instr && lastxc == '/')
+                {   comment();
+                    lastxc = ' ';
+                    continue;
+                }
+                break;
 
-	    case '\'':
-	    case '"':			/* string delimiters		*/
-		if (instr)
-		{   if (xc == instr && lastxc != '\\')
-			instr = 0;
-		}
-		else
-		    instr = xc;
-		break;
+            case '\'':
+            case '"':                   /* string delimiters            */
+                if (instr)
+                {   if (xc == instr && lastxc != '\\')
+                        instr = 0;
+                }
+                else
+                    instr = xc;
+                break;
 
-	    case '\\':
-		if (lastxc == '\\')
-		    xc = ' ';
-		break;
+            case '\\':
+                if (lastxc == '\\')
+                    xc = ' ';
+                break;
 
-	}
-	lastxc = xc;
-	egchar();
+        }
+        lastxc = xc;
+        egchar();
     }
 }
 
@@ -3492,51 +3492,51 @@ STATIC void scantodefine()
 
 STATIC void eatrol()
 {
-    if (ANSI)			/* elide comments and strings	*/
+    if (ANSI)                   /* elide comments and strings   */
     {
-	while (1)
-	{
-	    switch (xc)
-	    {
-		default:
-		    egchar();
-		    continue;
-		case LF:
-		case PRE_EOF:
-		    return;
-		case '/':
-		    egchar();
-		    if (xc == '/')
-		    {	cppcomment();
-			return;
-		    }
-		    if (xc == '*')
-			comment();
-		    continue;
-		case '"':
-		case '\'':
-		    token();		/* read in string		*/
-		    continue;		/* and ignore it		*/
-	    }
-	    break;
-	}
+        while (1)
+        {
+            switch (xc)
+            {
+                default:
+                    egchar();
+                    continue;
+                case LF:
+                case PRE_EOF:
+                    return;
+                case '/':
+                    egchar();
+                    if (xc == '/')
+                    {   cppcomment();
+                        return;
+                    }
+                    if (xc == '*')
+                        comment();
+                    continue;
+                case '"':
+                case '\'':
+                    token();            /* read in string               */
+                    continue;           /* and ignore it                */
+            }
+            break;
+        }
     }
     if (xc != LF && xc != 0)
     {
 #if !SPP
-	if (config.flags2 & CFG2expand || bl->BLtyp != BLfile)
+        if (config.flags2 & CFG2expand || bl->BLtyp != BLfile)
 #endif
-	    while (xc != LF && xc != PRE_EOF)
-		egchar();
+            while (xc != LF && xc != PRE_EOF)
+                egchar();
 #if !SPP
-	else
-	{
-	    // Line buffer is guaranteed to end with a '\n', and not
-	    // have any PRE_ARG's in it,
-	    // so just dump the rest of the line buffer
-	    *btextp = 0;
-	    xc = LF;
-	}
+        else
+        {
+            // Line buffer is guaranteed to end with a '\n', and not
+            // have any PRE_ARG's in it,
+            // so just dump the rest of the line buffer
+            *btextp = 0;
+            xc = LF;
+        }
 #endif
     }
 }
@@ -3549,37 +3549,37 @@ STATIC void blankrol()
 {
     while (1)
     {
-	switch (xc)
-	{
-	    case LF:
-	    case 0:
-		return;
-	    case ' ':
-	    case '\t':
-	    case '\f':
-	    case '\13':
-	    case PRE_SPACE:
-	    case PRE_BRK:
-		break;
-	    case '/':
-		egchar();
-		if (xc == '/')
-		{
-		    cppcomment();
-		    return;
-		}
-		if (xc == '*')
-		{
-		    comment();
-		    continue;
-		}
-		/* FALL-THROUGH */
-	    default:
-		if (ANSI)
-		    preerr(EM_eol);		// end of line expected
-		goto rol;
-	}
-	egchar();
+        switch (xc)
+        {
+            case LF:
+            case 0:
+                return;
+            case ' ':
+            case '\t':
+            case '\f':
+            case '\13':
+            case PRE_SPACE:
+            case PRE_BRK:
+                break;
+            case '/':
+                egchar();
+                if (xc == '/')
+                {
+                    cppcomment();
+                    return;
+                }
+                if (xc == '*')
+                {
+                    comment();
+                    continue;
+                }
+                /* FALL-THROUGH */
+            default:
+                if (ANSI)
+                    preerr(EM_eol);             // end of line expected
+                goto rol;
+        }
+        egchar();
     }
 
 rol:
@@ -3598,12 +3598,12 @@ rol:
 
 STATIC void incifn()
 {
-	if (++ifnidx >= ifnmax)
-	{   ifnmax += IFNEST_INC;
-	    ifn = (struct IFNEST *)
-		MEM_PARC_REALLOC(ifn,ifnmax * sizeof(struct IFNEST));
-	}
-	ifn[ifnidx].IFseen = IF_IF;
+        if (++ifnidx >= ifnmax)
+        {   ifnmax += IFNEST_INC;
+            ifn = (struct IFNEST *)
+                MEM_PARC_REALLOC(ifn,ifnmax * sizeof(struct IFNEST));
+        }
+        ifn[ifnidx].IFseen = IF_IF;
 }
 
 /*************************
@@ -3631,8 +3631,8 @@ void macro_print(macro_t *m)
  * Take the threaded list of #defines, hydrate the macros on that list,
  * and merge those macros into the macro symbol table.
  * Input:
- *	flag	!=0	hydrate and add into existing macro table
- *		0	hydrate in place
+ *      flag    !=0     hydrate and add into existing macro table
+ *              0       hydrate in place
  */
 
 void pragma_hydrate_macdefs(macro_t **pmb,int flag)
@@ -3643,90 +3643,90 @@ void pragma_hydrate_macdefs(macro_t **pmb,int flag)
 
     for (; *pmb; pmb = &mb->Mnext)
     {
-	if (dohydrate)
-	{
-	    mb = (macro_t *)ph_hydrate(pmb);
-	    macro_debug(mb);
-	    //dbg_printf("macro_hydrate(%p, '%s')\n",mb,mb->Mid);
+        if (dohydrate)
+        {
+            mb = (macro_t *)ph_hydrate(pmb);
+            macro_debug(mb);
+            //dbg_printf("macro_hydrate(%p, '%s')\n",mb,mb->Mid);
 #ifdef DEBUG
-	    assert(!mb->Mtext || isdehydrated(mb->Mtext));
+            assert(!mb->Mtext || isdehydrated(mb->Mtext));
 #endif
-	    list_hydrate(&mb->Marglist,NULL);
-	    (void) ph_hydrate(&mb->Mtext);
-	}
-	else
-	{
-	    mb = *pmb;
-	    macro_debug(mb);
-	    //dbg_printf("macro_hydrate(%p, '%s')\n",mb,mb->Mid);
-	}
+            list_hydrate(&mb->Marglist,NULL);
+            (void) ph_hydrate(&mb->Mtext);
+        }
+        else
+        {
+            mb = *pmb;
+            macro_debug(mb);
+            //dbg_printf("macro_hydrate(%p, '%s')\n",mb,mb->Mid);
+        }
 
-	// Skip predefined macros
-	if (flag && !(mb->Mflags & Mfixeddef))
-	{   char *p;
-	    unsigned hash;
-	    signed char cmp;
-	    char c;
-	    int len;
-	    macro_t *m,**mp;
+        // Skip predefined macros
+        if (flag && !(mb->Mflags & Mfixeddef))
+        {   char *p;
+            unsigned hash;
+            signed char cmp;
+            char c;
+            int len;
+            macro_t *m,**mp;
 
-	    p = mb->Mid;
-	    c = *p;
-	    len = strlen(p);
+            p = mb->Mid;
+            c = *p;
+            len = strlen(p);
 
-	    //dbg_printf("macro '%s' = '%s'\n",mb->Mid,mb->Mtext);
+            //dbg_printf("macro '%s' = '%s'\n",mb->Mid,mb->Mtext);
 #ifdef DEBUG
-	    count++;
-	    assert(isidstart(mb->Mid[0]));
+            count++;
+            assert(isidstart(mb->Mid[0]));
 #endif
 
-#if 0	    // inlined for speed
-	    hash = comphash(p);
+#if 0       // inlined for speed
+            hash = comphash(p);
 #elif __INTSIZE == 2
-	    hash = ((((int)c << 4) + len) << 6) + (p[len - 1] & 0x3F);;
+            hash = ((((int)c << 4) + len) << 6) + (p[len - 1] & 0x3F);;
 #else
-	    hash = ((((int)c << 8) + len) << 8) + (p[len - 1] & 0xFF);;
+            hash = ((((int)c << 8) + len) << 8) + (p[len - 1] & 0xFF);;
 #endif
 
-	    mp = &mactabroot[hashtoidx(hash)];	/* parent of root	*/
-	    m = *mp;				/* root of macro table	*/
-	    while (1)				/* while more tree	*/
-	    {
-		if (!m) 
-		{
+            mp = &mactabroot[hashtoidx(hash)];  /* parent of root       */
+            m = *mp;                            /* root of macro table  */
+            while (1)                           /* while more tree      */
+            {
+                if (!m)
+                {
 #if HOST_THINK
-		    if ((config.flags2 & CFG2phgen))
+                    if ((config.flags2 & CFG2phgen))
 #endif
-		    {	if (mb->ML || mb->MR)
-			    mb->ML = mb->MR = NULL;
-			*mp = mb;
-		    }
-		    break;
-		}
-		macro_debug(m);
-		if ((cmp = c - m->Mid[0]) == 0)
-		{   cmp = memcmp(p + 1,m->Mid + 1,len);	// compare identifiers
-		    if (cmp == 0)			// already there
-		    {
-			if (m->Mflags & mb->Mflags & Mdefined)
-			{
-			    if (ANSI &&
-				(strcmp(m->Mtext,mb->Mtext) ||
-				 m->Mflags & (Minuse | Mfixeddef))
-			       )
-				//dbg_printf("text1 '%s' text2 '%s' flags x%x\n",m->Mtext,mb->Mtext,m->Mflags),
-				preerr(EM_multiple_def,p);	// already defined
-			}
-			mb->ML = m->ML;
-			mb->MR = m->MR;
-			*mp = mb;
-			break;
-		    }
-		}
-		mp = (cmp < 0) ? &m->ML : &m->MR;	/* select correct child	*/
-		m = *mp;
-	    }
-	}
+                    {   if (mb->ML || mb->MR)
+                            mb->ML = mb->MR = NULL;
+                        *mp = mb;
+                    }
+                    break;
+                }
+                macro_debug(m);
+                if ((cmp = c - m->Mid[0]) == 0)
+                {   cmp = memcmp(p + 1,m->Mid + 1,len); // compare identifiers
+                    if (cmp == 0)                       // already there
+                    {
+                        if (m->Mflags & mb->Mflags & Mdefined)
+                        {
+                            if (ANSI &&
+                                (strcmp(m->Mtext,mb->Mtext) ||
+                                 m->Mflags & (Minuse | Mfixeddef))
+                               )
+                                //dbg_printf("text1 '%s' text2 '%s' flags x%x\n",m->Mtext,mb->Mtext,m->Mflags),
+                                preerr(EM_multiple_def,p);      // already defined
+                        }
+                        mb->ML = m->ML;
+                        mb->MR = m->MR;
+                        *mp = mb;
+                        break;
+                    }
+                }
+                mp = (cmp < 0) ? &m->ML : &m->MR;       /* select correct child */
+                m = *mp;
+            }
+        }
     }
 #ifdef DEBUG
     //printf("%d macdefs hydrated\n",count);
@@ -3740,12 +3740,12 @@ void pragma_dehydrate_macdefs(macro_t **pm)
 
     for (; *pm; pm = &m->Mnext)
     {
-	m = *pm;
-	macro_debug(m);
-	//dbg_printf("macro_dehydrate(%p, '%s')\n",m,m->Mid);
-	ph_dehydrate(pm);
-	ph_dehydrate(&m->Mtext);
-	list_dehydrate(&m->Marglist,NULL);
+        m = *pm;
+        macro_debug(m);
+        //dbg_printf("macro_dehydrate(%p, '%s')\n",m,m->Mid);
+        ph_dehydrate(pm);
+        ph_dehydrate(&m->Mtext);
+        list_dehydrate(&m->Marglist,NULL);
     }
 }
 
@@ -3759,17 +3759,17 @@ void *pragma_dehydrate()
     int i;
 
     for (i = 0; i < MACROHASHSIZE; i++)
-    {	macro_t *m;
+    {   macro_t *m;
 
-	m = mactabroot[i];
-	if (m)
-	{   macrotable_balance(&mactabroot[i]);
+        m = mactabroot[i];
+        if (m)
+        {   macrotable_balance(&mactabroot[i]);
 #if DEHYDRATE
-	    m = mactabroot[i];
-	    ph_dehydrate(&mactabroot[i]);
-	    macro_dehydrate(m);
+            m = mactabroot[i];
+            ph_dehydrate(&mactabroot[i]);
+            macro_dehydrate(m);
 #endif
-	}
+        }
     }
 
     return mactabroot;
@@ -3782,15 +3782,15 @@ STATIC void pragma_insert(macro_t *m)
 {
     while (m)
     {
-	//printf("pragma_insert('%s', flags = x%x)\n",m->Mid,m->Mflags);
-	if ((m->Mflags & (Mdefined | Mfixeddef | Mnoparen)) == (Mdefined | Mnoparen) &&
-	    !m->Marglist)
-	{
-	    //printf("defmac('%s')\n",m->Mid);
-	    defmac(m->Mid,m->Mtext);
-	}
-	pragma_insert(m->ML);
-	m = m->MR;
+        //printf("pragma_insert('%s', flags = x%x)\n",m->Mid,m->Mflags);
+        if ((m->Mflags & (Mdefined | Mfixeddef | Mnoparen)) == (Mdefined | Mnoparen) &&
+            !m->Marglist)
+        {
+            //printf("defmac('%s')\n",m->Mid);
+            defmac(m->Mid,m->Mtext);
+        }
+        pragma_insert(m->ML);
+        m = m->MR;
     }
 }
 
@@ -3812,19 +3812,19 @@ void pragma_hydrate(macro_t **pmactabroot)
     for (i = 0; i < MACROHASHSIZE; i++)
     {
 #ifdef DEBUG
-	macro_t *m = pmactabroot[i];
+        macro_t *m = pmactabroot[i];
 
-	assert(!m || isdehydrated(m));
+        assert(!m || isdehydrated(m));
 #endif
-	if (pmactabroot[i])
-	{   //printf("i = %d, m = %p\n",i,pmactabroot[i]);
-	    (void) ph_hydrate(&pmactabroot[i]);
-	    macro_hydrate(pmactabroot[i]);
-	}
+        if (pmactabroot[i])
+        {   //printf("i = %d, m = %p\n",i,pmactabroot[i]);
+            (void) ph_hydrate(&pmactabroot[i]);
+            macro_hydrate(pmactabroot[i]);
+        }
     }
 #if HOST_THINK
     if (!(config.flags2 & CFG2phgen))
-    	head_mactabroot = pmactabroot;
+        head_mactabroot = pmactabroot;
 #endif
     }
 
@@ -3833,8 +3833,8 @@ void pragma_hydrate(macro_t **pmactabroot)
     // lost when a PH is read.
     for (i = 0; i < MACROHASHSIZE; i++)
     {
-	if (oldmactabroot[i])
-	    pragma_insert(oldmactabroot[i]);
+        if (oldmactabroot[i])
+            pragma_insert(oldmactabroot[i]);
     }
 }
 
@@ -3846,18 +3846,18 @@ void pragma_hydrate(macro_t **pmactabroot)
 STATIC void macro_dehydrate(macro_t *m)
 {
     while (m)
-    {	macro_t *ml,*mr;
+    {   macro_t *ml,*mr;
 
-	//dbg_printf("macro_dehydrate(%p, '%s')\n",m,m->Mid);
-	macro_debug(m);
-	ml = m->ML;
-	mr = m->MR;
-	ph_dehydrate(&m->ML);
-	ph_dehydrate(&m->MR);
-	ph_dehydrate(&m->Mtext);
-	list_dehydrate(&m->Marglist,NULL);
-	macro_dehydrate(ml);
-	m = mr;
+        //dbg_printf("macro_dehydrate(%p, '%s')\n",m,m->Mid);
+        macro_debug(m);
+        ml = m->ML;
+        mr = m->MR;
+        ph_dehydrate(&m->ML);
+        ph_dehydrate(&m->MR);
+        ph_dehydrate(&m->Mtext);
+        list_dehydrate(&m->Marglist,NULL);
+        macro_dehydrate(ml);
+        m = mr;
     }
 }
 #endif
@@ -3874,22 +3874,22 @@ STATIC void macro_dehydrate(macro_t *m)
 STATIC void macro_hydrate(macro_t *mb)
 {
     while (mb)
-    {	macro_t *ml,*mr;
+    {   macro_t *ml,*mr;
 
 #ifdef DEBUG
-	assert(!mb->ML || isdehydrated(mb->ML));
-	assert(!mb->MR || isdehydrated(mb->MR));
-	assert(!mb->Mtext || isdehydrated(mb->Mtext));
-	macro_debug(mb);
+        assert(!mb->ML || isdehydrated(mb->ML));
+        assert(!mb->MR || isdehydrated(mb->MR));
+        assert(!mb->Mtext || isdehydrated(mb->Mtext));
+        macro_debug(mb);
 #endif
-	//dbg_printf("macro_hydrate(%p, '%s')\n",mb,mb->Mid);
+        //dbg_printf("macro_hydrate(%p, '%s')\n",mb,mb->Mid);
 
-	list_hydrate(&mb->Marglist,NULL);
-	ph_hydrate(&mb->Mtext);
-	ml = (macro_t *)ph_hydrate(&mb->ML);
-	mr = (macro_t *)ph_hydrate(&mb->MR);
-	macro_hydrate(ml);
-	mb = mr;
+        list_hydrate(&mb->Marglist,NULL);
+        ph_hydrate(&mb->Mtext);
+        ml = (macro_t *)ph_hydrate(&mb->ML);
+        mr = (macro_t *)ph_hydrate(&mb->MR);
+        macro_hydrate(ml);
+        mb = mr;
     }
 }
 #endif
@@ -3898,52 +3898,52 @@ STATIC void macro_hydrate(macro_t *mb)
 static void macro_hydrate_loaded(macro_t *mb)
 {
     while (mb) {
-    	macro_t *ml,*mr;
-	ml = mb->ML;
-	mr = mb->MR;
-	/* Skip undefined or predefined macros	*/
-	if ((mb->Mflags & (Mdefined | Mfixeddef)) == Mdefined) {
-	    char *p;
-	    unsigned hash;
-	    int cmp;
-	    macro_t *m,**mp;
+        macro_t *ml,*mr;
+        ml = mb->ML;
+        mr = mb->MR;
+        /* Skip undefined or predefined macros  */
+        if ((mb->Mflags & (Mdefined | Mfixeddef)) == Mdefined) {
+            char *p;
+            unsigned hash;
+            int cmp;
+            macro_t *m,**mp;
 
-	    if ((config.flags2 & CFG2phgen)) {
-	    	mb->MR = NULL;
-	    	mb->ML = NULL;
-	    }
-	    p = mb->Mid;
-	    mb->Mflags |= Mnoheap;	/* not in heap		*/
+            if ((config.flags2 & CFG2phgen)) {
+                mb->MR = NULL;
+                mb->ML = NULL;
+            }
+            p = mb->Mid;
+            mb->Mflags |= Mnoheap;      /* not in heap          */
 
-	    hash = comphash(p);
+            hash = comphash(p);
 
-	    mp = &mactabroot[hashtoidx(hash)];	/* parent of root	*/
-	    m = *mp;				/* root of macro table	*/
-	    while (m) {				/* while more tree	*/
-	    	if ((config.flags2 & CFG2phgen))
-		    *mp = mb;
-		cmp = strcmp(p,m->Mid);		/* compare identifiers	*/
-		if (cmp == 0) {			/* already there	*/
-		    if (m->Mflags & Mdefined) {
-			if (strcmp(m->Mtext,mb->Mtext) ||
-			    m->Mflags & (Minuse | Mfixeddef))
-			    preerr(EM_multiple_def,p);	// already defined
-		    }
-		    else {			/* it was #undef'd	*/
-			assert(!m->Mflags & Mdefined);
-		        m->Mtext = mb->Mtext;
-			m->Marglist = mb->Marglist;
-			m->Mflags = (m->Mflags & Mnoheap) |
-				    (mb->Mflags & ~Mnoheap);
-		    }
-		    break;
-		}
-		mp = (cmp < 0) ? &m->ML : &m->MR;	/* select correct child	*/
-		m = *mp;
-	    }
-	}
-	macro_hydrate_loaded(ml);
-	mb = mr;
+            mp = &mactabroot[hashtoidx(hash)];  /* parent of root       */
+            m = *mp;                            /* root of macro table  */
+            while (m) {                         /* while more tree      */
+                if ((config.flags2 & CFG2phgen))
+                    *mp = mb;
+                cmp = strcmp(p,m->Mid);         /* compare identifiers  */
+                if (cmp == 0) {                 /* already there        */
+                    if (m->Mflags & Mdefined) {
+                        if (strcmp(m->Mtext,mb->Mtext) ||
+                            m->Mflags & (Minuse | Mfixeddef))
+                            preerr(EM_multiple_def,p);  // already defined
+                    }
+                    else {                      /* it was #undef'd      */
+                        assert(!m->Mflags & Mdefined);
+                        m->Mtext = mb->Mtext;
+                        m->Marglist = mb->Marglist;
+                        m->Mflags = (m->Mflags & Mnoheap) |
+                                    (mb->Mflags & ~Mnoheap);
+                    }
+                    break;
+                }
+                mp = (cmp < 0) ? &m->ML : &m->MR;       /* select correct child */
+                m = *mp;
+            }
+        }
+        macro_hydrate_loaded(ml);
+        mb = mr;
     }
 }
 
@@ -3959,24 +3959,24 @@ pragma_hydrate_loaded(macro_t **pmactabroot)
     int i;
 
     if (compile_state != kDataView) {
-	for (i = 0; i < MACROHASHSIZE; i++) {
-	    macro_hydrate_loaded(pmactabroot[i]);
-	}
+        for (i = 0; i < MACROHASHSIZE; i++) {
+            macro_hydrate_loaded(pmactabroot[i]);
+        }
     }
     if (!(config.flags2 & CFG2phgen))
-	head_mactabroot = pmactabroot;
+        head_mactabroot = pmactabroot;
 }
 
 static void
 macro_hydrate_xsym(macro_t *m)
 {
     while (m) {
-	ph_hydrate(&m->ML);
-	ph_hydrate(&m->MR);
-	ph_hydrate(&m->Mtext);
-	list_hydrate(&m->Marglist,FPNULL);
-	macro_hydrate_xsym(m->ML);
-	m = m->MR;
+        ph_hydrate(&m->ML);
+        ph_hydrate(&m->MR);
+        ph_hydrate(&m->Mtext);
+        list_hydrate(&m->Marglist,FPNULL);
+        macro_hydrate_xsym(m->ML);
+        m = m->MR;
     }
 }
 
@@ -3990,10 +3990,10 @@ void pragma_hydrate_xsym(macro_t **pmactabroot, short loaded)
     int i;
 
     if (!loaded) {
-	for (i = 0; i < MACROHASHSIZE; i++) {
-	    ph_hydrate(&pmactabroot[i]);
-    	    macro_hydrate_xsym(pmactabroot[i]);
-	}
+        for (i = 0; i < MACROHASHSIZE; i++) {
+            ph_hydrate(&pmactabroot[i]);
+            macro_hydrate_xsym(pmactabroot[i]);
+        }
     }
     mactabroot = pmactabroot;
 }
@@ -4017,18 +4017,18 @@ static unsigned mac_index;
 static void count_macros(macro_t *m)
 {
     while (m)
-    {	nmacs++;
-	count_macros(m->ML);
-	m = m->MR;
+    {   nmacs++;
+        count_macros(m->ML);
+        m = m->MR;
     }
 }
 
 static void place_in_array(macro_t *m)
 {
     while (m)
-    {	place_in_array(m->ML);
-	mac_array[mac_index++] = m;
-	m = m->MR;
+    {   place_in_array(m->ML);
+        mac_array[mac_index++] = m;
+        m = m->MR;
     }
 }
 
@@ -4042,9 +4042,9 @@ static void place_in_array(macro_t *m)
 static macro_t * create_tree(int i, int lo, int hi)
 {
     macro_t *m;
-    
-    if (i < lo || i > hi)		/* empty node ? */
-    	return NULL;
+
+    if (i < lo || i > hi)               /* empty node ? */
+        return NULL;
 
     assert((unsigned) i < nmacs);
     m = mac_array[i];
@@ -4053,14 +4053,14 @@ static macro_t * create_tree(int i, int lo, int hi)
     assert(m);
     mac_array[i] = NULL;
 #endif
-    if (i == lo && i == hi)		/* leaf node ? */
-    {	m->ML = NULL;
-	m->MR = NULL;
+    if (i == lo && i == hi)             /* leaf node ? */
+    {   m->ML = NULL;
+        m->MR = NULL;
     }
     else
     {
-	m->ML = create_tree((i + lo) / 2, lo, i - 1);
-	m->MR = create_tree((i + hi + 1) / 2, i + 1, hi);
+        m->ML = create_tree((i + lo) / 2, lo, i - 1);
+        m->MR = create_tree((i + hi + 1) / 2, i + 1, hi);
     }
 
     return m;
@@ -4072,25 +4072,25 @@ STATIC void macrotable_balance(macro_t **ps)
     count_macros(*ps);
     //dbg_printf("Number of macros = %d\n",nmacs);
     if (nmacs <= 2)
-	return;
+        return;
 
 #if __INTSIZE == 2
     // Don't balance tree if we get 16 bit overflow
     if (nmacs >= (unsigned)(0x10000 / sizeof(macro_t *)))
-	return;
+        return;
 #endif
 
     if (nmacs > mac_dim)
     {
 #if TARGET_MAC
-	mac_array = (macro_t **) MEM_PARF_REALLOC(nmacs * sizeof(macro_t *));
+        mac_array = (macro_t **) MEM_PARF_REALLOC(nmacs * sizeof(macro_t *));
 #else
-	// Use malloc instead of mem because of pagesize limits
-	mac_array = (macro_t **) realloc(mac_array,nmacs * sizeof(macro_t *));
+        // Use malloc instead of mem because of pagesize limits
+        mac_array = (macro_t **) realloc(mac_array,nmacs * sizeof(macro_t *));
 #endif
-	mac_dim = nmacs;
-	if (!mac_array)
-	    err_nomem();
+        mac_dim = nmacs;
+        if (!mac_array)
+            err_nomem();
     }
 
     mac_index = 0;

@@ -12,28 +12,28 @@
 
 // All .OBJ file writing is done here.
 
-#include	<stdio.h>
-#include	<string.h>
-#include	<stdlib.h>
-#include	<ctype.h>
-#include	"cc.h"
-#include	"token.h"
-#include	"global.h"
-#include	"parser.h"
+#include        <stdio.h>
+#include        <string.h>
+#include        <stdlib.h>
+#include        <ctype.h>
+#include        "cc.h"
+#include        "token.h"
+#include        "global.h"
+#include        "parser.h"
 
 #if (SCPP || MARS) && !HTOD
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
-static char *fobjname;			// output file name
+static char *fobjname;                  // output file name
 
 /*******************************
  */
 
 STATIC void objfile_error()
 {
-    err_fatal(EM_write_error,fobjname);		// error writing output file
+    err_fatal(EM_write_error,fobjname);         // error writing output file
 }
 
 /***************************************
@@ -52,7 +52,7 @@ void objfile_open(const char *name)
 void objfile_close(void *data, unsigned len)
 {
     if (file_write(fobjname, data, len))
-	objfile_error();
+        objfile_error();
 }
 
 /************************************
@@ -61,7 +61,7 @@ void objfile_close(void *data, unsigned len)
 
 void objfile_delete()
 {
-    file_remove(fobjname);	// delete corrupt output file
+    file_remove(fobjname);      // delete corrupt output file
 }
 
 /**********************************
