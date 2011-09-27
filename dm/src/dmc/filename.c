@@ -1,0 +1,340 @@
+// Copyright (C) 1993-1998 by Symantec
+// Copyright (C) 2000-2009 by Digital Mars
+// All Rights Reserved
+// http://www.digitalmars.com
+// Written by Walter Bright
+/*
+ * This source file is made available for personal use
+ * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * or /dm/src/dmd/backendlicense.txt
+ * For any other uses, please contact Digital Mars.
+ */
+
+// Package to handle source files.
+
+
+#include	<stdio.h>
+#include	<string.h>
+#if _WIN32
+#include	<sys\stat.h>
+#endif
+
+#include	"cc.h"
+#include	"parser.h"
+#include	"global.h"
+#include	"filespec.h"
+
+static char __file__[] = __FILE__;	/* for tassert.h		*/
+#include	"tassert.h"
+
+Srcfiles srcfiles;
+
+#define TRANS	0			// translated file names
+
+#if TRANS
+static unsigned *filename_trans;		// translation array
+static unsigned filename_transi;
+#endif
+
+/***********************************
+ */
+
+__inline const char *filename_adj(const char *f)
+{
+#if 1
+    return (*f == '.' && (f[1] == '\\' || f[1] == '/')) ? f + 2 : f;
+#else
+    if (*f == '.' && (f[1] == '\\' || f[1] == '/'))
+	f += 2;
+    return f;
+#endif
+}
+
+/**************************************
+ * Compute hash of filename.
+ */
+
+STATIC unsigned filename_hash(const char *name)
+{   int len;
+    unsigned hashval;
+
+    len = strlen(name);
+    for (hashval = len; len >= (int)(sizeof(unsigned) - 1); len -= sizeof(unsigned))
+    {
+	// The ~0x20... is to make it case insensitive
+	hashval += *(unsigned *)name & ~0x20202020;
+	name += sizeof(unsigned);
+    }
+    return hashval;
+}
+
+/**********************************
+ * Convert from Sfile* to Sfile**.
+ */
+
+Sfile **filename_indirect(Sfile *sf)
+{   unsigned u;
+
+    for (u = 0; u < srcfiles.idx; u++)
+    {
+	if (srcfiles.pfiles[u] == sf)
+	    return &srcfiles.pfiles[u];
+    }
+    assert(0);
+    return NULL;
+}
+
+/*****************************
+ * Search for name in srcfiles.arr[].
+ * If found, return pointer for it, else NULL.
+ */
+
+Sfile *filename_search(const char *name)
+{   unsigned u;
+    unsigned hashval;
+
+    //printf("filename_search('%s',%d)\n",name,srcfiles.idx);
+    name = filename_adj(name);
+    hashval = filename_hash(name);
+    for (u = 0; u < srcfiles.idx; u++)
+    {	Sfile *sf;
+
+	sf = &sfile(u);
+	if (sf->SFhashval == hashval &&
+	    filespeccmp(sf->SFname,name) == 0)
+	    return sf;
+    }
+    return NULL;
+}
+
+/**************************
+ * Add name to srcfiles.arr[].
+ * Returns:
+ *	filename pointer of added name
+ */
+
+Sfile *filename_add(const char *name)
+{   unsigned u;
+    unsigned hashval;
+    Sfile *sf;
+
+    name = filename_adj(name);
+    sf = filename_search(name);
+    if (sf)
+	return sf;
+
+    // Extend the array
+    u = srcfiles.idx;
+    // Make sure pfiles[] is initialized
+    if (!srcfiles.pfiles)
+	srcfiles.pfiles = (Sfile **) mem_malloc(sizeof(Sfile *) * SRCFILES_MAX);
+
+    sf = (Sfile *) mem_calloc(sizeof(Sfile));
+    srcfiles.idx++;
+#ifdef DEBUG
+    sf->id = IDsfile;
+#endif
+    sf->SFname = mem_strdup(name);
+    sf->SFhashval = filename_hash(sf->SFname);
+    if (u >= SRCFILES_MAX)
+	err_fatal(EM_2manyfiles,SRCFILES_MAX);
+    srcfiles.pfiles[u] = sf;
+
+    return sf;
+}
+
+#if !SPP
+
+/*****************************
+ * Hydrate srcfiles.
+ */
+
+#if HYDRATE
+void filename_hydrate(Srcfiles *fn)
+{
+    unsigned u;
+
+//    ph_hydrate(&fn->arr);
+    ph_hydrate(&fn->pfiles);
+    for (u = 0; u < fn->idx; u++)
+    {	Sfile *sf;
+
+	sf = (Sfile *)ph_hydrate(&fn->pfiles[u]);
+	ph_hydrate(&sf->SFname);
+	list_hydrate(&sf->SFfillist,FPNULL);
+    }
+}
+#endif
+
+/*****************************
+ * Dehydrate Srcfiles.
+ */
+
+#if DEHYDRATE
+void filename_dehydrate(Srcfiles *fn)
+{
+    unsigned u;
+
+    for (u = 0; u < fn->idx; u++)
+    {	Sfile *sf;
+
+	sf = fn->pfiles[u];
+	ph_dehydrate(&fn->pfiles[u]);
+	ph_dehydrate(&sf->SFname);
+	list_dehydrate(&sf->SFfillist,FPNULL);
+    }
+    //ph_dehydrate(&fn->arr);
+    ph_dehydrate(&fn->pfiles);
+}
+#endif
+
+/******************************
+ */
+
+void srcpos_hydrate(Srcpos *s)
+{
+#if HYDRATE
+    ph_hydrate(&s->Sfilptr);
+#endif
+}
+
+/******************************
+ */
+
+void srcpos_dehydrate(Srcpos *s)
+{
+#if DEHYDRATE
+    ph_dehydrate(&s->Sfilptr);
+#endif
+}
+
+#endif
+
+/*****************************
+ * Merge fn with global srcfiles.
+ * Construct translation table.
+ */
+
+void filename_merge(Srcfiles *fn)
+{   unsigned u;
+
+#if !TRANS
+    Sfile *sf;
+
+    //dbg_printf("filename_merge()\n");
+    for (u = 0; u < fn->idx; u++)
+    {	sfile_debug(fn->pfiles[u]);
+	filename_add(fn->pfiles[u]->SFname);
+    }
+
+    for (u = 0; u < fn->idx; u++)
+    {	Sfile *sfn;
+
+	sfn = fn->pfiles[u];
+	sfile_debug(sfn);
+	sf = filename_search(sfn->SFname);
+	sfile_debug(sf);
+	fn->pfiles[u] = sf;
+	sf->SFflags |= sfn->SFflags & (SFonce | SFtop);
+
+	sf->SFtemp_ft = sfn->SFtemp_ft;
+	sf->SFtemp_class = sfn->SFtemp_class;
+	sf->SFtagsymdefs = sfn->SFtagsymdefs;
+	sf->SFfillist = sfn->SFfillist;
+	sf->SFmacdefs = sfn->SFmacdefs;
+	sf->SFsymdefs = sfn->SFsymdefs;
+	sf->SFcomdefs = sfn->SFcomdefs;
+
+    }
+#else
+    unsigned t;
+
+    //dbg_printf("filename_merge()\n");
+    filename_trans = (unsigned *) mem_realloc(filename_trans,fn->idx * sizeof(unsigned));
+    filename_transi = fn->idx;
+    for (u = 0; u < fn->idx; u++)
+    {	t = filename_add(fn->arr[u].SFname);
+	filename_trans[u] = t;
+	sfile(t).SFflags |= fn->arr[u].SFflags & (SFonce | SFtop);
+    }
+#endif
+}
+
+/*********************************
+ * Translate file number list.
+ */
+
+void filename_mergefl(Sfile *sf)
+{
+    list_t fl;
+
+    sfile_debug(sf);
+    for (fl = sf->SFfillist; fl; fl = list_next(fl))
+    {	Sfile *sfl;
+
+	sfl = (Sfile *) list_ptr(fl);
+	sfl = filename_search(sfl->SFname);
+	assert(sfl);
+	sfile_debug(sfl);
+	list_ptr(fl) = sfl;
+    }
+}
+
+/*****************************
+ * Translate file number.
+ */
+
+void filename_translate(Srcpos *sp)
+{
+#if TRANS
+    if (sp->Slinnum)
+    {
+	//if (sp->Sfilnum >= filename_transi)
+	//dbg_printf("Sfilnum = %d, transi = %d\n",sp->Sfilnum,filename_transi);
+	assert(sp->Sfilnum < filename_transi);
+	sp->Sfilnum = filename_trans[sp->Sfilnum];
+    }
+#endif
+}
+
+/*****************************
+ * Compare file names.
+ */
+
+int filename_cmp(const char *f1,const char *f2)
+{
+    f1 = filename_adj(f1);
+    f2 = filename_adj(f2);
+    return filespeccmp(f1,f2);
+}
+
+/*****************************
+ * Free srcfiles.arr[].
+ */
+
+#if TERMCODE
+
+void filename_free()
+{   unsigned u;
+
+    for (u = 0; u < srcfiles.idx; u++)
+    {
+	sfile_debug(&sfile(u));
+#ifdef DEBUG
+	sfile(u).id = 0;
+#endif
+	mem_free(srcfiles_name(u));
+	macro_freelist(sfile(u).SFmacdefs);
+	list_free(&sfile(u).SFfillist,FPNULL);
+	list_free(&sfile(u).SFtemp_ft,FPNULL);
+	list_free(&sfile(u).SFtemp_class,FPNULL);
+	mem_free(srcfiles.pfiles[u]);
+    }
+    //mem_free(srcfiles.arr);
+    mem_free(srcfiles.pfiles);
+#if TRANS
+    mem_free(filename_trans);
+#endif
+}
+
+#endif
