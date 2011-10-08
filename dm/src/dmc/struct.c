@@ -39,7 +39,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-#if TARGET_FLAT
+#if !TARGET_SEGMENTED
 #undef mTYfar
 #define mTYfar 0
 #endif
