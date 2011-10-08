@@ -3006,7 +3006,7 @@ type *declar(type *t,char *vident,int flag)
 #if TX86
                 switch (tym)
                 {   case mTYfar:
-                        assert(!TARGET_FLAT);
+                        assert(TARGET_SEGMENTED);
                         if (LARGEDATA)
                             break;
                         t->Tty = TYfref;
