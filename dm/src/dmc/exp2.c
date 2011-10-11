@@ -3211,7 +3211,7 @@ STATIC elem * exp2_paramchk(elem *e,type *t,int param)
                             synerr(EM_noaddress);       // can't take address of register
                             break;
                     }
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                     if (pointertype == TYnptr && s->Stype->Tty & mTYfar)
                         cpperr(EM_near2far,s->Sident);  // s is far
 #endif
