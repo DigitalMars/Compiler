@@ -295,18 +295,6 @@
 #if TX86
 #define EM_colcol_exp           89
 #else
-#if TARGET_MAC
-#define EM_new_pascal           87
-#define EM_del_pascal           88
-#define EM_new_type             89
-#define EM_delete_type          90
-#define EM_fwd_class_type       91
-#define EM_pascal_class         92
-#define EM_inher_member         93
-#define EM_ovl_conv             94
-#define EM_vtbl_redecl          95
-#define EM_vtbl_inline          96
-#endif
 #define EM_ptr_ref              97
 #define EM_mult_decl            98
 #endif

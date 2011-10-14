@@ -24,15 +24,11 @@
 #include        "token.h"
 #include        "parser.h"
 
-#if TARGET_MAC
-#include        "TG.h"
-#endif
-
 #if _MSDOS || __OS2__ || _WINDOWS
 #include        <dos.h>
 #endif
 
-#if __SC__ && !(TARGET_MAC)
+#if __SC__
 #include        <controlc.h>
 #endif
 

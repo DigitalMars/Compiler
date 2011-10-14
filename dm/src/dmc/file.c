@@ -349,9 +349,7 @@ char *file_getsource(const char *iname)
     char *p;
     size_t len;
 
-#if TARGET_MAC
-    static char ext[][4] = { "cpp","cp","c" };
-#elif M_UNIX || M_XENIX
+#if M_UNIX || M_XENIX
     static char ext[][4] = { "cpp","cxx","c", "C", "cc", "c++" };
 #else
     static char ext[][5] = { "cpp","c","cxx","htm","html" };

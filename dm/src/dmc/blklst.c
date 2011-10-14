@@ -29,9 +29,6 @@
 #include        "global.h"
 #include        "parser.h"
 #include        "token.h"
-#if TARGET_MAC
-#include        "TG.h"
-#endif
 #include        "filespec.h"
 #include        "outbuf.h"
 
@@ -52,9 +49,7 @@ INITIALIZED_STATIC_DEF blklst * last_blsave;
 #endif
 STATIC void freeblk(blklst *);
 
-#if TARGET_MAC
-INITIALIZED_STATIC_DEF blklst *bl_freelist = NULL;      /* pointer to next free blk     */
-#elif TX86
+#if TX86
 static blklst *bl_freelist = NULL;      /* pointer to next free blk     */
 #endif
 
@@ -1056,9 +1051,6 @@ UHINT egchar()
     if ((xc = *btextp) != PRE_EOB && xc != PRE_ARG)
     {
         btextp++;
-#if TARGET_MAC
-        bl->BLcurcnt++;
-#endif
         //if (!(config.flags2 & CFG2expand))
         if (!switch_E)
             return xc;
@@ -1135,10 +1127,6 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
                         TokenCnt = 0;           /* count tokens till first #if */
 #endif
                         break;
-#if TARGET_MAC
-        case BLpdef:    p->BLflags |= BFpdef;   /* flag pre_compilation data */
-                        p->BLtyp = BLarg;
-#endif
                         break;
         case BLstr:
         case BLarg:
@@ -1271,10 +1259,6 @@ STATIC void freeblk(blklst *p)
                 break;
         case BLarg:                             /* don't free BLtext    */
         case BLrtext:
-#if (TARGET_MAC)
-                if (CPP && p->BLflags & BFpdef)
-                    ANSI = ansi_opt;    /* now turn on ansi checking */
-#endif
                 break;
         default:
                 assert(0);
@@ -1298,10 +1282,6 @@ STATIC void freeblk(blklst *p)
 Srcpos getlinnum()
 {       blklst *b;
 
-#if TARGET_MAC
-        if (FromTokenList)              /* rescanning old tokens */
-            return tok.TKsrcpos;
-#endif
 #if TX86
         b = cstate.CSfilblk;
 #else

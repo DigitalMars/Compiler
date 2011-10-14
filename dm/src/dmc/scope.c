@@ -485,10 +485,6 @@ symbol *scope_addx(symbol *s,Scope *sc)
         symbol *sCover;
         switch (s->Sclass) {
         case SCstruct:
-#if TARGET_MAC // DJB old code
-        case SCunion:
-        case SCclass:
-#endif
         case SCenum:
             break;
         default:
@@ -505,10 +501,6 @@ symbol *scope_addx(symbol *s,Scope *sc)
                         else {
                             switch (sCover->Sclass) {
                             case SCstruct:
-#if TARGET_MAC // old code
-                            case SCunion:
-                            case SCclass:
-#endif
                             case SCenum:
                                 //symbol_keep(sCover);
                                 s->Scover = sCover;

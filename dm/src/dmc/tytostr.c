@@ -75,10 +75,6 @@ char *type_tostring(Outbuffer *buf,type *t)
         {
             type_cv_tostring(buf, ty);
         }
-#if TARGET_MAC
-        if (ty & mTYmachdl)
-                buf->write("_machdl ");
-#else
         if (ty & mTYloadds)
                 buf->write("__loadds ");
         if (ty & mTYfar)
@@ -92,7 +88,6 @@ char *type_tostring(Outbuffer *buf,type *t)
                 buf->write("__export ");
         if (ty & mTYimport)
                 buf->write("__import ");
-#endif
 #if TX86
         if (mangle == mTYman_pas)
                 buf->write("__pascal ");

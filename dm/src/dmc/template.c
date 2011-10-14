@@ -25,10 +25,6 @@
 #include        "type.h"
 #include        "oper.h"
 #include        "cpp.h"
-#if TARGET_MAC
-#include        "TG.h"
-extern char *unmangle_pt(char **);
-#endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -581,10 +577,6 @@ STATIC void template_class_decl(
                                 structflags |= STRimport;
                             goto L5;
                     }
-#endif
-#if TARGET_MAC
-        case TK_machdl: structflags |= STRmachdl;       goto L5;
-        case TK_pasobj: structflags |= STRpasobj;       goto L5;
 #endif
         L5:
                 stoken();
@@ -2291,66 +2283,6 @@ STATIC symbol * template_define(Classsym *stag, symbol *sprimary, enum_TK tk, in
     return s;
 }
 
-#if TARGET_MAC
-//
-// This function checks to see if an implementation of a template
-// function exists prior to calling template matchfunc.  It is used to
-// prevent #pragma template directives from attempting to expand functions
-// that are already expanded.
-//
-STATIC symbol *
-template_implemented_already( symbol *psymTempl,  param_t *pactual)
-{
-        param_t *p;
-        param_t *ptempl = NULL;
-        param_t *ptpl = NULL;
-        param_t *p2;
-        param_t *pinst;
-        symbol  *psymFunc;
-        ptpl = psymTempl->Sfunc->Farglist;              /* template-argument-list */
-//
-// Loop through the overloaded versions of this function
-//
-        for (psymFunc = psymTempl->Sfunc->Foversym; psymFunc; psymFunc = psymFunc->Sfunc->Foversym) {
-//
-// If the function is not implemented, there is no need to consider it
-//
-                if (!(psymFunc->Sflags & SFLimplem))
-                        continue;
-#ifdef DEBUG
-//
-// The Ptype's must all be NULL for function template-argument-list's
-//
-                for (p2 = ptpl; p2; p2 = p2->Pnext)
-                        assert(p2->Ptype == NULL);
-#endif
-
-//
-// OK, no loop through the arguments to this overloaded version of this function
-// and see if they match the types for the #pragma template parameter list
-//
-                for (p = pactual,ptempl = psymTempl->Stype->Tparamtypes,
-                        pinst = psymFunc->Stype->Tparamtypes;
-                        p && ptempl && pinst;
-                        p = p->Pnext, ptempl = ptempl->Pnext, pinst = pinst->Pnext) {
-                        if (!template_match_expanded_type( ptempl->Ptype,
-                                ptpl, ptal, pinst->Ptype, p->Ptype )) {
-                                break;
-                        }
-                }
-
-                for (p2 = ptpl; p2; p2 = p2->Pnext)
-                {
-                        type_free(p2->Ptype);
-                        p2->Ptype = NULL;
-                }
-                if (!p && !ptempl && !pinst)
-                        return(psymFunc);
-
-        }
-        return(NULL);
-}
-#endif
 
 /*******************************
  * Instantiate anything else.
@@ -2554,16 +2486,10 @@ void template_instantiate()
             anyinst = 1;
 
             gclasssave = pstate.STgclass;
-#if TARGET_MAC
-            FromTokenList = TRUE;
-            pstate.STgclass = (config.flags2 & CFG2comdat) ? SCcomdat :
-                                (template_access ? template_access : SCglobal);
-#else
             pstate.STgclass = (config.flags2 & CFG2comdat) ? SCcomdat : SCstatic;
             // If explicit instantiation, comdat's become global
             if (pstate.STgclass == SCcomdat && si->Sstruct->Sflags & STRexplicit)
                 pstate.STgclass = SCglobal;
-#endif
             pstate.STflags |= PFLmftemp;
 
             /* Instantiate each member  */
@@ -2723,9 +2649,6 @@ void template_instantiate()
             pstate.STflags &= ~PFLmftemp;
             pstate.STgclass = gclasssave;
 
-#if TARGET_MAC
-            FromTokenList = FALSE;
-#endif
             list_prepend(&ilist,si);
         }
     }
@@ -3613,41 +3536,15 @@ STATIC Classsym * template_parsebody(Classsym *stag, symbol *stempl, param_t *ar
 
     if (!type_struct(t))
     {
-#if TARGET_MAC
-        token_poplist();        /* fix bug where leftover tokens result in crash/hang */
-#endif
         return(NULL);
     }
     stag = t->Ttag;
 
     stag->Sstruct->Sflags |= STRgen;    /* this instance was generated  */
-#if 0 && TARGET_MAC
-    template_fix_inlines(stag->Sstruct); /* fix inline functions */
-#endif
 
     template_instantiate_classmember(stempl, stag);
     return stag;
 }
-
-#if 0
-void template_parse_nobody(void)
-{
-    symlist_t sl;
-    Classsym *si;
-    symlist_t sl_tmp;
-    symbol *s;
-
-    sl_tmp = tmpl_noparse_list;
-    tmpl_noparse_list = NULL;
-    for ( sl = sl_tmp; sl; sl = list_next(sl) ) {
-        si = (Classsym *)list_symbol(sl);
-        template_instantiate_forward(si);
-        s = si->Sstruct->Stempsym;
-        instantiate_list( s, si, s->Stemplate->TMinlinememberfuncs);
-    }
-    list_free( &sl_tmp, FPNULL );
-}
-#endif
 
 /*******************************
  * Expand a class template into a symbol.
@@ -3701,9 +3598,6 @@ Classsym *template_expand(symbol *s,int flag)
 //printf("-instantiating %p '%s')\n", si, si->Sident);
             if (!type_struct(t))
             {
-#if TARGET_MAC
-                token_poplist();        // leftover tokens result in crash/hang
-#endif
                 return NULL;
             }
         }
@@ -4105,9 +3999,6 @@ printf("sf  : "); type_print(sf->Stype->Tnext);
     nscopes++;
     token_unget();                      // Put back the current token
     token_setlist(ses->Sfunc->Fbody);   // instantiate function
-#if TARGET_MAC
-    FromTokenList = TRUE;
-#endif
     stoken();
   { type *dt;
     type *typ_spec;
@@ -4291,18 +4182,6 @@ pstate.STclasssym = NULL;
             config.flags4 & CFG4notempexp)
             parsebody = 0;
 
-#if TARGET_MAC
-#if PUBLIC_EXT
-        if (sc == SCextern || (sc == SCglobal && (config.template_access == SCextern ||
-                (!template_expansion && config.template_access == SCglobal) ||
-                config.template_access == SCstatic)))
-        {
-            parsebody = FALSE;
-        }
-        else
-            template_expansion = FALSE;
-#endif
-#endif
         sf->Sfunc->Fflags |= Fflags | Finstance; // flag generated by template
         sf->Sfunc->Fflags |= stemp->Sfunc->Fflags & Fstatic;
         sf->Sfunc->Ftempl = stemp;              // remember which template created this
@@ -4349,9 +4228,6 @@ pstate.STclasssym = NULL;
     pstate.STclasssym = pstatesave.STclasssym;
     pstate.STmaxsequence = pstatesave.STmaxsequence;
   }
-#if TARGET_MAC
-    FromTokenList = FALSE;
-#endif
 
     // Unwind scope back to global
     scope_unwind(nscopes);

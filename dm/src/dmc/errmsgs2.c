@@ -16,9 +16,6 @@
 #include        <time.h>
 #include        "cc.h"
 #include        "global.h"
-#if TARGET_MAC
-#include        "TGvers.h"
-#endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"

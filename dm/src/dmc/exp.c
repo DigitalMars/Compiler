@@ -50,12 +50,7 @@ STATIC elem *primary_exp(void);
 STATIC elem *prim_post(elem *);
 STATIC elem *exp_sizeof(int);
 
-#if (TARGET_MAC)
-elem *cpp_hdlptr(elem *e);
-#define M68HDL(e)       cpp_hdlptr(e)
-#else
 #define M68HDL(e)       (e)
-#endif
 
 #ifndef NAN
 static unsigned long nanarray[2] = {0,0x7FF80000 };
@@ -1470,15 +1465,6 @@ STATIC elem *una_exp()
                 synerr(EM_prep_exp);    // sizeof illegal in preprocessor exp
             e = exp_sizeof(tok.TKval);
             goto done;
-#if TARGET_MAC
-        case TK__class:
-            {
-            extern elem * exp_class(void);
-
-            e = exp_class();
-            goto done;
-            }
-#endif
         case TKcolcol:          /* check for ::new or ::delete          */
             stoken();
             if (tok.TKval == TKnew)
@@ -1784,27 +1770,6 @@ STATIC elem *primary_exp()
             }
             goto L6;
 
-#if TARGET_MAC
-        case TKinherited:
-            stoken();
-            if (tok.TKval == TKcolcol)
-                {
-                stoken();
-                if (tok.TKval == TKident)
-                    tok.TKflags |= TKFinherited;
-                else
-                    {
-                    synerr(EM_ident_exp);
-                    goto err;
-                    }
-                }
-            else
-                {
-                cpperr(EM_colcol_lpar);
-                goto err;
-                }
-            goto L6;
-#endif
         case TKident:
 L6:         // Look for case of #if defined(identifier)
             if (preprocessor && strcmp(tok.TKid,"defined") == 0)
@@ -1979,25 +1944,6 @@ L6:         // Look for case of #if defined(identifier)
                      * identifier is a member of that class. If so, replace
                      * ident with this->ident.
                      */
-
-#if TARGET_MAC
-                    if (tok.TKflags & TKFinherited)     /* just error checking here */
-                    {                   /* should probably limit to pasobj, non static */
-                        baseclass_t *b;
-
-                        sclass = funcsym_p->Sscope;
-                        b = funcsym_p->Sfunc->Fclass->Sstruct->Sbase;
-                        if (!b)
-                        {   cpperr(EM_inher_member);
-                            goto err;
-                        }
-                        smember = cpp_findmember_nest(&sclass,tok.TKid,FALSE);
-                        if (!smember)
-                        {   cpperr(EM_inher_member);
-                            goto err;
-                        }
-                    }
-#endif
                     impthis = 1;                // implied "this"
                     e = NULL;
 
@@ -2033,14 +1979,6 @@ L6:         // Look for case of #if defined(identifier)
                         assert(sthis);
                         e = el_var(sthis);
                         t = e->ET;
-#if TARGET_MAC
-                        if( (tybasic(sthis->Stype->Tty) == TYstruct) &&
-                            sthis->Stype->Ttag->Sstruct->Sflags & (STRpasobj|STRmachdl))
-                            {                   /* this pointer is a handle */
-                            e->ET->Tty = TYvptr;
-                            e = cast(e,sthis->Stype);
-                            }
-#endif
                         e = el_unat(OPind,t->Tnext,e);
                         e = dodot(e, e->ET, FALSE);
                     }
@@ -2279,14 +2217,6 @@ if (!bColcol)
                         if (!pstate.STisaddr)
                         {
                             e = el_var(sthis);
-#if TARGET_MAC
-                            if( (tybasic(sthis->Stype->Tty) == TYstruct) &&
-                                sthis->Stype->Ttag->Sstruct->Sflags & (STRpasobj|STRmachdl))
-                            {
-                                e->ET->Tty = TYvptr;
-                                e = cast(e,sthis->Stype);
-                            }
-#endif
                             e = el_unat(OPind,tclass,e);
                         }
                     }
@@ -2506,19 +2436,6 @@ if (!bColcol)
 
         case TKstring:
         {   tym_t ty;
-#if TARGET_MAC
-            e = el_calloc();
-            e->Eoper = OPstring;
-            e->EV.ss.Vstring = combinestrings(&e->EV.ss.Vstrlen, &ty);
-            t = tstypes[ty];
-            // BUG: tok.TKflags not valid after combinestrings
-            assert(0);
-            if (tok.TKflags & TKFpasstr)        // pascal strings unsigned
-                t = tsuchar;
-            e->ET = type_allocn(TYfptr,t);      // create pointer to char
-                                                // string is in static data
-            e->ET->Tcount++;
-#else
             e = el_calloc();
             e->Eoper = OPstring;
             e->EV.ss.Vstring = combinestrings(&e->EV.ss.Vstrlen, &ty);
@@ -2536,7 +2453,6 @@ if (!bColcol)
             }
             t->Tcount++;
             e->ET = t;
-#endif
             break;
         }
 
@@ -2555,23 +2471,12 @@ if (!bColcol)
 #endif
             chktok(TKlpar,EM_lpar);
             {
-#if TARGET_MAC
-            typedef short emit_t;
-#else
             typedef char emit_t;
             int imax = 0;
-#endif
             int i = 0;
             emit_t *p = NULL;
             while (tok.TKval != TKrpar)
             {
-#if TARGET_MAC
-                /* Allocate buffer in chunks of 16      */
-                if ((i & 15) == 0)
-                    p = (emit_t *) MEM_PARF_REALLOC(p,(i + 16) * sizeof(emit_t));
-                p[i] = msc_getnum();
-                i++;
-#else
                 elem *ea;
                 tym_t ty;
                 int size;
@@ -2602,7 +2507,6 @@ if (!bColcol)
                     }
                 }
                 el_free(ea);
-#endif
                 if (tok.TKval != TKcomma)
                     break;
                 stoken();
@@ -3421,11 +3325,7 @@ STATIC elem *exp_delete(int global)
     }
     eptr = arraytoptr(una_exp());
     /* Can only delete pointers */
-    if (tybasic(eptr->ET->Tty) != pointertype
-#if TARGET_MAC
-        && (tybasic(eptr->ET->Tty != TYvptr))
-#endif
-                                            )
+    if (tybasic(eptr->ET->Tty) != pointertype)
     {
         cpperr(EM_del_ptrs);    // can only delete pointers
         el_free(enelems);
@@ -3583,9 +3483,5 @@ elem *exp_simplecast(type *t)
     chktok(TKrpar,EM_rpar);             /* ')' ends it                   */
     return e;
 }
-
-#if TARGET_MAC
-#include "TGexp.c"
-#endif
 
 #endif /* !SPP */

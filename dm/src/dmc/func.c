@@ -36,11 +36,6 @@
 #include        "iasm.h"
 #endif
 
-#if TARGET_MAC
-#include        "TG.h"
-#define token_linnum getlinnum
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -234,19 +229,6 @@ void func_body(symbol *s)
   f = s->Sfunc;
   assert(f);
   file_progress();
-#if (TARGET_MAC)
-  if (CPP &&
-      isclassmember(s) &&
-      (s->Sscope->Sstruct->Sflags & STRpasobj) &&
-      !(s->Sscope->Sstruct->Sflags & STRabstract) &&
-      (s->Sfunc->Fflags & Fvirtual ||
-        (strcmp(s->Sident,"__ct") == 0) || (strcmp(s->Sident,"__dt") == 0) ||
-        (strcmp(s->Sident,"__nw") == 0) || (strcmp(s->Sident,"__dl") == 0)) )
-        {
-        if (strcmp("PascalObject",s->Sscope->Sident))
-            po_func_Methout(s->Sscope);
-        }
-#endif
   if (configv.verbose == 2)
         dbg_printf("%s\n",prettyident(s));
   funcsym_p = s;
@@ -418,11 +400,7 @@ void func_body(symbol *s)
                 }
                 MEM_PH_FREE(p->Pident);
                 p->Pident = NULL;
-#if TARGET_MAC
-                // for internal error with void f(int a, int a)
-                if (errcnt == olderrcnt)
-#endif
-                    list_append(&plist,sp);
+                list_append(&plist,sp);
 
                 // Look for VLA expressions
                 if (typtr(p->Ptype->Tty) && type_isvla(p->Ptype->Tnext))
@@ -506,10 +484,6 @@ void func_body(symbol *s)
         tp->Tcount++;                   // create copy before adjustment
         if (!typtr(p->Ptype->Tty))
             paramtypadj(&p->Ptype);     // default conversions
-#if TARGET_MAC
-        if (type_size(sp->Stype) != type_size(p->Ptype))
-            sp->Sflags |= SFLdouble;    /* stack size larger than basic type */
-#endif
 
         if (tfunc->Tparamtypes)         /* if type was specified        */
         {
@@ -738,10 +712,6 @@ void func_body(symbol *s)
 #endif
                 )
             {
-#if TARGET_MAC
-                if ((config.flags2 & CFG2phgen))
-                    cpperr(EM_vtbl_redecl,s->Sident);
-#endif
                 scvtbl = (enum SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCstatic);
                 n2_genvtbl(stag,scvtbl,1);
 #if VBTABLES
@@ -768,10 +738,6 @@ void paramtypadj(type **pt)
   assert(pt);
   t = *pt;
   assert(t);
-#if TARGET_MAC
-  if (tybasic(t->Tty) == TYenum)
-        t = t->Tnext;
-#endif
   switch (tybasic(t->Tty))
   { case TYarray:
         assert(0);
@@ -1946,39 +1912,6 @@ STATIC void for_state()
     else
         state_cpp();
 
-#if TARGET_MAC
-    block_goto(forlabel);
-    if (tok.TKval == TKsemi)
-        stoken();
-    else
-    {
-        if (CPP && isexpression() <= 1) // if it could be a declaration
-        {                               // assume it is a declaration
-            if (flag)
-            {   flag = 0;
-                createlocalsymtab();
-                fscope_beg();
-            }
-
-            e = declaration(4);         // declare the variable
-        }
-        else
-            e2 = addlinnum(func_expr_dtor(TRUE));
-
-        e2 = cpp_bool(e2, 1);
-        chknosu(e2);
-        chkunass(e2);
-        chktok(TKsemi,EM_semi_member);
-        {   block *b;
-
-            block_appendexp(curblock, e2);
-            b = curblock;
-            block_next(BCiftrue,NULL);
-            list_append(&b->Bsucc,curblock);
-            list_append(&(b->Bsucc),funcstate.brklabel);
-        }
-    }
-#else   // TX86
   block_goto(forlabel);
   if (tok.TKval == TKsemi)
         stoken();
@@ -2008,7 +1941,6 @@ STATIC void for_state()
             list_append(&(b->Bsucc),funcstate.brklabel);
         }
   }
-#endif
 
   /* Be careful to add in destructors immediately for the
      3rd expression.
@@ -2418,20 +2350,15 @@ STATIC void return_state()
             {
                 type *tret;
 
-#if TARGET_MAC
-                if (ety == TYstruct)
-#endif
+                tret = newpointer(e->ET->Tnext);
+                e = cast(e,tret);
+                if (CPP)
                 {
-                    tret = newpointer(e->ET->Tnext);
-                    e = cast(e,tret);
-                    if (CPP)
-                    {
-                        e = poptelem(e);
-                        if (e->Eoper == OPinfo)
-                            e = el_selecte2(e);
-                        if (funcstate.namret.s)
-                            list_append(&funcstate.namret.explist,e);
-                    }
+                    e = poptelem(e);
+                    if (e->Eoper == OPinfo)
+                        e = el_selecte2(e);
+                    if (funcstate.namret.s)
+                        list_append(&funcstate.namret.explist,e);
                 }
             }
         }
@@ -2804,9 +2731,7 @@ STATIC void func_adddestructors()
 
 STATIC void func_doblock(block *bstart)
 {
-#if !(TARGET_MAC)
     _chkstack();
-#endif
     if (bstart->Bnext)
         func_doblock(bstart->Bnext);
 
