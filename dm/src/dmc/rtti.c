@@ -304,8 +304,8 @@ elem *rtti_typeid(type *t,elem *e)
 #endif
         e = el_unat(OPaddr,newpointer(e->ET),e);
         t = type_allocn(st->ptrtype,svptr->Stype); // match pointer type of ethis
-        M68HDL(e = el_bint(OPadd,t,e,emos));    // ethis + mos
-        e = el_unat(OPind,svptr->Stype,e);      // *(ethis + mos)
+        e = el_bint(OPadd,t,e,emos);               // ethis + mos
+        e = el_unat(OPind,svptr->Stype,e);         // *(ethis + mos)
 
         e = el_bint(OPadd,e->ET,e,el_longt(tsint,-tysize(st->ptrtype)));
         e = el_unat(OPind,tref,e);

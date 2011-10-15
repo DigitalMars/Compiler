@@ -48,8 +48,6 @@ STATIC list_t   cpp_pvirtbase(Classsym *stag , Classsym *sbase);
 STATIC int      fixctorwalk(elem *e , elem *ec , symbol *s_this);
 STATIC Match    cpp_builtinoperator(elem *e);
 
-#define M68HDL(e)       (e)
-
 #if TX86
 /* List of elems which are the constructor and destructor calls to make */
 list_t constructor_list = NULL;         /* for _STIxxxx                 */
@@ -3493,7 +3491,7 @@ elem *cpp_istype(elem *e, type *t)
         emos->EV.sp.Voffset = st->Sprimary->BCoffset;
 #endif
     t = type_allocn(tym,svptr->Stype);  // match pointer type of ethis
-    M68HDL(e = el_bint(OPadd,t,e,emos));        // ethis + mos
+    e = el_bint(OPadd,t,e,emos);        // ethis + mos
     e = el_unat(OPind,svptr->Stype,e);  /* *(ethis + mos)               */
 
     ev = cpp_addr_vtable(stag);
@@ -3555,7 +3553,7 @@ STATIC elem * cpp_assignvptr(symbol *s_this,int ctor)
         emos->EV.sp.Voffset = st->Sprimary->BCoffset;
 #endif
     t = type_allocn(tym,svptr->Stype);  // match pointer type of ethis
-    M68HDL(e = el_bint(OPadd,t,el_var(s_this),emos));   /* ethis + mos                  */
+    e = el_bint(OPadd,t,el_var(s_this),emos);   /* ethis + mos                  */
     e = el_unat(OPind,svptr->Stype,e);  /* *(ethis + mos)               */
 
     genvtbl = TRUE;
@@ -3660,7 +3658,7 @@ L2:
         }
 
         emos = el_longt(tsint,vptroffset);
-        M68HDL(e = el_bint(OPadd,t,e,emos));
+        e = el_bint(OPadd,t,e,emos);
         e = el_unat(OPind,svptr->Stype,e);      /* *(&e + mos)          */
 
         /* ev = &_vtbl  */
@@ -3723,7 +3721,7 @@ STATIC elem * cpp_assignvbptr(symbol *s_this)
     symbol_debug(svptr);
     emos = el_longt(tsint,st->Svbptr_off);
     t = type_allocn(tym,svptr->Stype);  // match pointer type of ethis
-    M68HDL(e = el_bint(OPadd,t,el_var(s_this),emos));   /* ethis + mos                  */
+    e = el_bint(OPadd,t,el_var(s_this),emos);   /* ethis + mos                  */
     e = el_unat(OPind,svptr->Stype,e);  /* *(ethis + mos)               */
 
     n2_genvbtbl(stag,scvtbl,0);         // make sure vtbl[]s exist
@@ -3792,7 +3790,7 @@ STATIC elem * cpp_assignvbptr(symbol *s_this)
         }
 #endif
         emos = el_longt(tsint,vptroffset);
-        M68HDL(e = el_bint(OPadd,t,e,emos));
+        e = el_bint(OPadd,t,e,emos);
         e = el_unat(OPind,svptr->Stype,e);      /* *(&e + mos)          */
 
         /* ev = &_vtbl  */
@@ -3929,8 +3927,8 @@ elem * cpp_getfunc(type *tclass,symbol *sfunc,elem **pethis)
         symbol_debug(svptr);
 
         /* e = *(ethis + offset(vptr)); ethis might be a handle pointer */
-        M68HDL(e = el_bint(OPadd,newpointer(svptr->Stype),
-                el_same(&ethis),el_longt(tsint,(targ_int) svptr->Smemoff)));
+        e = el_bint(OPadd,newpointer(svptr->Stype),
+                el_same(&ethis),el_longt(tsint,(targ_int) svptr->Smemoff));
         e->ET->Tty = tym;
         e = el_unat(OPind,svptr->Stype,e);
 
@@ -3941,15 +3939,15 @@ elem * cpp_getfunc(type *tclass,symbol *sfunc,elem **pethis)
         /* Add _mptr.d to ethis                                         */
 
         /* *pethis = ethis + (int) *(e + i);                            */
-        M68HDL(ed = el_bint(OPadd,e->ET,el_copytree(e),el_longt(tsint,i)));
+        ed = el_bint(OPadd,e->ET,el_copytree(e),el_longt(tsint,i));
         ed = el_unat(OPind,tsshort,ed);
         ed = cast(ed,tsint);
-        *pethis = M68HDL(el_bint(OPadd,ethis->ET,ethis,ed));
+        *pethis = el_bint(OPadd,ethis->ET,ethis,ed);
 
         i += SHORTSIZE + SHORTSIZE;             /* get offset to _mptr.f */
         }
 #endif
-        M68HDL(e = el_bint(OPadd,e->ET,e,el_longt(tsint,i)));
+        e = el_bint(OPadd,e->ET,e,el_longt(tsint,i));
         pfunc = el_unat(OPind,newpointer(sfunc->Stype),e);
     }
     else
@@ -4877,8 +4875,8 @@ void cpp_buildinitializer(symbol *s_ctor,list_t baseinit,int flag)
             SYMIDX marksi;
 
             sbase = b->BCbase;
-            M68HDL(ethis = el_bint(OPadd,newpointer(sbase->Stype),
-                el_var(s_this),el_longt(tsint,b->BCoffset)));
+            ethis = el_bint(OPadd,newpointer(sbase->Stype),
+                el_var(s_this),el_longt(tsint,b->BCoffset));
             arglist = cpp_meminitializer(baseinit,sbase);
             /*dbg_printf("Virtual base '%s', arglist = %p\n",sbase->Sident,arglist);*/
             if (sbase->Sstruct->Sflags & STRgenctor0 && !arglist)
@@ -4910,8 +4908,8 @@ void cpp_buildinitializer(symbol *s_ctor,list_t baseinit,int flag)
             if (b->BCflags & BCFvfirst)
             {   elem *eptr;
 
-                M68HDL(eptr = el_bint(OPadd,newpointer(newpointer(sbase->Stype)),
-                        el_var(s_this),el_longt(tsint,b->memoffset)));
+                eptr = el_bint(OPadd,newpointer(newpointer(sbase->Stype)),
+                        el_var(s_this),el_longt(tsint,b->memoffset));
                 eptr = el_unat(OPind,eptr->ET->Tnext,eptr);
                 ec = el_bint(OPeq,eptr->ET,eptr,ec);
             }
@@ -4969,7 +4967,7 @@ void cpp_buildinitializer(symbol *s_ctor,list_t baseinit,int flag)
             arglist = cpp_meminitializer(baseinit,s);
             enelems = el_nelems(t);
             et = el_var(s_this);
-            M68HDL(et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff)));
+            et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff));
             et = cpp_constructor(et,tclass,arglist,enelems,NULL,flags & 8);
             e = el_combine(e,et);
         }
@@ -4987,7 +4985,7 @@ void cpp_buildinitializer(symbol *s_ctor,list_t baseinit,int flag)
 
                     /* Create et <== *(this + offset)   */
                     et = el_var(s_this);
-                    M68HDL(et = el_bint(OPadd,newpointer(t),et,el_longt(tsuns,s->Smemoff)));
+                    et = el_bint(OPadd,newpointer(t),et,el_longt(tsuns,s->Smemoff));
                     et = el_unat(OPind,
                         (tyref(t->Tty) ?
                             newpointer(t->Tnext) : t),et);
@@ -5404,7 +5402,7 @@ elem *cpp_buildterminator(Classsym *stag, symbol *s_this, elem **ped)
                 }
 
                 et = el_var(s_this);
-                M68HDL(et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff)));
+                et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff));
                 if (doeh)
                     ector = el_copytree(et);
                 e2 = cpp_destructor(tclass,et,enelems,DTORmostderived | DTORnoeh);
@@ -5472,8 +5470,8 @@ elem *cpp_buildterminator(Classsym *stag, symbol *s_this, elem **ped)
             {   elem *et;
 
                 et = el_var(s_this);
-                M68HDL(et = el_bint(OPadd,et->ET,
-                        et,el_longt(tsint,b->BCoffset)));
+                et = el_bint(OPadd,et->ET,
+                        et,el_longt(tsint,b->BCoffset));
                 et = cpp_destructor(sbase->Stype,et,NULL,DTORnoeh);
                 e1 = el_combine(et,e1);
             }
@@ -5813,7 +5811,7 @@ void cpp_fixinvariant(symbol *s_inv)
 
                 enelems = el_nelems(t);
                 et = el_var(s_this);
-                M68HDL(et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff)));
+                et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff));
                 et = cpp_invariant(tclass,et,enelems,DTORmostderived | DTORnoeh);
                 e = el_combine(et,e);
             }
@@ -5855,8 +5853,8 @@ void cpp_fixinvariant(symbol *s_inv)
             {   elem *et;
 
                 et = el_var(s_this);
-                M68HDL(et = el_bint(OPadd,et->ET,
-                        et,el_longt(tsint,b->BCoffset)));
+                et = el_bint(OPadd,et->ET,
+                        et,el_longt(tsint,b->BCoffset));
                 et = cpp_invariant(sbase->Stype,et,NULL,DTORnoeh);
                 e1 = el_combine(et,e1);
             }

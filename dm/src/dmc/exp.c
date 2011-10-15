@@ -50,8 +50,6 @@ STATIC elem *primary_exp(void);
 STATIC elem *prim_post(elem *);
 STATIC elem *exp_sizeof(int);
 
-#define M68HDL(e)       (e)
-
 #ifndef NAN
 static unsigned long nanarray[2] = {0,0x7FF80000 };
 #define NAN     (*(double *)nanarray)

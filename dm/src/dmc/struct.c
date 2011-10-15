@@ -5007,8 +5007,7 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
                 {   elem *et;
 
                     et = el_var(sthis);
-                    M68HDL(et = el_bint(OPadd,et->ET,
-                                        et,el_longt(tsint,bc->BCoffset)));
+                    et = el_bint(OPadd,et->ET, et,el_longt(tsint,bc->BCoffset));
                     et = cpp_destructor(sbase->Stype,et,NULL,DTORnoeh);
                     e = el_combine(et,e);
                 }
@@ -5030,8 +5029,7 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
                 {   elem *et;
 
                     et = el_var(sthis);
-                    M68HDL(et = el_bint(OPadd,et->ET,
-                                        et,el_longt(tsint,bc->BCoffset)));
+                    et = el_bint(OPadd,et->ET, et,el_longt(tsint,bc->BCoffset));
                     et = cpp_invariant(sbase->Stype,et,NULL,DTORnoeh);
                     e = el_combine(et,e);
                 }
