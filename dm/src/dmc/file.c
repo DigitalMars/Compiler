@@ -604,10 +604,8 @@ Lf:     mov     p,ECX
     // File must end in LF. If it doesn't, make it.
     if (p[-1] != LF)
     {
-#if !HOST_MAC           // Mac editor does not always terminate last line
         if (ANSI && !CPP)
             lexerr(EM_no_nl);   // file must be terminated by '\n'
-#endif
         p[0] = LF;
         p[1] = 0x1A;
     }
@@ -973,10 +971,8 @@ int readln()
         case EOF:
             if (p != bl->BLtext)        // if we read in some chars
             {   *p = 0;                 // terminate line so it'll print
-#if !HOST_MAC                   // Mac editor does not alway terminate last line
                 if (ANSI && !CPP)
                     lexerr(EM_no_nl);
-#endif
                 c = '\n';               /* fake a '\n'                  */
                 goto L2;
             }
