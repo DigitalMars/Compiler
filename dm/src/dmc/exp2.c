@@ -2504,48 +2504,6 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
     else
         e = el_unat(OPucall,tfunc->Tnext,efunc);
 
-#if TARGET_68K
-    if (efunc->Eoper == OPvar)
-        {                       /* check for pragma parameter */
-        symbol_debug(efunc->EV.sp.Vsym);
-        returnreg = (efunc->EV.sp.Vsym->Sflags & PRAGMA_RET_MSK);
-        }
-
-    if (hiddenparam)
-        e->Eflags |= EFpasret;
-
-    if (returnreg)
-        {
-        e->Eflags |= EFpragmap;
-        e->EV.mac.Ereg[PRAGMA_PARAM_RETREG-1] = returnreg >> PRAGMA_RET_BIT;
-        }
-    p = tfunc->Tparamtypes;
-    if (p && p->Pflags & PRAGMA_PARAM_MSK)
-        {
-        returnreg = 0;
-        reverse = tyrevfunc(tfunc->Tty);
-        if (!reverse)
-            {
-            while(p)
-                {                       /* save the regs backward */
-                returnreg++;
-                p = p->Pnext;
-                }
-            p = tfunc->Tparamtypes;
-            returnreg--;
-            }
-        while (p)
-            {
-            e->EV.mac.Ereg[returnreg] = p->Pflags >> PRAGMA_PARAM_BIT;
-            if (!reverse)
-                returnreg--;
-            else
-                returnreg++;
-            p = p->Pnext;
-            }
-        }
-#endif
-
     // Modify function return elem (e) based on types of result.
 
     elem_debug(e);

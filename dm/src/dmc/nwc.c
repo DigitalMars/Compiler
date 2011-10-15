@@ -1832,18 +1832,6 @@ elem *declaration(int flag)
 #endif
                 goto ret;
             }
-#if TARGET_68K
-            if (ParamFunc)              /* pragma parameter prior to declaration */
-            {
-                if (strcmp(ParamFunc,(char *)s->Sident))
-                    synerr(EM_pragma_proto);
-                else if (ParamRegs[0])
-                    s->Sflags |= 1 << (ParamRegs[0] + PRAGMA_RET_BIT-1);
-                s->Sflags |= Spragmap;
-                MEM_PARF_FREE(ParamFunc);
-                ParamFunc = NULL;
-            }
-#endif
         }
         else                            /* else must be data def        */
         {
