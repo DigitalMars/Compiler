@@ -306,7 +306,6 @@ One and only one of these macros must be set by the makefile:
 #define NEWSTATICDTOR           1       // support new style static destructors
 
 // For Shared Code Base
-#define TARGET_INLINEFUNC_NAMES
 #define PASCAL pascal
 #define HINT int
 #define UHINT unsigned int

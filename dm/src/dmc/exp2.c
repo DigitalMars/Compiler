@@ -1691,7 +1691,6 @@ elem *builtinFunc(elem *ec)
     elem *e = ec->E1;
     elem *e2;
 
-#ifdef TARGET_INLINEFUNC_NAMES
     if (e->Eoper == OPvar &&
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
         // In linux this is controlled by an option instead of adding defines to
@@ -1706,7 +1705,6 @@ elem *builtinFunc(elem *ec)
         int i;
         static const char *inlinefunc[] = /* names of inline functions  */
         {
-#if TX86
                 "bsf",
                 "bsr",
                 "bt",
@@ -1757,14 +1755,10 @@ elem *builtinFunc(elem *ec)
                 "strlen",
                 "yl2x",
                 "yl2xp1",
-#else
-        TARGET_INLINEFUNC_NAMES
-#endif
         };
         /* Parallel table of corresponding opcodes      */
         static unsigned char opcode[] =
         {
-#if TX86
                   OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,
                   OPcos,OPcos,OPcos,
                   OPabs,OPabs,OPabs,OPmemcmp,OPmemcpy,OPmemset,
@@ -1778,14 +1772,10 @@ elem *builtinFunc(elem *ec)
                   OPsetjmp,OPsin,OPsin,OPsin,OPsqrt,OPsqrt,OPsqrt,
                   OPstrcmp,OPstrcpy,OPstrlen,
                   OPyl2x,OPyl2xp1,
-#else
-        TARGET_INLINEFUNC_OPS
-#endif
         };
         /* Types of the operands. We check against these to make sure
            we are not inlining an overloaded function.
          */
-#if TX86
         static tym_t ty1[] =
                 { TYptr,TYptr,TYptr,TYptr,TYptr,TYptr,
                   TYdouble,TYfloat,TYuint,TYuint,TYptr,TYptr,TYuint,
@@ -1793,12 +1783,6 @@ elem *builtinFunc(elem *ec)
         static tym_t ty2[] =
                 { ~0,~0,~0,~0,~0,~0,
                   ~0,~0,TYuint,TYuint,~0,~0,TYchar,TYuint,~0,~0,~0 };
-#else
-        static tym_t ty1[] =
-                { TARGET_INLINEFUNC_ARGTY1 };
-        static tym_t ty2[] =
-                { TARGET_INLINEFUNC_ARGTY2 };
-#endif
 
         s = e->EV.sp.Vsym;
         symbol_debug(s);
@@ -2005,7 +1989,6 @@ elem *builtinFunc(elem *ec)
         }
 #endif
     }
-#endif
 
 ret:
     elem_debug(ec);
