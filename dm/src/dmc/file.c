@@ -311,20 +311,6 @@ void afopen(char *p,blklst *bl,int flag)
         list_append(&srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFfillist,*bl->BLsrcpos.Sfilptr);
     }
 
-#if !TARGET_68000
-    if (configv.verbose)
-        NetSpawnFile(p,(flag & FQsystem) ? -(includenest + 1) : includenest);
-    includenest++;
-    if (configv.verbose == 2)
-    {   int i;
-        char buffer[32];
-
-        memset(buffer,' ',sizeof(buffer));
-        i = (includenest < sizeof(buffer)) ? includenest : sizeof(buffer) - 1;
-        buffer[i] = 0;
-        dbg_printf("%s'%s'\n",buffer,p);
-    }
-#endif
 #if !SPP
     if (fdep && !(flag & FQsystem))
     {

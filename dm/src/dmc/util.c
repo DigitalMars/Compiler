@@ -37,7 +37,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 #if TX86
 
-#if __SC__ && !TARGET_68000 && !DEBUG
+#if __SC__ && !DEBUG
 /* disable library versions from being linked in */
 //void __cdecl _fltused() { }
 #endif
