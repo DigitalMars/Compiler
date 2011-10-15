@@ -3350,14 +3350,10 @@ void cpp_memberaccess(symbol *smember,symbol *sfunc,Classsym *sclass)
 {
     if (!cpp_memberaccesst(smember, sfunc, sclass))
     {
-#if HOST_THINK
-        if (compile_state != kDataView) // debugger can violate access restrictions
-#endif
-        {   char *p = (char *) MEM_PARF_STRDUP(cpp_prettyident(smember));
+        char *p = (char *) MEM_PARF_STRDUP(cpp_prettyident(smember));
 
-            cpperr(EM_not_accessible,p,cpp_prettyident(sclass));        // no access to member
-            MEM_PARF_FREE(p);
-        }
+        cpperr(EM_not_accessible,p,cpp_prettyident(sclass));        // no access to member
+        MEM_PARF_FREE(p);
     }
 }
 

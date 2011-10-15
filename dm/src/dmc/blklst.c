@@ -1319,7 +1319,7 @@ void getcharnum()
 }
 #endif
 
-#if PRAGMA_ONCE && !HOST_THINK
+#if PRAGMA_ONCE
 void *once_dehydrate()
     {
     blklst *bl,*bl_next;

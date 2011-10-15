@@ -4518,25 +4518,6 @@ void n2_genvtbl(Classsym *stag,enum SC sc,int flag)
         /* Don't generate vtbl[]        */
     }
 
-#if !HOST_THINK
-    // Sharing vtbls is bad if your linker can't resolve multiply defined
-    // names, as in Babel.
-
-    /* See if we can get by using our primary base class's vtbl[].      */
-    /* In order to use it we must have a base class with an             */
-    /* identical Svirtual list. Always generate our own vtbl[] if       */
-    /* dynamic typing information is desired.                           */
-    else if (st->Sprimary && !(st->Sprimary->BCflags & BCFnewvtbl) &&
-             !(config.flags2 & CFG2dyntyping) &&
-             !(config.flags3 & CFG3rtti))
-    {   Classsym *sbase;
-
-        sbase = st->Sprimary->BCbase;
-        //dbg_printf("Recursive...\n");
-        n2_genvtbl(sbase,sc,flag);
-        st->Svtbl = sbase->Sstruct->Svtbl;
-    }
-#endif
     else if (st->Svirtual)
     {   /* Generate our own vtbl[] array        */
 

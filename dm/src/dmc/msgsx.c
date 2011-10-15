@@ -2636,16 +2636,10 @@ struct Msgtable msgtable[] =
         "テンプレート引数 '%s' は関数パラメータ型に使われていない", /* CPP+82 */
   },
   { "cant_gen_templ_inst",
-    #if HOST_THINK
-        "cannot generate template instance from pragma template%s",     /* CPP+83 */
-        "Schabloneninstanz von Pragma-Schablone%s kann nicht erstellt werden",  /* CPP+83 */
-        "impossible de gＯＳer une instance de squelette � partir du squelette pragma %s",      /* CPP+83 */
-    #else
         "cannot generate template instance from -XI%s", /* CPP+83 */
         "Schabloneninstanz von -XI%s kann nicht erstellt werden",       /* CPP+83 */
         "impossible de gＯＳer une instance de squelette � partir de -XI%s",    /* CPP+83 */
         "-XI%s からテンプレートのインスタンスを生成できない",   /* CPP+83 */
-    #endif
   },
 
         /* ARM 8.4.3

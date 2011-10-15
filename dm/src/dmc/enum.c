@@ -28,12 +28,6 @@
 #include        "cpp.h"
 #include        "el.h"
 #include        "oper.h"
-#if (HOST_THINK)
-#include        "browse.h"
-#endif
-#if (HOST_THINK) || (HOST_RAINBOW)
-#include        "callbacks.h"
-#endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"

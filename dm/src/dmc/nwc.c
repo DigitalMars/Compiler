@@ -747,7 +747,7 @@ void output_func()
         pstate.do_push = FALSE;
     }
 #endif
-#if HOST_THINK || HOST_RAINBOW
+#if HOST_RAINBOW
     if (pstate.do_pop)
     {
         pragma_restore();
