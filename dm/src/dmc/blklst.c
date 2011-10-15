@@ -1384,38 +1384,6 @@ void blklst_term()
 
 #endif
 
-#if HOST_RAINBOW
-/*
- * In order to rehydrate the once list and keep its data common, we need
- * to append the rehydrated list at the end, instead of insterting it at
- * the start. This is OK since the once list is only appended to at the
- * beginning, not the end.
- */
-void once_hydrate_loaded(blklst *bl)
-{
-    blklst *last_bl = Once;
-
-    if (last_bl)
-    {
-
-        /* find the last block */
-
-        while (last_bl->BLprev)
-            last_bl = last_bl->BLprev;
-
-        /* point it at the start of the dehyrated Once list */
-
-        last_bl->BLprev = bl;
-    }
-
-    /* if Once list is empty, use dehydrated bl to start list */
-
-    else
-        Once = bl;
-}
-#endif
-
-
 #if !TX86
 void blklst_reinit(void)
 {

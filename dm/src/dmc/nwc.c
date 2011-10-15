@@ -734,14 +734,6 @@ void output_func()
             writefunc(s);
         }
     }
-
-#if HOST_RAINBOW
-    if (pstate.do_pop)
-    {
-        pragma_restore();
-        pstate.do_pop = FALSE;
-    }
-#endif
 }
 
 /******************************************
