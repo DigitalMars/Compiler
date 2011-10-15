@@ -4937,10 +4937,6 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
             t = newref(stag->Stype);
         }
         s = symbol_name(p,SCparameter,t);
-#if HOST_MPW
-        if (DoFileOffsets)
-            s->Ssrcpos = TkIdStrtSrcpos;
-#endif
         s->Ssymnum = --si;
         s->Sflags |= SFLfree;
         f->Flocsym.tab[si] = s;

@@ -2577,14 +2577,6 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
         e = el_unat(OPind,t,e);
   }
 
-#if (TARGET_68K)
-#if HOST_MPW
-  if (tyfloating(ty) && !typasfunc(tfunc->Tty))
-        el_settype(e,tsldouble);                /* C and C++ always return long double */
-#endif
-
-#endif
-
   // For functions returning references, put a * in front
   else if (tyref(t->Tty))
   {     // Convert e from <ref to> to <ptr to>

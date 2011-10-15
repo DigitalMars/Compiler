@@ -97,13 +97,7 @@ int template_getcmd(char p,char *s)
                 default:
                     goto err;
             }
-#if HOST_MPW
-            if (config.flags2 & CFG2tmpaccspec &&
-                config.template_access != template_access)
-                warerr(4,s);                            // command line template access
-            else
-#endif
-                config.template_access = template_access;
+            config.template_access = template_access;
             break;
         default:
             goto err;

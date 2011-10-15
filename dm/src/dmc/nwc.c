@@ -735,18 +735,6 @@ void output_func()
         }
     }
 
-#if HOST_MPW && TARGET_68K
-    if (pstate.do_pop)
-    {
-        PCrel_option = pstate.pop_value;
-        pstate.do_pop = FALSE;
-    }
-    if (pstate.do_push)
-    {
-        PCrel_option = pstate.push_value;
-        pstate.do_push = FALSE;
-    }
-#endif
 #if HOST_RAINBOW
     if (pstate.do_pop)
     {

@@ -1287,12 +1287,6 @@ Srcpos getlinnum()
 #else
         b = blklst_getfileblock();
 #endif
-#if HOST_MPW
-#if SOURCE_OFFSETS
-        if (b)                          /* get file offset also */
-            b->BLsrcpos.Sfiloff = b->BLfoffset+b->BLlincnt;
-#endif
-#endif
         // If past end of file, use last known position
         return b ? b->BLsrcpos : lastpos;
 }

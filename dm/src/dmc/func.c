@@ -302,16 +302,6 @@ void func_body(symbol *s)
 
   tfunc = s->Stype;
   assert(tyfunc(tfunc->Tty));
-#if HOST_MPW
-#if CPP
-  if (configv.addlinenumbers)
-        f->startbline = TklbrackSrcpos;
-#else
-  f->Fstartline = save_offset;
-  if (configv.addlinenumbers)
-        startbline = TklbrackSrcpos;
-#endif
-#endif
 #if TX86
     if (tybasic(tfunc->Tty) == TYf16func)
         synerr(EM_far16_extern);        // _far16 functions can only be extern
@@ -449,25 +439,6 @@ void func_body(symbol *s)
                 e = el_combine(e,el_bint(OPeq,tsfloat,el_var(sp),ec));
                 sp->Sflags |= SFLdouble;
                 }
-#if HOST_MPW
-        else if (tybasic(sp->Stype->Tty) == TYdouble)
-                {   elem *ec;
-                ec = el_var(sp);
-                el_settype(ec,tsldouble);
-                ec = el_unat(OPd_f,tsdouble,ec);
-                e = el_combine(e,el_bint(OPeq,tsdouble,el_var(sp),ec));
-                sp->Sflags |= SFLdouble;
-                }
-        else if (tybasic(sp->Stype->Tty) == TYcomp)
-                {   elem *ec;
-
-                ec = el_var(sp);
-                el_settype(ec,tsldouble);
-                ec = el_unat(OPdblcomp,tscomp,ec);
-                e = el_combine(e,el_bint(OPeq,tscomp,el_var(sp),ec));
-                sp->Sflags |= SFLdouble;
-                }
-#endif /* HOST_MPW */
 #else
         if (tybasic(sp->Stype->Tty) == TYfloat)
         {   elem *ec;
@@ -609,18 +580,6 @@ void func_body(symbol *s)
     startblock = curblock = block_calloc();     // create initial block
     startblock->Bsymstart = 0;
     funcstate.scope = NULL;
-    if (CPP)
-    {
-
-#if HOST_MPW
-        if (f->Fflags3 & Fmain && Add_pascal_object)
-        {
-            symbol *s_pgm1;
-            s_pgm1 = lookupsym("_PGM1");
-            e = el_combine(e,el_unat(OPucall,tsvoid,el_var(s_pgm1)));
-        }
-#endif
-    }
     startblock->Belem = e;
     level = 2;                          // at function block scope
     func_state();                       // do function_statement
@@ -778,17 +737,9 @@ void paramtypadj(type **pt)
         else
             t = tsuns;
         break;
-#if HOST_MPW
-    case TYfloat:
-    case TYcomp:
-    case TYdouble:
-        t = tsldouble;
-        break;
-#else
     case TYfloat:
         t = tsdouble;                   /* convert to double            */
         break;
-#endif
     default:
         return;
   }
