@@ -238,7 +238,7 @@ elem *exp2_addr(elem *e)
     //dbg_printf("exp2_addr(%p)\n",e);
     /* Convert &*(far *)handle to handle        */
     if (e->Eoper == OPind &&
-        (e->E1->Eoper == OPvptrfptr || e->E1->Eoper == OPcvptrfptr))
+        (e->E1->Eoper == OPvp_fp || e->E1->Eoper == OPcvp_fp))
     {   elem *eh;
 
         eh = e;
@@ -5507,7 +5507,7 @@ L1:
             else
                 goto doaction;
 
-        case OPlngsht:
+        case OP32_16:
         case OP16_8:
         case OP64_32:
         case OPoffset:
@@ -5528,11 +5528,11 @@ L1:
                                         /* can't pass handles to generic routines */
 #endif
             /* If handle pointer to const, use the constant conversion  */
-            action = (newt->Tnext->Tty & mTYconst) ? OPcvptrfptr : OPvptrfptr;
+            action = (newt->Tnext->Tty & mTYconst) ? OPcvp_fp : OPvp_fp;
             goto doaction;
 
         case CINT:              /* convert char to int                  */
-            action = (config.flags & CFGuchar) ? OPu8int : OPs8int;
+            action = (config.flags & CFGuchar) ? OPu8_16 : OPs8_16;
             goto doaction;
 
         case VOID:
