@@ -1,6 +1,6 @@
 #_ makefile
 # Copyright (C) 1984-1994 by Symantec
-# Copyright (c) 2000-2009 by Digital Mars
+# Copyright (c) 2000-2011 by Digital Mars
 # Written by Walter Bright
 # All Rights Reserved
 #       for C/C++ compiler parser and preprocessor (SCC, SCPP, SPP and HTOD)
@@ -136,7 +136,7 @@ OBJ1e=struct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj
 
-OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj code.obj
+OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj code.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj iasm.obj ptrntab.obj newman.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj
@@ -260,7 +260,7 @@ SRC=    tassert.h html.h html.c \
         exp2.c blockopt.c exp.c gdag.c gflow.c gother.c global.h oper.h \
         optabgen.c cgcs.c cgcv.c go.c var.c cod2.c cc.h gloop.c msc.c cod3.c \
         code.h cgsched.c cgen.c ph.c cgreg.c inline.c cgcod.c token.c \
-        pragma.c cod1.c cg87.c cod4.c cgobj.c nwc.c getcmd.c tk.c cdef.h \
+        pragma.c cod1.c cg87.c cgxmm.c cod4.c cgobj.c nwc.c getcmd.c tk.c cdef.h \
         cgelem.c rtlsym.h dt.c strtold.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
@@ -389,6 +389,7 @@ rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 symbol.obj : $(DEP) $(symbol.dep) symbol.c
 tytostr.obj : $(DEP) $(tytostr.dep) tytostr.c
 cg87.obj : $(DEP) $(cg87.dep) cg87.c
+cgxmm.obj : $(DEP) $(cgxmm.dep) cgxmm.c
 cpp.obj : $(DEP) $(cpp.dep) cpp.c
 exp.obj : $(DEP) $(exp.dep) exp.c
 file.obj : $(DEP) $(file.dep) file.c
