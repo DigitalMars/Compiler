@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -1112,8 +1112,7 @@ elem *el_picvar(symbol *s)
 {   elem *e;
     int x;
 
-    //printf("el_picvar(s = '%s')\n", s->Sident);
-    //printf("  Sclass = "); WRclass((enum SC) s->Sclass); printf("\n");
+    //printf("el_picvar(s = '%s')", s->Sident); printf("  Sclass = "); WRclass((enum SC) s->Sclass); printf("\n");
     //symbol_print(s);
     symbol_debug(s);
     type_debug(s->Stype);
@@ -1131,6 +1130,11 @@ elem *el_picvar(symbol *s)
 
         case SCcomdat:
         case SCcomdef:
+            if (0 && I64)
+            {
+                x = 0;
+                goto case_got;
+            }
         case SCglobal:
         case SCextern:
 #if 0
@@ -1140,7 +1144,8 @@ elem *el_picvar(symbol *s)
 #endif
                 x = 1;
         case_got:
-        {   if (!localgot)
+        {
+            if (I32 && !localgot)
             {
                 //localgot = symbol_generate(SCtmp,type_fake(TYnptr));
                 char name[15];
@@ -1155,7 +1160,8 @@ elem *el_picvar(symbol *s)
             tym_t tym = e->Ety;
             e->Eoper = OPrelconst;
             e->Ety = TYnptr;
-            e = el_bin(OPadd, TYnptr, e, el_var(localgot));
+            if (I32)
+                e = el_bin(OPadd, TYnptr, e, el_var(localgot));
 #if 1
             if (s->Stype->Tty & mTYthread)
             {
@@ -1408,9 +1414,6 @@ elem * el_var(symbol *s)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // OSX is currently always pic
     if (config.flags3 & CFG3pic &&
-#if TARGET_OSX
-        I32 &&
-#endif
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         (!(s->Stype->Tty & mTYthread) || I64) &&
 #endif
@@ -1634,9 +1637,6 @@ elem * el_ptr(symbol *s)
 #endif
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic &&
-#if TARGET_OSX
-        I32 &&
-#endif
         tyfunc(s->ty()))
         e = el_picvar(s);
     else
