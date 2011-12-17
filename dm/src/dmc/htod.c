@@ -229,7 +229,7 @@ void obj_write_bytes(seg_data *pseg, unsigned nbytes, void *p)
 {
 }
 
-unsigned Coffset;
+//unsigned Coffset;
 seg_data **SegData;
 
 /* ======================= cgcv stub ======================================= */
