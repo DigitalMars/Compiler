@@ -264,7 +264,7 @@ SRC=    tassert.h html.h html.c \
         cgelem.c rtlsym.h dt.c strtold.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
-	ti_pvoid.c
+	ti_pvoid.c xmm.h
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c
@@ -389,7 +389,7 @@ rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 symbol.obj : $(DEP) $(symbol.dep) symbol.c
 tytostr.obj : $(DEP) $(tytostr.dep) tytostr.c
 cg87.obj : $(DEP) $(cg87.dep) cg87.c
-cgxmm.obj : $(DEP) $(cgxmm.dep) cgxmm.c
+cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
 cpp.obj : $(DEP) $(cpp.dep) cpp.c
 exp.obj : $(DEP) $(exp.dep) exp.c
 file.obj : $(DEP) $(file.dep) file.c
