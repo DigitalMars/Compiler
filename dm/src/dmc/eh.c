@@ -947,7 +947,7 @@ symbol *except_gentables()
 #if MEMMODELS != 1
         else if (config.memmodel != Vmodel)     // table can't be in overlay
         {   tsym->Tty |= mTYcs;
-            if (cseg < 0)
+            if (SegData[cseg]->segidx < 0)
                 ehsym->Sxtrnnum = funcsym_p->Sxtrnnum;
         }
 #endif
