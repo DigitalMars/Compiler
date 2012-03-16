@@ -156,10 +156,10 @@ void util_set64()
  * Alternative assert failure.
  */
 
-void util_assert(char *file,int line)
+void util_assert(const char *file,int line)
 {
-    if (!(configv.verbose == 2))
-        *strchr(file,'.') = 0;
+    //if (!(configv.verbose == 2))
+        //*strchr(file,'.') = 0;
 #if USEDLLSHELL
     err_fatal(EM_internal_error,file,line);
 #else
