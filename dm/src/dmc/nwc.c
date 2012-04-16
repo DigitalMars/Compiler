@@ -119,6 +119,7 @@ int __cdecl main(int argc,char *argv[])
   mem_setexception(MEM_CALLFP,err_nomem);
   list_init();
   vec_init();
+  cod3_setdefault();
   getcmd(argc,argv);                    // process command line
   file_iofiles();
   token_init();                         // initialize tokenizer tables
