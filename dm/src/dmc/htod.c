@@ -118,6 +118,11 @@ int obj_comdat(Symbol *s)
     return 0;
 }
 
+int obj_comdatsize(Symbol *s, targ_size_t symsize)
+{
+    return 0;
+}
+
 void obj_setcodeseg(int seg)
 {
 }
@@ -151,6 +156,10 @@ void obj_export(Symbol *s,unsigned argsize)
 }
 
 void objpubdef(int seg,Symbol *s,targ_size_t offset)
+{
+}
+
+void objpubdefsize(int seg,Symbol *s,targ_size_t offset, targ_size_t symsize)
 {
 }
 
