@@ -118,7 +118,7 @@ int obj_comdat(Symbol *s)
     return 0;
 }
 
-void obj_setcodeseg(int seg,targ_size_t offset)
+void obj_setcodeseg(int seg)
 {
 }
 
