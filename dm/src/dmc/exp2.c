@@ -26,9 +26,6 @@
 #include        "cpp.h"
 #include        "dt.h"
 #include        "scope.h"
-#if TARGET_MAC
-#include        "TG.h"
-#endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -40,13 +37,6 @@ STATIC int typerelax(type *,type *);
 STATIC int paramlstcompat(param_t *,param_t *);
 STATIC elem * strarg(elem *e);
 STATIC elem * exp2_castx(elem *e,type *newt,elem **pethis,int flags);
-
-#if (TARGET_MAC)
-elem *cpp_hdlptr(elem *e);
-#define M68HDL(e)       cpp_hdlptr(e)
-#else
-#define M68HDL(e)       (e)
-#endif
 
 /*******************************
  * Read list of comma-separated arguments into *parglist.
@@ -265,10 +255,6 @@ elem *exp2_addr(elem *e)
                         continue;
 
                     case OPcond:
-#if TARGET_MAC
-                        eTemp = eTemp->E2->E1;
-                        continue;
-#endif
                     case OPvar:
                     case OPind:
                     case OPstreq:
@@ -441,9 +427,6 @@ STATIC type * exp2_issimpletypename()
         case TKfloat:           t = tsfloat;    break;
         case TKdouble:          t = tsdouble;   break;
         case TKvoid:            t = tsvoid;     break;
-#if TARGET_MAC
-        case TKextended:        t = tsldouble;  break;
-#endif
         case TKsymbol:
             s = tok.TKsym;
             goto L1;
@@ -578,9 +561,6 @@ elem *dodot(elem *e1,type *tclass, bool bColcol)
   char destructor;
   char thisptr;
   symbol *sTempl = NULL;
-#if TARGET_MAC
-  int PasObjFlg = FALSE,HdlObjFlg = FALSE,inheritedFlg = FALSE,based = FALSE;
-#endif
   int result;
 
     if (!tclass)                        // could happen if int->member
@@ -636,9 +616,6 @@ L2:
 Lid3:
         symbol *sc = NULL;
 
-#if TARGET_MAC
-        inheritedFlg = tok.TKflags & TKFinherited;
-#endif
         stmp = sclass;
         if (tok.TKval == TKident)
         {
@@ -721,14 +698,6 @@ Lid3:
                         break;
                 }
             }
-#if TARGET_MAC
-            if (bColcol)
-            {
-                sc = scope_search( vident,SCTglobal | SCTnspace);
-                bColcol = FALSE;
-            }
-            else
-#endif
             sc = scope_search(vident,SCTglobal | SCTnspace | SCTtempsym | SCTtemparg | SCTlocal);
             if (!sc && sclass->Sscope && sclass->Sscope->Sclass == SCnamespace)
             {
@@ -786,9 +755,6 @@ Lid3:
             if (!sclass0addr)
                 sclass0addr = sclass;
             direct = TRUE;      /* if virtual function, call it directly */
-#if TARGET_MAC
-            based = TRUE;
-#endif
             if (tok.TKval == TKcom)     /* if p->X::~X()        */
             {
                 stoken();
@@ -913,109 +879,6 @@ Lident_err:
   }
 
   /* try to find the symbol */
-#if TARGET_MAC
-  if (inheritedFlg)
-        {                       /* should probably limit to pasobj, non static */
-        sclass = sclass->Sstruct->Sbase->BCbase;
-        s = cpp_findmember(sclass,vident,TRUE);
-        direct = TRUE;
-        stmp = sclass;
-        }
-  else if (sclass->Sstruct->Sflags & STRpasobj && !based)
-        {
-        baseclass_t *b;
-#if 1
-        symbol *last_sym_fnd,*last_class;
-
-        last_class = sclass;
-        last_sym_fnd = s = cpp_findmember(sclass,vident,TRUE);
-        if (!s)
-            goto err;           /* couldn't find the member */
-        if (tyfunc(last_sym_fnd->Stype->Tty))
-            {
-            while (b = last_class->Sstruct->Sbase)
-                {
-                symbol *sym;
-
-                last_class = b->BCbase;
-                sym = cpp_findmember(last_class,vident,FALSE);
-#if 0
-                if (sym)
-#else
-                // only match "correct" functions; Pat: why not use C++ object code instead?
-                if (sym && cpp_funccmp(s, sym))
-#endif
-                    last_sym_fnd = sym;
-                };
-            s = last_sym_fnd;
-            }
-#else
-        symbol *last_class = sclass;
-        unsigned short result;
-
-        s = cpp_findmember(sclass,vident,TRUE);
-        if (!s)
-            goto err;                           /* couldn't find the member */
-        if (tyfunc(s->Stype->Tty))
-            {
-            if (s->Sfunc->Fclass == sclass)
-                goto PO1;
-            while (b = last_class->Sstruct->Sbase)
-                {
-                symbol *sym;
-                last_class = b->BCbase;         /* will not return sym if can't access */
-                sym = cpp_findmember(last_class,vident,FALSE);
-                if (sym && tyfunc(sym->Stype->Tty))
-                    {
-                    last_class = sym->Sscope;
-                    break;
-                    }
-                };
-PO1:
-           if (!isclassmember(funcsym_p))       // not a member function
-                {
-                symbol *bclass;
-
-                result = 1;             /* assume access O.K. */
-                if ((s->Sflags & SFLpmask) != SFLpublic)
-                    result = 0;         /* function protected */
-                else if (sclass == s->Sscope)
-                    ;
-                else
-                    {                   /* function not protected */
-                    bclass = sclass;    /* is class protected */
-                    while (b = bclass->Sstruct->Sbase)
-                        {
-                        bclass = b->BCbase;/* check path to function */
-                        if (b->BCflags & (BCFprivate|BCFprotected))
-                            {           /* can't get to function */
-                            result = 0; /* protected/private base in the way */
-                            break;
-                            }
-                        if (bclass == last_class)
-                            break;
-                        }
-                    }
-                }
-            else if (s->Sscope == last_class)
-                result = 1;
-            else if (cpp_findaccess(s,last_class) == SFLpublic)
-                result = 1;
-PO2:
-            if (!result)
-#if HOST_THINK
-                if (compile_state == kDataView)         /* debugger can violate access restrictions */
-                    return;
-                else
-#endif
-                cpperr(EM_not_accessible,cpp_prettyident(s),sclass->Sident);    /* no access to member */
-            }
-#endif
-        direct = TRUE;
-        stmp = sclass;
-    }
-    else
-#endif
     {
         stmp = sclass;
         s = cpp_findmember_nest(&stmp,vident,destructor ^ 1);
@@ -1303,21 +1166,8 @@ Lsymfound:
         }
 
         /* Convert ethis to default pointer type        */
-#if TARGET_MAC
-        PasObjFlg = (sowner->Stype->Ttag->Sstruct->Sflags & STRpasobj);
-        HdlObjFlg = (sowner->Stype->Ttag->Sstruct->Sflags & STRmachdl);
-        if (thisptr)
-            {
-            type *t;
-            t = newpointer(ethis->ET->Tnext);
-            if (PasObjFlg || HdlObjFlg)
-                t->Tty = TYvptr;
-            ethis = cast(ethis,t);
-            }
-#else
         if (thisptr)
             ethis = cast(ethis,newpointer(ethis->ET->Tnext));
-#endif
 
         if (destructor && thisptr)
             // Explicitly called destructors are not part of the EH mechanism
@@ -1334,13 +1184,6 @@ Lsymfound:
             e = el_unat(OPind,e->ET->Tnext,e);
             e = poptelem(e);            /* collapse out *& and &*       */
 
-#if TARGET_MAC
-            if (PasObjFlg && (inheritedFlg || based) && sfunc->Sfunc->Fflags & Fvirtual)
-            {
-                assert(e->Eoper == OPvar);
-                e->Eflags |= EFpinher;
-            }
-#endif
             if (sfunc->Sfunc->Fflags & Fstatic)
             {   el_free(ethis);
                 ethis = NULL;
@@ -1359,12 +1202,6 @@ Lsymfound:
                 if (tym & ~sfunc->Stype->Tty)
                     typerr(EM_cv_arg,ethis->ET,sfunc->Stype);   /* type mismatch */
             }
-#if TARGET_MAC
-            if(PasObjFlg)
-                ethis->Eflags |= EFpasmeth;
-            if(HdlObjFlg)
-                ethis->Eflags |= EFhdlobj;
-#endif
             ec = xfunccall(e,ethis,NULL,arglist);
         }
         chktok(TKrpar,EM_rpar);
@@ -1425,16 +1262,13 @@ Lsymfound:
         type_setty(&ethis->ET,(ethis->ET->Tty & ~mTYbasic) | TYfptr);
 #endif
 
-  mos = el_longt(tsint,s->Smemoff);             // offset of member
-  M68HDL(eplus = el_bint(OPadd,at,ethis,mos));  // &e1 + mos
+  mos = el_longt(tsint,s->Smemoff);     // offset of member
+  eplus = el_bint(OPadd,at,ethis,mos);  // &e1 + mos
 
   e = el_unat(OPind,s->Stype,eplus);    /* *(&e1 + mos)                 */
   if (s->Sflags & SFLmutable)
         modifiers &= ~mTYconst;
   type_setty(&e->ET,e->ET->Tty | modifiers);
-#if (TARGET_MAC)
-  if(!CPP || (!PasObjFlg && !HdlObjFlg))
-#endif
   handleaccess(e);
   if (tyref(e->ET->Tty))
         e = reftostar(e);
@@ -1486,9 +1320,6 @@ elem *doarray(elem *e1)
     }
     else
     {
-#if TARGET_MAC
-        e2 = convertchk(e2);
-#endif
         e2 = arraytoptr(e2);
         eplus = el_bint(OPadd,NULL,e1,e2);
     }
@@ -1781,10 +1612,7 @@ L1:
 
             /* Member functions could be virtual        */
             e1 = cpp_getfunc(tclass,sfunc,&ethis);
-#if TARGET_MAC
-            if(!(e1->Eflags&EFpasmeth))
-#endif
-                e1 = el_unat(OPind,e1->ET->Tnext,e1);
+            e1 = el_unat(OPind,e1->ET->Tnext,e1);
             el_copy(e,e1);
             e1->ET = NULL;
             e1->E1 = NULL;
@@ -1797,12 +1625,7 @@ L1:
         else
         {   err_nomatch("operator()",arglist); /* no match for function */
             list_free(&arglist,(list_free_fp)el_free);
-#if TARGET_MAC
-            ec = el_longt(tserr,0);
-            goto ret;
-#else
             return e;
-#endif
         }
     }
     else
@@ -1866,7 +1689,6 @@ elem *builtinFunc(elem *ec)
     elem *e = ec->E1;
     elem *e2;
 
-#ifdef TARGET_INLINEFUNC_NAMES
     if (e->Eoper == OPvar &&
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
         // In linux this is controlled by an option instead of adding defines to
@@ -1881,7 +1703,6 @@ elem *builtinFunc(elem *ec)
         int i;
         static const char *inlinefunc[] = /* names of inline functions  */
         {
-#if TX86
                 "bsf",
                 "bsr",
                 "bt",
@@ -1932,14 +1753,10 @@ elem *builtinFunc(elem *ec)
                 "strlen",
                 "yl2x",
                 "yl2xp1",
-#else
-        TARGET_INLINEFUNC_NAMES
-#endif
         };
         /* Parallel table of corresponding opcodes      */
         static unsigned char opcode[] =
         {
-#if TX86
                   OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,
                   OPcos,OPcos,OPcos,
                   OPabs,OPabs,OPabs,OPmemcmp,OPmemcpy,OPmemset,
@@ -1953,14 +1770,10 @@ elem *builtinFunc(elem *ec)
                   OPsetjmp,OPsin,OPsin,OPsin,OPsqrt,OPsqrt,OPsqrt,
                   OPstrcmp,OPstrcpy,OPstrlen,
                   OPyl2x,OPyl2xp1,
-#else
-        TARGET_INLINEFUNC_OPS
-#endif
         };
         /* Types of the operands. We check against these to make sure
            we are not inlining an overloaded function.
          */
-#if TX86
         static tym_t ty1[] =
                 { TYptr,TYptr,TYptr,TYptr,TYptr,TYptr,
                   TYdouble,TYfloat,TYuint,TYuint,TYptr,TYptr,TYuint,
@@ -1968,25 +1781,14 @@ elem *builtinFunc(elem *ec)
         static tym_t ty2[] =
                 { ~0,~0,~0,~0,~0,~0,
                   ~0,~0,TYuint,TYuint,~0,~0,TYchar,TYuint,~0,~0,~0 };
-#else
-        static tym_t ty1[] =
-                { TARGET_INLINEFUNC_ARGTY1 };
-        static tym_t ty2[] =
-                { TARGET_INLINEFUNC_ARGTY2 };
-#endif
 
         s = e->EV.sp.Vsym;
         symbol_debug(s);
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
         if (ec->Eoper == OPcall)        /* forget about OPucall for now */
 #else
-#if TARGET_MAC
-        if ((config.inline68881 & CFGtrans && tyfloating(ec->ET->Tty))
-#else
         if (s->Sident[0] == '_' && memcmp(s->Sident + 1,"inline_",7) == 0
-#endif
-            && ec->Eoper == OPcall      /* forget about OPucall for now */
-           )
+            && ec->Eoper == OPcall)     /* forget about OPucall for now */
 #endif
         {
             // If not C mangling, don't recognize it
@@ -2185,7 +1987,6 @@ elem *builtinFunc(elem *ec)
         }
 #endif
     }
-#endif
 
 ret:
     elem_debug(ec);
@@ -2203,25 +2004,9 @@ STATIC elem * defaultpromotions(elem *e)
         /* this should be combined with paramtypadj()   */
         switch (tybasic(e->ET->Tty))
         {
-#if TARGET_MAC
-#if HOST_MPW
-            case TYfloat:
-            case TYdouble:
-            case TYcomp:
-                t = tsldouble;
-                break;
-#else
-            case TYfloat:
-            case TYdouble:
-            case TYcomp:
-                    t = tsdouble;               /* double is smaller size */
-                break;
-#endif
-#else
             case TYfloat:
                 t = tsdouble;
                 break;
-#endif
             default:
                 return convertchk(e);
         }
@@ -2258,32 +2043,12 @@ elem *convertchk(elem *e)
                 else
                     t = tsuns;
                 break;
-#if TARGET_MAC  /* NOTE: PAT - no longer doing this for 80x86 */
-            case TYfloat:
-            case TYdouble:
-            case TYcomp:
-#if TARGET_68K
-                if (config.inline68881)
-                    return e;           /* SANE always done long double (classic C not ANSI) */
-#endif
-                t = tsldouble;
-                break;
-            case TYenum:
-                if (!config.flags2&CFG2sizedenum)
-                    return e;
-                t = tsint;
-                /* value-preserving rules ?     */
-                if (tybasic(e->ET->Tnext->Tty) == TYushort && intsize <= SHORTSIZE)
-                    t = tsuns;
-                break;
-#else
             case TYsptr:
                 if (!(config.wflags & WFssneds))
                 {   t = type_allocn(TYnptr,e->ET->Tnext);
                     break;
                 }
                 /* FALL-THROUGH */
-#endif
             default:
                 return e;
 #if TX86
@@ -2474,22 +2239,6 @@ STATIC elem * strarg(elem *e)
             arglist = list_build(e,NULL);
             ector = init_constructor(NULL,tclass,arglist,0,3,NULL);
             assert(ector);
-#if TARGET_MAC
-            if (ector->Eoper == OPcond)
-            {
-            // Add an OPstrctor in front of children of OPcolon
-            // This way params in codegen can be called recursively to
-            // handle OPstrctor with conditional call to constructors
-                elem *ecolon = ector->E2;
-                ecolon->E1 = el_unat(OPstrctor,tclass,ecolon->E1);
-                ecolon->E2 = el_unat(OPstrctor,tclass,ecolon->E2);
-                ecolon->E1->Eflags |= EFstrctor;
-                ecolon->E2->Eflags |= EFstrctor;
-            }
-            else
-                ector->Eflags |= EFstrctor;     /* OPstrctor handles reversal of params */
-                                                /* Flag the call so it is not rewritten */
-#endif
             return el_unat(OPstrctor,tclass,ector);
         }
     }
@@ -2509,13 +2258,6 @@ STATIC elem * strarg(elem *e)
  *      call expression tree
  */
 
-#if TARGET_POWERPC
-// this is silly but i don't want to put this in parser.h and i don't understand
-//why tgexp2.c is included at the bottom instead of at the top but i don't want
-// to disrupt anybody so there.....
-extern elem * insert_hidden(type *, elem * , elem *);   // in tgexp2.c
-#endif
-
 elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
 {   type *tfunc;
     const char *funcid;
@@ -2528,11 +2270,6 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
     int retmethod;
     type *t;
     tym_t ty;
-
-#if TARGET_MAC
-    unsigned short hiddenparam = FALSE;
-    unsigned returnreg = 0;
-#endif
 
     tfunc = efunc->ET;
     if (!tyfunc(tfunc->Tty))
@@ -2648,28 +2385,6 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
             if (p)
             {
                 /* Convert argument to type of parameter        */
-#if (TARGET_MAC)
-                if (CPP && tybasic(p->Ptype->Tty) == TYfptr)
-                    {                   /* forward referenced class proto-types have fptr not vptr */
-                    type *tn = p->Ptype->Tnext;
-                    if((tybasic(tn->Tty) == TYstruct) &&
-                        tn->Ttag->Sstruct->Sflags & (STRpasobj|STRmachdl))
-                        {
-                        p->Ptype->Tty &= ~mTYbasic;
-                        p->Ptype->Tty |= TYvptr;        /* pick up handle ptr for handle based structs */
-                        }
-                    }
-                if (CPP && sfunc && sfunc->Sfunc->Fclass &&
-                     sfunc->Sfunc->Fclass->Sstruct->Sflags&STRpasobj &&
-                    ((strcmp(sfunc->Sident,"__nw") == 0) ||
-                     (strcmp(sfunc->Sident,"__dl") == 0)) )
-                    {                   /* skip the type check, will not match */
-                                        /* MPW C++ forces declaration to be (*)() */
-                                        /* instead of method table pointer */
-                    ;
-                    }
-                else
-#endif
                 e1 = exp2_paramchk(e1,p->Ptype,param);
                 p = p->Pnext;
             }
@@ -2727,18 +2442,7 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
     if (CPP && ethis)
     {   elem_debug(ethis);
         /* Convert ethis into correct pointer type for this class       */
-#if TARGET_MAC
-        {
-        type *t;
-        t = newpointer(ethis->ET->Tnext);
-        if (ethis->Eflags & (EFpasmeth|EFhdlobj) ||
-            tybasic(ethis->ET->Tty == TYvptr) )
-            t->Tty = TYvptr;
-        ethis = typechk(ethis,t);
-        }
-#else
         ethis = typechk(ethis,newpointer(ethis->ET->Tnext));
-#endif
         e = (e) ? el_bint(OPparam,tsint,e,ethis) : ethis;
     }
 #endif
@@ -2751,15 +2455,8 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
     {   elem *ehidden;
 
         stmp = symbol_genauto(tfunc->Tnext);
-#if TARGET_MAC
-        hiddenparam = TRUE;
-        ehidden = el_var(stmp);
-        ehidden->Eflags |= EFhidretp;
-        ehidden = el_unat(OPaddr,exp2_hiddentype(tfunc),ehidden);
-#else
         ehidden = el_ptr(stmp);
         ehidden = cast(ehidden,exp2_hiddentype(tfunc));
-#endif
         if (e)
         {
 #if HIDDENPARAM_1ST_ARG
@@ -2767,12 +2464,7 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
                 e = el_bint(OPparam,tsint,ehidden,e);
             else
 #endif
-
-#if TARGET_POWERPC
-                e = insert_hidden(tsint, e, ehidden);
-#else
                 e = el_bint(OPparam,tsint,e,ehidden);
-#endif
         }
         else
             e = ehidden;
@@ -2792,48 +2484,6 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
         e = el_bint(OPcall,tfunc->Tnext,efunc,e);
     else
         e = el_unat(OPucall,tfunc->Tnext,efunc);
-
-#if TARGET_68K
-    if (efunc->Eoper == OPvar)
-        {                       /* check for pragma parameter */
-        symbol_debug(efunc->EV.sp.Vsym);
-        returnreg = (efunc->EV.sp.Vsym->Sflags & PRAGMA_RET_MSK);
-        }
-
-    if (hiddenparam)
-        e->Eflags |= EFpasret;
-
-    if (returnreg)
-        {
-        e->Eflags |= EFpragmap;
-        e->EV.mac.Ereg[PRAGMA_PARAM_RETREG-1] = returnreg >> PRAGMA_RET_BIT;
-        }
-    p = tfunc->Tparamtypes;
-    if (p && p->Pflags & PRAGMA_PARAM_MSK)
-        {
-        returnreg = 0;
-        reverse = tyrevfunc(tfunc->Tty);
-        if (!reverse)
-            {
-            while(p)
-                {                       /* save the regs backward */
-                returnreg++;
-                p = p->Pnext;
-                }
-            p = tfunc->Tparamtypes;
-            returnreg--;
-            }
-        while (p)
-            {
-            e->EV.mac.Ereg[returnreg] = p->Pflags >> PRAGMA_PARAM_BIT;
-            if (!reverse)
-                returnreg--;
-            else
-                returnreg++;
-            p = p->Pnext;
-            }
-        }
-#endif
 
     // Modify function return elem (e) based on types of result.
 
@@ -2865,19 +2515,6 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
         }
         e = el_unat(OPind,t,e);
   }
-
-#if (TARGET_68K)
-#if HOST_MPW
-  if (tyfloating(ty) && !typasfunc(tfunc->Tty))
-        el_settype(e,tsldouble);                /* C and C++ always return long double */
-#endif
-
-#if HOST_THINK
-  if (tyfloating(ty) && tycppfunc(tfunc->Tty))  /* C++ functions can use any return method they like */
-        el_settype(e,tsldouble);
-#endif
-
-#endif
 
   // For functions returning references, put a * in front
   else if (tyref(t->Tty))
@@ -3132,17 +2769,6 @@ STATIC elem * exp2_paramchk(elem *e,type *t,int param)
                     e1 = e1->E2;
                     continue;
                 case OPind:
-#if TARGET_MAC
-                    if (e->E1->Eoper == OPvptrfptr && (tybasic(tn->Tty) == TYstruct) &&
-                        (tn->Ttag->Sstruct->Sflags & (STRpasobj|STRmachdl)) )
-                        {               /* de-ref handle, pass the handle itself */
-                        e = selecte1(e1,et);
-                        e = selecte1(e,e->E1->ET);
-                        tn = type_allocn(TYvptr,tn);
-                        e = exp2_paramchk(e,tn,param);  // to default pointer type
-                        return e;
-                        }
-#endif
                     break;
                 case OPcond:
                     /* Cast each leaf to the reference type     */
@@ -3462,11 +3088,6 @@ STATIC elem * exp2_paramchk(elem *e,type *t,int param)
   {
         // error if converting from an integer to an enum
         if (CPP && ty == TYenum && (ety != TYenum || et->Ttag != t->Ttag))
-#if TARGET_MAC
-            if (ety == TYstruct || ty == TYstruct)
-                goto doit;              // Look for user defined conversions
-            else
-#endif
             goto mismatch;
 
         if (ety == TYnullptr && ty == TYnullptr)
@@ -3496,12 +3117,6 @@ mismatch:
   //printf("et:\n");type_print(et);
   //printf("t:\n");type_print(t);
   typerr(param ? EM_explicitcast : EM_explicit_cast,et,t,param);        // cannot implicitly convert
-#if TARGET_MAC
-  // Pat: wouldn't error recovery be better if e is set to type t,
-  // not tserr? Also, why is this necessary at all, as the code below
-  // will try to cast it anyway as error recovery?
-  return el_settype(e,tserr);
-#endif
 
 doit:
   if (ety == TYstruct || ty == TYstruct)
@@ -3843,7 +3458,7 @@ elem *exp2_ptrvbaseclass(elem *ethis,Classsym *stag,Classsym *sbase)
     assert(b);
     e = el_longt(tsint,b->memoffset);
     tp = type_allocn(tpbase->Tty,tpbase);
-    M68HDL(e = el_bint(OPadd,tp,ethis,e));
+    e = el_bint(OPadd,tp,ethis,e);
     ethis = el_unat(OPind,tpbase,e);
 #endif /* VBTABLES */
     return ethis;
@@ -3998,7 +3613,7 @@ STATIC int c1isbaseofc2x(elem **pethis,symbol *c1,symbol *c2,Classsym **psvirtua
 
                         tpbase = type_allocn(ethis->ET->Tty,sbase->Stype);
                         assert(typtr(tpbase->Tty));
-                        M68HDL(ethis = el_bint(OPadd,tpbase,ethis,el_longt(tsint,b->BCoffset)));
+                        ethis = el_bint(OPadd,tpbase,ethis,el_longt(tsint,b->BCoffset));
                     }
                     *pethis = ethis;
                     if (c1 != sbase)
@@ -4092,12 +3707,6 @@ int typematch(type *t1,type *t2,int relax)
         tym = ~(mTYimport | mTYnaked);
     }
 
-#if TARGET_MAC
-  if ( t1 && t2 && tybasic(t2->Tty) == TYvptr && tybasic(t1->Tty) == TYfptr &&
-     typematch(t2->Tnext,t1->Tnext,relax))
-        t1->Tty = TYvptr | (t1->Tty & (mTYconst | mTYvolatile));
-  tym &= ~mTYpasret;            // Don't compare mTYpasret, may not be set yet
-#else
     if (relax & (4 | 0x20))
     {
         if (relax & 4)
@@ -4105,7 +3714,6 @@ int typematch(type *t1,type *t2,int relax)
         if (relax & 0x20)
             tym &= ~mTYfar;
     }
-#endif
     int i = t1 == t2 ||
             t1 && t2 &&
 
@@ -4128,12 +3736,7 @@ int typematch(type *t1,type *t2,int relax)
             (tybasic(t1ty) != TYstruct
                 && tybasic(t1ty) != TYenum
                 && tybasic(t1ty) != TYmemptr
-#if HOST_THINK
-        // cheat a little here to support forward referenced types in PH files
-             || (t1->Ttag == t2->Ttag || t1->Ttag->Stype->Ttag == t2->Ttag) )
-#else
              || t1->Ttag == t2->Ttag)
-#endif
                  &&
 
             (typematch(t1->Tnext,t2->Tnext,(relax & (4 | 2)) | 1)
@@ -4463,24 +4066,10 @@ void impcnv(elem *e)
 
     assert(e && EBIN(e));
     elem_debug(e);
-#if TARGET_POWERPC
-    e1 = e->E1 = cpp_bool(e->E1, 0);
-    e2 = e->E2 = cpp_bool(e->E2, 0); /* perform integral promotions */
-
-    t1 = tybasic(e1->ET->Tty);
-    t2 = tybasic(e2->ET->Tty);
-    if (!tyfloating(t1)) {      // do default promotion only for non-floats
-        e1 = e->E1 = convertchk(e1);
-    }
-    if (!tyfloating(t2)) {      // do default promotion only for non-floats
-        e2 = e->E2 = convertchk(e2);
-    }
-#else
     e1 = e->E1 = convertchk(cpp_bool(e->E1, 0));
     e2 = e->E2 = convertchk(cpp_bool(e->E2, 0)); /* perform integral promotions */
     t1 = tybasic(e1->ET->Tty);
     t2 = tybasic(e2->ET->Tty);
-#endif
 
     if (!tyscalar(t1) || !tyscalar(t2))
     {
@@ -4529,16 +4118,6 @@ void impcnv(elem *e)
             }
         }
         /* Do the usual arithmetic conversions  */
-#if TARGET_MAC
-        else if (t1 == TYldouble)
-            newt2 = tsldouble;          /* convert to double            */
-        else if (t2 == TYldouble)
-            newt1 = tsldouble;
-        else if (t1 == TYcomp)
-            newt2 = tsldouble;          /* convert to double            */
-        else if (t2 == TYcomp)
-            newt1 = tsldouble;
-#endif
         else if (t1 > t2)
         {
             switch (t1)
@@ -4961,9 +4540,6 @@ ret:
 
 /* Construct a table that gives the action when casting from one type   */
 /* to another.                                                          */
-#if TARGET_MAC
-#include "TGcast.h"
-#else
 
 /* Rename these mainly to get the size down, so the table isn't so wide */
 #define SHTLNG  OPs16_32
@@ -5033,7 +4609,6 @@ ret:
 
 #include "castab.c"
 
-#endif
 
 /*************************
  * Cast e to type newt (no cast if newt is NULL).
@@ -5074,33 +4649,11 @@ again:
   oldt = e->ET;
   assert(oldt);
   type_debug(oldt);
-#if TARGET_MAC
-  if (tybasic(oldt->Tty) == TYvptr &&
-    (tybasic(newt->Tty) == TYfptr && tybasic(newt->Tnext->Tty) == TYfptr))
-        goto paint;
-  if (tybasic(oldt->Tty) == TYenum && config.flags2&CFG2sizedenum)
-        {
-        if(oldt->Ttag->Senum->SEflags & SENforward)
-            oldt = tsint;
-        else
-        oldt = e->ET->Tnext;
-        if (oldt == newt)
-            goto paint;
-        }
-#endif
   if (newt == oldt)                     /* if cast to same type         */
         goto ret;
 
     oldty = tybasic(oldt->Tty);
     newty = tybasic(newt->Tty);
-
-#if TARGET_MAC
-    if (tybasic(newt->Tty) == TYenum && config.flags2&CFG2sizedenum)
-        newty = tybasic(newt->Tnext->Tty);
-                                        /* real enum type */
-    if (newty == TYvoid && e->Eoper == OPcall && typasfunc(e->E1->ET->Tty))
-        goto ret;                       /* can't cast pascal func returns */
-#endif
 
     // ARM says that (T&)X is equivalent to *(T*)&X
     if (tyref(newty))
@@ -5191,9 +4744,6 @@ again:
             /* create a new thunk.                                      */
             if (d == 0)                 /* if no offset                 */
                 goto paint;
-#if TARGET_MAC
-            e = poptelem(e);
-#endif
             if (tyfunc(oldt->Tnext->Tty))       /* if pointer to function */
             {
                 if (e->Eoper == OPrelconst)
@@ -5242,7 +4792,7 @@ again:
             else
             {   /* pointer to data member       */
                 el_settype(e,tsint);
-                M68HDL(e = el_bint(OPadd,newt,e,el_longt(tsint,d)));
+                e = el_bint(OPadd,newt,e,el_longt(tsint,d));
                 goto ret;
             }
         }
@@ -5401,10 +4951,6 @@ L1:
                 goto paint;
 #endif
             typerr(EM_illegal_cast,oldt,newt);  // illegal cast
-#if TARGET_MAC
-            if (newty == TYstruct)      /* struct not expected, but     */
-                newt = tsvoid;          /* void valid for error condition */
-#endif
             goto paint;
 
         case NONE:              /* no conversion (but maybe 'const' or 'volatile') */
@@ -5427,27 +4973,6 @@ L1:
 #endif
 
         /* Convert to another type and try again        */
-#if TARGET_MAC
-        case D2LD:
-        case LD2D:
-            if (PCrel_option & PC_THINKC_DBL)
-                goto paint;     /* double and long double are the same size */
-            else
-                goto doaction;
-        case LONG:      t = tslong;     goto retry;
-        case ULONG:     t = tsulong;    goto retry;
-#if TARGET_POWERPC
-        case DOUBLE:    t = tsdouble;   goto retry;
-#else
-// 68k
-        case DOUBLE:    t = tsldouble;  goto retry;
-#endif
-        case INT:       t = tsshort;    goto retry;
-        case UINT:      t = tsushort;   goto retry;
-        retry:
-            e = cast(cast(e,t),newt);
-            break;
-#else // TX86
         case LONG:      t = tslong;     goto retry;
         case DOUBLE:    t = tsdouble;   goto retry;
         case IDOUBLE:   t = tsidouble;  goto retry;
@@ -5520,13 +5045,7 @@ L1:
             else
                 goto doaction;
             break;
-#endif
         case FPTR:
-#if TARGET_MAC
-            if (tybasic(newt->Tnext->Tty) == TYvoid)
-                goto paint;             /* void * conversion is a paint, otherwise */
-                                        /* can't pass handles to generic routines */
-#endif
             /* If handle pointer to const, use the constant conversion  */
             action = (newt->Tnext->Tty & mTYconst) ? OPcvp_fp : OPvp_fp;
             goto doaction;
@@ -5589,15 +5108,6 @@ void getinc(elem *e)
   e->E2 = e2 = el_longt(tsint,1);       /* inc always by an int         */
   if (typtr(e->E1->ET->Tty))            /* if operating with a pointer  */
         scale(e);                       /* do any scaling necessary     */
-#if TARGET_MAC
-  else if (tybasic(e->E1->ET->Tty) == TYdouble)
-        e->E2 = typechk(e->E2,tsldouble);
-  else if (tybasic(e->E1->ET->Tty) == TYfloat)
-        e->E2 = typechk(e->E2,tsldouble);
-#else
-  /*else if (tybasic(e->E1->ET->Tty) == TYfloat)
-        e->E2 = typechk(e->E2,tsdouble);*/
-#endif
   else
   {
         if (CPP)
@@ -5605,10 +5115,6 @@ void getinc(elem *e)
         e->E2 = typechk(e->E2,e->E1->ET);
   }
 }
-
-#if TARGET_MAC
-#include "TGexp2.c"
-#endif
 
 #endif /* !SPP */
 

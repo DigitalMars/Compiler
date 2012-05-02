@@ -62,13 +62,6 @@ static macro_t **mac_array;
 static macro_t *premacdefs;             // threaded list of predefined macros
 #endif
 
-#if HOST_THINK
-#include        "callbacks.h"
-#include        "dataview.h"
-static macro_t **head_mactabroot;       /* root of precompiled header macro symbol table */
-#define strcmpl(s1,s2) strcmp(s1,s2)
-#endif
-
 void cppcomment(void);
 STATIC macro_t ** macinsert(const char *p , unsigned hashval);
 STATIC macro_t ** macfindparent(const char *p,unsigned hashval);
@@ -2238,30 +2231,6 @@ STATIC void prassertid()
         preerr(EM_unknown_pragma);              // unrecognized pragma
   //printf("Found assert('%s')\n",tok_ident);
 }
-
-#endif
-
-#if TARGET_MAC
-/******************
- * Decode pragma parameter registers
- */
-STATIC reg_decode(id)
-    char *id;
-    {
-    short reg,i;
-    if (id[4] != 0 && id[0] != '_' && id[1] != '_')
-        return -1;
-    if (id[2] == 'A')
-         reg = 1;
-    else if (id[2] == 'D')
-         reg = 3;
-    i = id[3] - '0';
-    if (i < 0 || i > 2)
-        return -1;
-    if (id[2] == 'A' && i == 2)
-        return -1;
-    return reg + i;
-    }
 #endif
 
 /***************************
@@ -2362,22 +2331,9 @@ STATIC void pragma_setstructalign(int flag)
 
 STATIC void prpragma()
 {
-#if TARGET_MAC
-    while (isspace(xc))
-        egchar();
-    if (xc == '$')                      /* allow leading $ on names */
-        egchar();
-#endif
 #if SPP
     exp_ppon();
-#if TARGET_MAC
-    if (xc == '$')
-        expstring("#pragma $ ");
-    else
-        expstring("#pragma  ");
-#else
     expstring("#pragma ");
-#endif
     ptoken();           // BUG: shouldn't macro expand this if it is "STDC"
     if (tok.TKval == TKident && strcmp(tok.TKid,"STDC") == 0)
     {
@@ -2552,7 +2508,7 @@ STATIC void prpragma()
                 if (level != 0)
                     preerr(EM_cseg_global);     // only at global scope
                 output_func();          /* flush pending functions */
-#if !SPP && !HOST_THINK
+#if !SPP
                 outcsegname(tok.TKid);
 #endif
                 ptoken();
@@ -2585,144 +2541,15 @@ STATIC void prpragma()
                 break;
 
             case PRXonce:                       /* once */
-#if TARGET_MAC
-                bl->BLflags |= BLponce;
-#else
                 if (cstate.CSfilblk)
                     // Mark source file as only being #include'd once
                     srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFflags |= SFonce;
-#endif
                 break;
-
-#if TARGET_POWERPC
-            case PRXoptions:
-                if (tok.TKval != TKident || strcmp( tok.TKid, "align" ) )
-                    goto err;
-                ptoken();
-                if (tok.TKval != TKeq)
-                    goto err;
-                ptoken();
-                if (tok.TKval != TKident)
-                    goto err;
-                if (!strcmp(tok.TKid, "mac68k"))
-                    structalign = 1;            // #pragma align 2 equivalent
-                else
-                if (!strcmp(tok.TKid, "reset" ))
-                    structalign = config.defstructalign;
-                else
-                if (!strcmp(tok.TKid, "power" ))
-                    structalign = 3;            // #pragma align 4 equivalent
-                else
-                    goto err;
-                break;
-#endif
 
             case PRXsetlocale:
                 prstring(2);
                 return;
 
-#if TARGET_MAC
-            case PRXtemplate:
-                {
-                    char *text;
-
-                    while (iswhite(xc))
-                        egchar();               /* skip white space     */
-                    text = macrotext(NULL);     /* read like macro text */
-                    if (*text)
-                        template_getcmd('I',text);
-                    else
-                        goto err;
-                    return;
-                }
-                break;
-
-            case PRXtemp_access:
-                {   char *s;
-
-                    switch(tok.TKid[0])
-                    {
-                        case 'e':
-                            s = "e";
-                            break;
-                        case 'p':
-                            s = "p";
-                            break;
-                        case 's':
-                            s = "s";
-                            break;
-                        default:
-                            goto err;
-                    }
-                    if (template_getcmd('A',s))
-                        goto err;
-                    ptoken();
-                    break;
-                }
-            case PRXpasobj:
-                Add_pascal_object = TRUE;
-                break;
-
-            case PRXparameter:                  /* parameter [reg] func(reg,...) */
-                {
-                int i;
-                if (ParamFunc)
-                        MEM_PARF_FREE(ParamFunc);
-                i = reg_decode(tok.TKid);
-                if (i < 0)
-                    {
-                    ParamFunc = (char *) MEM_PARF_STRDUP(tok.TKid);
-                    ParamRegs[0] = 0;
-                    }
-                else
-                    {
-                    ParamRegs[0] = i;
-                    ptoken();
-                    if (tok.TKval != TKident)
-                        goto err;
-                    ParamFunc = (char *) MEM_PARF_STRDUP(tok.TKid);
-                    }
-                ptoken();
-                if (tok.TKval == TKeol)
-                    return;
-                if (tok.TKval != TKlpar)
-                    goto err;
-                ptoken();
-                for(pragma_param_cnt=1; tok.TKval != TKrpar; pragma_param_cnt++)
-                    {
-                    char flag[6] = {0,0,0,0,0,0};
-                    short reg;
-                    if (tok.TKval != TKident)
-                        goto err;
-                    reg = ParamRegs[pragma_param_cnt] = reg_decode(tok.TKid);
-                    if(reg < 0 || flag[reg] != 0)
-                        goto err;
-                    flag[reg] = 1;
-                    ptoken();
-                    if (tok.TKval == TKcomma)
-                        ptoken();
-                    if (tok.TKval == TKeol)
-                        goto err;
-                    }
-                ptoken();
-                break;
-                }
-            case PRXtrace:                              /* pragma trace */
-                if (strcmp(tok.TKid,"on") == 0)
-                    {
-                    if (!(PragmaStatus & P_TRACE_NEVER))
-                        PragmaStatus |= P_TRACE_ON;
-                    }
-                else if (strcmp(tok.TKid,"off") == 0)
-                    {
-                    if (!(PragmaStatus & P_TRACE_ALWAYS))
-                        PragmaStatus &= ~P_TRACE_ON;
-                    }
-                else
-                    preerr(EM_ident_exp);
-                ptoken();
-                break;
-#else                           // 80x86 pragmas
             case PRXcode_seg:
                 {   char *segname;
                     targ_size_t len;
@@ -2733,7 +2560,7 @@ STATIC void prpragma()
                     if (level != 0)
                         preerr(EM_cseg_global); // only at global scope
                     output_func();      /* flush pending functions */
-#if !SPP && !HOST_THINK
+#if !SPP
                     outcsegname(segname);
 #endif
                     mem_free(segname);
@@ -2909,7 +2736,6 @@ STATIC void prpragma()
                 }
                 ptoken();
                 break;
-#endif /* TARGET_MAC */
 
             case PRXhdrstop:
 #if !SPP && TX86
@@ -2994,13 +2820,7 @@ STATIC void prerror()
         egchar();
     }
     *p = 0;
-#if HOST_THINK
-    err_message("#error directive: %s",buffer);
-#elif HOST_MPW
-    err_message("# File %s; line %d # Error ",name,line,buffer);
-#else
     err_message("Error %s %d: %s",name,line,buffer);
-#endif
     err_exit();
 }
 
@@ -3694,13 +3514,9 @@ void pragma_hydrate_macdefs(macro_t **pmb,int flag)
             {
                 if (!m)
                 {
-#if HOST_THINK
-                    if ((config.flags2 & CFG2phgen))
-#endif
-                    {   if (mb->ML || mb->MR)
-                            mb->ML = mb->MR = NULL;
-                        *mp = mb;
-                    }
+                    if (mb->ML || mb->MR)
+                        mb->ML = mb->MR = NULL;
+                    *mp = mb;
                     break;
                 }
                 macro_debug(m);
@@ -3822,10 +3638,6 @@ void pragma_hydrate(macro_t **pmactabroot)
             macro_hydrate(pmactabroot[i]);
         }
     }
-#if HOST_THINK
-    if (!(config.flags2 & CFG2phgen))
-        head_mactabroot = pmactabroot;
-#endif
     }
 
     // Run through the old macro table, and transfer any #defines in there
@@ -3894,110 +3706,6 @@ STATIC void macro_hydrate(macro_t *mb)
 }
 #endif
 
-#if HOST_THINK
-static void macro_hydrate_loaded(macro_t *mb)
-{
-    while (mb) {
-        macro_t *ml,*mr;
-        ml = mb->ML;
-        mr = mb->MR;
-        /* Skip undefined or predefined macros  */
-        if ((mb->Mflags & (Mdefined | Mfixeddef)) == Mdefined) {
-            char *p;
-            unsigned hash;
-            int cmp;
-            macro_t *m,**mp;
-
-            if ((config.flags2 & CFG2phgen)) {
-                mb->MR = NULL;
-                mb->ML = NULL;
-            }
-            p = mb->Mid;
-            mb->Mflags |= Mnoheap;      /* not in heap          */
-
-            hash = comphash(p);
-
-            mp = &mactabroot[hashtoidx(hash)];  /* parent of root       */
-            m = *mp;                            /* root of macro table  */
-            while (m) {                         /* while more tree      */
-                if ((config.flags2 & CFG2phgen))
-                    *mp = mb;
-                cmp = strcmp(p,m->Mid);         /* compare identifiers  */
-                if (cmp == 0) {                 /* already there        */
-                    if (m->Mflags & Mdefined) {
-                        if (strcmp(m->Mtext,mb->Mtext) ||
-                            m->Mflags & (Minuse | Mfixeddef))
-                            preerr(EM_multiple_def,p);  // already defined
-                    }
-                    else {                      /* it was #undef'd      */
-                        assert(!m->Mflags & Mdefined);
-                        m->Mtext = mb->Mtext;
-                        m->Marglist = mb->Marglist;
-                        m->Mflags = (m->Mflags & Mnoheap) |
-                                    (mb->Mflags & ~Mnoheap);
-                    }
-                    break;
-                }
-                mp = (cmp < 0) ? &m->ML : &m->MR;       /* select correct child */
-                m = *mp;
-            }
-        }
-        macro_hydrate_loaded(ml);
-        mb = mr;
-    }
-}
-
-/*
- * Rehydrate an already loaded precompiled header. All we need to do here is
- * to hide macros that are undef'd in our current macro table but defined in
- * the precompiled header. This is not necessary for dataview compilation, since
- * this hiding has already taken place during regular compilation.
- */
-void
-pragma_hydrate_loaded(macro_t **pmactabroot)
-{
-    int i;
-
-    if (compile_state != kDataView) {
-        for (i = 0; i < MACROHASHSIZE; i++) {
-            macro_hydrate_loaded(pmactabroot[i]);
-        }
-    }
-    if (!(config.flags2 & CFG2phgen))
-        head_mactabroot = pmactabroot;
-}
-
-static void
-macro_hydrate_xsym(macro_t *m)
-{
-    while (m) {
-        ph_hydrate(&m->ML);
-        ph_hydrate(&m->MR);
-        ph_hydrate(&m->Mtext);
-        list_hydrate(&m->Marglist,FPNULL);
-        macro_hydrate_xsym(m->ML);
-        m = m->MR;
-    }
-}
-
-/*
- * Rehydrate the XSYM's macro table. Presumably we've already loaded the
- * precompiled header macro table, and it's been placed in head_mactabroot.
- * We rehydrate as usual, and put the result in mactabroot.
- */
-void pragma_hydrate_xsym(macro_t **pmactabroot, short loaded)
-{
-    int i;
-
-    if (!loaded) {
-        for (i = 0; i < MACROHASHSIZE; i++) {
-            ph_hydrate(&pmactabroot[i]);
-            macro_hydrate_xsym(pmactabroot[i]);
-        }
-    }
-    mactabroot = pmactabroot;
-}
-#endif
 
 #if 1
 
@@ -4082,12 +3790,8 @@ STATIC void macrotable_balance(macro_t **ps)
 
     if (nmacs > mac_dim)
     {
-#if TARGET_MAC
-        mac_array = (macro_t **) MEM_PARF_REALLOC(nmacs * sizeof(macro_t *));
-#else
         // Use malloc instead of mem because of pagesize limits
         mac_array = (macro_t **) realloc(mac_array,nmacs * sizeof(macro_t *));
-#endif
         mac_dim = nmacs;
         if (!mac_array)
             err_nomem();

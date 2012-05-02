@@ -33,10 +33,6 @@
 #include        "scope.h"
 #include        "outbuf.h"
 
-#if TARGET_MAC
-#include        "TG.h"
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -54,11 +50,6 @@ Declar gdeclar;
 
 static long linkage_kwd;
 static int msbug;               // used to emulate MS C++ bug
-
-#if TARGET_MAC
-static int DirSiz;
-static short *DirLst;
-#endif
 
 int readini(char *argv0,char *ini);
 
@@ -744,26 +735,6 @@ void output_func()
             writefunc(s);
         }
     }
-
-#if HOST_MPW && TARGET_68K
-    if (pstate.do_pop)
-    {
-        PCrel_option = pstate.pop_value;
-        pstate.do_pop = FALSE;
-    }
-    if (pstate.do_push)
-    {
-        PCrel_option = pstate.push_value;
-        pstate.do_push = FALSE;
-    }
-#endif
-#if HOST_THINK || HOST_RAINBOW
-    if (pstate.do_pop)
-    {
-        pragma_restore();
-        pstate.do_pop = FALSE;
-    }
-#endif
 }
 
 /******************************************
@@ -815,11 +786,6 @@ void nwc_mustwrite(symbol *sfunc)
     //dbg_printf("nwc_mustwrite('%s')\n",sfunc->Sident);
     //symbol_print(sfunc);
     assert(tyfunc(sfunc->Stype->Tty));
-#if TARGET_MAC
-    if (CPP && sfunc->Sfunc->Fflags & Fpure)
-        return;
-    else
-#endif
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
         if (sfunc->Sfunc->Fflags3 & Fnowrite)
             return;
@@ -925,9 +891,6 @@ enum TKW
     TKWvoid     = 0x1000,
     TKWbool     = 0x4000,
     TKWwchar_t  = 0x8000,
-#if TARGET_MAC
-    TKWcomp     = 0x2000,
-#endif
     TKWimaginary = 0x10000,
     TKWcomplex   = 0x20000,
     TKWchar16    = 0x40000,
@@ -967,10 +930,6 @@ int declaration_specifier(type **ptyp_spec, enum SC *pclass, unsigned long *pcla
   /* header. For the Apple PPC Debugger getting the true first line is very important.*/
   /* Thus, for HYBRID, at least we set TkStrtSrcpos in ext_def() (and elsewhere for   */
   /* inlines and templates).                                                      ILR */
-
-#if (TARGET_MAC)
-  TkStrtSrcpos = getlinnum();
-#endif
 
   msbug = 0;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -1035,10 +994,6 @@ L2:
         case TKvoid:            tkwx = TKWvoid;         goto L6;
         case TKbool:            tkwx = TKWbool;         goto L6;
         case TKwchar_t:         tkwx = TKWwchar_t;      goto L6;
-#if TARGET_MAC
-        case TKextended:        tkwx = TKWldouble;      goto L6;
-        case TKcomp:            tkwx = TKWcomp;         goto L6;
-#endif
         L6:
             stoken();
         L8:
@@ -1065,15 +1020,6 @@ L2:
             goto L2;
 #endif
 
-#if TARGET_MAC
-        case TK__pascal:
-        case TK_pascal:
-        case TKpascal:
-                            modifiersx = mTYpascal;     goto L3;
-        case TK__cdecl:
-        case TK_cdecl:
-        case TKcdecl:       modifiersx = mTYcdecl;      goto L3;
-#endif
         case TK_unaligned:  modifiersx = mTYunaligned;  goto L3;
         case TKconst:       modifiersx = mTYconst;      goto L3;
         case TKvolatile:    modifiersx = mTYvolatile;   goto L3;
@@ -1586,10 +1532,6 @@ L2:
                 t = tsint;
             }
 
-#if TARGET_MAC
-        // "extended" means "long double"
-        case TKWldouble:                t = tsldouble;  break;
-#endif
         case TKWtag:
         case TKWdecltype:
         case TKWident:          type_debug(t); break;   // t is already set
@@ -1773,9 +1715,6 @@ elem *declaration(int flag)
     type *tspec;
     enum SC sc_specifier;
     int dss;
-#if TARGET_MAC
-    tym_t initial;
-#endif
 
     _chkstack();
 
@@ -1788,9 +1727,6 @@ elem *declaration(int flag)
     }
     dss = declaration_specifier(&tspec,&sc_specifier,NULL);
 
-#if TARGET_MAC // DJB
-    initial = tspec->Tty & (mTYcdecl | mTYpascal | mTYman_pas);
-#endif
     type_debug(tspec);
 
     s = NULL;
@@ -1829,10 +1765,6 @@ elem *declaration(int flag)
         if (ANSI && (tok.TKval == TKcomma /*||
             (tok.TKval == TKsemi && ty != TYstruct && ty != TYenum*/))
             synerr(EM_id_or_decl);              // ident or '(' expected
-#if TARGET_MAC
-        //tspec->Tty |= initial;
-        TYPE_MODIFY(tspec,tspec->Tty | initial);
-#endif
         gdeclar.hasExcSpec = 0;
         dt = declar_fix(tspec,vident);
         //printf("vident = '%s'\n", vident);
@@ -1901,18 +1833,6 @@ elem *declaration(int flag)
 #endif
                 goto ret;
             }
-#if TARGET_68K
-            if (ParamFunc)              /* pragma parameter prior to declaration */
-            {
-                if (strcmp(ParamFunc,(char *)s->Sident))
-                    synerr(EM_pragma_proto);
-                else if (ParamRegs[0])
-                    s->Sflags |= 1 << (ParamRegs[0] + PRAGMA_RET_BIT-1);
-                s->Sflags |= Spragmap;
-                MEM_PARF_FREE(ParamFunc);
-                ParamFunc = NULL;
-            }
-#endif
         }
         else                            /* else must be data def        */
         {
@@ -1952,11 +1872,6 @@ elem *declaration(int flag)
                 t = s->Stype;
                 ty = tybasic(t->Tty);
 
-#if TARGET_MAC
-                if (CPP && ty == TYstruct &&
-                     (t->Ttag->Sstruct->Sflags & (STRpasobj | STRmachdl)))
-                        synerr(EM_ptr_handle);
-#endif
             L2:
                 switch (s->Sclass)
                 {
@@ -2128,95 +2043,6 @@ L3:             synerr(EM_punctuation);         // = ; or , expected
             case TKcomma:
                 stoken();
                 break;
-#if (TARGET_MAC)
-            case TKcolon:
-                if (config.ansi_c)
-                    goto L3;
-            case TKeq:
-                if (level != 0 || ANSI_STRICT)
-                    goto L3;
-                if (vident[0] == 0)
-                {                       /* if there was no identifier   */
-                    synerr(EM_id_or_decl);      // ident or '(' expected
-err_ret:            panic(TKsemi);
-                    stoken();
-                    goto ret;           /* any use trying to continue?  */
-                }
-
-                if (tok.TKval == TKcolon)
-                {                       /* Low memory global definition */
-                    unsigned long address;
-
-                    stoken();
-                    address = msc_getnum();
-                    if (address == 0)
-                    {
-                        synerr(EM_num);
-                        goto err_ret;
-                    }
-                    s->Svalue = el_longt(s->Stype,address);
-                    s->Sclass = SCconst;
-                    s->Sflags |= SFLvalue;
-                    if(tok.TKval != TKsemi)
-                        goto L3;
-                    goto ret;
-                }
-
-                stoken();               /* C direct function */
-                {
-                int i = 0,rcur = FALSE,nullval = FALSE;
-
-                if(tok.TKval == TKlcur)
-                    {
-                    stoken();
-                    rcur = TRUE;
-                    }
-                while (1)
-                    {                   /* Allocate buffer in chunks of 16      */
-                    if (tok.TKval == TKrcur)
-                        break;
-                    if (i == DirSiz)
-                        {
-                        DirSiz += 16;
-                        DirLst = (short *) MEM_PERM_REALLOC(DirLst,DirSiz*sizeof(short));
-                        }
-                    if(!i)                      /* leave room for count */
-                        {
-                        i++;
-                        continue;
-                        }
-                    DirLst[i] = msc_getnum();
-                    if (DirLst[i] == 0)
-                        nullval = TRUE;
-                    i++;
-                    if (!rcur)
-                        break;                  /* single entry */
-                    if (tok.TKval != TKcomma)
-                        break;
-                    stoken();
-                    }
-                if (rcur)
-                    chktok(TKrcur,EM_rcur);
-                                        /* copy the direct function list */
-                if (i < 4 && !nullval)
-                    {                   /* Sdirbdy[1] == 0, one entry */
-                    s->Sflags |= SFLdirect|SFLsmdir;
-                    s->Sdirect = 0;     /* clear the field */
-                    s->Sdirbdy[0] = (i > 1)  ? DirLst[1] : 0;
-                    s->Sdirbdy[1] = (i > 2) ? DirLst[2] : 0;
-                    }
-                else
-                {
-                    s->Sdirect = (short *)MEM_PH_MALLOC(i*sizeof(short));
-                    memcpy(s->Sdirect,DirLst,i*sizeof(short));
-                    s->Sflags |= SFLdirect;
-                    s->Sdirect[0] = i-1;
-                }
-                if(tok.TKval != TKsemi)
-                    goto L3;
-                goto ret;
-                }
-#endif /* TARGET_MAC */
         }
     } /* while */
 
@@ -2359,20 +2185,6 @@ type *declar(type *t,char *vident,int flag)
     if (vident)
         vident[0] = 0;
 
-#if TARGET_MAC
-    if (t->Tty & mTYpascal)
-        {
-        initial = mTYman_pas | mTYpascal;
-        t->Tty &= ~(mTYman_pas | mTYpascal);
-        //assert(t->Tflags & TFbasicrev == 0);
-        }
-    if (t->Tty & mTYcdecl)
-        {
-        initial = mTYcdecl;
-        t->Tty &= ~mTYcdecl;
-        //assert(t->Tflags & TFbasicrev == 0);
-        }
-#endif /* TARGET_MAC */
 #if TX86
     // Irrational MS syntax can have __declspec anywhere
     initial = t->Tty & (mTYthread | mTYnaked | mTYimport | mTYexport);
@@ -2426,10 +2238,6 @@ type *declar(type *t,char *vident,int flag)
                     if (tok.TKval == TKrpar)
                         goto Ldefault;
                 }
-#endif
-#if TARGET_MAC
-                tym |= initial;
-                initial = 0;
 #endif
               if (CPP)
               {
@@ -2731,10 +2539,6 @@ type *declar(type *t,char *vident,int flag)
                     goto Lnd;
                 if (flag == 2)          // if ptr-operator
                     goto Ldefault;
-#if TARGET_MAC
-                tym |= initial;
-                initial = 0;
-#endif
 #if TX86
                 // This is a hack to support the Borland syntax:
                 //      void __interrupt (__far * _dos_getvect(unsigned intr))()
@@ -2774,9 +2578,6 @@ type *declar(type *t,char *vident,int flag)
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
                     case TK_attribute:
                     case TK_extension:
-#endif
-#if TARGET_MAC
-                    case TKextended:
 #endif
 #if TX86
                         if (tym)
@@ -2918,24 +2719,9 @@ type *declar(type *t,char *vident,int flag)
 
             case TKstar:
                 msbug = 0;
-#if TARGET_MAC
-                t = newpointer(t);
-                switch ((tym & ~mTYexport) | initial)
-#else
                 t = type_allocn(TYptr,t);
                 switch ((tym_t)(tym & ~(mTYTFF | mTYMOD)))
-#endif
                 {
-#if TARGET_MAC
-                    case mTYmachdl:     ty = TYvptr;    goto L5;
-                    case mTYpasobj:     ty = TYvptr;    goto L5;
-                    case mTYpascal:
-                    case mTYcdecl:      t->Tty |= tym;  goto L2;
-                    case mTYhandle:     ty = TYvptr;    goto L5;
-                    L5:
-                        if (!(tym & mTYexport))
-                            break;
-#endif
 #if TX86
                     case mTYnear:       ty = (TYnptr | tym) & ~mTYnear;
                                         break;
@@ -3137,10 +2923,6 @@ type *declar(type *t,char *vident,int flag)
                                     mangle = mTYman_pas;
                                 tym |= mTYpascal;               goto L3;
             case TK_handle:     tym |= mTYhandle;               goto L3;
-#if TARGET_MAC
-            case TK_machdl:     tym |= mTYhandle | mTYmachdl;   goto L3;
-            case TK_pasobj:     tym |= mTYhandle | mTYpasobj;   goto L3;
-#endif
             L3:
                 if (config.flags3 & CFG3nofar)
                 {   // Flat model doesn't have far, etc.
@@ -3209,13 +2991,6 @@ type *declar(type *t,char *vident,int flag)
                 }
             case TKcomma:
             Ldefault:
-#if TARGET_MAC
-            case TKrpar:
-                tym |= initial;
-                if (initial & mTYpascal)
-                    mangle = mTYman_pascal;
-                initial = 0;
-#endif
                 if (CPP)
                 {
                     if (flag == 1)
@@ -3474,9 +3249,6 @@ STATIC type * getprototype(const char *fident,type *tret)
 {   char vident[2*IDMAX + 1];
     type *tfunc;
     type *pt;
-#if TARGET_MAC
-    short regcnt = 0;
-#endif
 
     //printf("getprototype()\n");
 
@@ -3554,15 +3326,6 @@ STATIC type * getprototype(const char *fident,type *tret)
             tp2->Tflags &= ~TFfuncparam;
             type_free(pt);
 
-#if TARGET_MAC
-            // Function parameters are not allowed to be VOID
-            //
-            if (tybasic(tparam->Tty) == TYvoid)
-                synerr(EM_void_novalue);
-            if (tybasic(tparam->Tty) == TYstruct &&
-                  (tparam->Ttag->Sstruct->Sflags & (STRpasobj | STRmachdl)))
-                    synerr(EM_ptr_handle);
-#endif
 
             /* Convert function to pointer to function  */
             if (tyfunc(tparam->Tty))
@@ -3781,9 +3544,6 @@ ret:
                 tfunc->Tty = (tfunc->Tty & ~mTYbasic) | TYffunc;
                 break;
 
-#if TARGET_MAC
-            case TYpsfunc:              /* no variable arg list in pascal */
-#endif
 #if TX86
             case TYf16func:             /* no variable arg list in pascal */
             case TYjfunc:
@@ -3876,15 +3636,6 @@ STATIC void getparamlst(type *tfunc,type *tprev)
         if (DoFileOffsets)
             p->Psrcpos = TkIdStrtSrcpos;
 #endif
-#if TARGET_MAC
-        if (ParamFunc)
-            {                           /* pragma parameter */
-            regcnt++;
-            if (regcnt > 5)
-                synerr(EM_decl_spec_seq);
-            p->Pflags |= 1 << (ParamRegs[regcnt] + PRAGMA_PARAM_BIT-1);
-            }
-#endif
         *pp = p;
         pp = &(p->Pnext);               /* append to list               */
         if (stoken() != TKcomma)        /* commas mean more idents      */
@@ -3942,16 +3693,12 @@ void fixdeclar(type *t)
         {
             case TYffunc:
             case TYfpfunc:
-#if TARGET_MAC
-            case TYpsfunc:
-#else
             case TYnfunc:
             case TYnpfunc:
             case TYnsfunc:
             case TYfsfunc:
             case TYnsysfunc:
             case TYfsysfunc:
-#endif
                 switch (tybasic(tn->Tty))
                 {
                     case TYstruct:
@@ -3968,48 +3715,10 @@ void fixdeclar(type *t)
                     case TYfsfunc:
                     case TYnsysfunc:
                     case TYfsysfunc:
-#if TARGET_MAC
-                    case TYpsfunc:
-#endif
                         synerr(EM_return_type); // can't return those types
                         break;
                 }
                 /* Adjust function type based on modifier keywords      */
-#if TARGET_MAC
-                switch (tym & (mTYTFF|mTYbasic))
-                {
-                    case mTYcdecl | TYfpfunc:
-                        newtym = TYffunc;
-                        break;
-                    case mTYpascal | TYfpfunc:
-                    case mTYpascal | TYffunc:
-                    case mTYpascal | TYpsfunc:
-                        newtym = TYpsfunc;
-                        break;
-
-                    case TYnfunc:
-                    case TYnpfunc:
-                    case mTYpascal | TYnfunc:
-                    case mTYcdecl  | TYnfunc:
-                    case mTYcdecl  | TYnpfunc:
-                    case mTYpascal | TYnpfunc:
-                        assert(0);
-                        break;
-
-                    case TYffunc:
-                    case mTYcdecl | TYffunc:
-                    case TYpsfunc:
-                    case TYfpfunc:
-                        /* It's already the correct type        */
-                        break;
-                    default:
-                    err:
-                        synerr(EM_illegal_type_combo);  /* illegal combination          */
-                        break;
-                }
-                /* no longer useful     */
-                tym &= ~(mTYcdecl | mTYpascal);
-#else
                 switch (tym & (mTYLINK|mTYTFF|mTYbasic))
                 {
                     case            mTYnear | TYffunc:
@@ -4250,7 +3959,6 @@ void fixdeclar(type *t)
                             break;
                     }
                 }
-#endif
                 break;
             case TYarray:
                 if (!(t->Tflags & TFfuncparam) && pstate.STinparamlist)
@@ -4291,23 +3999,10 @@ void fixdeclar(type *t)
                         if (type_chksize(t->Tdim * (unsigned long) size))
                             t->Tdim = 1;
                     }
-                    t->Tty = newtym |
-#if TARGET_MAC
-                        (tym & (mTYconst | mTYvolatile | mTYexport));
-#else
-                        (tym & (mTYLINK | mTYconst | mTYvolatile | mTYMOD));
-#endif
+                    t->Tty = newtym | (tym & (mTYLINK | mTYconst | mTYvolatile | mTYMOD));
                     return;
                 }
                 break;
-#if TARGET_MAC
-            case TYfptr:
-                if (tyfunc(tn->Tty))
-                {   tn->Tty |= tym & (mTYTFF | mTYexport);
-                    tn->Tmangle = mangle;
-                }
-                return;
-#endif
 #if TX86
             case TYptr:
             {   type *t2;
@@ -4396,12 +4091,7 @@ void fixdeclar(type *t)
                 }
 #endif
         }
-        t->Tty = newtym |
-#if TARGET_MAC
-            (tym & (mTYconst | mTYvolatile | mTYexport));
-#else
-            (tym & (mTYLINK | mTYconst | mTYvolatile | mTYMOD));
-#endif
+        t->Tty = newtym | (tym & (mTYLINK | mTYconst | mTYvolatile | mTYMOD));
         t = tn;                         /* next type                    */
     } /* while */
 }
@@ -5079,12 +4769,6 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
 
       if (sclass)                               // if member function
       {
-#if TARGET_MAC
-        /* Overloading not allowed for virtual members of pascal classes */
-        /* or any pascal type functions */
-        if (!(typsfunc(s->Stype->Tty) ||
-             (sclass->Sstruct->Sflags&STRpasobj && f->Fflags & Fvirtual)) )
-#endif
 #if TX86
         if (sclass->Sstruct->Sflags & STRexport)
             type_setty(&s->Stype,s->Stype->Tty | mTYexport); // add in _export
@@ -5110,13 +4794,6 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
     /* for overloaded functions is global.                      */
       if (sc_specifier == SCoverload || s->Sclass == SCoverload)
       {
-#if TARGET_MAC
-        // Overloading not allowed for virtual members of pascal classes
-        // or any pascal type functions
-        if (typsfunc(s->Stype->Tty) ||
-             (sclass->Sstruct->Sflags&STRpasobj && f->Fflags & Fvirtual) )
-             cpperr(EM_not_enum_member);
-#endif
         f->Fflags |= Foverload;
         if (s->Sclass != SCoverload)
             sc_specifier = (enum SC) s->Sclass;
@@ -5144,13 +4821,6 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
             cpperr(EM_conv_member);     // type conversions must be members
         else if (nparams != 0)          /* 'this' is the only parameter */
             cpperr(EM_n_op_params,"0"); // incorrect number of parameters
-#if TARGET_MAC
-        /*Overloading not allowed for virtual members of pascal classes */
-        /* or any pascal type functions */
-        else if (typsfunc(s->Stype->Tty) ||
-             (sclass->Sstruct->Sflags&STRpasobj && f->Fflags & Fvirtual) )
-             cpperr(EM_not_enum_member);
-#endif
         else
         {   /* Add to list of type conversions for this class           */
             //printf("funcdecl: add '%s' to Scastoverload\n", s->Sident);
@@ -5165,13 +4835,6 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
 
         if (nparams == 2)
             tpp = tp->Pnext;
-#if TARGET_MAC
-        // Overloading not allowed for virtual members of pascal classes
-        // or any pascal type functions
-        if (typsfunc(s->Stype->Tty) ||
-             (sclass && sclass->Sstruct->Sflags&STRpasobj && f->Fflags & Fvirtual) )
-             cpperr(EM_not_enum_member);
-#endif
         if (sclass)                     /* if member of a class         */
         {
             if (opnum == OPnew || opnum == OPanew ||
@@ -5450,54 +5113,6 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
         goto done;
     if (CPP && tok.TKval == TKeq)
     {   targ_uns n;
-#if TARGET_MAC
-        if (!(f->Fflags & Fvirtual))
-            {
-            if (level != 0)
-                    goto L68k;
-            stoken();           /* C direct function */
-                {
-                int i = 0,rcur = FALSE;
-                short *p = NULL;
-                if(tok.TKval != TKnum && tok.TKval != TKlcur)
-                    goto L68k;
-                if(tok.TKval != TKnum)
-                    {
-                    chktok(TKlcur_exp,EM_lcur);
-                    rcur = TRUE;
-                    }
-                while (tok.TKval == TKnum)
-                    {
-                        /* Allocate buffer in chunks of 16      */
-                    if ((i & 15) == 0)
-                        p = (short *) mem_realloc(p,(i + 16)*sizeof(short));
-                    if(!i)                      /* leave room for count */
-                        {
-                        i++;
-                        continue;
-                        }
-                    p[i] = msc_getnum();
-                    i++;
-                    if (!rcur)
-                        break;                  /* single entry */
-                    if (tok.TKval != TKcomma)
-                        break;
-                    stoken();
-                    }
-                if (rcur)
-                    chktok(TKrcur,EM_rcur);
-                                        /* copy the direct function list */
-                s->Sdirect = (short *)mem_realloc(p,i*sizeof(short));
-                s->Sdirect[0] = i-1;
-                if(tok.TKval != TKsemi)
-                    {
-                    synerr(EM_punctuation);     // = ; or , expected
-                    panic(TKsemi);
-                    }
-                }
-            }
-        else
-#endif
         {
         L68k:
 
@@ -5512,11 +5127,7 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
         }
     }
     else
-#if TARGET_MAC
-    if (tok.TKval == TKsemi || tok.TKval == TKcomma || tok.TKval == TKeq)
-#else
     if (tok.TKval == TKsemi || tok.TKval == TKcomma)
-#endif
     {
         if (paramlst)                   // if there was a parameter list
         {
@@ -5786,10 +5397,6 @@ Lagain:
         case TKtrue:
         case TKfalse:
         case TKnullptr:
-#if (TARGET_MAC)
-        case TKinherited:
-        case TK__class:
-#endif
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
         case TK_bltin_const:
 #endif
@@ -5823,9 +5430,6 @@ Lagain:
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
         case TK_attribute:
         case TK_extension:
-#endif
-#if TARGET_MAC
-        case TKextended:
 #endif
             s = NULL;
             break;
@@ -6123,10 +5727,6 @@ L3:
             case TK_fortran:
             case TK_pascal:
             case TK_handle:
-#if TARGET_MAC
-            case TK_machdl:
-            case TK_pasobj:
-#endif
             case TKconst:
             case TKvolatile:
             case TK_unaligned:
@@ -6152,9 +5752,6 @@ L3:
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
             case TK_attribute:
             case TK_extension:
-#endif
-#if TARGET_MAC
-            case TKextended:
 #endif
                 if (parens == 1)
                     goto isdecl;
@@ -6454,10 +6051,6 @@ err:
     return 0;
 }
 
-#endif
-
-#if TARGET_MAC
-#include "TGnwc.c"
 #endif
 
 #endif

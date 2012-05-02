@@ -311,20 +311,6 @@ void afopen(char *p,blklst *bl,int flag)
         list_append(&srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFfillist,*bl->BLsrcpos.Sfilptr);
     }
 
-#if !TARGET_68000
-    if (configv.verbose)
-        NetSpawnFile(p,(flag & FQsystem) ? -(includenest + 1) : includenest);
-    includenest++;
-    if (configv.verbose == 2)
-    {   int i;
-        char buffer[32];
-
-        memset(buffer,' ',sizeof(buffer));
-        i = (includenest < sizeof(buffer)) ? includenest : sizeof(buffer) - 1;
-        buffer[i] = 0;
-        dbg_printf("%s'%s'\n",buffer,p);
-    }
-#endif
 #if !SPP
     if (fdep && !(flag & FQsystem))
     {
@@ -349,9 +335,7 @@ char *file_getsource(const char *iname)
     char *p;
     size_t len;
 
-#if TARGET_MAC
-    static char ext[][4] = { "cpp","cp","c" };
-#elif M_UNIX || M_XENIX
+#if M_UNIX || M_XENIX
     static char ext[][4] = { "cpp","cxx","c", "C", "cc", "c++" };
 #else
     static char ext[][5] = { "cpp","c","cxx","htm","html" };
@@ -620,10 +604,8 @@ Lf:     mov     p,ECX
     // File must end in LF. If it doesn't, make it.
     if (p[-1] != LF)
     {
-#if !HOST_MAC           // Mac editor does not always terminate last line
         if (ANSI && !CPP)
             lexerr(EM_no_nl);   // file must be terminated by '\n'
-#endif
         p[0] = LF;
         p[1] = 0x1A;
     }
@@ -989,10 +971,8 @@ int readln()
         case EOF:
             if (p != bl->BLtext)        // if we read in some chars
             {   *p = 0;                 // terminate line so it'll print
-#if !HOST_MAC                   // Mac editor does not alway terminate last line
                 if (ANSI && !CPP)
                     lexerr(EM_no_nl);
-#endif
                 c = '\n';               /* fake a '\n'                  */
                 goto L2;
             }

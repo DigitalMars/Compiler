@@ -312,7 +312,6 @@ typedef long double longdouble;
 #define NEWSTATICDTOR           1       // support new style static destructors
 
 // For Shared Code Base
-#define TARGET_INLINEFUNC_NAMES
 #define PASCAL pascal
 #define HINT int
 #define UHINT unsigned int

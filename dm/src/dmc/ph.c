@@ -58,13 +58,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 //#define err_nomem() (dbg_printf("err_nomem: %d\n",__LINE__),err_nomem())
 
-#if TARGET_MAC
-#define fclose(f)       MacClose(f)
-#ifndef __PGOFF
-#define __PGOFF         sizeof(unsigned short)
-#endif
-#endif
-
 #if TX86
 char *ph_directory;             /* directory to read PH files from      */
 
@@ -714,20 +707,6 @@ void *ph_dehydrate(void *pp)
             {
                 if (pb <= p && p < pb + PHBUFSIZE)
                 {
-#if HOST_THINK
-                /* "relocate" references to precompiled header memory vs xsym
-                 * memory. Place precompiled header before xsym, and move
-                 * xsym after precompiled header.
-                 * This is unnecessary when generating a ph file.
-                 */
-                    if (!(config.flags2 & CFG2phgen) && i < (head_start + head_num))
-                    {
-                        if (i < head_start)     /* xsym memory before ph memory */
-                            i += head_num;
-                        else
-                            i -= head_start;    /* ph memory */
-                    }
-#endif
                     *(long *)pp = ((long)i * PHBUFSIZE + (p - pb)) | 1;
 #if PH_METRICS
                     hydrate_count++;
@@ -782,7 +761,7 @@ void *ph_hydrate(void *pp)
     if (off & 1)                        /* if dehydrated        */
     {
         i = ph_bufk + (int)(off / PHBUFSIZE);
-#if (TARGET_MAC) || defined(DEBUG)
+#if defined(DEBUG)
         assert(i < ph_bufi);
 #endif
         *(void **)pp = (void *)((char *)ph_buf[i] + (off & ((PHBUFSIZE - 1) & ~1)));

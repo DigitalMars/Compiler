@@ -257,10 +257,6 @@ enum OPER
         OPpreinc,               /* ++x overloading              */
         OPpredec,               /* --x overloading              */
 
-#ifdef TARGET_INLINEFUNC_OPS
-        TARGET_INLINEFUNC_OPS
-#endif
-
         OPMAX                   /* 1 past last operator         */
 };
 typedef enum OPER OPER;         /* needed for optabgen          */

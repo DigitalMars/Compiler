@@ -36,11 +36,6 @@
 #include        "iasm.h"
 #endif
 
-#if TARGET_MAC
-#include        "TG.h"
-#define token_linnum getlinnum
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -234,19 +229,6 @@ void func_body(symbol *s)
   f = s->Sfunc;
   assert(f);
   file_progress();
-#if (TARGET_MAC)
-  if (CPP &&
-      isclassmember(s) &&
-      (s->Sscope->Sstruct->Sflags & STRpasobj) &&
-      !(s->Sscope->Sstruct->Sflags & STRabstract) &&
-      (s->Sfunc->Fflags & Fvirtual ||
-        (strcmp(s->Sident,"__ct") == 0) || (strcmp(s->Sident,"__dt") == 0) ||
-        (strcmp(s->Sident,"__nw") == 0) || (strcmp(s->Sident,"__dl") == 0)) )
-        {
-        if (strcmp("PascalObject",s->Sscope->Sident))
-            po_func_Methout(s->Sscope);
-        }
-#endif
   if (configv.verbose == 2)
         dbg_printf("%s\n",prettyident(s));
   funcsym_p = s;
@@ -320,16 +302,6 @@ void func_body(symbol *s)
 
   tfunc = s->Stype;
   assert(tyfunc(tfunc->Tty));
-#if HOST_MPW
-#if CPP
-  if (configv.addlinenumbers)
-        f->startbline = TklbrackSrcpos;
-#else
-  f->Fstartline = save_offset;
-  if (configv.addlinenumbers)
-        startbline = TklbrackSrcpos;
-#endif
-#endif
 #if TX86
     if (tybasic(tfunc->Tty) == TYf16func)
         synerr(EM_far16_extern);        // _far16 functions can only be extern
@@ -418,11 +390,7 @@ void func_body(symbol *s)
                 }
                 MEM_PH_FREE(p->Pident);
                 p->Pident = NULL;
-#if TARGET_MAC
-                // for internal error with void f(int a, int a)
-                if (errcnt == olderrcnt)
-#endif
-                    list_append(&plist,sp);
+                list_append(&plist,sp);
 
                 // Look for VLA expressions
                 if (typtr(p->Ptype->Tty) && type_isvla(p->Ptype->Tnext))
@@ -461,36 +429,6 @@ void func_body(symbol *s)
 #if SOURCE_4PARAMS
         sp->Ssrcpos = p->Psrcpos;
 #endif
-#if TARGET_68K
-        if (tybasic(sp->Stype->Tty) == TYfloat)
-                {   elem *ec;
-
-                ec = el_var(sp);
-                el_settype(ec,tsldouble);
-                ec = el_unat(OPdblsflt,tsfloat,ec);
-                e = el_combine(e,el_bint(OPeq,tsfloat,el_var(sp),ec));
-                sp->Sflags |= SFLdouble;
-                }
-#if HOST_MPW
-        else if (tybasic(sp->Stype->Tty) == TYdouble)
-                {   elem *ec;
-                ec = el_var(sp);
-                el_settype(ec,tsldouble);
-                ec = el_unat(OPd_f,tsdouble,ec);
-                e = el_combine(e,el_bint(OPeq,tsdouble,el_var(sp),ec));
-                sp->Sflags |= SFLdouble;
-                }
-        else if (tybasic(sp->Stype->Tty) == TYcomp)
-                {   elem *ec;
-
-                ec = el_var(sp);
-                el_settype(ec,tsldouble);
-                ec = el_unat(OPdblcomp,tscomp,ec);
-                e = el_combine(e,el_bint(OPeq,tscomp,el_var(sp),ec));
-                sp->Sflags |= SFLdouble;
-                }
-#endif /* HOST_MPW */
-#else
         if (tybasic(sp->Stype->Tty) == TYfloat)
         {   elem *ec;
 
@@ -501,15 +439,10 @@ void func_body(symbol *s)
             e = el_combine(e,el_bint(OPeq,tsfloat,el_var(sp),ec));
             sp->Sflags |= SFLdouble;
         }
-#endif
         tp = p->Ptype;
         tp->Tcount++;                   // create copy before adjustment
         if (!typtr(p->Ptype->Tty))
             paramtypadj(&p->Ptype);     // default conversions
-#if TARGET_MAC
-        if (type_size(sp->Stype) != type_size(p->Ptype))
-            sp->Sflags |= SFLdouble;    /* stack size larger than basic type */
-#endif
 
         if (tfunc->Tparamtypes)         /* if type was specified        */
         {
@@ -635,18 +568,6 @@ void func_body(symbol *s)
     startblock = curblock = block_calloc();     // create initial block
     startblock->Bsymstart = 0;
     funcstate.scope = NULL;
-    if (CPP)
-    {
-
-#if HOST_MPW
-        if (f->Fflags3 & Fmain && Add_pascal_object)
-        {
-            symbol *s_pgm1;
-            s_pgm1 = lookupsym("_PGM1");
-            e = el_combine(e,el_unat(OPucall,tsvoid,el_var(s_pgm1)));
-        }
-#endif
-    }
     startblock->Belem = e;
     level = 2;                          // at function block scope
     func_state();                       // do function_statement
@@ -738,10 +659,6 @@ void func_body(symbol *s)
 #endif
                 )
             {
-#if TARGET_MAC
-                if ((config.flags2 & CFG2phgen))
-                    cpperr(EM_vtbl_redecl,s->Sident);
-#endif
                 scvtbl = (enum SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCstatic);
                 n2_genvtbl(stag,scvtbl,1);
 #if VBTABLES
@@ -768,10 +685,6 @@ void paramtypadj(type **pt)
   assert(pt);
   t = *pt;
   assert(t);
-#if TARGET_MAC
-  if (tybasic(t->Tty) == TYenum)
-        t = t->Tnext;
-#endif
   switch (tybasic(t->Tty))
   { case TYarray:
         assert(0);
@@ -812,21 +725,9 @@ void paramtypadj(type **pt)
         else
             t = tsuns;
         break;
-#if HOST_MPW
-    case TYfloat:
-    case TYcomp:
-    case TYdouble:
-        t = tsldouble;
-        break;
-#else
-#if HOST_THINK
-    case TYcomp:
-    case TYdouble:                      // necessary to mention TYdouble here?
-#endif
     case TYfloat:
         t = tsdouble;                   /* convert to double            */
         break;
-#endif
     default:
         return;
   }
@@ -1946,39 +1847,6 @@ STATIC void for_state()
     else
         state_cpp();
 
-#if TARGET_MAC
-    block_goto(forlabel);
-    if (tok.TKval == TKsemi)
-        stoken();
-    else
-    {
-        if (CPP && isexpression() <= 1) // if it could be a declaration
-        {                               // assume it is a declaration
-            if (flag)
-            {   flag = 0;
-                createlocalsymtab();
-                fscope_beg();
-            }
-
-            e = declaration(4);         // declare the variable
-        }
-        else
-            e2 = addlinnum(func_expr_dtor(TRUE));
-
-        e2 = cpp_bool(e2, 1);
-        chknosu(e2);
-        chkunass(e2);
-        chktok(TKsemi,EM_semi_member);
-        {   block *b;
-
-            block_appendexp(curblock, e2);
-            b = curblock;
-            block_next(BCiftrue,NULL);
-            list_append(&b->Bsucc,curblock);
-            list_append(&(b->Bsucc),funcstate.brklabel);
-        }
-    }
-#else   // TX86
   block_goto(forlabel);
   if (tok.TKval == TKsemi)
         stoken();
@@ -2008,7 +1876,6 @@ STATIC void for_state()
             list_append(&(b->Bsucc),funcstate.brklabel);
         }
   }
-#endif
 
   /* Be careful to add in destructors immediately for the
      3rd expression.
@@ -2277,16 +2144,6 @@ STATIC void return_state()
             || funcsym_p->Sfunc->Fflags & (Fctor | Fdtor | Finvariant)
            ))
                 synerr(EM_void_novalue);        // void has no value
-#if TARGET_68K
-#if HOST_THINK
-        /* only use long doubles for C++ functions */
-        if (tycppfunc(tf->Tty) && tyfloating(tybasic(tr->Tty)))
-#else
-        if(!(typasfunc(tf->Tty)) && tyfloating(tybasic(tr->Tty)))
-#endif
-            e = typechk(e,tsldouble);   /* return long doubles for C and C++ */
-        else
-#endif
         if (funcsym_p->Sfunc->Fflags3 & F3badoparrow)
             e = el_bint(OPcomma,tr,e,el_longt(tr,0));
         e = typechk(e,tr);
@@ -2418,20 +2275,15 @@ STATIC void return_state()
             {
                 type *tret;
 
-#if TARGET_MAC
-                if (ety == TYstruct)
-#endif
+                tret = newpointer(e->ET->Tnext);
+                e = cast(e,tret);
+                if (CPP)
                 {
-                    tret = newpointer(e->ET->Tnext);
-                    e = cast(e,tret);
-                    if (CPP)
-                    {
-                        e = poptelem(e);
-                        if (e->Eoper == OPinfo)
-                            e = el_selecte2(e);
-                        if (funcstate.namret.s)
-                            list_append(&funcstate.namret.explist,e);
-                    }
+                    e = poptelem(e);
+                    if (e->Eoper == OPinfo)
+                        e = el_selecte2(e);
+                    if (funcstate.namret.s)
+                        list_append(&funcstate.namret.explist,e);
                 }
             }
         }
@@ -2804,9 +2656,7 @@ STATIC void func_adddestructors()
 
 STATIC void func_doblock(block *bstart)
 {
-#if !(TARGET_MAC)
     _chkstack();
-#endif
     if (bstart->Bnext)
         func_doblock(bstart->Bnext);
 

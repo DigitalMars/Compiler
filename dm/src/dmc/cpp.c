@@ -32,11 +32,6 @@
 #include        "scope.h"
 #include        "speller.h"
 
-#if TARGET_MAC
-#include        "TG.h"
-extern char *unmangle_pt(char **);
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -53,13 +48,6 @@ STATIC list_t   cpp_pvirtbase(Classsym *stag , Classsym *sbase);
 STATIC int      fixctorwalk(elem *e , elem *ec , symbol *s_this);
 STATIC Match    cpp_builtinoperator(elem *e);
 
-#if TARGET_MAC
-elem *cpp_hdlptr(elem *e);
-#define M68HDL(e)       cpp_hdlptr(e)
-#else
-#define M68HDL(e)       (e)
-#endif
-
 #if TX86
 /* List of elems which are the constructor and destructor calls to make */
 list_t constructor_list = NULL;         /* for _STIxxxx                 */
@@ -69,9 +57,6 @@ list_t cpp_stidtors;            /* auto destructors that go in _STIxxxx */
 #endif
 
 /* Special predefined functions */
-#if TARGET_MAC
-static symbol *s_vec_pnew,*s_vec_pdelete;
-#endif
 static symbol *s_vec_new,*s_vec_ctor,*s_vec_cpct,*s_vec_delete;
 symbol *s_vec_dtor;
 symbol *s_vec_invariant;
@@ -92,16 +77,6 @@ char cpp_name_none[]    = "__unnamed";
 char cpp_name_initvbases[] = "$initVBases";
 #endif
 char cpp_name_invariant[] = "__invariant";
-
-#if TARGET_MAC
-#if HOST_MPW
-char cpp_name_pasnew[]  = "__nw__12PascalObjectSFPFv_vUi";
-char cpp_name_pasdel[] = "__dl__12PascalObjectSFPPv";
-#else
-char cpp_name_pasnew[]  = "__nw__12PascalObjectFPvUi";
-char cpp_name_pasdel[] = "__dl__12PascalObjectFPv";
-#endif
-#endif
 
 /***********************************
  * Array of linked lists of function symbols. Each function
@@ -375,23 +350,6 @@ char *cpp_prettyident(symbol *s)
     else
         p = symbol_ident(s);
 
-#if TARGET_MAC
-    if (type_struct(s->Stype) && !memcmp(p,"__PT",4)) {
-        char *n = (char *)p;
-        if ((p = unmangle_pt(&n)) != NULL)
-            pi_cpy(p);
-    }
-    else
-    {   char *n,*o;
-
-        n = (char *) MEM_PARF_STRDUP(cpp_name);
-        o = (char *) MEM_PARF_STRDUP(cpp_unmangleident(p));
-        strcpy(cpp_name,n);
-        strcat(cpp_name,o);
-        MEM_PARF_FREE(n);
-        MEM_PARF_FREE(o);
-    }
-#else
 {   char *n,*o;
 
     n = strdup(cpp_pi);
@@ -402,7 +360,6 @@ char *cpp_prettyident(symbol *s)
     free(n);
     free(o);
 }
-#endif
 
     return cpp_pi;
 }
@@ -453,16 +410,6 @@ void cpp_getpredefined()
     t_pdtor = s_vec_delete->Stype->Tparamtypes->Pnext->Pnext->Pnext->Ptype;
     type_debug(t_pdtor);
 
-#if TARGET_MAC          /* pascal versions of same */
-    if (s_vec_pnew == NULL)
-        s_vec_pnew = lookupsym("_vec_pnew");
-    symbol_debug(s_vec_pnew);
-
-    if (s_vec_pdelete == NULL)
-        s_vec_pdelete = lookupsym("_vec_pdelete");
-    symbol_debug(s_vec_pdelete);
-#endif
-
     if (s_vec_ctor == NULL)
         s_vec_ctor = lookupsym(vecctor);
     symbol_debug(s_vec_ctor);
@@ -512,9 +459,6 @@ elem *cpp_new(int global,symbol *sfunc,elem *esize,list_t arglist,type *tret)
     Classsym *stag;
     char *id;
 
-#if TARGET_MAC
-    unsigned mac_handle = 0;
-#endif
     list_prepend(&arglist,esize);
     if (global & 2 && !(config.flags4 & CFG4anew))
         global = 1;
@@ -530,55 +474,10 @@ elem *cpp_new(int global,symbol *sfunc,elem *esize,list_t arglist,type *tret)
             cpp_memberaccess(snew,sfunc,t->Ttag);
 #endif
     }
-#if TARGET_MAC
-    if ((tybasic(t->Tty) == TYstruct) && (t->Ttag->Sstruct->Sflags & STRpasobj))
-        {
-        symbol *sa;
-        char *name;
-
-        if (snew)
-            cpp_memberaccess(snew,sfunc,t->Ttag);
-        Add_pascal_object = TRUE;       /* need to call _PGM1 initializatin in main */
-        if (!snew)
-            snew = scope_search(cpp_name_pasnew,SCTglobal);
-        name = alloca_strdup2("_",t->Ttag->Sident);
-        sa = scope_search(name,SCTglobal);
-        if (t->Ttag != snew->Sscope)            /* inheriting the function so */
-#if HOST_THINK
-             sa = po_func_Methout(t->Ttag, SCextern);   /* define the pascal method table */
-#else
-             sa = po_func_Methout(t->Ttag);
-#endif
-        else if (!sa)                           /* function def will output table */
-            sa = po_def_class(t->Ttag);         /* reference the pascal method table */
-        sa->Smethod = t->Ttag;
-        list_prepend(&arglist,el_ptr(sa));
-        mac_handle = EFpasnew;
-        assert(snew);
-        enew = el_var(snew);
-        e = xfunccall(enew,NULL,NULL,arglist);
-        //e = func_params(enew,NULL,arglist);
-        //e = el_bint(OPcall,tret,enew,e);
-        el_settype(e,tret);
-        e->Eflags |= mac_handle;
-        return e;
-        }
-#endif
     if (!snew)
         {                               /* Try global table     */
         stag = NULL;
         snew = scope_search(id,SCTglobal);
-#if TARGET_MAC
-        /* if user routine, assume correct storage management */
-        /* if __nw, choose between __nw or mac New_Handle */
-        if (tybasic(t->Tty) == TYstruct)
-            {
-            if (t->Ttag->Sstruct->Sflags & STRmachdl)
-                mac_handle = EFnewhdl;
-            else if (t->Ttag->Sstruct->Sflags & STRhandle)
-                cpperr(EM_nomatch,"operator new",(global & 2) ? "[]" : "");
-            }
-#endif
         }
     assert(snew);
     snew = cpp_overload(snew,NULL,arglist,stag,NULL,0);
@@ -593,9 +492,6 @@ elem *cpp_new(int global,symbol *sfunc,elem *esize,list_t arglist,type *tret)
     enew = el_var(snew);
     e = xfunccall(enew,NULL,NULL,arglist);
     el_settype(e,tret);
-#if TARGET_MAC
-    e->Eflags |= mac_handle;
-#endif
     return e;
 }
 
@@ -615,9 +511,6 @@ elem *cpp_delete(int global,symbol *sfunc,elem *eptr,elem *esize)
     list_t arglist;
     char *id;
     type *t = eptr->ET->Tnext;
-#if TARGET_MAC
-    unsigned mac_handle = 0;
-#endif
 
     type *tptr = eptr->ET;
     if (tptr->Tnext->Tty & (mTYconst | mTYvolatile))
@@ -638,32 +531,10 @@ elem *cpp_delete(int global,symbol *sfunc,elem *eptr,elem *esize)
     if (!(global & 1) && tybasic(t->Tty) == TYstruct)
         sdelete = cpp_findmember(t->Ttag,id,FALSE);
 
-#if TARGET_MAC
-    if ((tybasic(t->Tty) == TYstruct) && (t->Ttag->Sstruct->Sflags & STRpasobj))
-        {
-        Add_pascal_object = TRUE;       /* need to call _PGM1 initializatin in main */
-        if (!sdelete)
-            sdelete = scope_search(cpp_name_pasdel,SCTglobal);
-        mac_handle = EFpasdel;
-        s = sdelete;
-        goto L2;
-        }
-#endif
     list_append(&arglist,esize);
     if (!sdelete)
     {                           /* Try global table     */
         sdelete = scope_search(id,SCTglobal);
-#if TARGET_MAC
-        /* if user routine, assume correct storage management */
-        /* if __dl, choose between __dl or mac Delete_Handle */
-        if (tybasic(t->Tty) == TYstruct)
-            {
-            if (t->Ttag->Sstruct->Sflags & (STRpasobj | STRmachdl))
-                mac_handle = EFdelhdl;
-            if (t->Ttag->Sstruct->Sflags & STRhandle)
-                cpperr(EM_nomatch,"delete operator","");
-            }
-#endif
     }
     assert(sdelete);
 
@@ -677,23 +548,9 @@ elem *cpp_delete(int global,symbol *sfunc,elem *eptr,elem *esize)
             s = sdelete;
         }
     }
-#if TARGET_MAC
-L2:
-#endif
     cpp_memberaccess(s,sfunc,isclassmember(s) ? t->Ttag : NULL);
 
     e = xfunccall(el_var(s),NULL,NULL,arglist);
-#if TARGET_MAC
-    e->Eflags |= mac_handle;
-    if (mac_handle == EFdelhdl && e->E2->Eoper == OPvptrfptr)
-        {                               /* handle ptr must be passes to delete function */
-        elem *tmp;
-        tmp = e->E2;
-        e->E2 = e->E2->E1;              // skip the conversion operator
-        tmp->E1 = NULL;
-        el_free(tmp);
-        }
-#endif
     return e;
 }
 
@@ -1449,9 +1306,6 @@ HINT cpp_cast(elem **pe1,type *t2,int doit)
             eptr = exp2_addr(e1);
             eptr = cast(eptr,newpointer(sconv->Sscope->Stype)); /* to correct pointer type */
             econv = cpp_getfunc(t1,sconv,&eptr);
-#if TARGET_MAC
-            if (!(econv->Eflags&EFpasmeth))
-#endif
             econv = el_unat(OPind,econv->ET->Tnext,econv);
 
             e1 = xfunccall(econv,eptr,NULL,NULL);
@@ -2930,10 +2784,7 @@ elem *cpp_opfunc(elem *e)
 
             // Member functions could be virtual
             efunc = cpp_getfunc(sowner->Stype,s,&ethis);
-#if TARGET_MAC
-            if(!(efunc->Eflags&EFpasmeth))
-#endif
-                efunc = el_unat(OPind,efunc->ET->Tnext,efunc);
+            efunc = el_unat(OPind,efunc->ET->Tnext,efunc);
 
             /* Check for non-const function and const ethis     */
             if (ethis->ET->Tnext->Tty & (mTYconst | mTYvolatile) & ~s->Stype->Tty)
@@ -3006,10 +2857,7 @@ elem *cpp_ind(elem *e)
 
             /* Member functions could be virtual        */
             efunc = cpp_getfunc(sowner->Stype,sm,&ethis);
-#if TARGET_MAC
-            if(!(efunc->Eflags&EFpasmeth))
-#endif
-                efunc = el_unat(OPind,efunc->ET->Tnext,efunc);
+            efunc = el_unat(OPind,efunc->ET->Tnext,efunc);
 
             /* Check for non-const function and const ethis     */
             if (ethis->ET->Tnext->Tty & (mTYconst | mTYvolatile) & ~sm->Stype->Tty)
@@ -3447,11 +3295,6 @@ int cpp_memberaccesst(symbol *smember,symbol *sfunc,Classsym *sclass)
     assert(c1isbaseofc2(NULL,smember->Sscope,sclass));
     st = sclass->Sstruct;
     assert(st);
-#if TARGET_MAC
-    if (st->Sflags & STRpasobj &&       /* for pascal member function */
-        tyfunc(sfunc->Stype->Tty))      /* protection and symbol at different */
-        return 1;                       // heirarchy level, try catching in dodot
-#endif
     if (smember->Sscope == sclass)
     {
         result = (smember->Sflags & SFLpmask) == SFLpublic ||
@@ -3505,14 +3348,10 @@ void cpp_memberaccess(symbol *smember,symbol *sfunc,Classsym *sclass)
 {
     if (!cpp_memberaccesst(smember, sfunc, sclass))
     {
-#if HOST_THINK
-        if (compile_state != kDataView) // debugger can violate access restrictions
-#endif
-        {   char *p = (char *) MEM_PARF_STRDUP(cpp_prettyident(smember));
+        char *p = (char *) MEM_PARF_STRDUP(cpp_prettyident(smember));
 
-            cpperr(EM_not_accessible,p,cpp_prettyident(sclass));        // no access to member
-            MEM_PARF_FREE(p);
-        }
+        cpperr(EM_not_accessible,p,cpp_prettyident(sclass));        // no access to member
+        MEM_PARF_FREE(p);
     }
 }
 
@@ -3532,15 +3371,8 @@ type *cpp_thistype(type *tfunc,Classsym *stag)
     /* Pull in const and volatile from function type    */
     modifiers = (tfunc->Tty & (mTYconst | mTYvolatile));
     type_setty(&t->Tnext,stag->Stype->Tty | modifiers);
-#if TARGET_MAC
-    if (stag->Sstruct->Sflags & (STRpasobj | STRmachdl))
-        tym = TYvptr;
-    else
-        tym = pointertype;
-#else
     tym = stag->Sstruct->ptrtype;
     assert(typtr(tym));
-#endif
     t->Tty = tym;
     t->Tcount++;
     return t;
@@ -3597,12 +3429,8 @@ elem *cpp_addr_vtable(Classsym *stag)
     st = stag->Sstruct;
     svptr = st->Svptr;
     assert(svptr);
-#if TARGET_MAC
-    scvtbl = (enum SC) (st->Sflags & STRvtblext) ? SCextern : SCstatic;
-#else
     scvtbl = (enum SC) (config.flags2 & CFG2comdat) ? SCcomdat :
              (st->Sflags & STRvtblext) ? SCextern : SCstatic;
-#endif
     n2_genvtbl(stag,scvtbl,0);          // make sure vtbl[]s exist
 
     /* ev = &_vtbl+offset       */
@@ -3663,7 +3491,7 @@ elem *cpp_istype(elem *e, type *t)
         emos->EV.sp.Voffset = st->Sprimary->BCoffset;
 #endif
     t = type_allocn(tym,svptr->Stype);  // match pointer type of ethis
-    M68HDL(e = el_bint(OPadd,t,e,emos));        // ethis + mos
+    e = el_bint(OPadd,t,e,emos);        // ethis + mos
     e = el_unat(OPind,svptr->Stype,e);  /* *(ethis + mos)               */
 
     ev = cpp_addr_vtable(stag);
@@ -3705,12 +3533,8 @@ STATIC elem * cpp_assignvptr(symbol *s_this,int ctor)
     stag = tclass->Ttag;
     st = stag->Sstruct;
     svptr = st->Svptr;
-#if TARGET_MAC
-    scvtbl = (enum SC) (st->Sflags & STRvtblext) ? SCextern : SCstatic;
-#else
     scvtbl = (enum SC) (config.flags2 & CFG2comdat) ? SCcomdat :
              (st->Sflags & STRvtblext) ? SCextern : SCstatic;
-#endif
 
     /* If any of the virtual functions are pure, then optimize
        by not assigning vptr.
@@ -3729,7 +3553,7 @@ STATIC elem * cpp_assignvptr(symbol *s_this,int ctor)
         emos->EV.sp.Voffset = st->Sprimary->BCoffset;
 #endif
     t = type_allocn(tym,svptr->Stype);  // match pointer type of ethis
-    M68HDL(e = el_bint(OPadd,t,el_var(s_this),emos));   /* ethis + mos                  */
+    e = el_bint(OPadd,t,el_var(s_this),emos);   /* ethis + mos                  */
     e = el_unat(OPind,svptr->Stype,e);  /* *(ethis + mos)               */
 
     genvtbl = TRUE;
@@ -3834,7 +3658,7 @@ L2:
         }
 
         emos = el_longt(tsint,vptroffset);
-        M68HDL(e = el_bint(OPadd,t,e,emos));
+        e = el_bint(OPadd,t,e,emos);
         e = el_unat(OPind,svptr->Stype,e);      /* *(&e + mos)          */
 
         /* ev = &_vtbl  */
@@ -3891,18 +3715,13 @@ STATIC elem * cpp_assignvbptr(symbol *s_this)
     //dbg_printf("cpp_assignvbptr for '%s'\n",stag->Sident);
     st = stag->Sstruct;
     svptr = st->Svbptr;
-#if TARGET_MAC
-    scvtbl = (enum SC) (st->Sflags & STRvtblext) ? SCextern :
-             (config.flags2 & CFG2comdat) ? SCcomdat : SCstatic;
-#else
     scvtbl = (enum SC) (config.flags2 & CFG2comdat) ? SCcomdat :
              (st->Sflags & STRvtblext) ? SCextern : SCstatic;
-#endif
 
     symbol_debug(svptr);
     emos = el_longt(tsint,st->Svbptr_off);
     t = type_allocn(tym,svptr->Stype);  // match pointer type of ethis
-    M68HDL(e = el_bint(OPadd,t,el_var(s_this),emos));   /* ethis + mos                  */
+    e = el_bint(OPadd,t,el_var(s_this),emos);   /* ethis + mos                  */
     e = el_unat(OPind,svptr->Stype,e);  /* *(ethis + mos)               */
 
     n2_genvbtbl(stag,scvtbl,0);         // make sure vtbl[]s exist
@@ -3971,7 +3790,7 @@ STATIC elem * cpp_assignvbptr(symbol *s_this)
         }
 #endif
         emos = el_longt(tsint,vptroffset);
-        M68HDL(e = el_bint(OPadd,t,e,emos));
+        e = el_bint(OPadd,t,e,emos);
         e = el_unat(OPind,svptr->Stype,e);      /* *(&e + mos)          */
 
         /* ev = &_vtbl  */
@@ -4086,15 +3905,6 @@ elem * cpp_getfunc(type *tclass,symbol *sfunc,elem **pethis)
             goto L1;
         }
 
-#if TARGET_MAC
-        if (st->Sflags & STRpasobj && sfunc->Sfunc->Fflags & Fvirtual)
-            {                           /* virtual pascal object function */
-            pfunc = el_var(sfunc);
-            pfunc->Eflags |= EFpasmeth;
-            *pethis = ethis;
-            return pfunc;
-            }
-#endif
         /* We can call function directly if we are in a ctor or dtor
            and ethis is "this"
          */
@@ -4117,14 +3927,9 @@ elem * cpp_getfunc(type *tclass,symbol *sfunc,elem **pethis)
         symbol_debug(svptr);
 
         /* e = *(ethis + offset(vptr)); ethis might be a handle pointer */
-        M68HDL(e = el_bint(OPadd,newpointer(svptr->Stype),
-                el_same(&ethis),el_longt(tsint,(targ_int) svptr->Smemoff)));
-#if TARGET_MAC
-        // if ethis was handle pointer, result has been dereferenced
-        e->ET->Tty = (tym == TYvptr) ? TYfptr : tym;
-#else
+        e = el_bint(OPadd,newpointer(svptr->Stype),
+                el_same(&ethis),el_longt(tsint,(targ_int) svptr->Smemoff));
         e->ET->Tty = tym;
-#endif
         e = el_unat(OPind,svptr->Stype,e);
 
 #if THUNKS
@@ -4134,15 +3939,15 @@ elem * cpp_getfunc(type *tclass,symbol *sfunc,elem **pethis)
         /* Add _mptr.d to ethis                                         */
 
         /* *pethis = ethis + (int) *(e + i);                            */
-        M68HDL(ed = el_bint(OPadd,e->ET,el_copytree(e),el_longt(tsint,i)));
+        ed = el_bint(OPadd,e->ET,el_copytree(e),el_longt(tsint,i));
         ed = el_unat(OPind,tsshort,ed);
         ed = cast(ed,tsint);
-        *pethis = M68HDL(el_bint(OPadd,ethis->ET,ethis,ed));
+        *pethis = el_bint(OPadd,ethis->ET,ethis,ed);
 
         i += SHORTSIZE + SHORTSIZE;             /* get offset to _mptr.f */
         }
 #endif
-        M68HDL(e = el_bint(OPadd,e->ET,e,el_longt(tsint,i)));
+        e = el_bint(OPadd,e->ET,e,el_longt(tsint,i));
         pfunc = el_unat(OPind,newpointer(sfunc->Stype),e);
     }
     else
@@ -4212,14 +4017,6 @@ elem *cpp_constructor(elem *ethis,type *tclass,list_t arglist,elem *enelems,
         (tyfarfunc(st->Sdtor->Stype->Tty) ? !LARGECODE : LARGECODE))
         doeh = 0;                       // not ambient memory model
 
-#if TARGET_MAC
-    if (enelems && st->Sflags & (STRpasobj|STRmachdl))
-    {
-        e = NULL;
-        cpperr(EM_new_pascal,stag->Sident);
-        goto ret;
-    }
-#endif
 
     /* Look for conversion operator     */
     e2 = NULL;
@@ -4300,9 +4097,6 @@ elem *cpp_constructor(elem *ethis,type *tclass,list_t arglist,elem *enelems,
         /*ep = cast(exp2_addr(e2),newpointer(e2->ET));*/
         ep = cast(exp2_addr(e2),newpointer(sconv->Sscope->Stype)); /* to correct pointer type */
         econv = cpp_getfunc(e2->ET,sconv,&ep);
-#if TARGET_MAC
-        if(!(econv->Eflags&(EFpasmeth/*|EFhdlobj*/)))
-#endif
         econv = el_unat(OPind,econv->ET->Tnext,econv);
 
         e2 = xfunccall(econv,ep,NULL,NULL);
@@ -4577,10 +4371,6 @@ elem *cpp_destructor(type *tclass,elem *eptr,elem *enelems,int dtorflag)
     assert(tclass && tybasic(tclass->Tty) == TYstruct && tclass->Ttag);
     stag = tclass->Ttag;
     st = stag->Sstruct;
-#if TARGET_MAC
-    if (enelems && st->Sflags & (STRpasobj|STRmachdl))
-        cpperr(EM_del_pascal,stag->Sident);
-#endif
     noeh = dtorflag & DTORnoeh;
     if (!(config.flags3 & CFG3eh) || pointertype != st->ptrtype || eecontext.EEin)
         noeh = 1;
@@ -4679,10 +4469,6 @@ elem *cpp_destructor(type *tclass,elem *eptr,elem *enelems,int dtorflag)
         /* call __vec_delete(void *Parray,int Free,size_t Sizelem,
                 int (*Dtor)(void))
          */
-#if TARGET_MAC
-        if (stag->Sstruct->Sflags & (STRpasobj|STRmachdl))
-            cpperr(EM_del_pascal,stag->Sident);
-#endif
         edtor = cast(edtor,s_vec_delete->Stype->Tparamtypes->Pnext->Pnext->Pnext->Ptype);
         efunc = el_var(s_vec_delete);
         arglist = list_build(
@@ -4697,9 +4483,6 @@ elem *cpp_destructor(type *tclass,elem *eptr,elem *enelems,int dtorflag)
         //    nwc_mustwrite(sdtor);
     }
     else
-#if TARGET_MAC
-        if(!(edtor->Eflags&(EFpasmeth|EFhdlobj)))
-#endif
     {
         /* Generate:  edtor(eptr,dtorflag)      */
         elem *ed;
@@ -5092,8 +4875,8 @@ void cpp_buildinitializer(symbol *s_ctor,list_t baseinit,int flag)
             SYMIDX marksi;
 
             sbase = b->BCbase;
-            M68HDL(ethis = el_bint(OPadd,newpointer(sbase->Stype),
-                el_var(s_this),el_longt(tsint,b->BCoffset)));
+            ethis = el_bint(OPadd,newpointer(sbase->Stype),
+                el_var(s_this),el_longt(tsint,b->BCoffset));
             arglist = cpp_meminitializer(baseinit,sbase);
             /*dbg_printf("Virtual base '%s', arglist = %p\n",sbase->Sident,arglist);*/
             if (sbase->Sstruct->Sflags & STRgenctor0 && !arglist)
@@ -5125,8 +4908,8 @@ void cpp_buildinitializer(symbol *s_ctor,list_t baseinit,int flag)
             if (b->BCflags & BCFvfirst)
             {   elem *eptr;
 
-                M68HDL(eptr = el_bint(OPadd,newpointer(newpointer(sbase->Stype)),
-                        el_var(s_this),el_longt(tsint,b->memoffset)));
+                eptr = el_bint(OPadd,newpointer(newpointer(sbase->Stype)),
+                        el_var(s_this),el_longt(tsint,b->memoffset));
                 eptr = el_unat(OPind,eptr->ET->Tnext,eptr);
                 ec = el_bint(OPeq,eptr->ET,eptr,ec);
             }
@@ -5184,7 +4967,7 @@ void cpp_buildinitializer(symbol *s_ctor,list_t baseinit,int flag)
             arglist = cpp_meminitializer(baseinit,s);
             enelems = el_nelems(t);
             et = el_var(s_this);
-            M68HDL(et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff)));
+            et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff));
             et = cpp_constructor(et,tclass,arglist,enelems,NULL,flags & 8);
             e = el_combine(e,et);
         }
@@ -5202,7 +4985,7 @@ void cpp_buildinitializer(symbol *s_ctor,list_t baseinit,int flag)
 
                     /* Create et <== *(this + offset)   */
                     et = el_var(s_this);
-                    M68HDL(et = el_bint(OPadd,newpointer(t),et,el_longt(tsuns,s->Smemoff)));
+                    et = el_bint(OPadd,newpointer(t),et,el_longt(tsuns,s->Smemoff));
                     et = el_unat(OPind,
                         (tyref(t->Tty) ?
                             newpointer(t->Tnext) : t),et);
@@ -5303,9 +5086,6 @@ void cpp_fixconstructor(symbol *s_ctor)
 
     /* If there are virtual functions, assign virtual pointer   */
     abstract = stag->Sstruct->Sflags & STRabstract;
-#if TARGET_MAC
-    if (!(stag->Sstruct->Sflags & STRpasobj))   /* virtual pas obj use pascal methods */
-#endif
     e = el_combine(e,cpp_assignvptr(s_this,1));
 
     /* Find every occurrence of an assignment to this, and append a     */
@@ -5622,7 +5402,7 @@ elem *cpp_buildterminator(Classsym *stag, symbol *s_this, elem **ped)
                 }
 
                 et = el_var(s_this);
-                M68HDL(et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff)));
+                et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff));
                 if (doeh)
                     ector = el_copytree(et);
                 e2 = cpp_destructor(tclass,et,enelems,DTORmostderived | DTORnoeh);
@@ -5690,8 +5470,8 @@ elem *cpp_buildterminator(Classsym *stag, symbol *s_this, elem **ped)
             {   elem *et;
 
                 et = el_var(s_this);
-                M68HDL(et = el_bint(OPadd,et->ET,
-                        et,el_longt(tsint,b->BCoffset)));
+                et = el_bint(OPadd,et->ET,
+                        et,el_longt(tsint,b->BCoffset));
                 et = cpp_destructor(sbase->Stype,et,NULL,DTORnoeh);
                 e1 = el_combine(et,e1);
             }
@@ -5908,31 +5688,6 @@ elem *cpp_structcopy(elem *e)
     return e;
 }
 
-#if TARGET_MAC
-/****************************
- * cpp_hdlptr(e)
- *
- * convert handle pointer to far pointer
- */
-
-elem *cpp_hdlptr(elem *e)
-{   type *t;
-
-    assert(e->Eoper == OPadd);
-    if (tybasic(e->E1->ET->Tty) == TYvptr)
-        {
-        t = e->ET;
-        t->Tty = (t->Tty & ~mTYbasic) | TYfptr;
-#if TARGET_MAC
-        e->E1 = el_unat(OPvptrfptr,t,e->E1);
-#else
-        e->E1 = cast(e->E1,t);  /* cast handle to far pointer   */
-#endif
-        }
-    return e;
-}
-#endif
-
 /********************************
  * Determine if inline invariant needs to be created for tclass.
  * This routine is parallel to cpp_dtor().
@@ -6056,7 +5811,7 @@ void cpp_fixinvariant(symbol *s_inv)
 
                 enelems = el_nelems(t);
                 et = el_var(s_this);
-                M68HDL(et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff)));
+                et = el_bint(OPadd,et->ET,et,el_longt(tsuns,s->Smemoff));
                 et = cpp_invariant(tclass,et,enelems,DTORmostderived | DTORnoeh);
                 e = el_combine(et,e);
             }
@@ -6098,8 +5853,8 @@ void cpp_fixinvariant(symbol *s_inv)
             {   elem *et;
 
                 et = el_var(s_this);
-                M68HDL(et = el_bint(OPadd,et->ET,
-                        et,el_longt(tsint,b->BCoffset)));
+                et = el_bint(OPadd,et->ET,
+                        et,el_longt(tsint,b->BCoffset));
                 et = cpp_invariant(sbase->Stype,et,NULL,DTORnoeh);
                 e1 = el_combine(et,e1);
             }
@@ -6153,10 +5908,6 @@ elem *cpp_invariant(type *tclass,elem *eptr,elem *enelems,int invariantflag)
     assert(tclass && tybasic(tclass->Tty) == TYstruct && tclass->Ttag);
     stag = tclass->Ttag;
     st = stag->Sstruct;
-#if TARGET_MAC
-    if (enelems && st->Sflags & (STRpasobj|STRmachdl))
-        cpperr(EM_del_pascal,stag->Sident);
-#endif
     invariantflag &= ~DTORnoeh;
     if (enelems)
         invariantflag |= DTORvector;
@@ -6234,10 +5985,6 @@ elem *cpp_invariant(type *tclass,elem *eptr,elem *enelems,int invariantflag)
         // call __vec_delete(void *Parray,int Free,size_t Sizelem,
         //      int (*Dtor)(void))
 
-#if TARGET_MAC
-        if (stag->Sstruct->Sflags & (STRpasobj|STRmachdl))
-            cpperr(EM_del_pascal,stag->Sident);
-#endif
         einvariant = cast(einvariant,s_vec_delete->Stype->Tparamtypes->Pnext->Pnext->Pnext->Ptype);
         efunc = el_var(s_vec_delete);
         arglist = list_build(
@@ -6250,9 +5997,6 @@ elem *cpp_invariant(type *tclass,elem *eptr,elem *enelems,int invariantflag)
 #endif
     }
     else
-#if TARGET_MAC
-        if(!(einvariant->Eflags&(EFpasmeth|EFhdlobj)))
-#endif
     {
         // Generate:  eptr->einvariant()
         elem *ed;
@@ -6343,9 +6087,5 @@ void cpp_term()
 }
 
 #endif /* TERMCODE  */
-
-#if TARGET_MAC
-#include "TGcpp.c"
-#endif
 
 #endif

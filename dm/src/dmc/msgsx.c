@@ -2636,16 +2636,10 @@ struct Msgtable msgtable[] =
         "ƒeƒ“ƒvƒŒ[ƒgˆø” '%s' ‚ÍŠÖ”ƒpƒ‰ƒ[ƒ^Œ^‚Ég‚í‚ê‚Ä‚¢‚È‚¢", /* CPP+82 */
   },
   { "cant_gen_templ_inst",
-    #if HOST_THINK
-        "cannot generate template instance from pragma template%s",     /* CPP+83 */
-        "Schabloneninstanz von Pragma-Schablone%s kann nicht erstellt werden",  /* CPP+83 */
-        "impossible de g‚n‚rer une instance de squelette … partir du squelette pragma %s",      /* CPP+83 */
-    #else
         "cannot generate template instance from -XI%s", /* CPP+83 */
         "Schabloneninstanz von -XI%s kann nicht erstellt werden",       /* CPP+83 */
         "impossible de g‚n‚rer une instance de squelette … partir de -XI%s",    /* CPP+83 */
         "-XI%s ‚©‚çƒeƒ“ƒvƒŒ[ƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚ğ¶¬‚Å‚«‚È‚¢",   /* CPP+83 */
-    #endif
   },
 
         /* ARM 8.4.3
@@ -2687,73 +2681,6 @@ struct Msgtable msgtable[] =
         "'::' ‚ª‚ ‚è‚Ü‚¹‚ñ",                            // CPP+89
   },
 #else
-#if TARGET_MAC
-  { "new_pascal",
-        "new %s [], not allowed for handle/pascal class",       /* CPP+87 */
-        "new %s [], nicht erlaubt fr Handle/Pascal-Klasse",    /* CPP+87 */
-        "new %s [], non valide avec la classe handle/pascal",   /* CPP+87 */
-  },
-  { "del_pascal",
-        "delete [] %s , not allowed for handle/pascal class",   /* CPP+88 */
-        "delete [] %s , nicht erlaubt fr Handle/Pascal-Klasse",        /* CPP+88 */
-        "delete %s [], non valide avec la classe handle/pascal",        /* CPP+88 */
-  },
-  { "new_type",
-        "type must be void **operator new(pascal void (*)(),size_t);",  /* CPP+89 */
-        "Typ muá void **operator new(pascal void (*)(),size_t); sein",  /* CPP+89 */
-        "le type doit ˆtre void**op‚rateur new(pascal void (*)()size_t);",      /* CPP+89 */
-  },
-
-        /* Type of operator delete must be one of:      */
-        /*      void operator delete(void *);           */
-        /*      void operator delete(void *,size_t);    */
-  { "delete_type",
-        "must be void operator delete(void **);",       /* CPP+90 */
-        "Muá lauten void operator delete(void **);",    /* CPP+90 */
-        "doit ˆtre void op‚rateur delete(void **);",    /* CPP+90 */
-  },
-  { "fwd_class_type",
-        "Prior forward reference to class %s must match handle/pascal class type",/* CPP+91 */
-        "Frhere Vorausreferenz auf Klasse %s muá Handle/Pascal-Klassentyp entsprechen",/* CPP+91 */
-        "La r‚f‚rence en avant ant‚rieure … la classe %s doit correspondre au type de classe handle/pascal",/* CPP+91 */
-  },
-  { "pascal_class",
-        "pascal object class expected",                         /* CPP+92 */
-        "Pascal-Objektklasse erwartet",                         /* CPP+92 */
-        "classe d'objets pascal requis",                                /* CPP+92 */
-  },
-  { "inher_member",
-        "inherited function must be member of derived class",   /* CPP+93 */
-        "Vererbte Funktion muá Glied einer abgeleiteten Klasse sein",   /* CPP+93 */
-        "la fonction h‚rit‚e doit appartenir … la classe d‚riv‚e",      /* CPP+93 */
-  },
-        /* The Pascal naming conventions do not support type information */
-        /* overloading, type conversion, and operator functions are not allowed */
-        /* for virtual members of pascal classes or any pascal function */
-  { "ovl_conv",
-        "overloading, type conversion or operator function not allowed", /* CPP+94 */
-        "šberlagerungs-, Typkonvertierungs- oder Operator-Funktion nicht zul„ssig", /* CPP+94 */
-        "appel d'informations de type, conversion de type ou fonction op‚rateur non autoris‚", /* CPP+94 */
-  },
-#if HOST_MPW
-  { "vtbl_redecl",
-        "dump file requirement: vtable key function '%s' cannot be redeclared inline", /* CPP+95 */
-        "Speicherauszugsdatei: Vtable-Schlsselfunktion '%s' kann nicht als 'inline' redeklariert werden", /* CPP+95 */
-        "exigence du fichier de vidage : la fonction cl‚ vtable '%s' ne doit pas ˆtre red‚clar‚e de type inline", /* CPP+95 */
-  },
-#else
-  { "vtbl_redecl",
-        "vtable key function '%s' cannot be redeclared inline in precompiled header", /* CPP+95 */
-        "Vtable-Schlsselfunktion '%s' kann nicht in vorkompiliertem Header als 'inline' redeklariert werden", /* CPP+95 */
-        "a fonction cl‚ vtable '%s' ne doit pas ˆtre red‚clar‚e de type inline dans un en-tˆte pr‚compil‚", /* CPP+95 */
-  },
-#endif
-  { "vtbl_inline",
-        "vtable key function '%s' redeclared inline (vtable will be static)", /* CPP+96 */
-        "Vtable-Schlsselfunktion '%s' als 'inline' redeklariert (Vtable knftig statisch)", /* CPP+96 */
-        "fonction cl‚ vtable '%s' red‚clar‚e inline (vtable sera statique)", /* CPP+96 */
-  },
-#endif
   { "ptr_ref",
         "pointers and references to references are illegal", /* CPP+97 */
         "Pointer und Referenzen auf Referenzen unzul„ssig", /* CPP+97 */

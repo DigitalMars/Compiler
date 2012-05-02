@@ -29,9 +29,6 @@
 #include        "global.h"
 #include        "parser.h"
 #include        "token.h"
-#if TARGET_MAC
-#include        "TG.h"
-#endif
 #include        "filespec.h"
 #include        "outbuf.h"
 
@@ -52,9 +49,7 @@ INITIALIZED_STATIC_DEF blklst * last_blsave;
 #endif
 STATIC void freeblk(blklst *);
 
-#if TARGET_MAC
-INITIALIZED_STATIC_DEF blklst *bl_freelist = NULL;      /* pointer to next free blk     */
-#elif TX86
+#if TX86
 static blklst *bl_freelist = NULL;      /* pointer to next free blk     */
 #endif
 
@@ -1056,9 +1051,6 @@ UHINT egchar()
     if ((xc = *btextp) != PRE_EOB && xc != PRE_ARG)
     {
         btextp++;
-#if TARGET_MAC
-        bl->BLcurcnt++;
-#endif
         //if (!(config.flags2 & CFG2expand))
         if (!switch_E)
             return xc;
@@ -1135,10 +1127,6 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
                         TokenCnt = 0;           /* count tokens till first #if */
 #endif
                         break;
-#if TARGET_MAC
-        case BLpdef:    p->BLflags |= BFpdef;   /* flag pre_compilation data */
-                        p->BLtyp = BLarg;
-#endif
                         break;
         case BLstr:
         case BLarg:
@@ -1271,10 +1259,6 @@ STATIC void freeblk(blklst *p)
                 break;
         case BLarg:                             /* don't free BLtext    */
         case BLrtext:
-#if (TARGET_MAC)
-                if (CPP && p->BLflags & BFpdef)
-                    ANSI = ansi_opt;    /* now turn on ansi checking */
-#endif
                 break;
         default:
                 assert(0);
@@ -1298,20 +1282,10 @@ STATIC void freeblk(blklst *p)
 Srcpos getlinnum()
 {       blklst *b;
 
-#if TARGET_MAC
-        if (FromTokenList)              /* rescanning old tokens */
-            return tok.TKsrcpos;
-#endif
 #if TX86
         b = cstate.CSfilblk;
 #else
         b = blklst_getfileblock();
-#endif
-#if HOST_MPW
-#if SOURCE_OFFSETS
-        if (b)                          /* get file offset also */
-            b->BLsrcpos.Sfiloff = b->BLfoffset+b->BLlincnt;
-#endif
 #endif
         // If past end of file, use last known position
         return b ? b->BLsrcpos : lastpos;
@@ -1339,7 +1313,7 @@ void getcharnum()
 }
 #endif
 
-#if PRAGMA_ONCE && !HOST_THINK
+#if PRAGMA_ONCE
 void *once_dehydrate()
     {
     blklst *bl,*bl_next;
@@ -1409,38 +1383,6 @@ void blklst_term()
 }
 
 #endif
-
-#if HOST_RAINBOW
-/*
- * In order to rehydrate the once list and keep its data common, we need
- * to append the rehydrated list at the end, instead of insterting it at
- * the start. This is OK since the once list is only appended to at the
- * beginning, not the end.
- */
-void once_hydrate_loaded(blklst *bl)
-{
-    blklst *last_bl = Once;
-
-    if (last_bl)
-    {
-
-        /* find the last block */
-
-        while (last_bl->BLprev)
-            last_bl = last_bl->BLprev;
-
-        /* point it at the start of the dehyrated Once list */
-
-        last_bl->BLprev = bl;
-    }
-
-    /* if Once list is empty, use dehydrated bl to start list */
-
-    else
-        Once = bl;
-}
-#endif
-
 
 #if !TX86
 void blklst_reinit(void)

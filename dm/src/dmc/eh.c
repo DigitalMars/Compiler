@@ -28,10 +28,6 @@
 #include "code.h"
 #include "scope.h"
 
-#if TARGET_POWERPC // DJB
-#include "cgobjxcoff.h"
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -428,14 +424,6 @@ type *except_declaration(symbol *cv)
                     s->Stype = tsint;
                     tsint->Tcount++;
                 }
-#if TARGET_MAC
-                // If it is a pascal or mac handle object,
-                // you cannot declare an instance of it.
-                if (ty == TYstruct &&
-                        (s->Stype->Ttag->Sstruct->Sflags &
-                        (STRpasobj | STRmachdl)))
-                        synerr(EM_ptr_handle);
-#endif
                 if (!(s->Stype->Tflags & TFsizeunknown) &&
                     intsize == 2 &&
                     type_size(s->Stype) > 30000)
@@ -1007,15 +995,8 @@ symbol *except_gentables()
     {
         // Generate the address-table
         //printf("dim of address-table = %d\n",ehpairi);
-#if TARGET_MAC
-        us = ehpairi;
-        pdt = dtnbytes(pdt,2,(char *)&us);
-        sz += 2;
-        assert(ehpairi < USHRT_MAX);
-#else
         pdt = dtnbytes(pdt,intsize,(char *)&ehpairi);
         sz += intsize;
-#endif
         for (i = 0; i < ehpairi; i++)
         {   pdt = dtnbytes(pdt,intsize,(char *)&ehpair[i].offset);
             us = ehpair[i].index;
@@ -1119,22 +1100,13 @@ symbol *except_gentables()
         symbol *s;
         targ_size_t offset;
         targ_size_t thisoff;
-#if TARGET_MAC
-        unsigned short prev;
-#else
         long prev;
-#endif
         elem *es;
 
         eh = &ehstack[i];
         prev = eh->prev;
-#if TARGET_MAC
-        pdt = dtnbytes(pdt,2,(char *)&prev);
-        sz += 2;
-#else
         pdt = dtnbytes(pdt,intsize,(char *)&prev);
         sz += intsize;
-#endif
         tb = eh->bl;
         e = eh->el;
         if (tb)
