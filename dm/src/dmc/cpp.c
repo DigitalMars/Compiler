@@ -3557,9 +3557,13 @@ symbol *cpp_declarthis(symbol *sfunc,Classsym *stag)
 
     //dbg_printf("cpp_declarthis(%p, '%s')\n",sfunc, sfunc->Sident);
     assert(level == 1);                 /* must be at parameter level   */
+#if 1
+    s = scope_define(cpp_name_this,SCTlocal,SCparameter);
+#else
     s = scope_define(cpp_name_this,SCTlocal,
         (tybasic(sfunc->Stype->Tty) == TYmfunc)
         ? SCfastpar : SCparameter);
+#endif
     s->Stype = cpp_thistype(sfunc->Stype,stag);
     return s;
 }
