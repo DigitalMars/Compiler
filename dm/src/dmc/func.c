@@ -114,10 +114,6 @@ Funcstate funcstate =
 static char hiddenparam[] = "__TMPxxxx"; /* name of hidden parameter to */
                                         /* pascal functions             */
 
-#if AUTONEST
-int pushcount = 0;                      /* # of pushes prior to this symbol */
-#endif
-
 STATIC void fscope_end(void);
 STATIC void func_state(void);
 STATIC void compound_state(void);
@@ -156,9 +152,6 @@ void func_nest(symbol *s)
     block*      curblocksave    = curblock;
     symbol*     funcsym_psave   = funcsym_p;
     int         levelsave       = level;
-#if AUTONEST
-    int         pushcountsave   = pushcount;
-#endif
     Funcstate   funcstatesave   = funcstate;
     Pstate      pstatesave      = pstate;
     symtab_t    globsymsave     = globsym;
@@ -183,9 +176,6 @@ void func_nest(symbol *s)
     curblock    = curblocksave;
     funcsym_p   = funcsym_psave;
     level       = levelsave;
-#if AUTONEST
-    pushcount   = pushcountsave;
-#endif
     pstate      = pstatesave;
     funcstate   = funcstatesave;
     init_staticctor = initsave;
@@ -1347,31 +1337,10 @@ STATIC Srcpos statement(int flag)
                 }
                 if (CPP)
                     block_goto();       // start a new block
-#if AUTONEST
-                pushcount++;            // begin of allocation section
-#endif
                 compound_state();
                 if (configv.addlinenumbers)
                     srcpos = token_linnum();
                 stoken();
-#if AUTONEST
-                /* Pops come before pushes, so if there are any pushes  */
-                /* already, we must take the pop off of that.           */
-                if (pushcount)
-                {   assert(pushcount > 0);
-                    pushcount--;
-                }
-                else
-                {   // 'Pop' after most recent symbol
-                    symbol *s;
-
-                    assert(globsym.top);
-                    s = globsym.tab[globsym.top - 1];
-                    assert(s->Sclass == SCauto || s->Sclass == SCregister
-                      T80x86(|| s->Sclass == SCpseudo) || s->Sclass == SCstatic);
-                    s->Spop++;
-                }
-#endif
                 if (!CPP || flag)
                     deletesymtab();
                 break;
