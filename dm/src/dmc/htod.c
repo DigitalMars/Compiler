@@ -63,7 +63,7 @@ void obj_dosseg()
 {
 }
 
-void obj_includelib(const char *name)
+bool obj_includelib(const char *name)
 {
 }
 
