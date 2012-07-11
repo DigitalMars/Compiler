@@ -422,7 +422,7 @@ type *stunspec(enum_TK tk, Symbol *s, Symbol *stempsym, param_t *template_argume
                 }
 #endif
             // See if we should generate debug info for the class definition
-#if TX86 && OMFOBJ
+#if SYMDEB_CODEVIEW
             if (config.fulltypes == CV4 && !eecontext.EEcompile)
                 cv4_struct((Classsym *)s,1);
 #endif
@@ -460,7 +460,7 @@ type *stunspec(enum_TK tk, Symbol *s, Symbol *stempsym, param_t *template_argume
             strdcllst((Classsym *)s,flags);
 
             // See if we should generate debug info for the class definition
-#if TX86 && OMFOBJ
+#if SYMDEB_CODEVIEW
             if (config.fulltypes == CV4 && !eecontext.EEcompile)
                 cv4_struct((Classsym *)s,1);
 #endif

@@ -264,7 +264,7 @@ SRC=    tassert.h html.h html.c \
         cgelem.c rtlsym.h dt.c strtold.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
-	ti_pvoid.c xmm.h
+	ti_pvoid.c xmm.h obj.h
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c
@@ -307,7 +307,7 @@ installbin:
 
 ##################### SPECIAL BUILDS #####################
 
-total.sym : $(CCH) token.h parser.h el.h scope.h global.h type.h oper.h cpp.h $(TK)\filespec.h dt.h msgs2.h bcomplex.h total.h
+total.sym : $(CCH) token.h parser.h el.h scope.h global.h obj.h type.h oper.h cpp.h $(TK)\filespec.h dt.h msgs2.h bcomplex.h total.h
         $(CC) -c $(CFLAGS) -HFtotal.sym total.h
 
 os.obj : os.c

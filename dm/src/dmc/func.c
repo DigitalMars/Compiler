@@ -716,7 +716,7 @@ void func_body(symbol *s)
             assert(stag->Sclass == SCstruct);
             f->Fflags3 &= ~Fvtblgen;
             stag->Sstruct->Sflags &= ~STRvtblext;
-#if TX86 && OMFOBJ
+#if SYMDEB_CODEVIEW
             if (config.fulltypes == CV4)
                 cv4_struct(stag,3);             // generate debug info for class
 #endif

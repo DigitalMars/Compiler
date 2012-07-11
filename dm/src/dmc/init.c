@@ -198,7 +198,7 @@ void datadef(symbol *s)
                     synerr(EM_no_vla);          // can't be a VLA
                 else
                     initializer(s);             // followed by initializer
-#if 1 && TX86 && OMFOBJ
+#if SYMDEB_CODEVIEW
                 if (s->Sclass == SCstatic && funcsym_p) // local static?
                     // So debug data appears twice (sigh) to be
                     // MS bug compatible

@@ -940,7 +940,7 @@ STATIC void writefunc2(symbol *sfunc)
 #if VBTABLES
             n2_genvbtbl(stag,scvtbl,1);
 #endif
-#if OMFOBJ
+#if SYMDEB_CODEVIEW
             if (config.fulltypes == CV4)
                 cv4_struct(stag,2);
 #endif
@@ -1458,6 +1458,7 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
 
     alignOffset(DATA, sz);
     s = symboldata(Doffset,ty | mTYconst);
+    s->Sseg = DATA;
     obj_write_bytes(SegData[DATA], len, p);
     //printf("s->Sseg = %d:x%x\n", s->Sseg, s->Soffset);
 #endif
