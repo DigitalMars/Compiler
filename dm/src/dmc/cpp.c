@@ -4761,7 +4761,7 @@ void cpp_build_STI_STD()
         sdtor = cpp_build_STX(name,destructor_list);
 #if NEWSTATICDTOR
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        obj_staticctor(sdtor,1,pstate.STinitseg);
+        Obj::staticctor(sdtor,1,pstate.STinitseg);
         dtor = 0;
 #else
         // Append call to __fatexit(sdtor) to constructor list
@@ -4784,7 +4784,7 @@ void cpp_build_STI_STD()
         name[3] = 'I';                  // convert name to _STIxxxx
         sctor = cpp_build_STX(name,constructor_list);
 #if NEWSTATICDTOR
-        obj_staticctor(sctor,dtor,pstate.STinitseg);
+        Obj::staticctor(sctor,dtor,pstate.STinitseg);
 #endif
     }
 }

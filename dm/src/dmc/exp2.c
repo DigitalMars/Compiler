@@ -1825,7 +1825,7 @@ L1:
             }
             if (sfunc->Stype->Tty & mTYimport)
             {
-                obj_import(e);                  // do deferred import
+                Obj::import(e);                  // do deferred import
             }
 
             // No longer needed
@@ -3393,7 +3393,7 @@ STATIC elem * exp2_paramchk(elem *e,type *t,int param)
                     }
                     if (s->Stype->Tty & mTYimport)
                     {
-                        obj_import(e);                  // do deferred import
+                        Obj::import(e);                  // do deferred import
                     }
                 }
             }

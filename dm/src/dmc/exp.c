@@ -2380,7 +2380,7 @@ if (!bColcol)
                 if (s->Stype->Tty & mTYimport &&
                     tyfunc(s->Stype->Tty))
                 {
-                    // Defer obj_import() until after function overloading
+                    // Defer Obj::import() until after function overloading
                     e = el_calloc();
                     e->Eoper = OPvar;
                     e->EV.sp.Vsym = s;

@@ -139,12 +139,12 @@ int __cdecl main(int argc,char *argv[])
   char *p = (config.exe & EX_dos) ? file_8dot3name(finname) : NULL;
   if (!p || !*p)
         p = finname;
-  obj_init(objbuf, p, configv.csegname);
-  obj_initfile(p, configv.csegname, NULL);
+  Obj::init(objbuf, p, configv.csegname);
+  Obj::initfile(p, configv.csegname, NULL);
 //  free(p);
 #else
-  obj_init(objbuf, finname, configv.csegname);
-  obj_initfile(finname,configv.csegname);
+  Obj::init(objbuf, finname, configv.csegname);
+  Obj::initfile(finname,configv.csegname);
 #endif
 #endif
   PARSER = 1;
@@ -177,8 +177,8 @@ int __cdecl main(int argc,char *argv[])
         synerr(EM_no_ext_def);          // need external definition
   if ((config.flags2 & (CFG2hdrdebug | CFG2noobj)) == CFG2hdrdebug)
         symbol_gendebuginfo();          // generate debug info for global symbols
-  obj_termfile();                       // fix up and terminate object file
-  obj_term();
+  Obj::termfile();                       // fix up and terminate object file
+  Obj::term();
 #if OMFOBJ
   if (!errcnt)
   {

@@ -2165,20 +2165,20 @@ STATIC void prcomment()
     switch (i)
     {
         case PRC_compiler:
-            obj_compiler();             // embed compiler version
+            Obj::compiler();             // embed compiler version
             goto Lret;
         case PRC_exestr:
-            obj_exestr(p);              // put comment in executable
+            Obj::exestr(p);              // put comment in executable
             goto Lret;
         case PRC_lib:
-            obj_includelib(tok.TKid);   // include library
+            Obj::includelib(tok.TKid);   // include library
             goto Lret;
         case PRC_linker:
             eatrol();
             goto Lret;                  // not implemented
 #if 0
         case PRC_user:
-            obj_user(p);                // put comment in object module
+            Obj::user(p);                // put comment in object module
             goto Lret;
 #endif
         default:
@@ -2210,7 +2210,7 @@ STATIC void prident()
   }
   p = combinestrings(&len);
 #if !SPP
-  obj_exestr(p);
+  Obj::exestr(p);
 #endif
   MEM_PH_FREE(p);
   if (tok.TKval != TKeol)
@@ -2508,7 +2508,7 @@ STATIC void prpragma()
                         {   synerr(EM_undefined,tok.TKid);
                             goto err;
                         }
-                        len = obj_mangle(s,name);
+                        len = Obj::mangle(s,name);
                         assert(len < sizeof(name));
                         name[len] = 0;
                         str1 = mem_strdup(name);
@@ -2529,7 +2529,7 @@ STATIC void prpragma()
                         preerr(EM_string);              // string expected
                     else
                     {   str2 = combinestrings(&len2);
-                        obj_alias(str1,str2);
+                        Obj::alias(str1,str2);
                         mem_free(str2);
                     }
                     mem_free(str1);
@@ -2742,7 +2742,7 @@ STATIC void prpragma()
 
 #if !M_UNIX
             case PRXdosseg:
-                obj_dosseg();
+                Obj::dosseg();
                 break;
 #endif
 
@@ -2795,7 +2795,7 @@ STATIC void prpragma()
                 {   preerr(EM_filespec);                // filespec expected
                     goto err;
                 }
-                obj_includelib(tok.TKstr);
+                Obj::includelib(tok.TKstr);
                 ptoken();
                 break;
 
@@ -2901,7 +2901,7 @@ STATIC void prpragma()
                     s = scope_search(tok.TKid,SCTglobal | SCTnspace);
                     if (s)
                     {
-                        obj_startaddress(s);
+                        Obj::startaddress(s);
                         nwc_mustwrite(s);
                     }
                     else
