@@ -34,56 +34,51 @@ void objrecord(unsigned rectyp,const char *record,unsigned reclen)
 {
 }
 
-void obj_init(Outbuffer *objbuf)
+void init(Outbuffer *, const char *filename, const char *csegname);
+void initfile(const char *filename, const char *csegname, const char *modname);
+
+void Obj::termfile()
 {
 }
 
-void obj_initfile(const char *modname,const char *csegname)
+void Obj::term()
 {
 }
 
-void obj_termfile()
-{
-}
-
-void obj_term()
-{
-}
-
-void objlinnum(Srcpos srcpos,targ_size_t offset)
+void Obj::linnum(Srcpos srcpos,targ_size_t offset)
 {
 }
 
 
-void obj_startaddress(Symbol *s)
+void Obj::startaddress(Symbol *s)
 {
 }
 
-void obj_dosseg()
+void Obj::dosseg()
 {
 }
 
-bool obj_includelib(const char *name)
+bool Obj::includelib(const char *name)
 {
 }
 
-void obj_exestr(const char *p)
+void Obj::exestr(const char *p)
 {
 }
 
-void obj_user(const char *p)
+void Obj::user(const char *p)
 {
 }
 
-void obj_wkext(Symbol *s1,Symbol *s2)
+void Obj::wkext(Symbol *s1,Symbol *s2)
 {
 }
 
-void obj_lzext(Symbol *s1,Symbol *s2)
+void Obj::lzext(Symbol *s1,Symbol *s2)
 {
 }
 
-void obj_alias(const char *n1,const char *n2)
+void Obj::alias(const char *n1,const char *n2)
 {
 }
 
@@ -91,84 +86,84 @@ void obj_modname(const char *modname)
 {
 }
 
-void obj_compiler()
+void Obj::compiler()
 {
 }
 
 
-void objseggrp(targ_size_t codesize,targ_size_t datasize,
+void Obj::segment_group(targ_size_t codesize,targ_size_t datasize,
                 targ_size_t cdatasize,targ_size_t udatasize)
 {
 }
 
-void obj_staticctor(Symbol *s,int dtor,int seg)
+void Obj::staticctor(Symbol *s,int dtor,int seg)
 {
 }
 
-void obj_funcptr(Symbol *s)
+void Obj::funcptr(Symbol *s)
 {
 }
 
-void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
+void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 {
 }
 
-int obj_comdat(Symbol *s)
-{
-    return 0;
-}
-
-int obj_comdatsize(Symbol *s, targ_size_t symsize)
+int Obj::comdat(Symbol *s)
 {
     return 0;
 }
 
-void obj_setcodeseg(int seg)
-{
-}
-
-int obj_codeseg(char *name,int suffix)
+int Obj::comdatsize(Symbol *s, targ_size_t symsize)
 {
     return 0;
 }
 
-seg_data *obj_tlsseg()
+void Obj::setcodeseg(int seg)
+{
+}
+
+int Obj::codeseg(char *name,int suffix)
+{
+    return 0;
+}
+
+seg_data *Obj::tlsseg()
 {
     return NULL;
 }
 
-int obj_fardata(char *name,targ_size_t size,targ_size_t *poffset)
+int Obj::fardata(char *name,targ_size_t size,targ_size_t *poffset)
 {
     return 0;
 }
 
-void obj_import(elem *e)
+void Obj::import(elem *e)
 {
 }
 
-size_t obj_mangle(Symbol *s,char *dest)
-{
-    return 0;
-}
-
-void obj_export(Symbol *s,unsigned argsize)
-{
-}
-
-void objpubdef(int seg,Symbol *s,targ_size_t offset)
-{
-}
-
-void objpubdefsize(int seg,Symbol *s,targ_size_t offset, targ_size_t symsize)
-{
-}
-
-int objextdef(const char *name)
+size_t Obj::mangle(Symbol *s,char *dest)
 {
     return 0;
 }
 
-int objextern(Symbol *s)
+void Obj::export_symbol(Symbol *s,unsigned argsize)
+{
+}
+
+void Obj::pubdef(int seg,Symbol *s,targ_size_t offset)
+{
+}
+
+void Obj::pubdefsize(int seg,Symbol *s,targ_size_t offset, targ_size_t symsize)
+{
+}
+
+int Obj::external_def(const char *name)
+{
+    return 0;
+}
+
+int Obj::external(Symbol *s)
 {
     return 0;
 }
@@ -178,63 +173,63 @@ int objcomdef(Symbol *s,int flag,targ_size_t size,targ_size_t count)
     return 0;
 }
 
-void obj_lidata(int seg,targ_size_t offset,targ_size_t count)
+void Obj::lidata(int seg,targ_size_t offset,targ_size_t count)
 {
 }
 
-void obj_byte(int seg,targ_size_t offset,unsigned byte)
+void Obj::byte(int seg,targ_size_t offset,unsigned byte)
 {
 }
 
-unsigned obj_bytes(int seg,targ_size_t offset,unsigned nbytes, void *p)
+unsigned Obj::bytes(int seg,targ_size_t offset,unsigned nbytes, void *p)
 {
     return 0;
 }
 
-void objledata(int seg,targ_size_t offset,targ_size_t data,
+void Obj::ledata(int seg,targ_size_t offset,targ_size_t data,
         unsigned lcfd,unsigned idx1,unsigned idx2)
 {
 }
 
-void obj_long(int seg,targ_size_t offset,unsigned long data,
+void Obj::write_long(int seg,targ_size_t offset,unsigned long data,
         unsigned lcfd,unsigned idx1,unsigned idx2)
 {
 }
 
-void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
+void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         unsigned targetdatum,int flags)
 {
 }
 
-void reftofarseg(int seg,targ_size_t offset,targ_size_t val,
+void Obj::reftofarseg(int seg,targ_size_t offset,targ_size_t val,
         int farseg,int flags)
 {
 }
 
-void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
+void Obj::reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 {
 }
 
-int reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
+int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
         int flags)
 {
     return 0;
 }
 
-void obj_far16thunk(Symbol *s)
+void Obj::far16thunk(Symbol *s)
 {
 }
 
-void obj_fltused()
+void Obj::fltused()
 {
 }
 
-int obj_comdef(Symbol *s,int flag,targ_size_t size,targ_size_t count)
+int Obj::common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
 {
     return 0;
 }
 
-void obj_write_bytes(seg_data *pseg, unsigned nbytes, void *p)
+void Obj::write_bytes(seg_data *pseg, unsigned nbytes, void *p)
 {
 }
 
