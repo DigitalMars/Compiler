@@ -139,11 +139,11 @@ int __cdecl main(int argc,char *argv[])
   char *p = (config.exe & EX_dos) ? file_8dot3name(finname) : NULL;
   if (!p || !*p)
         p = finname;
-  Obj::init(objbuf, p, configv.csegname);
+  objmod = Obj::init(objbuf, p, configv.csegname);
   Obj::initfile(p, configv.csegname, NULL);
 //  free(p);
 #else
-  Obj::init(objbuf, finname, configv.csegname);
+  objmod = Obj::init(objbuf, finname, configv.csegname);
   Obj::initfile(finname,configv.csegname);
 #endif
 #endif
@@ -179,12 +179,10 @@ int __cdecl main(int argc,char *argv[])
         symbol_gendebuginfo();          // generate debug info for global symbols
   Obj::termfile();                       // fix up and terminate object file
   Obj::term();
-#if OMFOBJ
   if (!errcnt)
   {
         objfile_close(objbuf->buf, objbuf->p - objbuf->buf);
   }
-#endif
   if (fsymname)
   {
         assert(config.flags2 & CFG2phgen);
