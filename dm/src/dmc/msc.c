@@ -246,6 +246,7 @@ type *type_ptr(elem *e,type *t)
                 case SCregister:
                 case SCregpar:
                 case SCfastpar:
+                case SCshadowreg:
                 case SCbprel:
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                     tptr->Tty = TYnptr;

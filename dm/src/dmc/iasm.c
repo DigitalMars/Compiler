@@ -257,7 +257,7 @@ static REG regtab[] =
 "MM5",  5,      _mm,
 "MM6",  6,      _mm,
 "MM7",  7,      _mm,
-"XMM0", 0,      _xmm | _xmm0,
+"XMM0", 0,      _xmm,
 "XMM1", 1,      _xmm,
 "XMM2", 2,      _xmm,
 "XMM3", 3,      _xmm,
@@ -265,115 +265,6 @@ static REG regtab[] =
 "XMM5", 5,      _xmm,
 "XMM6", 6,      _xmm,
 "XMM7", 7,      _xmm,
-};
-
-// 64 bit only registers
-#define _RAX    0
-#define _RBX    3
-#define _RCX    1
-#define _RDX    2
-#define _RSI    6
-#define _RDI    7
-#define _RBP    5
-#define _RSP    4
-#define _R8     8
-#define _R9     9
-#define _R10    10
-#define _R11    11
-#define _R12    12
-#define _R13    13
-#define _R14    14
-#define _R15    15
-
-#define _R8D    8
-#define _R9D    9
-#define _R10D   10
-#define _R11D   11
-#define _R12D   12
-#define _R13D   13
-#define _R14D   14
-#define _R15D   15
-
-#define _R8W    8
-#define _R9W    9
-#define _R10W   10
-#define _R11W   11
-#define _R12W   12
-#define _R13W   13
-#define _R14W   13
-#define _R15W   15
-
-#define _SIL    6
-#define _DIL    7
-#define _BPL    5
-#define _SPL    4
-#define _R8B    8
-#define _R9B    9
-#define _R10B   10
-#define _R11B   11
-#define _R12B   12
-#define _R13B   13
-#define _R14B   14
-#define _R15B   15
-
-static REG regtab64[] =
-{
-"RAX",  _RAX,   _r64 | _rax,
-"RBX",  _RBX,   _r64,
-"RCX",  _RCX,   _r64,
-"RDX",  _RDX,   _r64,
-"RSI",  _RSI,   _r64,
-"RDI",  _RDI,   _r64,
-"RBP",  _RBP,   _r64,
-"RSP",  _RSP,   _r64,
-"R8",   _R8,    _r64,
-"R9",   _R9,    _r64,
-"R10",  _R10,   _r64,
-"R11",  _R11,   _r64,
-"R12",  _R12,   _r64,
-"R13",  _R13,   _r64,
-"R14",  _R14,   _r64,
-"R15",  _R15,   _r64,
-
-"R8D",  _R8D,   _r32,
-"R9D",  _R9D,   _r32,
-"R10D", _R10D,  _r32,
-"R11D", _R11D,  _r32,
-"R12D", _R12D,  _r32,
-"R13D", _R13D,  _r32,
-"R14D", _R14D,  _r32,
-"R15D", _R15D,  _r32,
-
-"R8W",  _R8W,   _r16,
-"R9W",  _R9W,   _r16,
-"R10W", _R10W,  _r16,
-"R11W", _R11W,  _r16,
-"R12W", _R12W,  _r16,
-"R13W", _R13W,  _r16,
-"R14W", _R14W,  _r16,
-"R15W", _R15W,  _r16,
-
-"SIL",  _SIL,   _r8,
-"DIL",  _DIL,   _r8,
-"BPL",  _BPL,   _r8,
-"SPL",  _SPL,   _r8,
-"R8B",  _R8B,   _r8,
-"R9B",  _R9B,   _r8,
-"R10B", _R10B,  _r8,
-"R11B", _R11B,  _r8,
-"R12B", _R12B,  _r8,
-"R13B", _R13B,  _r8,
-"R14B", _R14B,  _r8,
-"R15B", _R15B,  _r8,
-
-"XMM8",   8,    _xmm,
-"XMM9",   9,    _xmm,
-"XMM10", 10,    _xmm,
-"XMM11", 11,    _xmm,
-"XMM12", 12,    _xmm,
-"XMM13", 13,    _xmm,
-"XMM14", 14,    _xmm,
-"XMM15", 15,    _xmm,
 };
 
 typedef enum {
@@ -1661,12 +1552,9 @@ L1:
 
         case 3:
                 if (aoptyTable2 == _m || aoptyTable2 == _rm ||
-                    usOpcode == 0x0FC5     ||    // pextrw  _r32,  _mm,    _imm8
-                    usOpcode == 0x660FC5   ||    // pextrw  _r32, _xmm,    _imm8
-                    usOpcode == 0x660F3A20 ||    // pinsrb  _xmm, _r32/m8, _imm8
-                    usOpcode == 0x660F3A22       // pinsrd  _xmm, _rm32,   _imm8
-                   )
+                    usOpcode == 0x0FC5) // PEXTRW
                 {
+
                     asm_make_modrm_byte(
 #ifdef DEBUG
                                 auchOpcode, &usIdx,
@@ -2184,6 +2072,7 @@ DATA_REF:
                         case SCfastpar:
                                 pc->IFL1 = FLauto;
                                 break;
+                        case SCshadowreg:
                         case SCregpar:
                         case SCparameter:
                                 pc->IFL1 = FLpara;
@@ -2660,12 +2549,11 @@ STATIC unsigned char asm_match_flags( opflag_t usOp,
     }
 
     // _xmm_m32, _xmm_m64, _xmm_m128 match with XMM register or memory
-    if (usTable == _xmm_m16 ||
-        usTable == _xmm_m32 ||
+    if (usTable == _xmm_m32 ||
         usTable == _xmm_m64 ||
         usTable == _xmm_m128)
     {
-        if (usOp == _xmm || usOp == (_xmm|_xmm0))
+        if (usOp == _xmm)
             goto Lmatch;
         if (aoptyOp == _m && (bSizematch || uSizemaskOp == _anysize))
             goto Lmatch;
