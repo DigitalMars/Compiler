@@ -954,9 +954,12 @@ symbol *except_gentables()
     }
 
 #if TARGET_WINDOS
-    farfunc = tyfarfunc(funcsym_p->Stype->Tty) ? 2 : 1;
-    pdt = dtnbytes(pdt,2,(char *)&farfunc);
-    sz += 2;
+    if (config.exe != EX_WIN64)
+    {
+        farfunc = tyfarfunc(funcsym_p->Stype->Tty) ? 2 : 1;
+        pdt = dtnbytes(pdt,2,(char *)&farfunc);
+        sz += 2;
+    }
 
     if (config.exe == EX_NT)
     {   // Address of start of function
