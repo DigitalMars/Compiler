@@ -74,6 +74,7 @@ void util_set32()
             tysize[TYint  + i] = LONGSIZE;
             tysize[TYuint + i] = LONGSIZE;
             tysize[TYnullptr + i] = LONGSIZE;
+            tysize[TYjhandle + i] = LONGSIZE;
             tysize[TYnptr + i] = LONGSIZE;
             tysize[TYsptr + i] = LONGSIZE;
             tysize[TYcptr + i] = LONGSIZE;
@@ -88,6 +89,7 @@ void util_set32()
             tyalignsize[TYint  + i] = LONGSIZE;
             tyalignsize[TYuint + i] = LONGSIZE;
             tyalignsize[TYnullptr + i] = LONGSIZE;
+            tyalignsize[TYjhandle + i] = LONGSIZE;
             tyalignsize[TYnptr + i] = LONGSIZE;
             tyalignsize[TYsptr + i] = LONGSIZE;
             tyalignsize[TYcptr + i] = LONGSIZE;
@@ -116,6 +118,7 @@ void util_set64()
             tysize[TYint  + i] = LONGSIZE;
             tysize[TYuint + i] = LONGSIZE;
             tysize[TYnullptr + i] = 8;
+            tysize[TYjhandle + i] = 8;
             tysize[TYnptr + i] = 8;
             tysize[TYsptr + i] = 8;
             tysize[TYcptr + i] = 8;
@@ -130,6 +133,7 @@ void util_set64()
             tyalignsize[TYint  + i] = LONGSIZE;
             tyalignsize[TYuint + i] = LONGSIZE;
             tyalignsize[TYnullptr + i] = 8;
+            tyalignsize[TYjhandle + i] = 8;
             tyalignsize[TYnptr + i] = 8;
             tyalignsize[TYsptr + i] = 8;
             tyalignsize[TYcptr + i] = 8;

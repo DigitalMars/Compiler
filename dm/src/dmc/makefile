@@ -1,6 +1,6 @@
 #_ makefile
 # Copyright (C) 1984-1994 by Symantec
-# Copyright (c) 2000-2011 by Digital Mars
+# Copyright (c) 2000-2012 by Digital Mars
 # Written by Walter Bright
 # All Rights Reserved
 #       for C/C++ compiler parser and preprocessor (SCC, SCPP, SPP and HTOD)
@@ -139,7 +139,7 @@ OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj code.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj iasm.obj ptrntab.obj newman.obj
-OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj
+OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj pdata.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj speller.obj utf.obj
 
 ALLOBJS= $(OBJ1a) $(OBJ1b) $(OBJ1c) $(OBJ1d) $(OBJ1e) $(OBJ1f) $(OBJ1g) \
@@ -264,7 +264,7 @@ SRC=    tassert.h html.h html.c \
         cgelem.c rtlsym.h dt.c strtold.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
-	ti_pvoid.c xmm.h obj.h
+        ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c
@@ -291,10 +291,10 @@ zip:
         zip32 -u dm$(VERSION)src $(BUILDSRC)
 
 detab:
-	detab $(SRC) $(TKSRC) $(SHELLSRC)
+        detab $(SRC) $(TKSRC) $(SHELLSRC)
 
 tolf:
-	tolf $(SRC) $(TKSRC) $(SHELLSRC)
+        tolf $(SRC) $(TKSRC) $(SHELLSRC)
 
 install:
         cp $(SRC) $(BUILDSRC) tdb.lib $(LICENSE) \dm\src\dmc
@@ -355,6 +355,7 @@ msc.obj : $(DEP) $(msc.dep) msc.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 objrecor.obj : $(DEP) $(objrecor.dep) objrecor.c
 out.obj : $(DEP) $(out.dep) out.c
+pdata.obj : $(DEP) $(pdata.dep) pdata.c
 pragma.obj : $(DEP) $(pragma.dep) pragma.c
 pseudo.obj : $(DEP) $(pseudo.dep) pseudo.c
 ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
