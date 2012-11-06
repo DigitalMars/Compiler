@@ -41,7 +41,7 @@ void Obj::termfile()
 {
 }
 
-void Obj::term()
+void Obj::term(const char *objfilename)
 {
 }
 
@@ -60,6 +60,7 @@ void Obj::dosseg()
 
 bool Obj::includelib(const char *name)
 {
+    return false;
 }
 
 void Obj::exestr(const char *p)

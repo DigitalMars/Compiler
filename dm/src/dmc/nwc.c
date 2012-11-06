@@ -178,7 +178,7 @@ int __cdecl main(int argc,char *argv[])
   if ((config.flags2 & (CFG2hdrdebug | CFG2noobj)) == CFG2hdrdebug)
         symbol_gendebuginfo();          // generate debug info for global symbols
   Obj::termfile();                       // fix up and terminate object file
-  Obj::term();
+  Obj::term(NULL);
   if (!errcnt)
   {
         objfile_close(objbuf->buf, objbuf->p - objbuf->buf);
