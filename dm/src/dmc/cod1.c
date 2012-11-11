@@ -795,7 +795,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   unsigned sz = tysize(ty);
   if (tyfloating(ty))
         objmod->fltused();
-  if (I64 && (sz == 8 || sz == 16))
+  if (I64 && (sz == 8 || sz == 16) && !tyvector(ty))
         pcs->Irex |= REX_W;
   if (!I16 && sz == SHORTSIZE)
         pcs->Iflags |= CFopsize;
@@ -1083,6 +1083,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 #endif
                 opsave = pcs->Iop;
                 flagsave = pcs->Iflags;
+                unsigned char rexsave = pcs->Irex;
                 pcs->Iop = 0x8D;
                 code_newreg(pcs, reg);
                 if (!I16)
@@ -1092,7 +1093,9 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 c = gen(c,pcs);                 /* LEA idxreg,EA        */
                 cssave(e1,idxregs,TRUE);
                 if (!I16)
-                    pcs->Iflags = flagsave;
+                {   pcs->Iflags = flagsave;
+                    pcs->Irex = rexsave;
+                }
                 if (stackfl[f] && (config.wflags & WFssneds))   // if pointer into stack
                     pcs->Iflags |= CFss;        // add SS: override
                 pcs->Iop = opsave;
