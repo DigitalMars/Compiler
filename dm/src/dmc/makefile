@@ -338,7 +338,7 @@ installbin:
 
 git: detab tolf $(BUILDSRC)
         $(SCP) $(SRC) $(BUILDSRC) tdb.lib $(LICENSE) $(SCPDIR)/Compiler/dm/src/dmc/
-#       $(SCP) $(TKSRC) $(SCPDIR)/Compiler/dm/src/dmc/tk
+        $(SCP) $(TKSRC) $(SCPDIR)/Compiler/dm/src/dmc/tk
         $(SCP) $(SHELLSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/include
         $(SCP) $(LIBSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/lib
 

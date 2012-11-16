@@ -6,7 +6,6 @@
 #if MSDOS || __OS2__ || __NT__ || _WIN32
 #include        <io.h>
 #else
-#define _near
 #include        <sys/time.h>
 #include        <sys/resource.h>
 #include        <unistd.h>
@@ -154,12 +153,9 @@ char *mem_strdup_debug(const char *s,const char *file,int line)
 #else
 char *mem_strdup(const char *s)
 {
-        char *p;
-        int len;
-
         if (s)
-        {   len = strlen(s) + 1;
-            p = (char *) mem_malloc(len);
+        {   size_t len = strlen(s) + 1;
+            char *p = (char *) mem_malloc(len);
             if (p)
                 return (char *)memcpy(p,s,len);
         }
@@ -280,8 +276,8 @@ void __cdecl operator delete[](void *p)
 
 #if MEM_DEBUG
 
-static long mem_maxalloc;       /* max # of bytes allocated             */
-static long mem_numalloc;       /* current # of bytes allocated         */
+static size_t mem_maxalloc;       /* max # of bytes allocated             */
+static size_t mem_numalloc;       /* current # of bytes allocated         */
 
 #define BEFOREVAL       0x4F464542      /* value to detect underrun     */
 #define AFTERVAL        0x45544641      /* value to detect overrun      */
@@ -319,7 +315,7 @@ static struct mem_debug
     struct mem_debug *Mprev;    /* previous value in list               */
     const char *Mfile;          /* filename of where allocated          */
     int Mline;                  /* line number of where allocated       */
-    unsigned Mnbytes;           /* size of the allocation               */
+    size_t Mnbytes;             /* size of the allocation               */
     unsigned long Mbeforeval;   /* detect underrun of data              */
     char data[1];               /* the data actually allocated          */
 } mem_alloclist =
@@ -330,7 +326,7 @@ static struct mem_debug
         11111,
         0,
         BEFOREVAL,
-#if !(linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4)
+#if !(linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
         AFTERVAL
 #endif
 };
@@ -361,7 +357,7 @@ void mem_setnewfileline( void *ptr, const char *fil, int lin)
  * Print out struct mem_debug.
  */
 
-static void _near mem_printdl(struct mem_debug *dl)
+static void mem_printdl(struct mem_debug *dl)
 {
         PRINT "alloc'd from file '%s' line %d nbytes %d ptr %p\n",
                 dl->Mfile,dl->Mline,dl->Mnbytes,(long)mem_dltoptr(dl));
@@ -371,7 +367,7 @@ static void _near mem_printdl(struct mem_debug *dl)
  * Print out file and line number.
  */
 
-static void _near mem_fillin(const char *fil, int lin)
+static void mem_fillin(const char *fil, int lin)
 {
         PRINT "File '%s' line %d\n",fil,lin);
 #ifdef ferr
@@ -384,17 +380,17 @@ static void _near mem_fillin(const char *fil, int lin)
  * called.
  */
 
-void *mem_calloc(unsigned u)
+void *mem_calloc(size_t u)
 {
         return mem_calloc_debug(u,__FILE__,__LINE__);
 }
 
-void *mem_malloc(unsigned u)
+void *mem_malloc(size_t u)
 {
         return mem_malloc_debug(u,__FILE__,__LINE__);
 }
 
-void *mem_realloc(void *p, unsigned u)
+void *mem_realloc(void *p, size_t u)
 {
         return mem_realloc_debug(p,u,__FILE__,__LINE__);
 }
@@ -416,7 +412,7 @@ void mem_freefp(void *p)
  * Debug versions of mem_calloc(), mem_free() and mem_realloc().
  */
 
-void *mem_malloc_debug(unsigned n, const char *fil, int lin)
+void *mem_malloc_debug(size_t n, const char *fil, int lin)
 {   void *p;
 
     p = mem_calloc_debug(n,fil,lin);
@@ -425,7 +421,7 @@ void *mem_malloc_debug(unsigned n, const char *fil, int lin)
     return p;
 }
 
-void *mem_calloc_debug(unsigned n, const char *fil, int lin)
+void *mem_calloc_debug(size_t n, const char *fil, int lin)
 {
     struct mem_debug *dl;
 
@@ -518,7 +514,7 @@ err:
  * Debug version of mem_realloc().
  */
 
-void *mem_realloc_debug(void *oldp, unsigned n, const char *fil, int lin)
+void *mem_realloc_debug(void *oldp, size_t n, const char *fil, int lin)
 {   void *p;
     struct mem_debug *dl;
 
@@ -614,7 +610,7 @@ L1:
 
 /***************************/
 
-void *mem_malloc(unsigned numbytes)
+void *mem_malloc(size_t numbytes)
 {       void *p;
 
         if (numbytes == 0)
@@ -638,7 +634,7 @@ void *mem_malloc(unsigned numbytes)
 
 /***************************/
 
-void *mem_calloc(unsigned numbytes)
+void *mem_calloc(size_t numbytes)
 {       void *p;
 
         if (numbytes == 0)
@@ -662,7 +658,7 @@ void *mem_calloc(unsigned numbytes)
 
 /***************************/
 
-void *mem_realloc(void *oldmem_ptr,unsigned newnumbytes)
+void *mem_realloc(void *oldmem_ptr,size_t newnumbytes)
 {   void *p;
 
     if (oldmem_ptr == NULL)
@@ -706,7 +702,7 @@ static size_t heapleft;
 
 #if 0 && __SC__ && __INTSIZE == 4 && __I86__ && !_DEBUG_TRACE && _WIN32 && (SCC || SCPP || JAVA)
 
-__declspec(naked) void *mem_fmalloc(unsigned numbytes)
+__declspec(naked) void *mem_fmalloc(size_t numbytes)
 {
     __asm
     {
@@ -751,14 +747,21 @@ L18:    add     heap,EBX
 
 #else
 
-void *mem_fmalloc(unsigned numbytes)
+void *mem_fmalloc(size_t numbytes)
 {   void *p;
 
     //printf("fmalloc(%d)\n",numbytes);
+#if defined(__llvm__) && (defined(__GNUC__) || defined(__clang__))
+    // LLVM-GCC and Clang assume some types, notably elem (see DMD issue 6215),
+    // to be 16-byte aligned. Because we do not have any type information
+    // available here, we have to 16 byte-align everything.
+    numbytes = (numbytes + 0xF) & ~0xF;
+#else
     if (sizeof(size_t) == 2)
         numbytes = (numbytes + 1) & ~1;         /* word align   */
     else
         numbytes = (numbytes + 3) & ~3;         /* dword align  */
+#endif
 
     /* This ugly flow-of-control is so that the most common case
        drops straight through.
@@ -800,7 +803,7 @@ L1:
 
 /***************************/
 
-void *mem_fcalloc(unsigned numbytes)
+void *mem_fcalloc(size_t numbytes)
 {   void *p;
 
     p = mem_fmalloc(numbytes);
@@ -811,12 +814,9 @@ void *mem_fcalloc(unsigned numbytes)
 
 char *mem_fstrdup(const char *s)
 {
-        char *p;
-        int len;
-
         if (s)
-        {   len = strlen(s) + 1;
-            p = (char *) mem_fmalloc(len);
+        {   size_t len = strlen(s) + 1;
+            char *p = (char *) mem_fmalloc(len);
             if (p)
                 return (char *)memcpy(p,s,len);
         }
@@ -838,7 +838,7 @@ void mem_init()
                 mem_numalloc = 0;
                 mem_maxalloc = 0;
                 mem_alloclist.Mnext = NULL;
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
                 *(long *) &(mem_alloclist.data[0]) = AFTERVAL;
 #endif
 #endif
