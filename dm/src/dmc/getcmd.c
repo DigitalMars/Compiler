@@ -1175,9 +1175,9 @@ void getcmd(int argc,char **argv)
                       }
                       else
                         config.exe = EX_MZ;
-	    L16:
-		      util_set16();
-		      util_set16();
+            L16:
+                      util_set16();
+                      util_set16();
                       break;
             default:  assert(0);
     }

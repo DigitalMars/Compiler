@@ -19,6 +19,9 @@ INCLUDE=-I$(TK);$(NTDLLSHELL)\include;\dm\include
 CC=dmc
 LIBNT=$(DMC)\lib
 SNN=$(LIBNT)\snn
+# Where scp command copies to
+SCPDIR=..\backup
+SCPDIR=walter@mercury:dm
 
 # Options:
 #       TARGET          one of SCC, SCPP, SPP, HTOD for C, C++, Preprocessor
@@ -39,6 +42,34 @@ PREC=-H -HP32 -HItotal.h -HO
 #LFLAGS=/map/co
 LFLAGS=/map/e/f/packcode/noe;
 BASE=
+
+##### Tools
+
+# C++ compiler
+CC=dmc
+# Make program
+MAKE=make
+# Librarian
+LIB=lib
+# Delete file(s)
+DEL=del
+# Make directory
+MD=mkdir
+# Remove directory
+RD=rmdir
+# File copy
+CP=cp
+# De-tabify
+DETAB=detab
+# Convert line endings to Unix
+TOLF=tolf
+# Zip
+ZIP=zip32
+# Copy to another directory
+SCP=$(CP)
+SCP=\putty\pscp -i c:\.ssh\colossus.ppk
+# PVS-Studio command line executable
+PVS="c:\Program Files (x86)\PVS-Studio\x64\PVS-Studio"
 
 LINKN=$(DMC)\bin\link /de
 
@@ -304,6 +335,12 @@ install:
 
 installbin:
         cp scppn.exe sppn.exe scppnd.dll sppnd.dll htodn.exe \dm\bin
+
+git: detab tolf $(BUILDSRC)
+        $(SCP) $(SRC) $(BUILDSRC) tdb.lib $(LICENSE) $(SCPDIR)/Compiler/dm/src/dmc/
+#       $(SCP) $(TKSRC) $(SCPDIR)/Compiler/dm/src/dmc/tk
+        $(SCP) $(SHELLSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/include
+        $(SCP) $(LIBSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/lib
 
 ##################### SPECIAL BUILDS #####################
 
