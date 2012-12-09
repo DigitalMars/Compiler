@@ -1940,10 +1940,11 @@ L1:
         Ldelegate:
             switch (config.fulltypes)
             {
+#if MARS
                 case CV8:
                     typidx = cv8_ddelegate(t, next);
                     break;
-
+#endif
                 case CV4:
                     tv = type_fake(TYnptr);
                     tv->Tcount++;
@@ -1985,7 +1986,7 @@ L1:
             break;
 
         case TYarray:
-            if (t->Tflags & TFsizeunknown)
+        {   if (t->Tflags & TFsizeunknown)
                 size = 0;               // don't complain if don't know size
             else
                 size = type_size(t);
@@ -2025,7 +2026,7 @@ L1:
             }
             typidx = cv_debtyp(d);
             break;
-
+        }
 #if TARGET_SEGMENTED
         case TYffunc:
         case TYfpfunc:
