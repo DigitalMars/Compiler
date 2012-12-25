@@ -2069,8 +2069,10 @@ DATA_REF:
                     {
                         case SCauto:
                         case SCregister:
-                        case SCfastpar:
                                 pc->IFL1 = FLauto;
+                                break;
+                        case SCfastpar:
+                                pc->IFL1 = FLfast;
                                 break;
                         case SCshadowreg:
                         case SCregpar:
