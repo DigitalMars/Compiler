@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -1084,6 +1083,7 @@ struct Symbol
     Symbol *Snext;              // next in threaded list
     dt_t *Sdt;                  // variables: initializer
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
+    int Salignsize();           // variables: return alignment
     type *Stype;                // type of Symbol
     #define ty() Stype->Tty
 
