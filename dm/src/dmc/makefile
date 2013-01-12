@@ -165,7 +165,7 @@ OBJ1c=getcmd.obj ini.obj init.obj inline.obj loadline.obj cppman.obj msc.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=struct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj
-OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj
+OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj code.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj
@@ -295,7 +295,8 @@ SRC=    tassert.h html.h html.c \
         cgelem.c rtlsym.h dt.c strtold.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
-        ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c
+        ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
+	backconfig.c
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c
@@ -358,6 +359,7 @@ strtold.obj : strtold.c
 DEP=total.sym msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 
 aa.obj : aa.h tinfo.h aa.c
+backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 bcomplex.obj : bcomplex.h bcomplex.c
 blklst.obj : $(DEP) $(blklst.dep) blklst.c
 blockopt.obj : $(DEP) $(blockopt.dep) blockopt.c
