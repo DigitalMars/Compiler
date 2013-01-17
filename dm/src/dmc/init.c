@@ -1154,7 +1154,7 @@ STATIC elem * initstruct(type *t,dt_t **pdt,symbol *ss,targ_size_t offset)
     targ_size_t dsstart;
     targ_size_t soffset;                // offset into struct s
     targ_size_t tsize;
-    HINT brack;
+    int brack;
     dt_t *dt,**pdtend;
     //symbol *classsymsave;     // other compilers don't seem to do this
     elem *ei;

@@ -277,13 +277,13 @@ unsigned char *macro_replacement_text(macro_t *m, list_t args);
 unsigned char *macro_rescan(macro_t *m, unsigned char *text);
 unsigned char *macro_expand(unsigned char *text);
 
-CEXTERN void explist(HINT);
+CEXTERN void explist(int);
 void expstring(char *);
 void expinsert(int);
 void expbackup(void);
 void wrtexp(FILE *);
-CEXTERN UHINT egchar2(void);
-CEXTERN UHINT egchar(void);
+CEXTERN unsigned egchar2(void);
+CEXTERN unsigned egchar(void);
 
 void insblk(unsigned char *text,int typ,list_t aargs,int nargs,macro_t *m);
 void insblk2(unsigned char *text,int typ);
@@ -685,7 +685,7 @@ extern list_t pathsyslist;              // include path for .h file overrides
 extern int structalign;                 /* alignment for members of structures  */
 extern char dbcs;
 extern int colnumber;                   /* current column number                */
-CEXTERN HINT xc;                /* character last read                  */
+CEXTERN int xc;                /* character last read                  */
 extern targ_size_t      dsout;          /* # of bytes actually output to data   */
                                         /* segment, used to pad for alignment   */
 extern char *fdepname;

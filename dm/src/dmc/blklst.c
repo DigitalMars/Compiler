@@ -143,7 +143,7 @@ void putback(int c)
  *      elinnum =       line number of expanded output
  */
 
-void explist(HINT c)
+void explist(int c)
 {
     if (expflag)
         return;
@@ -916,7 +916,7 @@ STATIC unsigned char * stringize(unsigned char *text)
  *      0 if end of input
  */
 
-UHINT egchar2()
+unsigned egchar2()
 {
 
 Lagain:
@@ -986,7 +986,7 @@ L2:
 #if 1
 #if 1 && TX86 && __SC__ && __INTSIZE == 4
 
-__declspec(naked) UHINT egchar()
+__declspec(naked) unsigned egchar()
 {
     _asm
     {
@@ -1019,7 +1019,7 @@ L3:     push    EAX
 
 #elif TX86 && __SC__ && __INTSIZE == 2
 
-UHINT egchar()
+unsigned egchar()
 {
     _asm
     {
@@ -1049,7 +1049,7 @@ L4:
 
 #else
 
-UHINT egchar()
+unsigned egchar()
 {
     //printf("egchar(xc='%c')\n",xc);
     debug_assert(bl);

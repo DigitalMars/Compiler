@@ -157,7 +157,7 @@ int ishex(int c)
  * Ignore nulls, CRs, rubouts
  */
 
-HINT isignore(int c)
+int isignore(int c)
 { return( !c || c == CR || c == '\177' );
 }
 
@@ -166,7 +166,7 @@ HINT isignore(int c)
  * Illegal characters
  */
 
-HINT isillegal(int c)
+int isillegal(int c)
 {
  return (!isignore(c) && !isprint(c) && !iseol(c) && !isspace(c));
 }

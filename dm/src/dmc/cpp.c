@@ -1346,7 +1346,7 @@ yesmatch:
  *      !=0     match level
  */
 
-HINT cpp_cast(elem **pe1,type *t2,int doit)
+int cpp_cast(elem **pe1,type *t2,int doit)
 {   elem *e1;
     type *t1;
     type *t2cast;
