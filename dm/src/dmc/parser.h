@@ -257,14 +257,14 @@ extern int TokenCnt;
 #define RET_PSTACK      2       // returned on stack (DOS pascal style)
 
 /* from blklst.c */
-CEXTERN blklst *bl;
-CEXTERN unsigned char *btextp;
+extern blklst *bl;
+extern unsigned char *btextp;
 extern int blklst_deferfree;
 extern char *eline;
 extern int elinmax;             /* # of chars in buffer eline[]         */
 extern int elini;               /* index into eline[]                   */
 extern int elinnum;             /* expanded line number                 */
-CEXTERN int expflag;            /* != 0 means not expanding list file   */
+extern int expflag;            /* != 0 means not expanding list file   */
 blklst *blklst_getfileblock(void);
 void putback(int);
 #if PRAGMA_ONCE
@@ -277,20 +277,20 @@ unsigned char *macro_replacement_text(macro_t *m, list_t args);
 unsigned char *macro_rescan(macro_t *m, unsigned char *text);
 unsigned char *macro_expand(unsigned char *text);
 
-CEXTERN void explist(int);
+extern void explist(int);
 void expstring(char *);
 void expinsert(int);
 void expbackup(void);
 void wrtexp(FILE *);
-CEXTERN unsigned egchar2(void);
-CEXTERN unsigned egchar(void);
+extern unsigned egchar2(void);
+extern unsigned egchar(void);
 
 void insblk(unsigned char *text,int typ,list_t aargs,int nargs,macro_t *m);
 void insblk2(unsigned char *text,int typ);
 
 #if __GNUC__
 unsigned getreallinnum();
-CEXTERN void getcharnum(void);
+extern void getcharnum(void);
 #endif
 
 Srcpos getlinnum(void);
@@ -685,7 +685,7 @@ extern list_t pathsyslist;              // include path for .h file overrides
 extern int structalign;                 /* alignment for members of structures  */
 extern char dbcs;
 extern int colnumber;                   /* current column number                */
-CEXTERN int xc;                /* character last read                  */
+extern int xc;                /* character last read                  */
 extern targ_size_t      dsout;          /* # of bytes actually output to data   */
                                         /* segment, used to pad for alignment   */
 extern char *fdepname;
@@ -700,7 +700,7 @@ extern FILE *fdmodule;
 extern FILE *fout;
 #endif
 
-CEXTERN unsigned idhash;        // hash value of identifier
+extern unsigned idhash;        // hash value of identifier
 extern tym_t pointertype;       // default data pointer type
 extern int level;               // declaration level
                                 // -2: base class list
