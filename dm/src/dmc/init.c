@@ -657,16 +657,15 @@ cret:
  */
 
 STATIC void init_typeinfo_struct(dt_t **pdt,Classsym *stag)
-{   dt_t *dt;
+{
     int nbases;
     baseclass_t *b;
     struct_t *st;
     int i;
     int flags;
 
-    dt = dt_calloc(DT_1byte);
-    dt->DTonebyte = 2;
-    *pdt = dt;
+    char c = 2;
+    pdt = dtnbytes(pdt,1,&c);
 
     // Compute number of bases
     nbases = 0;
@@ -1051,8 +1050,7 @@ STATIC elem * initelem(type *t,dt_t **pdt,symbol *s,targ_size_t offset)
 {   elem *e;
 
     //dbg_printf("+initelem()\n");
-    while (*pdt)
-        pdt = &((*pdt)->DTnext);
+    pdt = dtend(pdt);
     assert(t);
     type_debug(t);
     switch (tybasic(t->Tty))
@@ -1684,13 +1682,7 @@ Lagain:
         }
 #endif
         dsout += size;
-        if (size > 1)
-            dtnbytes(&dt,size,p);
-        else
-        {
-            dt = dt_calloc(DT_1byte);
-            dt->DTonebyte = *p;
-        }
+        dtnbytes(&dt,size,p);
         break;
     }
 
@@ -2598,9 +2590,9 @@ STATIC symbol * init_localstatic(elem **peinit,symbol *s)
         if (funcsym_p->Sclass == SCinline)
         {
             dt_optimize(s->Sdt);
-            if (s->Sdt->dt == DT_azeros && !s->Sdt->DTnext)
+            if (dtallzeros(s->Sdt))
             {   s->Sclass = SCglobal;
-                s->Sdt->dt = DT_common;
+                dt2common(&s->Sdt);
             }
             else
                 s->Sclass = SCcomdat;
@@ -2645,14 +2637,12 @@ STATIC symbol * init_localstatic(elem **peinit,symbol *s)
 
 STATIC elem * init_sets(symbol *sauto,symbol *s)
 {   elem *e;
-    dt_t **pdt;
 
     dt_optimize(s->Sdt);                // try to collapse into single DT_azeros
-    if (s->Sdt && s->Sdt->dt == DT_azeros && !s->Sdt->DTnext)
+    if (s->Sdt && dtallzeros(s->Sdt))
     {   // Generate memset(&sauto,0,n);
-        elem *ea;
 
-        ea = el_ptr(sauto);
+        elem *ea = el_ptr(sauto);
         e = el_bint(OPmemset,ea->ET,
                 ea,
                 el_bint(OPparam,tsint,
