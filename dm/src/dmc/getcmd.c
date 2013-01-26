@@ -388,7 +388,7 @@ void getcmd(int argc,char **argv)
                         case 'g':   config.flags |= CFGglobal;  break;
                         case 't':   config.flags |= CFGtrace;   break;
                         case 'p':   config.flags3 |= CFG3ptrchk; break;
-                        case 'x':   config.flags2 |= CFG2smash;  break;
+                        case 'x':   config.flags2 |= CFG2stomp;  break;
 
                         case '-':   configv.addlinenumbers = 0;
                                     config.fulltypes = CVNONE;
@@ -1238,7 +1238,7 @@ void getcmd(int argc,char **argv)
     if (I32)
         config.flags &= ~CFGstack;
     if (I16)
-        config.flags2 &= ~CFG2smash;
+        config.flags2 &= ~CFG2stomp;
 
     // Autoprototype unprototyped functions so that stdcall name
     // mangling will work.
