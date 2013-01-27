@@ -2527,14 +2527,14 @@ if (!bColcol)
                 t = type_alloc(mTYconst | ty);
                 t = newpointer(t);
                 t->Tmangle = mTYman_c;
+                t->Tcount++;
             }
             else
             {
                 // create pointer to char
                 // string is in near static data
-                t = type_allocn(TYnptr,tstypes[ty]);
+                t = type_pointer(tstypes[ty]);
             }
-            t->Tcount++;
             e->ET = t;
 #endif
             break;
