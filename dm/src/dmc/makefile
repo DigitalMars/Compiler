@@ -171,7 +171,7 @@ OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj iasm.obj ptrntab.obj newman.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj pdata.obj cv8.obj
-OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj speller.obj utf.obj
+OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj speller.obj utf.obj divcoeff.obj
 
 ALLOBJS= $(OBJ1a) $(OBJ1b) $(OBJ1c) $(OBJ1d) $(OBJ1e) $(OBJ1f) $(OBJ1g) \
          $(OBJ2a) $(OBJ2b) $(OBJ2c) $(OBJ2d) $(OBJ2e)
@@ -296,7 +296,7 @@ SRC=    tassert.h html.h html.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
         ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
-	backconfig.c ph2.c util2.c
+	backconfig.c ph2.c util2.c divcoeff.c
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c
@@ -353,6 +353,9 @@ os.obj : os.c
 
 strtold.obj : strtold.c
         $(CC) -c -o strtold.c
+
+divcoeff.obj : divcoeff.c
+        $(CC) -c -cpp -P divcoeff.c
 
 ################# Source file dependencies ###############
 
