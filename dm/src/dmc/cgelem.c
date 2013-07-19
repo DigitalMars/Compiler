@@ -1503,9 +1503,9 @@ STATIC elem *elor(elem *e, goal_t goal)
     elem *e1 = e->E1;
     elem *e2 = e->E2;
     unsigned sz = tysize(e->Ety);
-    if (sz <= REGSIZE)
+    if (sz <= intsize)
     {
-        if (e1->Eoper == OPshl && (e2->Eoper == OPshr || e2->Eoper == OPashr) &&
+        if (e1->Eoper == OPshl && e2->Eoper == OPshr &&
             tyuns(e2->E1->Ety) && e2->E2->Eoper == OPmin &&
             e2->E2->E1->Eoper == OPconst &&
             el_tolong(e2->E2->E1) == sz * 8 &&
@@ -1517,7 +1517,7 @@ STATIC elem *elor(elem *e, goal_t goal)
             e1->Eoper = OProl;
             return el_selecte1(e);
         }
-        if (e1->Eoper == OPshr && (e2->Eoper == OPshl || e2->Eoper == OPashr) &&
+        if (e1->Eoper == OPshr && e2->Eoper == OPshl &&
             tyuns(e1->E1->Ety) && e2->E2->Eoper == OPmin &&
             e2->E2->E1->Eoper == OPconst &&
             el_tolong(e2->E2->E1) == sz * 8 &&
@@ -3020,8 +3020,6 @@ elem * elstruct(elem *e, goal_t goal)
         return optelem(e, goal);
     }
 
-    //printf("\tnumbytes = %d\n", (int)e->Enumbytes);
-
     if (!e->ET)
         return e;
     //printf("\tnumbytes = %d\n", (int)type_size(e->ET));
@@ -3038,6 +3036,7 @@ elem * elstruct(elem *e, goal_t goal)
     }
 
     unsigned sz = type_size(e->ET);
+    //printf("\tsz = %d\n", (int)sz);
     switch ((int)sz)
     {
         case 1:  tym = TYchar;   goto L1;
@@ -3052,7 +3051,7 @@ elem * elstruct(elem *e, goal_t goal)
         case 6:
         case 7:  tym = TYllong;
         L2:
-            if (config.exe == EX_WIN64)
+            if (e->Eoper == OPstrpar && config.exe == EX_WIN64)
             {
                  goto L1;
             }
