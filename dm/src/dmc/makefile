@@ -310,7 +310,7 @@ BUILDSRC= sppn.tra sccn.tra htodn.tra scppn.tra makefile
 
 LICENSE= backendlicense.txt artistic.txt gpl.txt
 
-VERSION=854
+VERSION=857
 
 zip:
         del dm$(VERSION).zip
