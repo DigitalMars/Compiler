@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -649,8 +649,18 @@ void getcmd(int argc,char **argv)
 #if TX86
             case 'm':
                 model = *p++;
+                if (model == '3' && *p == '2')
+                {
+                    model = 'N';
+                    ++p;
+                }
+                else if (model == '6' && *p == '4')
+                {
+                    model = 'A';
+                    ++p;
+                }
                 model = toupper(model);
-                if (!strchr("TSMCRZLVFNPX",model))
+                if (!strchr("TSMCRZLVFNPXA",model))
                     cmderr(EM_memmodels);               // bad memory model
                 for (;; p++)
                 {   switch (*p)
@@ -1130,6 +1140,25 @@ void getcmd(int argc,char **argv)
                       config.defstructalign = 8 - 1; // NT uses 8 byte alignment
                       goto Lx2;
 
+            case 'A': config.exe = EX_WIN64;
+                      config.fpxmmregs = TRUE;
+                      config.defstructalign = 8 - 1; // NT uses 8 byte alignment
+                      config.flags |= CFGnoebp;
+                      config.flags |= CFGalwaysframe;
+                      config.flags |= CFGromable;       // put switch tables in code segment
+                      config.target_cpu = TARGET_PentiumPro;
+                      config.target_scheduler = config.target_cpu;
+                      config.inline8087 = 1;
+                      config.memmodel = Smodel;
+                      config.target_cpu = '6';
+                      if (config.fulltypes == CV4)
+                        config.fulltypes = CV8;
+                      util_set64();
+#if SCPP
+                      cod3_set64();
+#endif
+                      break;
+
             case 'P': if (config.fulltypes != CV4)
                             // CV4 and Pharlap OMF are incompatible
                             config.flags |= CFGeasyomf;
@@ -1222,7 +1251,7 @@ void getcmd(int argc,char **argv)
         config.wflags &= ~WFssneds;     // SS == DS for flat memory models
         config.flags &= ~CFGromable;    // no switch tables in code segment
         config.flags3 |= CFG3nofar;
-        if (config.exe == EX_NT)
+        if (config.exe == EX_NT || config.exe == EX_WIN64)
             config.flags3 |= CFG3eseqds;        // ES == DS for flat memory models
     }
     if (!config.inline8087)
@@ -1242,7 +1271,7 @@ void getcmd(int argc,char **argv)
 
     // Autoprototype unprototyped functions so that stdcall name
     // mangling will work.
-    if (!CPP && config.exe == EX_NT &&
+    if (!CPP && (config.exe == EX_NT || config.exe == EX_WIN64) &&
         (config.flags4 & (CFG4stdcall | CFG4oldstdmangle)) == CFG4stdcall
        )
         config.flags3 |= CFG3autoproto; // turn on autoprototyping
@@ -1325,6 +1354,9 @@ void getcmd(int argc,char **argv)
                 predefine(cpu);
                 predefine(cpu + 1);
             }
+
+            if (config.exe == EX_WIN64)
+                predefine("_M_AMD64");
         }
 
         if (I32)
@@ -1359,6 +1391,11 @@ void getcmd(int argc,char **argv)
 
         case EX_NT:             predefine(win32);
                                 predefine(win32 + 1);
+                                predefine("__NT__");    break;
+
+        case EX_WIN64:          predefine(win32);
+                                predefine(win32 + 1);
+                                predefine("_WIN64");
                                 predefine("__NT__");    break;
 
         case EX_COM:
