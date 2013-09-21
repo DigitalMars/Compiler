@@ -278,7 +278,7 @@ unsigned char *macro_rescan(macro_t *m, unsigned char *text);
 unsigned char *macro_expand(unsigned char *text);
 
 extern void explist(int);
-void expstring(char *);
+void expstring(const char *);
 void expinsert(int);
 void expbackup(void);
 void wrtexp(FILE *);
@@ -359,7 +359,7 @@ extern char ext_dmodule[];
 extern int includenest;
 #endif
 
-int file_qualify(char **pfilename,int flag);
+int file_qualify(char **pfilename,int flag,list_t pathlist);
 void afopen(char *,blklst *,int);
 FILE *file_openwrite(const char *name,const char *mode);
 void file_iofiles(void);

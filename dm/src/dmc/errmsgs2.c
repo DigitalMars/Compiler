@@ -32,15 +32,13 @@ void errmsgs_init();
 
 char *dlcmsgs(int n)
 {
-    char *p;
-
     assert((unsigned)n < arraysize(msgtbl));
     //errmsgs_init();
-    p = msgtbl[n][configv.language];
+    const char *p = msgtbl[n][configv.language];
     if (!p)
         p = msgtbl[n][LANGenglish];
 
-    return p;
+    return (char *)p;
 }
 
 /**********************************

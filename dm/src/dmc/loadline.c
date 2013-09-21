@@ -26,18 +26,8 @@
 
 extern char switch_E;
 
-#if __cplusplus
-extern "C" {
-#endif
-
-int __cdecl _fillbuf(FILE *fp);
-int __cdecl _flushbu(int c,FILE *fp);
-
-#if __cplusplus
-}
-#endif
-
 #if _WIN32
+
 #if __INTSIZE == 2
 
 /****************************************************

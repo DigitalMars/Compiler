@@ -3218,7 +3218,7 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    fprintf(fp,"char __cs * __cs msgtbl[][%d] =\n{",LANG_CNT);
+    fprintf(fp,"const char *msgtbl[][%d] =\n{",LANG_CNT);
     for (i = 0; i < sizeof(msgtable) / sizeof(msgtable[0]); i++)
     {   unsigned char *p;
         int j;

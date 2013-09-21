@@ -195,7 +195,7 @@ void explist(int c)
  * Send a string to explist().
  */
 
-void expstring(char *p)
+void expstring(const char *p)
 {
   while (*p) explist(*p++);
 }

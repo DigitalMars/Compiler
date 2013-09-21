@@ -491,18 +491,18 @@ void err_fatal(unsigned errnum,...)
     va_list ap;
     va_start(ap, errnum);
 #if !_WINDLL
-  dbg_printf(dlcmsgs(EM_fatal_error));          // Fatal error:
-  err_vprintf(ERRSTREAM,dlcmsgs(errnum),ap);
-  crlf(ERRSTREAM);
+    fputs(dlcmsgs(EM_fatal_error), ERRSTREAM);          // Fatal error:
+    err_vprintf(ERRSTREAM,dlcmsgs(errnum),ap);
+    crlf(ERRSTREAM);
 #endif
 #if USEDLLSHELL
-  err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,ap);
+    err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,ap);
 #endif
 #if ERROR_GPF
     *(char *)0=0;
 #endif
     va_end(ap);
-  err_exit();
+    err_exit();
 }
 
 /*************************
@@ -524,13 +524,17 @@ void cmderr(unsigned errnum,...)
 {
     va_list ap;
     va_start(ap, errnum);
-  dbg_printf(dlcmsgs(EM_command_line_error));
-  err_vprintf(ERRSTREAM,dlcmsgs(errnum),ap);
+#if _WINDLL
+    dll_printf(dlcmsgs(EM_command_line_error));
+#else
+    fputs(dlcmsgs(EM_command_line_error), ERRSTREAM);
+#endif
+    err_vprintf(ERRSTREAM,dlcmsgs(errnum),ap);
 #if USEDLLSHELL
-  err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,ap);
+    err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,ap);
 #endif
     va_end(ap);
-  err_exit();
+    err_exit();
 }
 
 /***************************************

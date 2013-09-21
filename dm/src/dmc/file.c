@@ -117,32 +117,31 @@ FILE *file_openwrite(const char *name,const char *mode)
  * Input:
  *      *pfilespec      filespec string
  *      flag            FQxxxx
+ *      pathlist        paths to look for file
  * Output:
  *      *pfilename      mem_malloc'd path of file, if found
  * Returns:
  *      !=0 if file is found
  */
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+
+#define PATHSYSLIST 0
+
+#if PATHSYSLIST
 static list_t incfil_fndNdir;
+list_t pathsyslist;
 #endif
 
-int file_qualify(char **pfilename,int flag)
-{   char *p;
+int file_qualify(char **pfilename, int flag, list_t pathlist)
+{
     char *fname;
     char *pext;
     char *newname;
     blklst *b;
     int result;
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
-    list_t __searchpath;
-    int save_flag;
+    list_t __searchpath = pathlist;
 
-#else
-#define __searchpath pathlist
-#endif
-
-    p = *pfilename;
+    char *p = *pfilename;
     assert(p);
 
     //printf("file_qualify(file='%s',flag=x%x\n",p,flag);
@@ -157,7 +156,8 @@ int file_qualify(char **pfilename,int flag)
         flag |= FQpath;
     }
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if PATHSYSLIST
+    int save_flag;
     if (flag & FQqual)                  // if already qualified
         flag = (flag | FQcwd) & ~(FQpath|FQnext);
     if (flag & FQpath)
@@ -248,7 +248,7 @@ retry:
                 result = file_exists(fname);
                 if (result)             // if file exists
                 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if PATHSYSLIST
                     incfil_fndNdir = pl;
 #endif
                     *pfilename = fname;
@@ -272,7 +272,7 @@ retry:
         break;
 #endif
     }
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if PATHSYSLIST
     if (__searchpath == pathsyslist)
     {
         __searchpath = pathlist;
@@ -300,7 +300,7 @@ void afopen(char *p,blklst *bl,int flag)
 #if HTOD
     htod_include(p, flag);
 #endif
-    if (!file_qualify(&p,flag))
+    if (!file_qualify(&p,flag,pathlist))
         err_fatal(EM_open_input,p);             // open failure
     bl->BLsrcpos.Sfilptr = filename_indirect(filename_add(p));
     sfile_debug(&srcpos_sfile(bl->BLsrcpos));

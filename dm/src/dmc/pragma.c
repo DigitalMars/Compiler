@@ -1912,7 +1912,7 @@ void pragma_include(char *filename,int flag)
 
 #if HEADER_LIST
 #if TX86
-    if (file_qualify(&filename,flag) == 0)      // if file not found
+    if (file_qualify(&filename,flag,pathlist) == 0)      // if file not found
     {
 #if M_UNIX || M_XENIX
         char *name;
@@ -2975,11 +2975,12 @@ Ldone:
  */
 
 STATIC void prerror()
-{   char *name;
+{
+    const char *name;
     int line;
     blklst *b;
     char buffer[80];
-    char __ss *p = buffer;
+    char *p = buffer;
 
     line = token_linnum().Slinnum;
     if (cstate.CSfilblk)

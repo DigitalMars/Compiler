@@ -1623,6 +1623,12 @@ STATIC void sw_d(char *p)
  * Break up a ';' delimited path into a list of paths.
  */
 
+#if _WIN32
+#define PATH_SEP ';'
+#else
+#define PATH_SEP ':'
+#endif
+
 STATIC void addpath(const char *q)
 {   char *t,c;
     char *buf;
@@ -1648,14 +1654,7 @@ STATIC void addpath(const char *q)
                         instring ^= 1;  // toggle inside/outside of string
                         continue;
 
-#if TARGET_MAC
-                    case ',':
-#else
-                    case ';':
-#endif
-#if M_UNIX || M_XENIX
-                    case ':':
-#endif
+                    case PATH_SEP:
                         p++;
                         break;          // note that ; cannot appear as part
                                         // of a path, quotes won't protect it

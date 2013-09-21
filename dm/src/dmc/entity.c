@@ -19,7 +19,7 @@
 
 struct NameId
 {
-    char *name;
+    const char *name;
     unsigned short value;
 };
 
@@ -287,13 +287,11 @@ static NameId names[] =
 
 int HtmlNamedEntity(unsigned char *p, int length)
 {
-    int i;
-
     // BUG: this is a dumb, slow linear search
-    for (i = 0; i < sizeof(names) / sizeof(names[0]); i++)
+    for (int i = 0; i < sizeof(names) / sizeof(names[0]); i++)
     {
         // Entries are case sensitive
-        if (memcmp(names[i].name, (char *)p, length) == 0 &&
+        if (memcmp(names[i].name, (const char *)p, length) == 0 &&
             !names[i].name[length])
             return names[i].value;
     }

@@ -329,6 +329,6 @@ unialpha.o : unialpha.c
 clean:
 	$(DEL) $(OBJS)
 	$(DEL) msgsx optabgen
-	$(DEL) msgs.c msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
+	$(DEL) msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 
 ###################################

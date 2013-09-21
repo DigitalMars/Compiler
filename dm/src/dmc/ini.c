@@ -224,12 +224,14 @@ char *expandline(char *buf, int domacros)
     unsigned p;                 /* 1 past end of macro name             */
     unsigned textlen;           /* length of replacement text (excl. 0) */
     unsigned buflen;            /* length of buffer (excluding 0)       */
-    char c,*text;
 
     buf = mem_strdup(buf);
     i = 0;
     while (buf[i])
-    {   if (buf[i] == '%')      /* if start of macro            */
+    {
+        char c;
+        const char *text;
+        if (buf[i] == '%')      /* if start of macro            */
         {   b = i + 1;
             p = b;
             while (buf[p] != '%')
@@ -239,9 +241,9 @@ char *expandline(char *buf, int domacros)
             c = buf[p];
             buf[p] = 0;
             if (domacros)
-            text = searchformacro(buf + b);
+                text = searchformacro(buf + b);
             else
-            text = "";
+                text = "";
             buf[p] = c;
             textlen = strlen(text);
             // If replacement text exactly matches macro call, skip expansion
@@ -255,7 +257,7 @@ char *expandline(char *buf, int domacros)
                 memmove(buf + i,text,textlen);
             }
             if (domacros)
-            mem_free (text);
+                mem_free ((void *)text);
         }
         else
         {
