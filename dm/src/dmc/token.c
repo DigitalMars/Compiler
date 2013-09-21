@@ -881,7 +881,7 @@ void token_init()
 
     if (CPP)
     {
-        static char bcs[96] =
+        static char bcs[96 + 1] =
                 // CPP98 2.2
                 "abcdefghijklmnopqrstuvwxyz"
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -889,7 +889,7 @@ void token_init()
                 " _{}[]#()<>%:;.?*+-/^&|~!=,\\\"'"
                 "\t\v\f\n";
 
-        for (int i = 0; i < sizeof(bcs); i++)
+        for (int i = 0; i < sizeof(bcs) - 1; i++)
         {
             assert(bcs[i]);
             _chartype[bcs[i] + 1] |= _BCS;

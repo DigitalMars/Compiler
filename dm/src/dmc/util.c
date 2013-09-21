@@ -424,11 +424,12 @@ void parc_free(void *p)
 #endif
 
 #if M_UNIX
-void strupr(char *buf)
+char *strupr(char *buf)
 {
     int i;
     int len = strlen(buf);
     for(i=0; i<len; i++)
         buf[i] = toupper(buf[i]);
+    return buf;
 }
 #endif

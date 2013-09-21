@@ -306,7 +306,7 @@ SHELLSRC= $(NTDLLSHELL)\include\dllrun.h $(NTDLLSHELL)\include\network.h \
 
 LIBSRC= $(NTDLLSHELL)\lib\spwnlnd.lib $(NTDLLSHELL)\lib\netsploc.obj
 
-BUILDSRC= sppn.tra sccn.tra htodn.tra scppn.tra makefile
+BUILDSRC= sppn.tra sccn.tra htodn.tra scppn.tra makefile posix.mak
 
 LICENSE= backendlicense.txt artistic.txt gpl.txt
 
@@ -315,6 +315,8 @@ VERSION=857
 zip:
         del dm$(VERSION).zip
         zip32 -u dm$(VERSION) $(RELEASE)
+
+zipsrc:
         del dm$(VERSION)src.zip
         zip32 -u dm$(VERSION)src $(SRC) tdb.lib $(LICENSE) backend.txt
         zip32 -u dm$(VERSION)src $(TKSRC)
@@ -326,7 +328,7 @@ detab:
         detab $(SRC) $(TKSRC) $(SHELLSRC)
 
 tolf:
-        tolf $(SRC) $(TKSRC) $(SHELLSRC)
+        tolf $(SRC) $(TKSRC) $(SHELLSRC) $(BUILDSRC)
 
 install:
         cp $(SRC) $(BUILDSRC) tdb.lib $(LICENSE) \dm\src\dmc

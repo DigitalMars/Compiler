@@ -555,11 +555,12 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define MAXLL           0x7FFFFFFF
 #endif
 
+#define Smodel 0        /* 64k code, 64k data, or flat model           */
+
 #ifndef MEMMODELS
 #define LARGEDATA       (config.memmodel & 6)
 #define LARGECODE       (config.memmodel & 5)
 
-#define Smodel 0        /* 64k code, 64k data           */
 #define Mmodel 1        /* large code, 64k data         */
 #define Cmodel 2        /* 64k code, large data         */
 #define Lmodel 3        /* large code, large data       */

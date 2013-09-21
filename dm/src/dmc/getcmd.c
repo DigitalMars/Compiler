@@ -15,12 +15,8 @@
 #include        <stdio.h>
 #include        <time.h>
 #include        <ctype.h>
-#include        <dos.h>
-
-#if _MSDOS || __OS2__ || _WIN32 || M_UNIX || M_XENIX
 #include        <string.h>
 #include        <stdlib.h>
-#endif
 
 #if TARGET_MAC
 #define INC_ENV "Zincludes"
@@ -29,7 +25,6 @@
 #endif
 
 #if TARGET_MAC
-#include        <string.h>
 extern char *getenv (const char *);
 #endif
 
@@ -67,11 +62,15 @@ Configv configv;                // non-ph part of configuration
 EEcontext eecontext;
 
 unsigned long netspawn_flags = 0;
-//#if __cplusplus
-//extern "C"
-//#endif
+
+#if __DMC__
 char __cdecl switch_E = 0;              // for LINRECOR.ASM
-int __cdecl _version = VERSIONINT;
+int  __cdecl _version = VERSIONINT;
+#else
+char switch_E = 0;
+int  _version = VERSIONINT;
+#endif
+
 char version[] = "(SCVersion)@" COMPILER " " VERSION SUFFIX;
 char copyright[] = COPYRIGHT;
 
@@ -317,7 +316,7 @@ void getcmd(int argc,char **argv)
                 break;
 
             case 'c':
-                        if (*(short *)p == 'pp')        // if -cpp
+                        if (p[0] == 'p' && p[1] == 'p')        // if -cpp
                         {   config.flags3 |= CFG3cpp;
                             break;
                         }
@@ -1098,11 +1097,16 @@ void getcmd(int argc,char **argv)
     if (config.flags4 & CFG4pascal)     // if default to __pascal linkage
     {
         if (CPP)
-        {   functypetab[LINK_CPP][Smodel] = TYnpfunc;
+        {
+#if MEMMODELS == 1
+            functypetab[LINK_CPP] = TYnpfunc;
+#else
+            functypetab[LINK_CPP][Smodel] = TYnpfunc;
             functypetab[LINK_CPP][Mmodel] = TYfpfunc;
             functypetab[LINK_CPP][Cmodel] = TYnpfunc;
             functypetab[LINK_CPP][Lmodel] = TYfpfunc;
             functypetab[LINK_CPP][Vmodel] = TYfpfunc;
+#endif
         }
         else
             config.linkage = LINK_PASCAL;
@@ -1110,11 +1114,16 @@ void getcmd(int argc,char **argv)
     if (config.flags4 & CFG4stdcall)    // if default to __stdcall linkage
     {
         if (CPP)
-        {   functypetab[LINK_CPP][Smodel] = TYnsfunc;
+        {
+#if MEMMODELS == 1
+            functypetab[LINK_CPP] = TYnsfunc;
+#else
+            functypetab[LINK_CPP][Smodel] = TYnsfunc;
             functypetab[LINK_CPP][Mmodel] = TYfsfunc;
             functypetab[LINK_CPP][Cmodel] = TYnsfunc;
             functypetab[LINK_CPP][Lmodel] = TYfsfunc;
             functypetab[LINK_CPP][Vmodel] = TYfsfunc;
+#endif
         }
         else
             config.linkage = LINK_STDCALL;
@@ -1132,13 +1141,20 @@ void getcmd(int argc,char **argv)
 
     switch (model)
     {
-            case 'F': config.exe = EX_OS2;
-                      goto Lx;
-
             case 'N': config.exe = EX_NT;
                       //config.flags4 |= CFG4oldstdmangle;
                       config.defstructalign = 8 - 1; // NT uses 8 byte alignment
-                      goto Lx2;
+            Lx2:
+                      config.memmodel = Smodel;
+                      if (!target)              // if target not specified
+                            target = '6';       // default to PentiumPro
+                      else if (target < '3')
+                            cmderr(EM_bad_iset,target,model);   // invalid instruction set
+                      util_set32();
+#if SCPP
+                      cod3_set32();
+#endif
+                      break;
 
             case 'A': config.exe = EX_WIN64;
                       config.fpxmmregs = TRUE;
@@ -1159,6 +1175,10 @@ void getcmd(int argc,char **argv)
 #endif
                       break;
 
+#if MEMMODELS > 1
+            case 'F': config.exe = EX_OS2;
+                      goto Lx;
+
             case 'P': if (config.fulltypes != CV4)
                             // CV4 and Pharlap OMF are incompatible
                             config.flags |= CFGeasyomf;
@@ -1168,17 +1188,8 @@ void getcmd(int argc,char **argv)
             case 'X': config.exe = EX_DOSX;
 
             Lx:       config.defstructalign = 4 - 1;    // align struct members on dwords
-            Lx2:
-                      config.memmodel = Smodel;
-                      if (!target)              // if target not specified
-                            target = '6';       // default to PentiumPro
-                      else if (target < '3')
-                            cmderr(EM_bad_iset,target,model);   // invalid instruction set
-                      util_set32();
-#if !SPP
-                      cod3_set32();
-#endif
-                      break;
+                      goto Lx2;
+
             case 'T': config.exe = EX_COM;
                       config.memmodel = Smodel;
                       goto L16;
@@ -1209,6 +1220,7 @@ void getcmd(int argc,char **argv)
                       util_set16();
                       util_set16();
                       break;
+#endif
             default:  assert(0);
     }
 
@@ -1239,8 +1251,10 @@ void getcmd(int argc,char **argv)
     {
         if (!(config.wflags & (WFss | WFwindows)))
             config.wflags |= WFssneds;
+#if MEMMODELS > 1
         if (config.memmodel == Vmodel)
             config.wflags |= WFincbp | WFthunk;
+#endif
     }
     if (!(config.wflags & WFwindows))
         config.wflags |= WFexpdef;
@@ -1331,7 +1345,7 @@ void getcmd(int argc,char **argv)
     {
 #if TX86
         {   static char i8086[] = "_M_I86?M";
-            static char modelc[5] = "SMCLV";
+            static char modelc[6] = "SMCLV";
             static char m86[] = "_M_I86";
 
             /* For compatibility with MSC       */
@@ -1462,8 +1476,11 @@ void getcmd(int argc,char **argv)
 #if TX86
     /* ANSI C macros to give memory model and cpu type  */
     {   static char modelmac[MEMMODELS][12] =
-                {"__SMALL__","__MEDIUM__","__COMPACT__","__LARGE__",
-                 "__VCM__"};
+                {"__SMALL__"
+#if MEMMODELS > 1
+                ,"__MEDIUM__","__COMPACT__","__LARGE__","__VCM__"
+#endif
+                };
         static char i86[] = "__I86__";
         static char i86value[] = "0";
 

@@ -32,6 +32,31 @@ static int bufmax = 0;          // max size of line buffer
 static int curline = 0;         // ini file line counter
 static char *path = NULL;       // path to ini file
 
+#if __GNUC__ || __clang__
+int memicmp(const char *s1, const char *s2, int n)
+{
+    int result = 0;
+
+    for (int i = 0; i < n; i++)
+    {   char c1 = s1[i];
+        char c2 = s2[i];
+
+        result = c1 - c2;
+        if (result)
+        {
+            if ('A' <= c1 && c1 <= 'Z')
+                c1 += 'a' - 'A';
+            if ('A' <= c2 && c2 <= 'Z')
+                c2 += 'a' - 'A';
+            result = c1 - c2;
+            if (result)
+                break;
+        }
+    }
+    return result;
+}
+#endif
+
 /***************************
  * Read and parse ini file.
  * Input:

@@ -543,9 +543,9 @@ void *ph_dehydrate(void *pp);
 #if PRAGMA_PARAM
 extern short pragma_param_cnt;
 #endif
-int __near pragma_search(char *id);
-macro_t *__near macfind(void);
-void __near listident(void);
+int pragma_search(char *id);
+macro_t *macfind(void);
+void listident(void);
 char *filename_stringize(char *name);
 unsigned char *macro_predefined(macro_t *m);
 int macprocess(macro_t *m, list_t *pargs, BlklstSave *blsave);

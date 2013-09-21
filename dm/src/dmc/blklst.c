@@ -12,11 +12,6 @@
 
 /* Read in characters from a block.                     */
 
-#if TX86 && __INTSIZE == 2 && !(__SMALL__ || __COMPACT__)
-//#pragma ZTC cseg TOKEN
-#pragma ZTC cseg TOKEN_TEXT
-#endif
-
 #include        <stdio.h>
 #ifdef THINK_CPLUS
 #include "transio.h"
@@ -24,6 +19,11 @@
 
 #include        <string.h>
 #include        <malloc.h>
+
+#if __GNUC__ || __clang__
+#include        <alloca.h>
+#endif
+
 #include        "ctype.h"
 #include        "cc.h"
 #include        "global.h"
@@ -37,12 +37,6 @@
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
-
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
-#define PATS_FIXES      1
-#else
-#define PATS_FIXES      0
-#endif
 
 #if TX86
 extern char switch_E;

@@ -125,7 +125,7 @@ symbol *cpp_lookformatch(symbol *sfunc , type *tthis , list_t arglist,
 struct OPTABLE
 {   unsigned char tokn;         /* token(TKxxxx)                */
     unsigned char oper;         /* corresponding operator(OPxxxx) */
-    char __near *string;        /* identifier string            */
+    char *string;               /* identifier string            */
     char pretty[5];             /* for pretty-printing          */
                                 /* longest OP is OPunord        */
 };

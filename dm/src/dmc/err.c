@@ -138,12 +138,15 @@ void dll_printf(const char *format,...)
 
 STATIC void err_continue(const char *format,...)
 {
-    err_vprintf(ERRSTREAM,format,(va_list)(&format + 1));
+    va_list ap;
+    va_start(ap, format);
+    err_vprintf(ERRSTREAM,format,ap);
     crlf(ERRSTREAM);
     fflush(ERRSTREAM);
 #if USEDLLSHELL
-    err_reportmsgf(eMsgContinue,kNoMsgNumber,format,(va_list)(&format + 1));
+    err_reportmsgf(eMsgContinue,kNoMsgNumber,format,ap);
 #endif
+    va_end(ap);
 }
 
 /**********************************
@@ -152,12 +155,15 @@ STATIC void err_continue(const char *format,...)
 
 void err_message(const char *format,...)
 {
-    err_vprintf(ERRSTREAM,format,(va_list)(&format + 1));
+    va_list ap;
+    va_start(ap, format);
+    err_vprintf(ERRSTREAM,format,ap);
     crlf(ERRSTREAM);
     fflush(ERRSTREAM);
 #if USEDLLSHELL
-    err_reportmsgf(eMsgFatalError,kNoMsgNumber,format,(va_list)(&format + 1));
+    err_reportmsgf(eMsgFatalError,kNoMsgNumber,format,ap);
 #endif
+    va_end(ap);
 }
 
 /*********************************
@@ -182,7 +188,7 @@ static void err_print(FILE *fp,const char *q,const char *format,va_list args)
 #else
     wrtpos(fp); // write line & draw ^ under it
 #endif
-    fprintf(fp,q);
+    fputs(q,fp);
     vfprintf(fp,format,args);
 #if TARGET_MAC
     fprintf(fp,"\n#-----------------------");
@@ -244,71 +250,83 @@ static int generr(const char *q,int errnum,va_list args)
 
 void lexerr(unsigned errnum,...)
 {
+    va_list ap;
+    va_start(ap, errnum);
 #if USEDLLSHELL
-    if (generr(dlcmsgs(EM_lexical_error),errnum,(va_list)(&errnum + 1)))
+    if (generr(dlcmsgs(EM_lexical_error),errnum,ap))
     {
-        err_reportmsg(eMsgError,kNoMsgNumber,errnum,(va_list)(&errnum + 1));
+        err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
     }
 #else
-    generr(dlcmsgs(EM_lexical_error),errnum,(va_list)(&errnum + 1));
+    generr(dlcmsgs(EM_lexical_error),errnum,ap);
 #endif
+    va_end(ap);
 }
 
 void preerr(unsigned errnum,...)
 {
+    va_list ap;
+    va_start(ap, errnum);
 #if USEDLLSHELL
-    if (generr(dlcmsgs(EM_preprocessor_error),errnum,(va_list)(&errnum + 1)))
+    if (generr(dlcmsgs(EM_preprocessor_error),errnum,ap))
     {
-        err_reportmsg(eMsgError,kNoMsgNumber,errnum,(va_list)(&errnum + 1));
+        err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
     }
 #else
-    generr(dlcmsgs(EM_preprocessor_error),errnum,(va_list)(&errnum + 1));
+    generr(dlcmsgs(EM_preprocessor_error),errnum,ap);
 #endif
+    va_end(ap);
 }
 
 int synerr(unsigned errnum,...)
 {
-    int result;
+    va_list ap;
+    va_start(ap, errnum);
 
-    result = generr(dlcmsgs(EM_error),errnum,(va_list)(&errnum + 1));
+    int result = generr(dlcmsgs(EM_error),errnum,ap);
 #if USEDLLSHELL
     if (result)
-        err_reportmsg(eMsgError,kNoMsgNumber,errnum,(va_list)(&errnum + 1));
+        err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
 #endif
 #if ERROR_GPF
     *(char *)0=0;
 #endif
+    va_end(ap);
     return result;
 }
 
 int cpperr(unsigned errnum,...)
 {
-    int result;
+    va_list ap;
+    va_start(ap, errnum);
 
-    result = generr(dlcmsgs(EM_error),errnum,(va_list)(&errnum + 1));
+    int result = generr(dlcmsgs(EM_error),errnum,ap);
 #if USEDLLSHELL
     if (result)
-        err_reportmsg(eMsgError,kNoMsgNumber,errnum,(va_list)(&errnum + 1));
+        err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
 #endif
 #if ERROR_GPF
     *(char *)0=0;
 #endif
+    va_end(ap);
     return result;
 }
 
 #if TX86
 int tx86err(unsigned errnum,...)
 {
-    int result;
+    va_list ap;
+    va_start(ap, errnum);
 
-    result = generr(dlcmsgs(EM_error),errnum,(va_list)(&errnum + 1));
+    int result = generr(dlcmsgs(EM_error),errnum,ap);
 #if USEDLLSHELL
     if (result)
-        err_reportmsg(eMsgError,kNoMsgNumber,errnum,(va_list)(&errnum + 1));
+        err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
 #endif
 #if ERROR_GPF
     *(char *)0=0;
 #endif
+    va_end(ap);
     return result;
 }
 #endif
@@ -434,6 +452,9 @@ void err_warning_enable(unsigned warnum,int on)
 void warerr(unsigned warnum,...)
 {   char msg[20];
 
+    va_list ap;
+    va_start(ap, warnum);
+
     assert(warnum < arraysize(war_to_msg));
     if (!war_to_msg_enable[warnum])     /* if enabled                   */
     {   int errnum;
@@ -448,16 +469,17 @@ void warerr(unsigned warnum,...)
 #if USEDLLSHELL
         {   int result;
 
-            result = generr(msg,-errnum,(va_list)(&warnum + 1));
+            result = generr(msg,-errnum,ap);
             if (result)
                 err_reportmsg(
                     (config.flags2 & CFG2warniserr) ? eMsgError : eMsgWarning,
-                    warnum,errnum,(va_list)(&warnum + 1));
+                    warnum,errnum,ap);
         }
 #else
-        generr(msg,-errnum,(va_list)(&warnum + 1));
+        generr(msg,-errnum,ap);
 #endif
     }
+    va_end(ap);
 }
 
 /**************************
@@ -466,17 +488,20 @@ void warerr(unsigned warnum,...)
 
 void err_fatal(unsigned errnum,...)
 {
+    va_list ap;
+    va_start(ap, errnum);
 #if !_WINDLL
   dbg_printf(dlcmsgs(EM_fatal_error));          // Fatal error:
-  err_vprintf(ERRSTREAM,dlcmsgs(errnum),(va_list)(&errnum + 1));
+  err_vprintf(ERRSTREAM,dlcmsgs(errnum),ap);
   crlf(ERRSTREAM);
 #endif
 #if USEDLLSHELL
-  err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,(va_list)(&errnum + 1));
+  err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,ap);
 #endif
 #if ERROR_GPF
     *(char *)0=0;
 #endif
+    va_end(ap);
   err_exit();
 }
 
@@ -497,11 +522,14 @@ void err_nomem()
 
 void cmderr(unsigned errnum,...)
 {
+    va_list ap;
+    va_start(ap, errnum);
   dbg_printf(dlcmsgs(EM_command_line_error));
-  err_vprintf(ERRSTREAM,dlcmsgs(errnum),(va_list)(&errnum + 1));
+  err_vprintf(ERRSTREAM,dlcmsgs(errnum),ap);
 #if USEDLLSHELL
-  err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,(va_list)(&errnum + 1));
+  err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,ap);
 #endif
+    va_end(ap);
   err_exit();
 }
 
@@ -511,6 +539,8 @@ void cmderr(unsigned errnum,...)
 
 void html_err(const char *srcname, unsigned linnum, unsigned errnum, ...)
 {
+    va_list ap;
+    va_start(ap, errnum);
 #if USEDLLSHELL
     tToolMsg tm;
     char buffer[500];
@@ -521,17 +551,18 @@ void html_err(const char *srcname, unsigned linnum, unsigned errnum, ...)
     tm.colNumber = kNoColNumber;
     tm.fileName = (char *)srcname;      // use original source file name
     tm.lineNumber = linnum;
-    count = _vsnprintf(buffer,sizeof(buffer),dlcmsgs(errnum),(va_list)(&errnum + 1));
+    count = _vsnprintf(buffer,sizeof(buffer),dlcmsgs(errnum),ap);
     tm.msgText = buffer;
     tm.msgType = eMsgError;
     tm.msgNumber = kNoMsgNumber;
     NetSpawnMessage(&tm);
 #else
     printf("%s(%d) : HTML error: ", srcname, linnum);
-    vprintf(dlcmsgs(errnum),(va_list)(&errnum + 1));
+    vprintf(dlcmsgs(errnum),ap);
     crlf(stdout);
     fflush(stdout);
 #endif
+    va_end(ap);
     errcnt++;
 }
 
@@ -543,13 +574,15 @@ void html_err(const char *srcname, unsigned linnum, unsigned errnum, ...)
 
 int typerr(int n,type *t1,type *t2,...)
 {
-    if (generr(dlcmsgs(EM_error),n,(va_list)(&t2 + 1)))
+    va_list ap;
+    va_start(ap, t2);
+    if (generr(dlcmsgs(EM_error),n,ap))
     {   char *p1,*p2;
         Outbuffer buf;
         static char format[] = "%s: %s";
 
 #if USEDLLSHELL
-        err_reportmsg(eMsgError,kNoMsgNumber,n,(va_list)(&t2 + 1));
+        err_reportmsg(eMsgError,kNoMsgNumber,n,ap);
 #endif
         p1 = type_tostring(&buf,t1);
         err_continue(format,n == EM_explicit_cast ||
@@ -567,8 +600,10 @@ int typerr(int n,type *t1,type *t2,...)
 #if ERROR_GPF
         *(char *)0=0;
 #endif
+        va_end(ap);
         return 1;
     }
+    va_end(ap);
     return 0;
 }
 
