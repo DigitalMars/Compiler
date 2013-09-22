@@ -5,7 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -80,4 +80,4 @@ char * strupr(char *);
 #include "optdata.h"
 #endif
 
-#define TRIGRAPHS (ANSI || OPT_IS_SET(OPTtrigraphs))
+//#define TRIGRAPHS (ANSI || OPT_IS_SET(OPTtrigraphs))
