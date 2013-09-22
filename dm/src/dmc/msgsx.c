@@ -114,9 +114,11 @@ struct Msgtable msgtable[] =
         "premature end of source file",                 /*  2   */
         "Vorzeitiges Ende der Quelldatei",              /*  2   */
         "fin inattendue du fichier source",             /*  2   */
-        #pragma dbcs(push,1)
-        "ソースファイルの終りに達した",                 /*  2   */
-        #pragma dbcs(pop)
+        //#pragma dbcs(push,1)
+        //"ソースファイルの終りに達した",                 /*  2   */
+        //#pragma dbcs(pop)
+        "\x83\x5c\x81\x5b\x83\x58\x83\x74\x83\x40\x83\x43\x83\x8b\x82\xcc\x8f\x49\x82\xe8\x82\xc9\x92\x42\x82\xb5\x82\xbd",
+
   },
   { "num2big",
         "number %s is too large",                       /*  3   */
@@ -171,9 +173,10 @@ struct Msgtable msgtable[] =
         "number is not representable",                  /*  9   */
         "Zahl nicht darstellbar",                       /*  9   */
         "impossible de reprＴenter ce nombre",          /*  9   */
-        #pragma dbcs(push,1)
-        "数値を表現できない",                           /*  9   */
-        #pragma dbcs(pop)
+        //#pragma dbcs(push,1)
+        //"数値を表現できない",                           /*  9   */
+        //#pragma dbcs(pop)
+        "\x90\x94\x92\x6c\x82\xf0\x95\x5c\x8c\xbb\x82\xc5\x82\xab\x82\xc8\x82\xa2",
   },
   { "exponent",
         "exponent expected",                            /* 10   */
@@ -493,11 +496,12 @@ struct Msgtable msgtable[] =
          */
   { "extra_semi",
         "possible extraneous ';'",                      /* 98 W */
-        "M波licherweise ｜erfl《siges ';'",                     /* 98 W */
-        "prＴence possible de ';' superflu",                    /* 98 W */
-        #pragma dbcs(push,1)
-        "';' が多すぎる可能性がある",                   /* 98 W */
-        #pragma dbcs(pop)
+        "M波licherweise ｜erfl《siges ';'",             /* 98 W */
+        "prＴence possible de ';' superflu",            /* 98 W */
+        //#pragma dbcs(push,1)
+        //"';' が多すぎる可能性がある",                 /* 98 W */
+        //#pragma dbcs(pop)
+        "\x27\x3b\x27\x20\x82\xaa\x91\xbd\x82\xb7\x82\xac\x82\xe9\x89\xc2\x94\x5c\x90\xab\x82\xaa\x82\xa0\x82\xe9",
   },
   { "lvalue",
         "lvalue expected",                              /* 101 S */
@@ -3236,8 +3240,8 @@ int main()
             {   fprintf(fp,"\t0,\n");
                 continue;
             }
-            if (j == 3)
-                fprintf(fp,"\t#pragma dbcs(push,1)\n");
+            //if (j == 3)
+                //fprintf(fp,"\t#pragma dbcs(push,1)\n");
             fprintf(fp,"\t\"");
             for (; *p; p++)
             {
@@ -3252,13 +3256,17 @@ int main()
                         fputc('n',fp);
                         break;
                     default:
-                        fputc(*p,fp);
+                        if (*p < 0x20 || *p >= 0x7F)
+                            //fprintf(fp, "\\x%02x", *p);
+                            fprintf(fp, "\\%3o", *p);
+                        else
+                            fputc(*p,fp);
                         break;
                 }
             }
             fprintf(fp,"\",\n");
-            if (j == 3)
-                fprintf(fp,"\t#pragma dbcs(pop)\n");
+            //if (j == 3)
+                //fprintf(fp,"\t#pragma dbcs(pop)\n");
         }
     }
     fprintf(fp,"};\n");
