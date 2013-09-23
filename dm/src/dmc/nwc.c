@@ -67,7 +67,7 @@ int readini(char *argv0,char *ini);
  * Main program.
  */
 
-int __cdecl main(int argc,char *argv[])
+int main(int argc,char *argv[])
 { list_t headerlist;
 
   argv0 = argv[0];                      // save program name

@@ -54,6 +54,11 @@ extern char *strcpy(),*memcpy();
 extern int strlen();
 #endif  /* VAX11C */
 
+#if __GNUC__ || __clang__
+#undef __cdecl
+#define __cdecl
+#endif
+
 int mem_inited = 0;             /* != 0 if initialized                  */
 
 static int mem_behavior = MEM_ABORTMSG;
@@ -198,11 +203,10 @@ void (*_new_handler)(void);
 #if !MEM_NONEW
 
 #if __GNUC__
-void * operator new(size_t size)
 #else
 #undef new
-void * __cdecl operator new(size_t size)
 #endif
+void * __cdecl operator new(size_t size)
 {   void *p;
 
     while (1)
@@ -222,11 +226,7 @@ void * __cdecl operator new(size_t size)
     return p;
 }
 
-#if __GNUC__
-void * operator new[](size_t size)
-#else
 void * __cdecl operator new[](size_t size)
-#endif
 {   void *p;
 
     while (1)
