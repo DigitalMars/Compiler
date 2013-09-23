@@ -38,7 +38,6 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-int loadline (FILE *,unsigned char **,unsigned char *);
 STATIC void getcmd_filename (char **pname,const char *ext);
 STATIC void file_openread(const char *f,blklst *b);
 
