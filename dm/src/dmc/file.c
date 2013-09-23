@@ -44,19 +44,8 @@ STATIC void file_openread(const char *f,blklst *b);
 static int lastlinnum;
 int includenest;
 
-#if _WIN32
+#if _WIN32 && _WINDLL
 static list_t file_list;
-#endif
-
-// Default file I/O buffer size
-#if _WIN32
-#define FILEBUFSIZE     0x8000  // 32k disk buffer
-#elif __INTSIZE == 4            // if 32 bit program
-#define FILEBUFSIZE     0x4000  // 16k disk buffer
-#elif _WINDLL
-#define FILEBUFSIZE     0x4000
-#else
-#define FILEBUFSIZE     (_cpumode ? 0x4000 : 1024)      // small buffer for real mode
 #endif
 
 // File name extensions
@@ -88,20 +77,11 @@ char ext_dmodule[]   = ".d";
 
 FILE *file_openwrite(const char *name,const char *mode)
 {   FILE *stream;
-    char *newname;
 
     if (name)
-    {   newname = file_nettranslate(name,mode);
+    {
+        const char *newname = file_nettranslate(name,mode);
         stream = fopen(newname,mode);
-
-#if !((__SMALL__ || __MEDIUM__) && __INTSIZE == 2)
-        // Adjust buffer size upwards
-        if (stream && setvbuf(stream,NULL,_IOFBF,FILEBUFSIZE))
-        {   fclose(stream);
-            stream = NULL;              // buffer adjust failed
-        }
-#endif
-
         if (!stream)
             cmderr(EM_open_output,newname);     // error opening output file
     }
