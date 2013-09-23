@@ -190,12 +190,8 @@ struct BLKLST
     list_t      BLeargs;        /* actual arguments                     */
     int         BLnargs;        /* number of dummy args                 */
     int         BLtextmax;      /* size of text buffer                  */
-#if INDIVFILEIO
     unsigned char *BLbuf;       // BLfile: file buffer
     unsigned char *BLbufp;      // BLfile: next position in file buffer
-#else
-    FILE        *BLstream;      /* BLfile                               */
-#endif
     Srcpos      BLsrcpos;       /* BLfile, position in that file        */
 #if SOURCE_OFFSETS
     long        BLfoffset;      /* BLfile, offset into file             */

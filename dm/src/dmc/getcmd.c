@@ -1339,7 +1339,12 @@ void getcmd(int argc,char **argv)
     if (!(config.flags2 & CFG2phgen))   // if not generating PH
         fsymname = NULL;                // then no sym output file
     if (!(config.flags3 & CFG3igninc))  // if not ignored
+    {
+        /* To see what paths gcc uses on linux,
+         *    `gcc -print-prog-name=cc1` -v
+         */
         addpath(getenv(INC_ENV));       // get path from environment
+    }
 
     if (!switch_U)                      /* if didn't turn them off      */
     {
@@ -1523,8 +1528,14 @@ void getcmd(int argc,char **argv)
             fixeddefmac("__STDC_VERSION__", "199901L");
 
         if (!(config.flags4 & CFG4fastfloat))   // if not fast floating point
-        {   fixeddefmac("__STDC_IEC_559__", one);
+        {
+#if linux
+            defmac("__STDC_IEC_559__", one);
+            defmac("__STDC_IEC_559_COMPLEX__", one);
+#else
+            fixeddefmac("__STDC_IEC_559__", one);
             fixeddefmac("__STDC_IEC_559_COMPLEX__", one);
+#endif
         }
     }
     definedmac();

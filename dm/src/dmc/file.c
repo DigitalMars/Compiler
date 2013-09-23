@@ -504,7 +504,6 @@ STATIC void getcmd_filename(char **pname,const char *ext)
     }
 }
 
-#if INDIVFILEIO
 
 /******************************
  * Read in source file.
@@ -629,59 +628,6 @@ Lf:     mov     p,ECX
     }
 }
 
-#else
-
-/*********************************
- * Open file for reading.
- * Try to use a buffer size as big as the file to read, so the file
- * is read in one go.
- * Input:
- *      f ->            file name string
- * Returns:
- *      file stream pointer, or NULL if error
- */
-
-STATIC void file_openread(const char *f,blklst *b)
-{   FILE *fp;
-    char *newname;
-
-    assert(f);
-    newname = file_nettranslate(f,"rb");
-
-#if _WIN32
-    fp = _fsopen(newname,"rb",_SH_DENYWR)
-#else
-    fp = fopen(newname,"rb");
-#endif
-    if (fp)
-    {   unsigned long size;
-
-        size = os_file_size(fileno(fp));
-        if (size == -1L)
-            goto Lerr;
-
-#if __INTSIZE == 2
-        if (size > FILEBUFSIZE)
-            size = FILEBUFSIZE;         // if memory is tight
-#endif
-
-        // Adjust buffer size
-        if (setvbuf(fp,NULL,_IOFBF,size))
-        {
-         Lerr:
-            fclose(fp);
-            fp = NULL;          // buffer adjust failed
-        }
-    }
-
-    if (!fp)
-        cmderr(EM_open_input,f);        // if bad open
-    b->BLstream = fp;
-}
-
-#endif
-
-#if INDIVFILEIO
 
 /***********************************
  * Read next line from current input file.
@@ -875,170 +821,7 @@ int readln()
         }
 }
 
-#else
-
-/***********************************
- * Read next line from current input file.
- * Special cases to consider:
- *      1) line buffer array size exceeded
- *      2) end of file encountered
- *      3) end of source input (no more files to read)
- *      4) reading in nulls
- * Input:
- *      bl              currently open file
- * Output:
- *      bl->linbuf[] =  next line of input file
- *      bl->linp =      bl->linbuf
- *      bl->linnum      incremented
- * Returns:
- *      0               if no more input (case 3)
- */
 
-int readln()
-{ int c;
-  unsigned char *p,*ptop,*pstart;
-  int tristart = 0;
-
-  assert(bl);
-  bl->BLsrcpos.Slinnum++;               // line counter
-  p = btextp = bl->BLtext;              /* set to start of line         */
-  pstart = p;
-
-  /* Allow 2 extra here, 1 for character and 1 for terminating 0        */
-  ptop = p + bl->BLtextmax - 2;         /* end of buffer                */
-
-  while (1)
-  {
-#if __ZTC__ && M_I86
-    c = loadline(bl->BLstream,&p,ptop);
-#else
-    c = fgetc(bl->BLstream);            /* get char from input file     */
-#endif
-    switch (c)
-    {
-        case '\n':
-        L2:
-            if (TRIGRAPHS)
-            {   // Do trigraph translation
-                // BUG: raw string literals do not undergo trigraph translation
-                static char trigraph[] = "=(/)'<!>-";
-                static char mongraph[] = "#[\\]^{|}~";  /* translation of trigraph */
-                int len;
-                unsigned char *s,*sn;
-
-                len = p - bl->BLtext;
-                /* tristart is so we don't scan twice for trigraphs     */
-                for (s = bl->BLtext + tristart;
-                     (sn = (unsigned char *)memchr(s,'?',len)) != NULL; )
-                {   unsigned char *q;
-
-                    len -= sn - s;              /* len = remaining length */
-                    s = sn;
-                    if (*++s == '?' &&
-                        (q = (unsigned char *) strchr(trigraph,s[1])) != NULL)
-                    {   s[-1] = mongraph[q - (unsigned char *) trigraph];
-                        len -= 2;
-                        p -= 2;
-                        memmove(s,s + 2,len);
-                        if (pstart > s)
-                            pstart -= 2;
-                    }
-                }
-                tristart = p - bl->BLtext;
-            }
-
-            // Translate trailing CR-LF to LF
-            if (p > pstart && p[-1] == '\r')
-                p--;
-
-            // Look for backslash line splicing
-            if (p > pstart && p[-1] == '\\')
-            {
-                // BUG: backslash line splicing does not happen in raw strings
-                if (p > pstart + 1 && ismulti(p[-2]))
-                {   // Backslash may be part of multibyte sequence
-                    unsigned char *s;
-
-                    for (s = pstart; s < p; s++)
-                    {
-                        if (ismulti(*s))
-                        {   s++;
-                            if (s == p - 1)     // backslash is part of multibyte
-                                goto L5;        // not a line continuation
-                        }
-                    }
-                }
-
-                p--;
-                pstart = p;
-                bl->BLsrcpos.Slinnum++;
-                continue;
-            }
-        L5:
-            *p++ = c;
-            *p = 0;
-            return TRUE;
-
-        default:
-            *p++ = c;                   /* store char in input buffer   */
-            break;
-
-#if !(__ZTC__ && M_I86)                 // already handled by loadline()
-        case 26:                        /* ^Z means EOF                 */
-#endif
-        case EOF:
-            if (p != bl->BLtext)        // if we read in some chars
-            {   *p = 0;                 // terminate line so it'll print
-#if !HOST_MAC                   // Mac editor does not alway terminate last line
-                if (ANSI && !CPP)
-                    lexerr(EM_no_nl);
-#endif
-                c = '\n';               /* fake a '\n'                  */
-                goto L2;
-            }
-            includenest--;
-            fclose(bl->BLstream);       /* close input file             */
-            if (configv.verbose)
-                NetSpawnFile(blklst_filename(bl),kCloseLevel);
-#if HTOD
-            htod_include_pop();
-#endif
-            return FALSE;
-    }
-    if (p > ptop)                       /* too many chars in line       */
-    {   /* allocate a new text buffer */
-        int istart;
-        long newmax;
-
-        assert(p == bl->BLtext + bl->BLtextmax - 1);
-#ifdef DEBUG
-        assert(p == ptop + 1);
-        assert(pstart <= p);
-#endif
-        istart = pstart - bl->BLtext;
-
-        newmax = bl->BLtextmax * 2L;
-#if __INTSIZE == 2
-        #define TEXTMAX 0xFFF0
-        if (newmax >= TEXTMAX)
-        {
-            if (bl->BLtextmax == TEXTMAX)
-                err_fatal(EM_max_macro_text,"line",TEXTMAX);    // too big
-            newmax = TEXTMAX;
-        }
-#endif
-        bl->BLtext = (unsigned char *) util_realloc(bl->BLtext,1,newmax);
-        btextp = bl->BLtext;
-        pstart = btextp + istart;
-        p = btextp + bl->BLtextmax - 1;         /* set to end of buffer */
-        bl->BLtextmax = newmax;
-        ptop = bl->BLtext + (int)newmax - 2;    /* end of buffer        */
-    }
-  }
-}
-
-#endif
-
 /***********************************
  * Write out current line, and draw a ^
  * under the current position of the line pointer.

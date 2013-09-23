@@ -1113,9 +1113,6 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
     {
         case BLfile:
 #if TX86
-#if !INDIVFILEIO
-                        p->BLtext = (unsigned char *) util_calloc(1,80);
-#endif
 #else
                         p->BLtext = (unsigned char *) MEM_PARC_CALLOC(80);
 #endif
@@ -1212,13 +1209,8 @@ STATIC void freeblk(blklst *p)
         case BLfile:
                 cstate.CSfilblk = blklst_getfileblock();
                 lastpos = p->BLsrcpos;          /* remember last line # */
-#if INDIVFILEIO
                 util_free(p->BLbuf);
-#endif
 #if TX86
-#if !INDIVFILEIO
-                util_free(p->BLtext);           /* free file data       */
-#endif
 #else
                 MEM_PARC_FREE(p->BLtext);       /* free file data       */
 #endif

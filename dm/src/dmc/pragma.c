@@ -1077,9 +1077,9 @@ void definedmac()
  */
 
 macro_t *fixeddefmac(const char *name,const char *text)
-{   macro_t *m;
-
-    m = defmac(name,text);
+{
+    //printf("fixeddefmac(%s, \"%s\")\n", name, text);
+    macro_t *m = defmac(name,text);
     m->Mflags |= Mfixeddef;
     return m;
 }
@@ -1162,7 +1162,8 @@ STATIC void prdefine()
         if (mflags & (Mdefined | Mfixeddef))    // if macro is already defined
         {
             if (mflags & (Minuse | Mfixeddef))  // if it's in use
-            {   preerr(EM_undef,mold->Mid);     // would cause bugs
+            {
+                preerr(EM_undef,mold->Mid);     // would cause bugs
                 eatrol();
                 return;
             }

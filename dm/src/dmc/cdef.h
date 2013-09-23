@@ -312,9 +312,6 @@ typedef long double longdouble;
 //      2: new style
 #define NTEXCEPTIONS            2
 
-// indivisible file I/O
-#define INDIVFILEIO             1
-
 #define NEWSTATICDTOR           1       // support new style static destructors
 
 // For Shared Code Base
