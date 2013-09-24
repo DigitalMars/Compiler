@@ -80,6 +80,7 @@ STATIC char * macrotext(macro_t *m);
 STATIC void prundef(void);
 STATIC void princlude(void);
 STATIC void princlude_next(void);
+STATIC void princlude_flag(bool next);
 STATIC void prmessage(void);
 STATIC void prstring(int flag);
 STATIC void prident(void);
@@ -250,6 +251,7 @@ inline char *textbuf_reserve(char *pbuf, int n)
         X(ifdef,        prifdef)        \
         X(ifndef,       prifndef)       \
         X(include,      princlude)      \
+        X(include_next, princlude_next) \
         X(line,         prline)         \
         X(pragma,       prpragma)       \
         X(undef,        prundef)        \
@@ -1762,19 +1764,21 @@ STATIC void prundef()
     blankrol();                         /* eat rest of line             */
     exp_ppon();
 }
-
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+
 /*************************
  * #include_next "filename"
  * #include_next <filename>
  */
 
-STATIC void princlude_next()
-{   enum_TK strtok;
+STATIC void princlude_next() { princlude_flag(true);  }
+STATIC void princlude()      { princlude_flag(false); }
 
+STATIC void princlude_flag(bool next)
+{
+    //printf("princlude_flag(%d)\n", next);
     file_progress();
     ininclude++;
-    strtok = stoken();
+    enum_TK strtok = stoken();
     ininclude--;
     if (strtok != TKstring && strtok != TKfilespec)
     {   preerr(EM_filespec);            // filespec expected
@@ -1793,44 +1797,11 @@ STATIC void princlude_next()
         eline[0] = 0;                   /* erase current line           */
     }
 
-    pragma_include(tok.TKstr,FQnext);
-    egchar();
-}
-#endif
-
-/*************************
- * #include "filename"
- * #include <filename>
- */
-
-STATIC void princlude()
-{   enum_TK strtok;
-
-    file_progress();
-    ininclude++;
-    strtok = stoken();
-    ininclude--;
-    if (strtok != TKstring && strtok != TKfilespec)
-    {   preerr(EM_filespec);            // filespec expected
-        eatrol();
-        exp_ppon();
-        return;
-    }
-
-    blankrol();                         /* rest of line should be blank */
-    exp_ppon();
-    putback(LF);                        /* put char (EOL) back in input */
-                                        /* (protect against no trailing */
-                                        /*  EOL in #include file)       */
-    if (config.flags2 & CFG2expand && elini)
-    {   elini = 0;
-        eline[0] = 0;                   /* erase current line           */
-    }
-
-    pragma_include(tok.TKstr,((strtok == TKstring)
+    pragma_include(tok.TKstr,next ? FQnext : ((strtok == TKstring)
                 ? FQcwd | FQpath : FQsystem | FQpath));
     egchar();
 }
+
 
 /*************************************
  * Given a #include'd filename, either read it in as a precompiled
@@ -1842,7 +1813,7 @@ STATIC void princlude()
 void pragma_include(char *filename,int flag)
 {   list_t al;
 
-    //dbg_printf("pragma_include(filename = '%s', flag = %d)\n",filename,flag);
+    //dbg_printf("pragma_include(filename = '%s', flag = x%x)\n",filename,flag);
 
     // Remove leading and trailing whitespace
     {   char *p;
@@ -1872,7 +1843,10 @@ void pragma_include(char *filename,int flag)
         }
     }
 
-#if !SPP
+#if SPP
+    // Parse #include file as text
+    insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag,NULL);
+#else
 #if PRAGMA_ONCE
     {
     blklst *olist;
@@ -1913,7 +1887,8 @@ void pragma_include(char *filename,int flag)
 
 #if HEADER_LIST
 #if TX86
-    if (file_qualify(&filename,flag,pathlist) == 0)      // if file not found
+    list_t pl;                          // a dummy
+    if (file_qualify(&filename,flag,pathlist,&pl) == 0)      // if file not found
     {
 #if M_UNIX || M_XENIX
         char *name;
@@ -2020,9 +1995,6 @@ ret:
 #endif
 #endif /* HEADER_LIST */
 
-#else
-    // Parse #include file as text
-    insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag,NULL);
 #endif
 }
 

@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -99,6 +99,7 @@ FILE *file_openwrite(const char *name,const char *mode)
  *      pathlist        paths to look for file
  * Output:
  *      *pfilename      mem_malloc'd path of file, if found
+ *      *next_path      remaining path for possible future #include_next
  * Returns:
  *      !=0 if file is found
  */
@@ -107,23 +108,21 @@ FILE *file_openwrite(const char *name,const char *mode)
 #define PATHSYSLIST 0
 
 #if PATHSYSLIST
-static list_t incfil_fndNdir;
 list_t pathsyslist;
 #endif
 
-int file_qualify(char **pfilename, int flag, list_t pathlist)
+int file_qualify(char **pfilename, int flag, list_t pathlist, list_t *next_path)
 {
     char *fname;
-    char *pext;
-    char *newname;
-    blklst *b;
-    int result;
     list_t __searchpath = pathlist;
 
     char *p = *pfilename;
     assert(p);
 
-    //printf("file_qualify(file='%s',flag=x%x\n",p,flag);
+    //printf("file_qualify(file='%s',flag=x%x)\n",p,flag);
+
+    *next_path = NULL;
+
     if (flag & FQtop)
     {
         *pfilename = mem_strdup(p);
@@ -135,51 +134,54 @@ int file_qualify(char **pfilename, int flag, list_t pathlist)
         flag |= FQpath;
     }
 
-#if PATHSYSLIST
-    int save_flag;
+    // If file spec is an absolute, rather than relative, file spec
+    if (*p == '/' || *p == '\\' || (*p && p[1] == ':'))
+        flag = FQcwd;       // don't look at paths
+
     if (flag & FQqual)                  // if already qualified
         flag = (flag | FQcwd) & ~(FQpath|FQnext);
+#if PATHSYSLIST
+    int save_flag;
     if (flag & FQpath)
     {
         __searchpath = pathsyslist;
         save_flag = flag;
         flag = FQpath|FQsystem;
     }
+#endif
+
+    blklst *b = cstate.CSfilblk;
 
     if (flag & FQnext)
     {
-        list_t pl;
-        if (!incfil_fndNdir || !list_next(incfil_fndNdir))
+        /* Look at the path remaining after the current file was found.
+         */
+        if (b && b->BLsearchpath)
         {
-            return 0;
-        }
-        for (pl=list_next(incfil_fndNdir); pl; pl=list_next(pl))
-        {
-            fname = filespecaddpath((char *)list_ptr(pl),p);
-            result = file_exists(fname);
-            if (result)         // if file exists
+            for (list_t pl = list_next(b->BLsearchpath); pl; pl=list_next(pl))
             {
-                incfil_fndNdir = pl;
-                *pfilename = fname;
-                return result;
+                fname = filespecaddpath((char *)list_ptr(pl),p);
+                int result = file_exists(fname);
+                if (result)         // if file exists
+                {
+                    *next_path = pl;
+                    *pfilename = fname;
+                    return result;
+                }
+                mem_free(fname);
             }
         }
         return 0;
     }
+
+#if PATHSYSLIST
 retry:
-#else
-    if (flag & FQqual)                          // if already qualified
-        flag = (flag | FQcwd) & ~FQpath;
+    ;
 #endif
 
-    pext = NULL;
+    char *pext = NULL;
     while (1)
     {
-#if _MSDOS || __OS2__ || _WIN32 || M_UNIX || M_XENIX
-        // If file spec is an absolute, rather than relative, file spec
-        if (*p == '/' || *p == '\\' || (*p && p[1] == ':'))
-            flag = FQcwd;       // don't look at paths
-#endif
         switch (flag & (FQcwd | FQpath))
         {
             case FQpath:
@@ -187,15 +189,14 @@ retry:
                     break;
                 /* FALL-THROUGH */
             case FQcwd | FQpath:                /* check current directory first */
-                b = cstate.CSfilblk;
-                if (b)
-                {   char *p2,c;
-
+                if (cstate.CSfilblk)
+                {
                     /* Look for #include file relative to directory that
                        enclosing file resides in.
                      */
-                    p2 = filespecname(blklst_filename(b));
-                    c = *p2;
+                    blklst *b = cstate.CSfilblk;
+                    char *p2 = filespecname(blklst_filename(b));
+                    char c = *p2;
                     *p2 = 0;
                     fname = filespecaddpath(blklst_filename(b),p);
                     *p2 = c;
@@ -206,7 +207,7 @@ retry:
                     fname = mem_strdup(p);
                 }
                 //dbg_printf("1 stat('%s')\n",fname);
-                result = file_exists(fname);
+                int result = file_exists(fname);
                 if (result)             // if file exists
                 {
                     *pfilename = fname;
@@ -218,18 +219,15 @@ retry:
                 assert(0);
         }
         if (flag & FQpath)      // if look at include path
-        {   list_t pl;
-
-            for (pl = __searchpath; pl; pl = list_next(pl))
+        {
+            for (list_t pl = __searchpath; pl; pl = list_next(pl))
             {
                 fname = filespecaddpath((char *)list_ptr(pl),p);
                 //dbg_printf("2 stat('%s')\n",fname);
-                result = file_exists(fname);
+                int result = file_exists(fname);
                 if (result)             // if file exists
                 {
-#if PATHSYSLIST
-                    incfil_fndNdir = pl;
-#endif
+                    *next_path = pl;    // remember for FQnext
                     *pfilename = fname;
                     return result;
                 }
@@ -276,10 +274,11 @@ retry:
 void afopen(char *p,blklst *bl,int flag)
 {
     //printf("afopen(%p,'%s',flag=x%x)\n",p,p,flag);
+    assert(bl->BLtyp == BLfile);
 #if HTOD
     htod_include(p, flag);
 #endif
-    if (!file_qualify(&p,flag,pathlist))
+    if (!file_qualify(&p, flag, pathlist, &bl->BLsearchpath))
         err_fatal(EM_open_input,p);             // open failure
     bl->BLsrcpos.Sfilptr = filename_indirect(filename_add(p));
     sfile_debug(&srcpos_sfile(bl->BLsrcpos));

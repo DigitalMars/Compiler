@@ -151,9 +151,8 @@ struct MACRO
 #define FQtop           8       // top level file, already open
 #define FQqual          0x10    // filename is already qualified
 #endif
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #define FQnext          0x20    // search starts after directory
-#endif                          // of last included file
+                                // of last included file (for #include_next)
 
 /***************************************************************************
  * Which block is active is maintained by the BLKLST, which is a backwardly
@@ -193,6 +192,7 @@ struct BLKLST
     unsigned char *BLbuf;       // BLfile: file buffer
     unsigned char *BLbufp;      // BLfile: next position in file buffer
     Srcpos      BLsrcpos;       /* BLfile, position in that file        */
+    list_t      BLsearchpath;   // BLfile: remaining search path for #include_next
 #if SOURCE_OFFSETS
     long        BLfoffset;      /* BLfile, offset into file             */
     short       BLcurcnt;       /* BLfile, current count from offset    */
@@ -355,7 +355,7 @@ extern char ext_dmodule[];
 extern int includenest;
 #endif
 
-int file_qualify(char **pfilename,int flag,list_t pathlist);
+int file_qualify(char **pfilename,int flag,list_t pathlist, list_t *next_path);
 void afopen(char *,blklst *,int);
 FILE *file_openwrite(const char *name,const char *mode);
 void file_iofiles(void);

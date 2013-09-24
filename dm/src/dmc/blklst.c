@@ -63,6 +63,7 @@ Srcpos lastpos = {
 0       // byte offset
 #endif
 };      // last filename/line seen
+static bool uselastpos;
 
 #if TX86
 blklst * bl = NULL;     /* current block pointer                */
@@ -153,21 +154,24 @@ void explist(int c)
        ))
     {
 #if SPP
-        int linnum;
-        blklst *b;
-
         if (*eline && *eline != '\n')   /* if line is not blank         */
         {
-            b = cstate.CSfilblk;
+            static const char *format = "#line %d \"%s\"\n";
+            blklst *b = cstate.CSfilblk;
             if (b)
             {
-                linnum = b->BLsrcpos.Slinnum - 1;
+                int linnum = b->BLsrcpos.Slinnum - 1;
                 if (!lastpos.Sfilptr || *lastpos.Sfilptr != *b->BLsrcpos.Sfilptr)
-                {   char *p;
-
-                    lastpos.Sfilptr = b->BLsrcpos.Sfilptr;
+                {
                     if (!(config.flags3 & CFG3noline))
-                        fprintf(fout,"#line %d \"%s\"\n",linnum,srcpos_name(lastpos));
+                    {
+                        if (uselastpos)
+                            fprintf(fout,format,lastpos.Slinnum - 1,srcpos_name(lastpos));
+                        else
+                            fprintf(fout,format,linnum,srcpos_name(b->BLsrcpos));
+                    }
+                    if (!uselastpos)
+                        lastpos.Sfilptr = b->BLsrcpos.Sfilptr;
                 }
                 else if (linnum != elinnum)
                 {
@@ -178,7 +182,12 @@ void explist(int c)
                 }
                 elinnum = linnum;
             }
+            else if (uselastpos && lastpos.Sfilptr && !(config.flags3 & CFG3noline))
+            {
+                fprintf(fout,format,lastpos.Slinnum - 1,srcpos_name(lastpos));
+            }
         }
+        uselastpos = false;
         wrtexp(fout);
 #else
         if (flst) wrtexp(flst);         /* if we're making a list file  */
@@ -1119,6 +1128,7 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
                                                 /* text not in PH */
                         p->BLtextmax = 80;
                         afopen((char *) text,p,flag);   /* open input file */
+                        uselastpos = true;
                         cstate.CSfilblk = p;
                         sfile_debug(&srcpos_sfile(cstate.CSfilblk->BLsrcpos));
 #if IMPLIED_PRAGMA_ONCE
@@ -1209,6 +1219,7 @@ STATIC void freeblk(blklst *p)
         case BLfile:
                 cstate.CSfilblk = blklst_getfileblock();
                 lastpos = p->BLsrcpos;          /* remember last line # */
+                uselastpos = true;
                 util_free(p->BLbuf);
 #if TX86
 #else
