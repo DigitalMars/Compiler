@@ -206,6 +206,7 @@ retry:
             case FQcwd:     // Look relative to current directory
                     fname = mem_strdup(p);
                 }
+            {
                 //dbg_printf("1 stat('%s')\n",fname);
                 int result = file_exists(fname);
                 if (result)             // if file exists
@@ -215,6 +216,7 @@ retry:
                 }
                 mem_free(fname);
                 break;
+            }
             default:
                 assert(0);
         }
