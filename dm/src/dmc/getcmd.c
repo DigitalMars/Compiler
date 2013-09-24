@@ -1506,7 +1506,12 @@ void getcmd(int argc,char **argv)
     fixeddefmac("applec",one);
 #endif
     if (CPP || config.flags3 & CFG3cpp)
-    {   fixeddefmac("__cplusplus", "199711L");
+    {
+#if SPP
+        fixeddefmac("__cplusplus", "201104L");
+#else
+        fixeddefmac("__cplusplus", "199711L");
+#endif
 #if TARGET_MAC
         fixeddefmac("__safe_link",one);
 #endif
