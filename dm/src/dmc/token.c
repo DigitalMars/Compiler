@@ -1368,12 +1368,10 @@ loop1:
         case '.':
                 egchar();
                 tok.TKval = TKdot;
-#if !SPP
                 if (isdigit(xc))
                 {       tok.TKval = inreal(".");
                 }
                 else
-#endif
                 if (xc == '.')
                 {       egchar();
                         if ((char) xc == '.')
@@ -2732,7 +2730,6 @@ STATIC enum_TK innum()
                     case 'x':                   // 0x
                         state = STATE_hex0;
                         break;
-#if !SPP
                     case '.':                   // 0.
                         goto real;
                     case 'E':
@@ -2740,7 +2737,6 @@ STATIC enum_TK innum()
                         if (ANSI)
                             goto real;
                         goto case_hex;
-#endif
                     case 'B':
                     case 'b':                   // 0b
                         if (!ANSI)
@@ -2758,10 +2754,8 @@ STATIC enum_TK innum()
                         break;
 
                     case '8': case '9':
-#if !SPP
                         if (ANSI)
                             goto real;
-#endif
                         goto case_hex;
 
                     case 'A':
@@ -2789,14 +2783,12 @@ STATIC enum_TK innum()
 #endif
                     if (ishex(xc) || xc == 'H' || xc == 'h')
                         goto hexh;
-#if !SPP
                     if (xc == '.')
                     {
             real:       /* It's a real number. Rescan as a real         */
                         tok_string[i] = 0;      /* already consumed chars */
                         return inreal(tok_string);
                     }
-#endif
                     goto done;
                 }
                 break;
@@ -2805,10 +2797,8 @@ STATIC enum_TK innum()
             case STATE_hex:
                 if (!ishex(xc))
                 {
-#if !SPP
                     if (HEXFLOATS && (xc == '.' || xc == 'P' || xc == 'p'))
                         goto real;
-#endif
                     if (state == STATE_hex0)
                         lexerr(EM_hexdigit,xc); // hex digit expected
                     goto done;
@@ -2827,18 +2817,14 @@ STATIC enum_TK innum()
                         base = 16;
                         goto done;
                     }
-#if !SPP
                     else if (xc == '.')         // parse 08.5, 09.
                         goto real;
-#endif
                     else
                     {
-#if !SPP
                         // Check for something like 1E3 or 0E24 or 09e0
                         if (memchr(tok_string,'E',i) ||
                             memchr(tok_string,'e',i))
                             goto real;
-#endif
 #if SPP
                         if (ANSI)
 #endif
@@ -2853,10 +2839,8 @@ STATIC enum_TK innum()
                 if (!isoctal(xc))
                 {   if ((ishex(xc) || xc == 'H' || xc == 'h') && !ANSI)
                         goto hexh;
-#if !SPP
                     if (xc == '.')
                         goto real;
-#endif
                     if (isdigit(xc))
                     {
 #if SPP
@@ -3167,7 +3151,7 @@ done:
         return TKnum;
 }
 
-#if !SPP && TX86
+#if TX86
 
 /**************************************
  * Read in characters, converting them to real.
