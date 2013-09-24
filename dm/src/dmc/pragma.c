@@ -3350,9 +3350,7 @@ STATIC void scantoelseend()
                     if (token() != TKnum)
                         goto L1;
                 case PRinclude:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 case PRinclude_next:
-#endif
                     //printf("PRinclude: expflag = %d\n", expflag);
                     ininclude++;
                     if (token() == TKident && config.flags2 & CFG2expand)
