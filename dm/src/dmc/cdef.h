@@ -166,7 +166,11 @@ One and only one of these macros must be set by the makefile:
 
 // Set to 1 using the makefile
 #ifndef TARGET_LINUX
+#if 0 //linux
+#define TARGET_LINUX    1
+#else
 #define TARGET_LINUX    0               // target is a linux executable
+#endif
 #endif
 
 // Set to 1 using the makefile

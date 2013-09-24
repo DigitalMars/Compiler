@@ -87,6 +87,12 @@ static void usage()
 }
 #endif
 
+#if linux
+#undef TARGET_LINUX
+#undef TARGET_WINDOS
+#define TARGET_LINUX 1
+#endif
+
 /******************************************************
  * Get & parse the command line. Open necessary files.
  * Input:
@@ -1141,8 +1147,12 @@ void getcmd(int argc,char **argv)
 
     switch (model)
     {
-            case 'N': config.exe = EX_NT;
-                      //config.flags4 |= CFG4oldstdmangle;
+            case 'N':
+#if TARGET_LINUX
+                      config.exe = EX_LINUX;
+#else
+                      config.exe = EX_NT;
+#endif
                       config.defstructalign = 8 - 1; // NT uses 8 byte alignment
             Lx2:
                       config.memmodel = Smodel;
@@ -1156,7 +1166,12 @@ void getcmd(int argc,char **argv)
 #endif
                       break;
 
-            case 'A': config.exe = EX_WIN64;
+            case 'A':
+#if TARGET_LINUX
+                      config.exe = EX_LINUX64;
+#else
+                      config.exe = EX_WIN64;
+#endif
                       config.fpxmmregs = TRUE;
                       config.defstructalign = 8 - 1; // NT uses 8 byte alignment
                       config.flags |= CFGnoebp;
@@ -1265,7 +1280,7 @@ void getcmd(int argc,char **argv)
         config.wflags &= ~WFssneds;     // SS == DS for flat memory models
         config.flags &= ~CFGromable;    // no switch tables in code segment
         config.flags3 |= CFG3nofar;
-        if (config.exe == EX_NT || config.exe == EX_WIN64)
+        if (config.exe & (EX_NT | EX_WIN64 | EX_LINUX | EX_LINUX64))
             config.flags3 |= CFG3eseqds;        // ES == DS for flat memory models
     }
     if (!config.inline8087)
@@ -1376,6 +1391,9 @@ void getcmd(int argc,char **argv)
 
             if (config.exe == EX_WIN64)
                 predefine("_M_AMD64");
+
+            if (config.exe == EX_LINUX64)
+                predefine("__LP64__");
         }
 
         if (I32)
@@ -1422,6 +1440,13 @@ void getcmd(int argc,char **argv)
         case_msdos:             predefine(msdos);
                                 predefine(msdos + 1);
                                 break;
+
+        case EX_LINUX:
+        case EX_LINUX64:        predefine("linux");
+                                predefine("__linux");
+                                predefine("__linux__");
+                                break;
+
         default:
             assert(0);
     }
@@ -1507,11 +1532,7 @@ void getcmd(int argc,char **argv)
 #endif
     if (CPP || config.flags3 & CFG3cpp)
     {
-#if SPP
-        fixeddefmac("__cplusplus", "201104L");
-#else
-        fixeddefmac("__cplusplus", "199711L");
-#endif
+        defmac("__cplusplus", "199711L");
 #if TARGET_MAC
         fixeddefmac("__safe_link",one);
 #endif
