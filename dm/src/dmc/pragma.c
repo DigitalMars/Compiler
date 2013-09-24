@@ -2952,7 +2952,7 @@ STATIC void prerror()
     const char *name;
     int line;
     blklst *b;
-    char buffer[80];
+    char buffer[200];
     char *p = buffer;
 
     line = token_linnum().Slinnum;
