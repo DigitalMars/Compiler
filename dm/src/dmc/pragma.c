@@ -1811,29 +1811,24 @@ STATIC void princlude_flag(bool next)
  */
 
 void pragma_include(char *filename,int flag)
-{   list_t al;
-
+{
     //dbg_printf("pragma_include(filename = '%s', flag = x%x)\n",filename,flag);
 
     // Remove leading and trailing whitespace
-    {   char *p;
-
-        while (isspace(*filename))
-            filename++;
-        for (p = filename + strlen(filename);
-             p > filename && isspace(p[-1]);
-             *--p = 0)
-            ;
-    }
+    while (isspace(*filename))
+        filename++;
+    for (char *p = filename + strlen(filename);
+         p > filename && isspace(p[-1]);
+         *--p = 0)
+        ;
 
     // Look for alias
-    for (al = (flag & FQsystem) ? pstate.STsysincalias : pstate.STincalias;
+    for (list_t al = (flag & FQsystem) ? pstate.STsysincalias : pstate.STincalias;
          al;
          al = list_next(al)
         )
-    {   char *n;
-
-        n = (char *)list_ptr(al);
+    {
+        char *n = (char *)list_ptr(al);
         al = list_next(al);
         assert(n && al);
         if (filename_cmp(filename,n) == 0)      // if file name matches
@@ -1844,8 +1839,41 @@ void pragma_include(char *filename,int flag)
     }
 
 #if SPP
+    list_t pl;
+    if (file_qualify(&filename,flag,pathlist,&pl) == 0)      // if file not found
+    {
+#if M_UNIX
+        const char *name;
+        if (cstate.CSfilblk)
+            name = srcfiles_name(cstate.CSfilblk->BLsrcpos.Sfilnum);
+        else
+            name = "preprocessed";
+        // Display the name and line number to allow emacs to use this information
+        fprintf(stderr, "%s(%d) : ", name, token_linnum().Slinnum);
+#endif
+        err_fatal(EM_open_input,filename);      // open failure
+    }
+
+    // If already read in
+    Sfile *sf = filename_search(filename);
+    if (sf)
+    {   sfile_debug(sf);
+        //dbg_printf("\t File already read in\n");
+
+        if (config.flags2 & CFG2once ||   // if only #include files once
+        // If file is to be only #include'd once, skip it
+            sf->SFflags & SFonce)
+        {
+            //dbg_printf("\tSFonce set\n");
+            if (cstate.CSfilblk)
+                list_append(&srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFfillist,sf);
+            goto ret;
+        }
+    }
+
     // Parse #include file as text
-    insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag,NULL);
+    insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag | FQqual,NULL);
+    cstate.CSfilblk->BLsearchpath = pl;
 #else
 #if PRAGMA_ONCE
     {
@@ -1887,7 +1915,7 @@ void pragma_include(char *filename,int flag)
 
 #if HEADER_LIST
 #if TX86
-    list_t pl;                          // a dummy
+    list_t pl;
     if (file_qualify(&filename,flag,pathlist,&pl) == 0)      // if file not found
     {
 #if M_UNIX
@@ -1989,13 +2017,14 @@ text:
     pstate.STflags |= PFLinclude;               // BUG: -HI doesn't affect PFLinclude
     //dbg_printf("\tReading file %s\n",filename);
     insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag | FQqual,NULL);
-
-ret:
-    mem_free(filename);
+    cstate.CSfilblk->BLsearchpath = pl;
 #endif
 #endif /* HEADER_LIST */
 
 #endif
+
+ret:
+    mem_free(filename);
 }
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -2357,6 +2386,14 @@ STATIC void prpragma()
         // C99 6.10.6-2 No macro expansion
         eatrol();
     }
+    else if (tok.TKval == TKident && strcmp(tok.TKid,"once") == 0)
+    {
+        if (cstate.CSfilblk)
+        {
+            // Mark source file as only being #include'd once
+            srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFflags |= SFonce;
+        }
+    }
     else
     {
         while (tok.TKval != TKeol)
@@ -2562,8 +2599,10 @@ STATIC void prpragma()
                 bl->BLflags |= BLponce;
 #else
                 if (cstate.CSfilblk)
+                {
                     // Mark source file as only being #include'd once
                     srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFflags |= SFonce;
+                }
 #endif
                 break;
 
