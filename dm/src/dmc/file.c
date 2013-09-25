@@ -49,7 +49,7 @@ static list_t file_list;
 #endif
 
 // File name extensions
-#if M_UNIX || M_XENIX || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if M_UNIX || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
 char ext_obj[] = ".o";
 #else
 char ext_obj[] = ".obj";
@@ -331,7 +331,7 @@ char *file_getsource(const char *iname)
 
 #if TARGET_MAC
     static char ext[][4] = { "cpp","cp","c" };
-#elif M_UNIX || M_XENIX
+#elif M_UNIX
     static char ext[][4] = { "cpp","cxx","c", "C", "cc", "c++" };
 #else
     static char ext[][5] = { "cpp","c","cxx","htm","html" };
@@ -381,14 +381,14 @@ void file_iofiles()
     if (filespeccmp(filespecdotext(foutname),ext_obj) == 0)
         // Ignore -o switch if it is a .obj filename
         foutname = (char*)"";
-#if M_UNIX || M_XENIX
+#if M_UNIX
     if (*foutname)
 #endif
     {
         getcmd_filename(&foutname,ext_i);
         fout = file_openwrite(foutname,"w");
     }
-#if M_UNIX || M_XENIX
+#if M_UNIX
     else
         fout = stdout;
 #endif
@@ -844,7 +844,7 @@ void wrtpos(FILE *fstream)
             p = eline;
             ptop = p + elini;
         }
-#if M_UNIX || M_XENIX || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if M_UNIX || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
         else if (fstream == stderr)     /* line already written to .LST */
 #else
         else if (fstream == stdout)     /* line already written to .LST */

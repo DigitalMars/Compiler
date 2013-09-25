@@ -183,7 +183,7 @@ void getcmd(int argc,char **argv)
          */
         switch (*p)
         {
-#if !(M_UNIX || M_XENIX)
+#if !M_UNIX
             case '/':
 #endif
 #if SPP

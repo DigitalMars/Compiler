@@ -1890,7 +1890,7 @@ void pragma_include(char *filename,int flag)
     list_t pl;                          // a dummy
     if (file_qualify(&filename,flag,pathlist,&pl) == 0)      // if file not found
     {
-#if M_UNIX || M_XENIX
+#if M_UNIX
         char *name;
         int line;
         line = token_linnum().Slinnum;
@@ -1911,7 +1911,7 @@ void pragma_include(char *filename,int flag)
 
         ext = filespecdotext(filename);
         if (filespeccmp(ext,".h")
-#if M_UNIX || M_XENIX
+#if M_UNIX
         && filespeccmp(ext,".hxx")
 #endif
         && filespeccmp(ext,".hpp"))
@@ -2191,7 +2191,7 @@ STATIC void prident()
   exp_ppon();
 }
 
-#if M_UNIX || M_XENIX
+#if M_UNIX
 STATIC void prassert()
 {
 
