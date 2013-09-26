@@ -437,7 +437,8 @@ unsigned char *macro_replacement_text(macro_t *m, list_t args)
     //printf("\tMtext = '%s'\n", m->Mtext);
     //printf("\tMtext = "); macrotext_print(m->Mtext); printf("\n");
 
-    Outbuffer buffer(10);
+    unsigned char tmpbuf[128];
+    Outbuffer buffer(tmpbuf, 128, 100);
     buffer.reserve(strlen(m->Mtext) + 1);
 
     /* PRE_ARG, PRE_STR and PRE_CAT only appear in Mtext
@@ -649,7 +650,8 @@ unsigned char *macro_expand(unsigned char *text)
     insblk2(text, BLarg);
     egchar();
 
-    Outbuffer buffer(10);
+    unsigned char tmpbuf[128];
+    Outbuffer buffer(tmpbuf, 128, 100);
 
     buffer.reserve(strlen((char *)text) + 1);
 
@@ -841,7 +843,9 @@ unsigned char *macro_expand(unsigned char *text)
 
 STATIC unsigned char * stringize(unsigned char *text)
 {
-    Outbuffer buffer(10);
+    unsigned char tmpbuf[128];
+    Outbuffer buffer(tmpbuf, 128, 100);
+
     unsigned char *p;
     unsigned char *string;
     unsigned char c;
