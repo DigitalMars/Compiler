@@ -79,6 +79,12 @@ int elinnum = 1;                /* expanded line number                 */
 int expflag = 0;                /* != 0 means not expanding list file   */
 #endif
 
+#if linux
+#define FPUTC(c,fp) fputc_unlocked(c,fp)
+#else
+#define FPUTC(c,fp) fputc(c,fp)
+#endif
+
 STATIC unsigned char * stringize(unsigned char *text);
 
 /************************************
@@ -176,7 +182,7 @@ void explist(int c)
                 else if (linnum != elinnum)
                 {
                     if (linnum == elinnum + 1)
-                        fputc('\n',fout);
+                        FPUTC('\n',fout);
                     else if (!(config.flags3 & CFG3noline))
                         fprintf(fout,"#line %d\n",linnum);
                 }
@@ -261,6 +267,11 @@ void wrtexp(FILE *fstream)
     for (char *p = eline; 1; p++)
     {   unsigned char c = *p;
 
+        if ((signed char)c >= ' ')
+        {
+            FPUTC(c, fstream);
+            continue;
+        }
         switch (c)
         {
             case 0:
@@ -271,7 +282,10 @@ void wrtexp(FILE *fstream)
             case LF:
                 break;
 
-            case PRE_BRK:
+            case PRE_BRK:                               // token separator
+                /* If token separator is needed to separate tokens, output a space.
+                 * Multiple PRE_BRKs are treated as one.
+                 */
                 if (eline < p && p[1] != 0)
                 {   unsigned char xclast, xcnext;
 
@@ -287,13 +301,13 @@ void wrtexp(FILE *fstream)
                     if (!isspace(xclast) && !isspace(xcnext) &&
                         insertSpace(xclast, xcnext))
                     {
-                        fputc(' ', fstream);
+                        FPUTC(' ', fstream);
                     }
                 }
                 break;
 
             default:
-                fputc(c, fstream);
+                FPUTC(c, fstream);
                 break;
         }
     }
