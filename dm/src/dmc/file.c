@@ -78,6 +78,7 @@ char ext_dmodule[]   = ".d";
 FILE *file_openwrite(const char *name,const char *mode)
 {   FILE *stream;
 
+    //printf("file_openwrite(name='%s', mode='%s')\n", name, mode);
     if (name)
     {
         const char *newname = file_nettranslate(name,mode);
@@ -378,20 +379,29 @@ void file_iofiles()
         fout = stdout;
     else
     {
-    if (filespeccmp(filespecdotext(foutname),ext_obj) == 0)
-        // Ignore -o switch if it is a .obj filename
-        foutname = (char*)"";
+        if (filespeccmp(filespecdotext(foutname),ext_obj) == 0)
+            // Ignore -o switch if it is a .obj filename
+            foutname = (char*)"";
 #if M_UNIX
-    if (*foutname)
+        // Default to writing preprocessed result to stdout
+        if (!*foutname)
+            fout = stdout;
+        else
 #endif
-    {
-        getcmd_filename(&foutname,ext_i);
-        fout = file_openwrite(foutname,"w");
+        {
+            getcmd_filename(&foutname,ext_i);
+            fout = file_openwrite(foutname,"w");
+        }
     }
-#if M_UNIX
-    else
-        fout = stdout;
-#endif
+
+    /* If writing to a file, increase buffer size
+     */
+    if (!isatty(fileno(fout)))
+    {
+        //printf("writing to a file %d\n", BUFSIZ);
+        setvbuf(fout,NULL,_IOFBF,1024*1024);
+        /* Don't check result, don't care if it fails
+         */
     }
 #else
     // See if silly user specified output file name for -HF with -o
