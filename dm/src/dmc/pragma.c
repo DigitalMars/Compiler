@@ -767,28 +767,25 @@ STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
  *      Dummy up an argument list if there is an error.
  */
 
-list_t inarglst(macro_t *m, BlklstSave *blsave)
-{ list_t al = NULL;
-  int n = 0;
-  char err = FALSE;
-  int nargs;
-  char *arg;
+phstring_t inarglst(macro_t *m, BlklstSave *blsave)
+{
+    phstring_t al;
+    int n = 0;
+    char err = FALSE;
 
-  assert(!(m->Mflags & Mnoparen));
-  nargs = m->Marglist.length();
-  assert(xc == '(');
-  egchar();                             // get char past '('
-  while (TRUE)
-  {
-        if ((m->Mflags & Mellipsis) && (n == (nargs-1)))
-            arg = inarg(TRUE, blsave);
-        else
-            arg = inarg(FALSE, blsave);
+    assert(!(m->Mflags & Mnoparen));
+    int nargs = m->Marglist.length();
+    assert(xc == '(');
+    egchar();                             // get char past '('
+    while (TRUE)
+    {
+        bool ellipsisit = ((m->Mflags & Mellipsis) && (n == (nargs - 1)));
+        char *arg = inarg(ellipsisit, blsave);
         //printf("arg[%d] = '%s'\n", n, arg);
         if (*arg || nargs)
             n++;
         if (nargs)
-            list_append(&al,(char *) MEM_PH_STRDUP(arg));
+            al.push((char *) MEM_PH_STRDUP(arg));
         if (xc == ',')
         {   egchar();
             continue;
@@ -797,7 +794,7 @@ list_t inarglst(macro_t *m, BlklstSave *blsave)
         // If we're short the last argument, and the last argument is ...
         if ((m->Mflags & Mellipsis) && (n == (nargs-1)))
         {   // __VA_ARGS__ will be ""
-            list_append(&al,(char *) MEM_PH_STRDUP(""));
+            al.push((char *) MEM_PH_STRDUP(""));
             n++;
         }
 
@@ -811,28 +808,30 @@ list_t inarglst(macro_t *m, BlklstSave *blsave)
                 assert(0);              /* invalid end of argument      */
         }
         break;
-  }
+    }
 
-  if (n != nargs)
-  {     if (ANSI)
+    if (n != nargs)
+    {   if (ANSI)
             preerr(EM_num_args,nargs,m->Mid,n);         // wrong # of args
         else
             warerr(WM_num_args,nargs,m->Mid,n);         // wrong # of args
-  }
-  egchar();
-  return al;
+    }
+    egchar();
+    return al;
 }
 
 /********************************
  * Process macro we discovered in the source.
  * Input:
  *      m ->    the macro we found
+ * Output:
+ *      *pargs  actual arguments
  * Returns:
  *      TRUE    macro installed
  *      FALSE   don't do this macro
  */
 
-int macprocess(macro_t *m, list_t *pargs, BlklstSave *blsave)
+int macprocess(macro_t *m, phstring_t *pargs, BlklstSave *blsave)
 {
 #define LOG_MACPROCESS  0
 
@@ -864,7 +863,7 @@ int macprocess(macro_t *m, list_t *pargs, BlklstSave *blsave)
 
     if (m->Mflags & Mnoparen)
     {
-        *pargs = NULL;
+        assert(pargs->empty());
     }
     else
     {   // If ( doesn't follow, then this isn't a macro
@@ -1009,7 +1008,7 @@ void macro_freelist(macro_t *m)
         mn = m->Mnext;
         assert(!(m->Mflags & Minuse));
         macro_textfree(m);
-        list_free(&m->Marglist,MEM_PH_FREEFP);
+        m->Marglist.free(MEM_PH_FREEP);
 #if TX86
         mem_ffree(m);
 #else

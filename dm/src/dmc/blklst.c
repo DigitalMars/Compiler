@@ -413,16 +413,11 @@ unsigned char *trimPreWhiteSpace(unsigned char *text)
  * Get Ith arg from args.
  */
 
-unsigned char *getIthArg(list_t args, int argi)
+unsigned char *getIthArg(phstring_t args, int argi)
 {
-    while (1)
-    {   if (!args)
-            return NULL;
-        if (argi == 1)
-            return (unsigned char *)list_ptr(args);
-        args = list_next(args);
-        argi--;
-    }
+    if (args.length() < argi)
+        return NULL;
+    return (unsigned char *)args[argi - 1];
 }
 
 /*******************************************
@@ -431,7 +426,7 @@ unsigned char *getIthArg(list_t args, int argi)
  *      string that must be parc_free'd
  */
 
-unsigned char *macro_replacement_text(macro_t *m, list_t args)
+unsigned char *macro_replacement_text(macro_t *m, phstring_t args)
 {
     //printf("macro_replacement_text(m = '%s')\n", m->Mid);
     //printf("\tMtext = '%s'\n", m->Mtext);
@@ -573,7 +568,7 @@ unsigned char *macro_replacement_text(macro_t *m, list_t args)
             buffer.writeByte(*q);
     }
 
-    list_free(&args,MEM_PARF_FREEFP);
+    args.free(MEM_PARF_FREEFP);
 
     unsigned len = buffer.size();
     unsigned char *string = (unsigned char *)parc_malloc(len + 1);
@@ -742,7 +737,7 @@ unsigned char *macro_expand(unsigned char *text)
                         tok.TKid = idsave;
 
                         if (m && m->Mflags & Mdefined)
-                        {   list_t args;
+                        {   phstring_t args;
 
                             if (m->Mflags & Minuse)
                             {

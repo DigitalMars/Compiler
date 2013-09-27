@@ -1,5 +1,5 @@
 // Copyright (C) 1989-1997 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -123,6 +123,8 @@ struct phstring_t
     void dehydrate() { list_dehydrate(&list, NULL); }
 
     int find(const char *s);
+
+    void free(list_free_fp freeptr) { list_free(&list, freeptr); }
 
   private:
     list_t list;
@@ -306,7 +308,7 @@ void *once_dehydrate(void);
 void once_hydrate(blklst *);
 #endif
 
-unsigned char *macro_replacement_text(macro_t *m, list_t args);
+unsigned char *macro_replacement_text(macro_t *m, phstring_t args);
 unsigned char *macro_rescan(macro_t *m, unsigned char *text);
 unsigned char *macro_expand(unsigned char *text);
 
@@ -581,7 +583,7 @@ macro_t *macfind(void);
 void listident(void);
 char *filename_stringize(char *name);
 unsigned char *macro_predefined(macro_t *m);
-int macprocess(macro_t *m, list_t *pargs, BlklstSave *blsave);
+int macprocess(macro_t *m, phstring_t *pargs, BlklstSave *blsave);
 void pragma_include(char *filename,int flag);
 void pragma_init(void);
 void pragma_term(void);
