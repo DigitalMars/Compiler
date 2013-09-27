@@ -46,6 +46,9 @@ extern mangle_t varmangletab[LINK_MAXDIM];
 #include        "el.h"
 #endif
 
+void list_hydrate(list_t *plist, void (*hydptr)(void *));
+void list_dehydrate(list_t *plist, void (*dehydptr)(void *));
+
 /* Type matches */
 #define TMATCHnomatch   0       /* no match                             */
 #define TMATCHellipsis  0x01    /* match using ellipsis                 */
@@ -95,6 +98,38 @@ struct Match
 #define DTORnoeh        0x20    // do not append eh stuff
 #define DTORnoaccess    0x40    // do not perform access check
 
+struct phstring_t
+{
+    phstring_t() { list = NULL; }
+
+    size_t length() { return list_nitems(list); }
+
+    int cmp(phstring_t s2, int (*func)(void *,void *))
+    {
+        return list_cmp(list, s2.list, func);
+    }
+
+    bool empty() { return list == NULL; }
+
+    char* operator[] (size_t index)
+    {
+        return (char *)list_ptr(list_nth(list, index));
+    }
+
+    void push(const char *s) { list_append(&list, (void *)s); }
+
+    void hydrate() { list_hydrate(&list, NULL); }
+
+    void dehydrate() { list_dehydrate(&list, NULL); }
+
+    int find(const char *s);
+
+  private:
+    list_t list;
+};
+
+
+
 /***************************
  * Macros.
  */
@@ -113,7 +148,7 @@ struct MACRO
 #endif
 
     char *Mtext;                // replacement text
-    list_t Marglist;            // list of arguments (as char*'s)
+    phstring_t Marglist;        // list of arguments (as char*'s)
     macro_t *ML,*MR;
 #if TX86
     macro_t *Mnext;             // next macro in threaded list (all macros
@@ -241,7 +276,9 @@ extern int TokenCnt;
 #else
 #define EGCHAR() egchar()
 #endif
-
+
+
+
 /**********************************
  * Function return value methods.
  */

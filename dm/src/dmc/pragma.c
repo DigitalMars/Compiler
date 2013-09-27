@@ -107,7 +107,7 @@ STATIC void scantodefine(void);
 STATIC void eatrol(void);
 STATIC void blankrol(void);
 STATIC void incifn(void);
-STATIC list_t gargs(unsigned char *);
+STATIC phstring_t gargs(unsigned char *);
 STATIC void macro_dehydrate(macro_t *m);
 STATIC void macro_hydrate(macro_t *mb);
 STATIC void macrotable_balance(macro_t **ps);
@@ -775,7 +775,7 @@ list_t inarglst(macro_t *m, BlklstSave *blsave)
   char *arg;
 
   assert(!(m->Mflags & Mnoparen));
-  nargs = list_nitems(m->Marglist);
+  nargs = m->Marglist.length();
   assert(xc == '(');
   egchar();                             // get char past '('
   while (TRUE)
@@ -1043,7 +1043,7 @@ macro_t *defmac(const char *name,const char *text)
     m = *pm;
     if (m)
     {   macro_debug(m);
-        assert(!m->Marglist);
+        assert(m->Marglist.empty());
     }
     else
     {   m = macro_calloc(name);
@@ -1135,7 +1135,6 @@ STATIC void prdefine()
 { macro_t *m;
   macro_t *mold;
   macro_t **pm;
-  list_t al;
   int n;
   char *text;
   unsigned char flags;
@@ -1203,16 +1202,17 @@ STATIC void prdefine()
     }
 
     // Get argument list
+    phstring_t al;
     if (xc == '(')                      /* then macro has arguments     */
     {
         egchar();                       // next character
         al = gargs(&flags);             // get dummy arg list
-        n = list_nitems(al);
+        n = al.length();
         if (n > PRE_ARGMAX)
             preerr(EM_max_macro_params,n,PRE_ARGMAX);   // max number of args exceeded
     }
     else
-    {   al = NULL;                      /* no dummy arguments           */
+    {   // no dummy arguments
         flags |= Mnoparen;              /* indicate no parentheses      */
     }
     m->Marglist = al;
@@ -1226,7 +1226,7 @@ STATIC void prdefine()
         ANSI &&
         (strcmp(text,mold->Mtext) ||
          (flags ^ (mflags & Mnoparen)) ||
-         list_cmp(al,mold->Marglist,pragma_strcmp)
+         al.cmp(mold->Marglist,pragma_strcmp)
         )
      )
     {   preerr(EM_multiple_def,mold->Mid);              // already defined
@@ -1264,14 +1264,11 @@ STATIC void prdefine()
  *      pointer to arglist
  */
 
-STATIC list_t gargs(unsigned char *pflags)
-{   list_t al;
-    char *p;
-    list_t l;
-
-    al = NULL;                          // start out with NULL list
+STATIC phstring_t gargs(unsigned char *pflags)
+{
     token();
 
+    phstring_t al;                          // start out with NULL list
     if (tok.TKval != TKrpar)
     {
         while (1)
@@ -1279,17 +1276,15 @@ STATIC list_t gargs(unsigned char *pflags)
             switch (tok.TKval)
             {
                 case TKident:
+                {
                     if (config.flags2 & CFG2expand)
                         listident();            // put it in eline[]
 
                     // See if identifier is already in list
-                    for (l = al; l; l = list_next(l))
-                        if (strcmp(tok.TKid,(char *)list_ptr(l)) == 0)
-                        {   preerr(EM_multiple_def,tok.TKid);   // already defined
-                            break;
-                        }
+                    if (al.find(tok.TKid) >= 0)
+                        preerr(EM_multiple_def,tok.TKid);   // already defined
 
-                    list_append(&al,MEM_PH_STRDUP(tok.TKid));
+                    al.push(MEM_PH_STRDUP(tok.TKid));
                     token();                    // get next token
                     if (tok.TKval == TKident && config.flags2 & CFG2expand)
                         listident();            // put it in eline[]
@@ -1308,6 +1303,7 @@ STATIC list_t gargs(unsigned char *pflags)
                         }
                     }
                     break;
+                }
 
                 case TKellipsis:
                     // Be able to handle the following:
@@ -1320,7 +1316,7 @@ STATIC list_t gargs(unsigned char *pflags)
                         *pflags |= Mellipsis;
                         token();                // skip over ...
                         // Treat the ... as if it were an argument named __VA_ARGS__
-                        list_append(&al,MEM_PH_STRDUP("__VA_ARGS__"));
+                        al.push(MEM_PH_STRDUP("__VA_ARGS__"));
                     }
                     break;
 
@@ -1362,7 +1358,7 @@ STATIC char * macrotext(macro_t *m)
     int buflen;
     int instr;                  // if " or ', we are in a string
     int stringize;              // if next parameter is to be ##
-    list_t al = m->Marglist;
+    phstring_t al = m->Marglist;
 
     // It turns out that this can only happen when reading from
     // file. We can use this and the knowledge that an LF will be
@@ -1575,60 +1571,53 @@ STATIC char * macrotext(macro_t *m)
                     egchar();
                     goto L2;
                 }
-                if (al && isidstart(xc) && !instr) // if possible parameter
-                {   list_t list;
-                    int n;
-                    int len;
-
+                if (!al.empty() && isidstart(xc) && !instr) // if possible parameter
+                {
                     inident();                  // read in identifier
 
-                    // loop through parameter list looking for ident
-                    n = 1;                      // parameter number
-                    len = strlen(tok_ident);
-                    for (list = al; list; list = list_next(list))
-                    {   if (memcmp(tok_ident,(const char *) list_ptr(list),len + 1) == 0)
+                    // look for ident in parameter list
+                    int n = 1 + al.find(tok_ident);
+                    if (n)
+                    {
+                        // This is parameter n
+                        if (hashidx >= 0)   // if 'stringize' param
                         {
-                            // This is parameter n
-                            if (hashidx >= 0)   // if 'stringize' param
-                            {
-                                // #param gets replaced with:
-                                // PRE_ARG, PRE_STR, n
+                            // #param gets replaced with:
+                            // PRE_ARG, PRE_STR, n
 
-                                assert(buf[hashidx] == '#');
-                                pbuf = buf + hashidx;
-                                *pbuf++ = PRE_ARG;
-                                *pbuf++ = PRE_STR;
-                                hashidx = -1;
-                            }
-                            else if (0 && stringize)
-                            {
-                                // n ## m gets replaced with:
-                                // PRE_ARG, PRE_EXP, n, PRE_ARG, PRE_CAT, PRE_ARG, PRE_EXP, m
-                                if (    pbuf >= buf + 4 &&
-                                        pbuf[-4] == (char)PRE_ARG &&
-                                        pbuf[-2] == (char)PRE_ARG &&
-                                        pbuf[-1] == (char)PRE_CAT)
-                                {   pbuf[-2] = pbuf[-3];
-                                    pbuf[-3] = PRE_EXP;
-                                    pbuf[-1] = PRE_ARG;
-                                    pbuf[ 0] = PRE_CAT;
-                                    pbuf++;
-                                }
-
-                                *pbuf++ = PRE_ARG; /* param num prefix */
-                                *pbuf++ = PRE_EXP;
-                            }
-                            else
-                            {
-                                // param gets replace with:
-                                // PRE_ARG, n
-                                *pbuf++ = PRE_ARG; // param num prefix
-                            }
-                            *pbuf++ = n;        // which parameter
-                            lastxc = ' ';       // a safe value
-                            goto L1;
+                            assert(buf[hashidx] == '#');
+                            pbuf = buf + hashidx;
+                            *pbuf++ = PRE_ARG;
+                            *pbuf++ = PRE_STR;
+                            hashidx = -1;
                         }
-                        n++;
+                        else if (0 && stringize)
+                        {
+                            // n ## m gets replaced with:
+                            // PRE_ARG, PRE_EXP, n, PRE_ARG, PRE_CAT, PRE_ARG, PRE_EXP, m
+                            if (    pbuf >= buf + 4 &&
+                                    pbuf[-4] == (char)PRE_ARG &&
+                                    pbuf[-2] == (char)PRE_ARG &&
+                                    pbuf[-1] == (char)PRE_CAT)
+                            {   pbuf[-2] = pbuf[-3];
+                                pbuf[-3] = PRE_EXP;
+                                pbuf[-1] = PRE_ARG;
+                                pbuf[ 0] = PRE_CAT;
+                                pbuf++;
+                            }
+
+                            *pbuf++ = PRE_ARG; /* param num prefix */
+                            *pbuf++ = PRE_EXP;
+                        }
+                        else
+                        {
+                            // param gets replace with:
+                            // PRE_ARG, n
+                            *pbuf++ = PRE_ARG; // param num prefix
+                        }
+                        *pbuf++ = n;        // which parameter
+                        lastxc = ' ';       // a safe value
+                        goto L1;
                     }
                     if (hashidx != -1)
                     {   preerr(EM_hashparam);   // # must be followed by arg
@@ -1637,6 +1626,7 @@ STATIC char * macrotext(macro_t *m)
 
                     // tok_ident is not a parameter, so put it
                     // into the buffer as it is.
+                    int len = strlen(tok_ident);
                     pbuf = textbuf_reserve(pbuf, len + 1);
                     memcpy(pbuf,tok_ident,len);
                     pbuf += len;
@@ -3635,7 +3625,27 @@ void macro_print(macro_t *m)
 }
 
 #endif
-
+
+/**********************************************
+ * Search for string.
+ * Returns:
+ *      index of string if found, -1 if not
+ */
+
+int phstring_t::find(const char *s)
+{
+    size_t len = strlen(s);
+    int i = 0;
+    for (list_t li = list; li; li = li->next)
+    {
+        if (memcmp(s,(const char *)list_ptr(li),len + 1) == 0)
+            return i;
+        ++i;
+    }
+    return -1;
+}
+
+
 #if !SPP
 
 /**********************************
@@ -3662,7 +3672,7 @@ void pragma_hydrate_macdefs(macro_t **pmb,int flag)
 #ifdef DEBUG
             assert(!mb->Mtext || isdehydrated(mb->Mtext));
 #endif
-            list_hydrate(&mb->Marglist,NULL);
+            mb->Marglist.hydrate();
             (void) ph_hydrate(&mb->Mtext);
         }
         else
@@ -3756,7 +3766,7 @@ void pragma_dehydrate_macdefs(macro_t **pm)
         //dbg_printf("macro_dehydrate(%p, '%s')\n",m,m->Mid);
         ph_dehydrate(pm);
         ph_dehydrate(&m->Mtext);
-        list_dehydrate(&m->Marglist,NULL);
+        m->Marglist.dehydrate();
     }
 }
 
@@ -3795,7 +3805,7 @@ STATIC void pragma_insert(macro_t *m)
     {
         //printf("pragma_insert('%s', flags = x%x)\n",m->Mid,m->Mflags);
         if ((m->Mflags & (Mdefined | Mfixeddef | Mnoparen)) == (Mdefined | Mnoparen) &&
-            !m->Marglist)
+            m->Marglist.empty())
         {
             //printf("defmac('%s')\n",m->Mid);
             defmac(m->Mid,m->Mtext);
@@ -3866,7 +3876,7 @@ STATIC void macro_dehydrate(macro_t *m)
         ph_dehydrate(&m->ML);
         ph_dehydrate(&m->MR);
         ph_dehydrate(&m->Mtext);
-        list_dehydrate(&m->Marglist,NULL);
+        m->Marglist.dehydrate();
         macro_dehydrate(ml);
         m = mr;
     }
@@ -3895,7 +3905,7 @@ STATIC void macro_hydrate(macro_t *mb)
 #endif
         //dbg_printf("macro_hydrate(%p, '%s')\n",mb,mb->Mid);
 
-        list_hydrate(&mb->Marglist,NULL);
+        mb->Marglist.hydrate();
         ph_hydrate(&mb->Mtext);
         ml = (macro_t *)ph_hydrate(&mb->ML);
         mr = (macro_t *)ph_hydrate(&mb->MR);
@@ -3985,7 +3995,7 @@ macro_hydrate_xsym(macro_t *m)
         ph_hydrate(&m->ML);
         ph_hydrate(&m->MR);
         ph_hydrate(&m->Mtext);
-        list_hydrate(&m->Marglist,FPNULL);
+        m->Marglist.hydrate();
         macro_hydrate_xsym(m->ML);
         m = m->MR;
     }
