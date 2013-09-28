@@ -3625,6 +3625,121 @@ void macro_print(macro_t *m)
 
 #endif
 
+#if PHSTRING_ARRAY
+int phstring_t::cmp(phstring_t s2, int (*func)(void *,void *))
+{   int result = 0;
+    for (int i = 0; 1; ++i)
+    {
+        if (i == length())
+        {
+            if (i < s2.length())
+                result = -1;    // <
+            break;
+        }
+        if (i == s2.length())
+        {
+            result = 1;         // >
+            break;
+        }
+        result = (*func)((*this)[i], s2[i]);
+        if (result)
+            break;
+    }
+    return result;
+}
+
+void phstring_t::push(const char *s)
+{
+    if (dim == 0)
+    {
+        *(const char **)&data = s;
+    }
+    else if (dim == 1)
+    {
+#if SPP
+        char **p = (char **)malloc((dim + 1) * sizeof(char *));
+#else
+        char **p = (char **)ph_malloc((dim + 1) * sizeof(char *));
+#endif
+        assert(p);
+        p[0] = (char *)data;
+        p[1] = (char *)s;
+        data = p;
+    }
+    else
+    {
+#if SPP
+        data = (char **)realloc(data, (dim + 1) * sizeof(char *));
+#else
+        data = (char **)ph_realloc(data, (dim + 1) * sizeof(char *));
+#endif
+        data[dim] = (char*)s;
+    }
+    ++dim;
+}
+
+void phstring_t::free(list_free_fp freeptr)
+{
+    if (dim)
+    {
+        if (freeptr)
+        {
+            if (dim == 1)
+                (*freeptr)(data);
+            else
+                for (size_t i = 0; i < dim; ++i)
+                    (*freeptr)(data[i]);
+        }
+        if (dim > 1)
+#if SPP
+            ::free(data);
+#else
+            ph_free(data);
+#endif
+        dim = 0;
+        data = NULL;
+    }
+}
+
+#if !SPP
+
+void phstring_t::hydrate()
+{
+    if (dim)
+    {
+        if (isdehydrated(data))
+            ph_hydrate(&data);
+        if (dim > 1)
+        {
+            for (size_t i = 0; i < dim; ++i)
+            {
+                if (isdehydrated(data[i]))
+                    ph_hydrate(&data[i]);
+            }
+        }
+    }
+}
+
+void phstring_t::dehydrate()
+{
+    if (dim && !isdehydrated(data))
+    {
+        if (dim > 1)
+        {
+            for (size_t i = 0; i < dim; ++i)
+            {
+                if (!isdehydrated(data[i]))
+                    ph_dehydrate(&data[i]);
+            }
+        }
+        ph_dehydrate(&data);
+    }
+}
+
+#endif
+
+#endif
+
 /**********************************************
  * Search for string.
  * Returns:
@@ -3633,15 +3748,34 @@ void macro_print(macro_t *m)
 
 int phstring_t::find(const char *s)
 {
-    size_t len = strlen(s);
+    //printf("phstring_t::find(%s)\n", s);
+#if PHSTRING_ARRAY
+    size_t len = strlen(s) + 1;
+    if (dim == 1)
+    {
+        if (memcmp(s,data,len) == 0)
+            return 0;
+    }
+    else
+    {
+        for (int i = 0; i < dim; ++i)
+        {
+            if (memcmp(s,data[i],len) == 0)
+                return i;
+        }
+    }
+    return -1;
+#else
+    size_t len = strlen(s) + 1;
     int i = 0;
     for (list_t li = list; li; li = li->next)
     {
-        if (memcmp(s,(const char *)list_ptr(li),len + 1) == 0)
+        if (memcmp(s,(const char *)list_ptr(li),len) == 0)
             return i;
         ++i;
     }
     return -1;
+#endif
 }
 
 

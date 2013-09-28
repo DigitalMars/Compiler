@@ -98,8 +98,38 @@ struct Match
 #define DTORnoeh        0x20    // do not append eh stuff
 #define DTORnoaccess    0x40    // do not perform access check
 
+
 struct phstring_t
 {
+#define PHSTRING_ARRAY 1
+#if PHSTRING_ARRAY
+    phstring_t() { dim = 0; }
+
+    size_t length() { return dim; }
+
+    int cmp(phstring_t s2, int (*func)(void *,void *));
+
+    bool empty() { return dim == 0; }
+
+    char* operator[] (size_t index)
+    {
+        return dim == 1 ? (char *)data : data[index];
+    }
+
+    void push(const char *s);
+
+    void hydrate();
+
+    void dehydrate();
+
+    int find(const char *s);
+
+    void free(list_free_fp freeptr);
+
+  private:
+    size_t dim;
+    char** data;
+#else
     phstring_t() { list = NULL; }
 
     size_t length() { return list_nitems(list); }
@@ -128,6 +158,7 @@ struct phstring_t
 
   private:
     list_t list;
+#endif
 };
 
 
