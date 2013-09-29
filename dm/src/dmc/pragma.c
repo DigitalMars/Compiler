@@ -1,5 +1,5 @@
 // Copyright (C) 1983-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -119,12 +119,10 @@ STATIC void macrotable_balance(macro_t **ps);
 
 static struct IFNEST
 {       char IFseen;
-#define IF_IF           0
-#define IF_ELIF         1       /* seen #elif                   */
-#define IF_ELSE         2       /* seen #else                   */
-#if IMPLIED_PRAGMA_ONCE
-        char IF_1STIF;          /* flag if #if is 1st token in file */
-#endif
+#define IF_IF           0       // #if, #ifdef or #ifndef
+#define IF_FIRSTIF      1       // first #ifndef
+#define IF_ELIF         2       // seen #elif
+#define IF_ELSE         3       // seen #else
 } *ifn;
 
 static unsigned ifnidx = 0;     /* index into ifn[]                     */
@@ -132,8 +130,6 @@ static unsigned ifnmax = 0;     /* # of entries alloced for ifn[]       */
 
 #if IMPLIED_PRAGMA_ONCE
 static char *inc_once_id;               /* save the 1st #ifndef id */
-static unsigned inc_once_ifnidx;
-static struct BLKLST *inc_once_filblk;
 #endif
 
 static list_t pack_stack;       // stack of struct packing alignment
@@ -329,13 +325,14 @@ void pragma_process()
 #endif
 
 #if IMPLIED_PRAGMA_ONCE
+        /* If the pragma after #ifndef ident is not #define,
+         * then this is not an include guard.
+         */
         if (inc_once_id && (tok.TKutok.pragma != PRdefine))
         {
             parc_free(inc_once_id);
             inc_once_id = NULL;
-            inc_once_filblk->BLflags &= BLclear;
-            inc_once_filblk = NULL;
-            inc_once_ifnidx = 0;
+            cstate.CSfilblk->BLflags &= ~BLckonce;
         }
 #endif
         if (tok.TKutok.pragma != -1)
@@ -1174,19 +1171,19 @@ STATIC void prdefine()
 #if IMPLIED_PRAGMA_ONCE
     if (inc_once_id)
     {
-        if(!strcmp(inc_once_id,tok.TKid))
-        {
-            //printf("\tset BLfndif flag\n");
-            inc_once_filblk->BLflags |= BLfndif;
+        if (!strcmp(inc_once_id,tok.TKid))
+        {   /* Found:
+             *   #ifndef ident
+             *   #define ident
+             * pattern
+             */
+            //printf("\tset BLifndef flag\n");
+            cstate.CSfilblk->BLflags |= BLifndef;
         }
         else
-        {
-            ifn[inc_once_ifnidx].IF_1STIF = FALSE;
-        }
-    parc_free(inc_once_id);
-    inc_once_id = NULL;
-    inc_once_filblk = NULL;
-    inc_once_ifnidx = 0;
+            cstate.CSfilblk->BLflags &= ~BLckonce;
+        parc_free(inc_once_id);
+        inc_once_id = NULL;
     }
 #endif
     m = macro_calloc(tok.TKid);
@@ -3049,17 +3046,18 @@ STATIC void prendif()
   blankrol();                           /* scanto to next line          */
   exp_ppon();
 #if IMPLIED_PRAGMA_ONCE
-  if (ifnidx != 0 && ifn[ifnidx].IF_1STIF)
-  {                                     // Found closing #endif for 1st #if
-        ifn[ifnidx].IF_1STIF = 0;
-        if (cstate.CSfilblk &&          // canidate for single inclusion
-            (cstate.CSfilblk->BLflags & (BLnew|BLfndif)) == BLnew|BLfndif)
+    if (ifn[ifnidx].IFseen == IF_FIRSTIF)
+    {                                   // Found closing #endif for 1st #if
+        blklst *bl = cstate.CSfilblk;
+        if (bl &&          // candidate for single inclusion
+            (bl->BLflags & (BLnew|BLifndef)) == (BLnew|BLifndef) &&
+            bl->ifnidx == ifnidx)
         {
-            cstate.CSfilblk->BLflags |= BLckendif;
-            //dbg_printf("\tprendif setting BLckendif\n");
-            TokenCnt = 0;               /* begin counting tokens after endif */
+            bl->BLflags |= BLendif;
+            //dbg_printf("\tprendif setting BLendif\n");
+            bl->BLflags &= ~BLtokens;
         }
-  };
+    }
 #endif
 #if SPP
   explist(LF);
@@ -3106,7 +3104,11 @@ STATIC void prifdef()
  */
 
 STATIC void prifndef()
-{ macro_t *m;
+{
+    unsigned char bfl = 0;
+    blklst *bl = cstate.CSfilblk;
+    if (bl)
+        bfl = bl->BLflags;
 
   if (token() != TKident)
   {     preerr(EM_ident_exp);                   /* identifier expected          */
@@ -3117,22 +3119,23 @@ STATIC void prifndef()
   blankrol();                           /* finish off line              */
   exp_ppon();
   incifn();
-  m = macfind();
+  macro_t *m = macfind();
   if (m == NULL ||                      /* if macro isn't in table or   */
       !(m->Mflags & Mdefined))          /* it isn't defined             */
   {
 #if IMPLIED_PRAGMA_ONCE
-        if (cstate.CSfilblk && (TokenCnt == 1) &&
-            (cstate.CSfilblk->BLflags & BLnew) == BLnew)
+        /* Look for:
+         *   #ifndef ident
+         * as first thing in the source file
+         */
+        if (bl && !(bfl & BLtokens) && (bl->BLflags & BLnew))
         {                                       // Found #ifndef at start of file
-            ifn[ifnidx].IF_1STIF = TRUE;
-            cstate.CSfilblk->BLflags |= BLfndif;
+            ifn[ifnidx].IFseen = IF_FIRSTIF;
+            bl->BLflags |= BLifndef;
+            bl->ifnidx = ifnidx;
             assert(tok.TKval == TKident);
             inc_once_id = parc_strdup(tok.TKid);        // Save the identifier
-            inc_once_ifnidx = ifnidx;
-            inc_once_filblk = cstate.CSfilblk;
-            //dbg_printf("\tSetting BLfndif for token %s \n",inc_once_id);
-            TokenCnt = 0;
+            //dbg_printf("\tSetting BLifndef for token %s \n",inc_once_id);
         }
 #endif
   }
@@ -3282,7 +3285,7 @@ STATIC void scantoelseend()
                 case PRelseif:
                     if (ifn[ifnidx].IFseen == IF_ELSE)  /* already seen #else */
                         synerr(EM_else);                // #elif without #if
-                    if (ifn[ifnidx].IFseen == IF_IF &&
+                    if ((ifn[ifnidx].IFseen == IF_IF || ifn[ifnidx].IFseen == IF_FIRSTIF) &&
                         ifnidxstart == ifnidx)
                     {
                         if (ifnidx > 0)
@@ -3304,7 +3307,8 @@ STATIC void scantoelseend()
                     blankrol();
                     if (ifn[ifnidx].IFseen == IF_ELSE)  /* already seen #else */
                         synerr(EM_else);                // #else without #if
-                    if (ifnidxstart == ifnidx && ifn[ifnidx].IFseen == IF_IF)
+                    if (ifnidxstart == ifnidx &&
+                        (ifn[ifnidx].IFseen == IF_IF || ifn[ifnidx].IFseen == IF_FIRSTIF))
                     {   expflag--;      /* start listing again          */
 #if !SPP
                         expstring("#else" LF_STR);
@@ -3549,11 +3553,7 @@ rol:
  * Bump nesting level of #ifs.
  */
 
-#if TX86
-#define IFNEST_INC 10
-#else
 #define IFNEST_INC 30
-#endif
 
 STATIC void incifn()
 {

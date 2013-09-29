@@ -223,6 +223,7 @@ One and only one of these macros must be set by the makefile:
 #define CPP_COMMENT             1       // allow C++ style comments
 
 // C/C++ Language Features
+#define IMPLIED_PRAGMA_ONCE     1       // include guards count as #pragma once
 #define PSEUDO_REGS             1
 #define INLINE_ASM              1       // support inline assembler
 #define HIDDENPARAM_1ST_ARG     1

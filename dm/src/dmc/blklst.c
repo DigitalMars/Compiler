@@ -1146,7 +1146,7 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
                         sfile_debug(&srcpos_sfile(cstate.CSfilblk->BLsrcpos));
 #if IMPLIED_PRAGMA_ONCE
                         p->BLflags |= BLnew;    /* at the start of a new file */
-                        TokenCnt = 0;           /* count tokens till first #if */
+                        p->BLflags &= ~BLtokens;
 #endif
                         break;
 #if TARGET_MAC
@@ -1242,8 +1242,8 @@ STATIC void freeblk(blklst *p)
                 lastpos.Sfiloff = p->Bfoffset+p->Blincnt;
 #endif
 #if IMPLIED_PRAGMA_ONCE
-                // See if file was totally wrapped in #ifdef xxx #define xxx ... #endif
-                if(((p->BLflags & BLckonce) == BLckonce) && (TokenCnt == 0))
+                // See if file was totally wrapped in #ifndef xxx #define xxx ... #endif
+                if ((p->BLflags & BLendif) && (p->BLflags & BLtokens) == 0)
                 {                               // Mark file to only include once
                     srcpos_sfile(p->BLsrcpos).SFflags |= SFonce;
                     //dbg_printf("Setting the once flag\n");

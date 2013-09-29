@@ -236,19 +236,20 @@ struct BLKLST
     unsigned char   BLflags;    /* input block list flags               */
 #       define BLspace   0x01   /* we've put out an extra space         */
 #       define BLexpanded 0x40  // already macro expanded; don't do it again
-#if IMPLIED_PRAGMA_ONCE
-#       define BLnew     0x02   /* start of new file                    */
-#       define BLfndif   0x04   /* found initial #ifdef at start        */
-#       define BLckendif 0x08   /* check if looking for EOF after #endif */
-#       define BLckonce  (BLnew|BLfndif|BLckendif)
-                                /* check if file only included once     */
-#       define BLclear   0xf1   /* to clear implied pragma once flags   */
-#endif
+#       define BLtokens  0x10   // saw tokens in input
     char        BLtyp;          /* type of block (BLxxxx)               */
 #       define BLstr    2       /* string                               */
 #       define BLfile   3       /* a #include file                      */
 #       define BLarg    4       /* macro argument                       */
 #       define BLrtext  5       // random text
+
+#if IMPLIED_PRAGMA_ONCE
+#       define BLnew     0x02   // start of new file
+#       define BLifndef  0x04   // found #ifndef/#define at start
+#       define BLendif   0x08   // found matching #endif
+#       define BLckonce  (BLnew|BLifndef|BLendif)
+    unsigned ifnidx;            // index into ifn[] of IF_FIRSTIF
+#endif
 
     list_t      BLaargs;        /* actual arguments                     */
     list_t      BLeargs;        /* actual arguments                     */

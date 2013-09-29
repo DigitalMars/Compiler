@@ -84,10 +84,6 @@ int igncomment;                 // 1 if ignore comment in preprocessed output
 char *tok_arg;                  /* argument buffer                      */
 unsigned argmax;                /* length of argument buffer            */
 
-#if IMPLIED_PRAGMA_ONCE
-int TokenCnt;
-#endif
-
 int isUniAlpha(unsigned u);
 void cppcomment(void);
 STATIC enum_TK inpragma(void);
@@ -1074,7 +1070,8 @@ enum_TK rtoken(int flag)
         //tok.tokfnum = TokenFile;
 #endif
 #if IMPLIED_PRAGMA_ONCE
-        TokenCnt++;                     /* too many returns, so use global */
+        if (cstate.CSfilblk)
+            cstate.CSfilblk->BLflags |= BLtokens;
 #endif
 #if PASCAL_STRINGS
         tok.TKflags &= ~TKFpasstr;

@@ -12,7 +12,6 @@
 #include <time.h>
 
 #define M_UNIX 1
-#define IMPLIED_PRAGMA_ONCE 1
 #define MEMMODELS 1
 #if __GNUC__
 #define __SC__ 0
