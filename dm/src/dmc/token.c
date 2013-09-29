@@ -3324,11 +3324,6 @@ STATIC enum_TK inpragma()
         if (isidstart(xc))
         {
             inident();                  // read in identifier
-#if PRAGMA_ONCE
-            if(TokenCnt != 1 && bl->Bflags & BLnew)
-                bl->Bflags &= BLclear;  /* no longer a canidate for implied */
-                                        /* once clear BLnew,BLonce */
-#endif
             tok.TKutok.pragma = pragma_search(tok_ident);
             return tok.TKval = TKpragma;
         }

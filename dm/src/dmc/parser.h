@@ -244,9 +244,6 @@ struct BLKLST
                                 /* check if file only included once     */
 #       define BLclear   0xf1   /* to clear implied pragma once flags   */
 #endif
-#if PRAGMA_ONCE
-#       define BLponce   0x10   /* pragma - only include this file once */
-#endif
     char        BLtyp;          /* type of block (BLxxxx)               */
 #       define BLstr    2       /* string                               */
 #       define BLfile   3       /* a #include file                      */
@@ -333,11 +330,6 @@ extern int elinnum;             /* expanded line number                 */
 extern int expflag;            /* != 0 means not expanding list file   */
 blklst *blklst_getfileblock(void);
 void putback(int);
-#if PRAGMA_ONCE
-extern blklst *Once;
-void *once_dehydrate(void);
-void once_hydrate(blklst *);
-#endif
 
 unsigned char *macro_replacement_text(macro_t *m, phstring_t args);
 unsigned char *macro_rescan(macro_t *m, unsigned char *text);

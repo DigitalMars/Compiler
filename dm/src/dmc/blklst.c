@@ -1121,7 +1121,7 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
     }
     else
     {
-#if TX86 || PRAGMA_ONCE
+#if TX86
         p = (blklst *) MEM_PH_CALLOC(sizeof(blklst));
                                         /* Needed in PH for pragma once */
 #else
@@ -1186,7 +1186,7 @@ void insblk2(unsigned char *text, int typ)
     }
     else
     {
-#if TX86 || PRAGMA_ONCE
+#if TX86
         p = (blklst *) MEM_PH_CALLOC(sizeof(blklst));
                                         // Needed in PH for pragma once
 #else
@@ -1240,15 +1240,6 @@ STATIC void freeblk(blklst *p)
 #endif
 #if SOURCE_OFFSETS
                 lastpos.Sfiloff = p->Bfoffset+p->Blincnt;
-#endif
-#if PRAGMA_ONCE
-                if(p->BLflags & BLponce ||
-                   (!OPTnotonce && p->BLflags & BLckonce && TokenCnt == 1))
-                    {                           /* do not read this file again */
-                    p->BLprev = Once;           /* save name in read once list */
-                    Once = p;
-                    return;
-                    }
 #endif
 #if IMPLIED_PRAGMA_ONCE
                 // See if file was totally wrapped in #ifdef xxx #define xxx ... #endif
@@ -1349,54 +1340,6 @@ void getcharnum()
 }
 #endif
 
-#if PRAGMA_ONCE && !HOST_THINK
-void *once_dehydrate()
-    {
-    blklst *bl,*bl_next;
-    for(bl=Once; bl; bl=bl_next)
-        {
-        bl_next = bl->BLprev;
-        ph_dehydrate(&bl->BLprev);
-        };
-    return (void *)Once;
-    }
-
-/*
- * In order to rehydrate the once list and keep its data common, we need
- * to append the rehydrated list at the end, instead of insterting it at
- * the start. This is OK since the once list is only appended to at the
- * beginning, not the end.
- */
-void once_hydrate(blklst *bl)
-{
-    blklst *last_bl = Once;
-
-    if (last_bl)
-    {
-
-        /* find the last block */
-
-        while (last_bl->BLprev)
-            last_bl = last_bl->BLprev;
-
-        /* point it at the start of the dehyrated Once list */
-
-        last_bl->BLprev = bl;
-    }
-
-    /* if Once list is empty, use dehydrated bl to start list */
-
-    else
-        Once = bl;
-
-    /* rehydrate the Once list in place */
-
-    while (bl)
-    {
-        bl = (blklst *)ph_hydrate(&bl->BLprev); /* get link to previous block */
-    }
-}
-#endif
 
 /**************************
  * Terminate.

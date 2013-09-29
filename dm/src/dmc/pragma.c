@@ -1864,43 +1864,6 @@ void pragma_include(char *filename,int flag)
     insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag | FQqual,NULL);
     cstate.CSfilblk->BLsearchpath = pl;
 #else
-#if PRAGMA_ONCE
-    {
-    blklst *olist;
-    char *of;
-    for(olist = Once; olist; olist = olist->BLprev)
-        {
-        of = srcpos_name(olist->BLsrcpos);
-        of = strrchr(of,':');
-        if (!of)
-            of = srcpos_name(olist->BLsrcpos);
-        else
-            of++;
-        if (filename_cmp(of,filename) == 0)
-            {                           /* this include file ifdef'd out, don't read */
-            egchar();                   /* skip over the putback EOL */
-            goto ret;                   /* don't waste time reading the file */
-            }
-        }
-    // scan back through currently open blocks for #pragma once'd blocks
-    for (olist = bl; olist; olist = olist->BLprev)
-      {
-        if (olist->Btyp != BLfile || olist->Bflags != BLponce)
-            continue;                   // skip non-files, non-pragma'd files
-        of = srcpos_name(olist->BLsrcpos);
-        of = strrchr(of,':');
-        if (!of)
-            of = srcpos_name(olist->BLsrcpos);
-        else
-            of++;
-        if (filename_cmp(of,filename) == 0)
-            {                           /* this include file ifdef'd out, don't read */
-            egchar();                   /* skip over the putback EOL */
-            goto ret;                   /* don't waste time reading the file */
-            }
-      }
-    }
-#endif
 
 #if HEADER_LIST
 #if TX86
@@ -2584,15 +2547,11 @@ STATIC void prpragma()
                 break;
 
             case PRXonce:                       /* once */
-#if TARGET_MAC
-                bl->BLflags |= BLponce;
-#else
                 if (cstate.CSfilblk)
                 {
                     // Mark source file as only being #include'd once
                     srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFflags |= SFonce;
                 }
-#endif
                 break;
 
 #if TARGET_POWERPC
