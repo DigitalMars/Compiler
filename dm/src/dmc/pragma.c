@@ -2316,22 +2316,9 @@ STATIC void pragma_setstructalign(int flag)
 
 STATIC void prpragma()
 {
-#if TARGET_MAC
-    while (isspace(xc))
-        egchar();
-    if (xc == '$')                      /* allow leading $ on names */
-        egchar();
-#endif
 #if SPP
     exp_ppon();
-#if TARGET_MAC
-    if (xc == '$')
-        expstring("#pragma $ ");
-    else
-        expstring("#pragma  ");
-#else
     expstring("#pragma ");
-#endif
     ptoken();           // BUG: shouldn't macro expand this if it is "STDC"
     if (tok.TKval == TKident && strcmp(tok.TKid,"STDC") == 0)
     {
@@ -2344,6 +2331,11 @@ STATIC void prpragma()
         {
             // Mark source file as only being #include'd once
             srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFflags |= SFonce;
+        }
+        // Remove the #pragma once from the expanded listing
+        if (config.flags2 & CFG2expand && expflag == 0)
+        {   elini = 0;
+            eline[0] = 0;
         }
     }
     else
