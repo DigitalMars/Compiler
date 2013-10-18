@@ -237,6 +237,7 @@ struct BLKLST
 #       define BLspace   0x01   /* we've put out an extra space         */
 #       define BLexpanded 0x40  // already macro expanded; don't do it again
 #       define BLtokens  0x10   // saw tokens in input
+#       define BLsystem  0x04   // it's a system #include (and it must be 4)
     char        BLtyp;          /* type of block (BLxxxx)               */
 #       define BLstr    2       /* string                               */
 #       define BLfile   3       /* a #include file                      */
@@ -245,7 +246,7 @@ struct BLKLST
 
 #if IMPLIED_PRAGMA_ONCE
 #       define BLnew     0x02   // start of new file
-#       define BLifndef  0x04   // found #ifndef/#define at start
+#       define BLifndef  0x20   // found #ifndef/#define at start
 #       define BLendif   0x08   // found matching #endif
 #       define BLckonce  (BLnew|BLifndef|BLendif)
     unsigned ifnidx;            // index into ifn[] of IF_FIRSTIF

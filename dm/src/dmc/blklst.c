@@ -52,7 +52,7 @@ INITIALIZED_STATIC_DEF blklst *bl_freelist = NULL;      /* pointer to next free 
 static blklst *bl_freelist = NULL;      /* pointer to next free blk     */
 #endif
 
-Srcpos lastpos = {
+static Srcpos lastpos = {
 0,      // line number
 #if TX86
 0,      // file number
@@ -63,6 +63,7 @@ Srcpos lastpos = {
 0       // byte offset
 #endif
 };      // last filename/line seen
+static unsigned char lastpos_flag;
 static bool uselastpos;
 
 #if TX86
@@ -132,7 +133,36 @@ void putback(int c)
         *--btextp = c;
     }
 }
-
+
+/********************************************
+ * Write out linemarker for b.
+ * Input:
+ *      flag    1       start of file
+ *              2       return to this file
+ *              4       system file
+ *              8       file should be wrapped in implicit extern "C"
+ */
+
+#if SPP
+void exp_linemarker(Srcpos *s, unsigned flag)
+{
+    static const char *format = "# %d \"%s\"";
+    fprintf(fout,format,s->Slinnum - 1,srcpos_name(*s));
+    char c = '1';
+    while (flag)
+    {
+        if (flag & 1)
+        {   fputc(' ', fout);
+            fputc(c, fout);     // write out 1, 2, 3 or 4
+        }
+        ++c;
+        flag >>= 1;
+    }
+    fputc('\n', fout);
+}
+#endif
+
+
 /**********************************
  * Take care of expanded listing.
  * Input:
@@ -150,8 +180,6 @@ void explist(int c)
         return;
     if (c == PRE_SPACE)
         return;
-//  if (c == ' ' && (bl && bl->BLflags & BLspace))
-//      return;
     //printf("explist('%c', %x), elini = %d\n",c,c,elini);
     if (elini && (iseol(eline[elini - 1])       // if end of line character
 #if SPP
@@ -162,7 +190,6 @@ void explist(int c)
 #if SPP
         if (*eline && *eline != '\n')   /* if line is not blank         */
         {
-            static const char *format = "#line %d \"%s\"\n";
             blklst *b = cstate.CSfilblk;
             if (b)
             {
@@ -172,12 +199,14 @@ void explist(int c)
                     if (!(config.flags3 & CFG3noline))
                     {
                         if (uselastpos)
-                            fprintf(fout,format,lastpos.Slinnum - 1,srcpos_name(lastpos));
+                            exp_linemarker(&lastpos, lastpos_flag);
                         else
-                            fprintf(fout,format,linnum,srcpos_name(b->BLsrcpos));
+                            exp_linemarker(&b->BLsrcpos, (b->BLflags & BLsystem));
                     }
                     if (!uselastpos)
-                        lastpos.Sfilptr = b->BLsrcpos.Sfilptr;
+                    {   lastpos.Sfilptr = b->BLsrcpos.Sfilptr;
+                        lastpos_flag = (b->BLflags & BLsystem);
+                    }
                 }
                 else if (linnum != elinnum)
                 {
@@ -190,7 +219,7 @@ void explist(int c)
             }
             else if (uselastpos && lastpos.Sfilptr && !(config.flags3 & CFG3noline))
             {
-                fprintf(fout,format,lastpos.Slinnum - 1,srcpos_name(lastpos));
+                exp_linemarker(&lastpos, lastpos_flag);
             }
         }
         uselastpos = false;
@@ -1148,6 +1177,8 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
                         p->BLflags |= BLnew;    /* at the start of a new file */
                         p->BLflags &= ~BLtokens;
 #endif
+                        if (flag & FQsystem)
+                            p->BLflags |= BLsystem;
                         break;
 #if TARGET_MAC
         case BLpdef:    p->BLflags |= BFpdef;   /* flag pre_compilation data */
@@ -1232,6 +1263,7 @@ STATIC void freeblk(blklst *p)
         case BLfile:
                 cstate.CSfilblk = blklst_getfileblock();
                 lastpos = p->BLsrcpos;          /* remember last line # */
+                lastpos_flag = p->BLflags & BLsystem;
                 uselastpos = true;
                 util_free(p->BLbuf);
 #if TX86
