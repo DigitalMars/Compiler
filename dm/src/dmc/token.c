@@ -1976,7 +1976,7 @@ STATIC int instring(int tc,int flags)
         {   lexerr(EM_noendofstring);   // unterminated string
             continue;
         }
-        if (c == PRE_SPACE /*|| c == PRE_BRK*/)
+        if (c == PRE_SPACE || (c == PRE_BRK && tc == '>'))
             continue;
         if (ismulti(c) && !(flags & (INSchar | INSwchar | INSdchar)))
         {
