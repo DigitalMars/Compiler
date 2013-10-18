@@ -3324,13 +3324,12 @@ STATIC enum_TK inpragma()
             tok.TKutok.pragma = pragma_search(tok_ident);
             return tok.TKval = TKpragma;
         }
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         else if (isdigit(xc))
         {
-            tok.TKutok.pragma = pragma_search("line");
+            tok.TKutok.pragma = pragma_search("__linemarker");
             return tok.TKval = TKpragma;
         };
-#endif
+
         switch (xc)
         {   case ' ':
             case '\t':                  /* whitespace between # and ident */

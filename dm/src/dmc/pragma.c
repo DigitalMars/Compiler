@@ -101,7 +101,8 @@ STATIC void pragma_elif(int seen);
 STATIC void prendif(void);
 STATIC void prifdef(void);
 STATIC void prifndef(void);
-STATIC void prline(void);
+STATIC void prline();
+STATIC void prlinemarker();
 STATIC void scantoelseend(void);
 STATIC void scantodefine(void);
 STATIC void eatrol(void);
@@ -211,6 +212,7 @@ inline char *textbuf_reserve(char *pbuf, int n)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 
 #define ENUMPRMAC       \
+        X(__linemarker, prlinemarker)   \
         X(assert,       prassert)       \
         X(cpu,          prassertid)     \
         X(define,       prdefine)       \
@@ -236,6 +238,7 @@ inline char *textbuf_reserve(char *pbuf, int n)
 
 #else
 #define ENUMPRMAC       \
+        X(__linemarker, prlinemarker)   \
         X(define,       prdefine)       \
         X(elif,         prelif)         \
         X(else,         prelse)         \
@@ -279,12 +282,12 @@ static void (*pragfptab[PRMAX])() =
 
 };
 
-int pragma_search(char *id)
+int pragma_search(const char *id)
 {
 #if TX86 && __INTSIZE == 4 && !__GNUC__
     // Assume id[] is big enough to do this
     if (((int *)id)[0] == 'ifed' &&
-        ((id[7] = 0),(((int *)id)[1] == 'en'))
+        ((((char*)id)[7] = 0),(((int *)id)[1] == 'en'))
        )
 #else
     if (id[0] == 'd' && memcmp(id + 1,"efine",6) == 0)
@@ -3149,15 +3152,18 @@ STATIC void prifndef()
 /*************************
  * Set new line number and (optional) file name.
  * #line constant identifier
+ * # constant identifier flags...
  */
 
-STATIC void prline()
+STATIC void prlinex(bool linemarker)
 {
   long lLine, savenum = 0;
 #if SPP
-  /* Pass these on through to preprocessed output       */
-  exp_ppon();
-  expstring("#line ");
+    // Pass these on through to preprocessed output
+    exp_ppon();
+    expstring(linemarker ? "# " : "#line ");
+    if (linemarker)
+        explist(xc);
 #endif
 
   stoken();
@@ -3212,16 +3218,21 @@ STATIC void prline()
         cstate.CSfilblk->BLsrcpos.Slinnum = lLine;
   }
 #endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-  while (tok.TKval == TKnum)
-      stoken();                         // skip over nesting numbers
-#endif
+
+    if (linemarker)                     // if # constant identifier flags...
+    {   while (tok.TKval == TKnum)
+            stoken();                   // skip over flags
+    }
+
   if (tok.TKval != TKeol)
   {     lexerr(EM_eol);                 // end of line expected
         blankrol();
   }
 }
-
+
+STATIC void prline()       { return prlinex(false); }
+STATIC void prlinemarker() { return prlinex(true);  }
+
 /*************************
  * Skip over tokens, looking for #elif, #else or
  * a #end.

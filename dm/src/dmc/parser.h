@@ -602,7 +602,7 @@ void *ph_dehydrate(void *pp);
 #if PRAGMA_PARAM
 extern short pragma_param_cnt;
 #endif
-int pragma_search(char *id);
+int pragma_search(const char *id);
 macro_t *macfind(void);
 void listident(void);
 char *filename_stringize(char *name);
