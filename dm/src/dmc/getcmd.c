@@ -1568,6 +1568,7 @@ void getcmd(int argc,char **argv)
     fixeddefmac("__LINE__",(char *)NULL);
     fixeddefmac("__FILE__",(char *)NULL);
     fixeddefmac("__FUNC__",(char *)NULL);
+    fixeddefmac("__COUNTER__",(char *)NULL);
     if (CPP)
     {   fixeddefmac("__FUNCTION__", "__func__");
         fixeddefmac("__PRETTY_FUNCTION__", "__func__");

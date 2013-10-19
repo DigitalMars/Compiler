@@ -576,6 +576,12 @@ unsigned char *macro_predefined(macro_t *m)
         else
             s = NULL;
     }
+    else if (!strcmp(m->Mid,"__COUNTER__"))
+    {   static unsigned counter;
+        s = (unsigned char *)parc_malloc(sizeof(unsigned) * 3 + 1);
+        sprintf((char *)s, "%u", counter);
+        ++counter;
+    }
     else
             assert(0);
     return s;
