@@ -341,6 +341,20 @@ extern void explist(int);
 void expstring(const char *);
 void expinsert(int);
 void expbackup(void);
+
+/***************************************
+ * Erase the current line of expanded output.
+ */
+
+inline void experaseline()
+{
+    // Remove the #pragma once from the expanded listing
+    if (config.flags2 & CFG2expand && expflag == 0)
+    {   elini = 0;
+        eline[0] = 0;
+    }
+}
+
 void wrtexp(FILE *);
 extern unsigned egchar2(void);
 extern unsigned egchar(void);

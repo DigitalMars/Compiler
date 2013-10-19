@@ -1781,10 +1781,7 @@ STATIC void princlude_flag(bool next)
     putback(LF);                        /* put char (EOL) back in input */
                                         /* (protect against no trailing */
                                         /*  EOL in #include file)       */
-    if (config.flags2 & CFG2expand && elini)
-    {   elini = 0;
-        eline[0] = 0;                   /* erase current line           */
-    }
+    experaseline();
 
     pragma_include(tok.TKstr,next ? FQnext : ((strtok == TKstring)
                 ? FQcwd | FQpath : FQsystem | FQpath));
@@ -2320,29 +2317,38 @@ STATIC void prpragma()
     exp_ppon();
     expstring("#pragma ");
     ptoken();           // BUG: shouldn't macro expand this if it is "STDC"
-    if (tok.TKval == TKident && strcmp(tok.TKid,"STDC") == 0)
+    if (tok.TKval == TKident)
     {
-        // C99 6.10.6-2 No macro expansion
-        eatrol();
-    }
-    else if (tok.TKval == TKident && strcmp(tok.TKid,"once") == 0)
-    {
-        if (cstate.CSfilblk)
+        if (strcmp(tok.TKid,"STDC") == 0)
         {
-            // Mark source file as only being #include'd once
-            srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFflags |= SFonce;
+            // C99 6.10.6-2 No macro expansion
+            eatrol();
+            return;
         }
-        // Remove the #pragma once from the expanded listing
-        if (config.flags2 & CFG2expand && expflag == 0)
-        {   elini = 0;
-            eline[0] = 0;
+        else if (strcmp(tok.TKid,"once") == 0)
+        {
+            if (cstate.CSfilblk)
+            {
+                // Mark source file as only being #include'd once
+                srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFflags |= SFonce;
+            }
+            // Remove the #pragma once from the expanded listing
+            experaseline();
+            return;
         }
-    }
-    else
-    {
-        while (tok.TKval != TKeol)
+        else if (strcmp(tok.TKid,"GCC") == 0)
+        {
             ptoken();
+            if (strcmp(tok.TKid, "system_header") == 0)
+            {
+                // Remove the #pragma GCC system_header from the expanded listing
+                experaseline();
+                return;
+            }
+        }
     }
+    while (tok.TKval != TKeol)
+        ptoken();
 #else
     ptoken();           // BUG: shouldn't macro expand this if it is "STDC"
     if (tok.TKval == TKident || tok.TKval < KWMAX)
