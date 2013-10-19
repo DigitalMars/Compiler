@@ -442,11 +442,16 @@ unsigned char *trimPreWhiteSpace(unsigned char *text)
  * Get Ith arg from args.
  */
 
-unsigned char *getIthArg(phstring_t args, int argi)
+static const char *null_arg = "";
+
+STATIC unsigned char *getIthArg(phstring_t args, int argi)
 {
     if (args.length() < argi)
         return NULL;
-    return (unsigned char *)args[argi - 1];
+    unsigned char *a = (unsigned char *)args[argi - 1];
+    if (a == NULL)
+        a = (unsigned char *)null_arg; // so we can distinguish a missing arg (null_arg) from an empty arg ("")
+    return a;
 }
 
 /*******************************************
@@ -457,13 +462,37 @@ unsigned char *getIthArg(phstring_t args, int argi)
 
 unsigned char *macro_replacement_text(macro_t *m, phstring_t args)
 {
-    //printf("macro_replacement_text(m = '%s')\n", m->Mid);
+#if 0
+    printf("macro_replacement_text(m = '%s')\n", m->Mid);
     //printf("\tMtext = '%s'\n", m->Mtext);
-    //printf("\tMtext = "); macrotext_print(m->Mtext); printf("\n");
+    printf("\tMtext = "); macrotext_print(m->Mtext); printf("\n");
+    for (int i = 1; i <= args.length(); ++i)
+    {
+        unsigned char *a = getIthArg(args, i);
+        printf("\t[%d] = '%s'\n", i, a);
+    }
+#endif
 
     unsigned char tmpbuf[128];
     Outbuffer buffer(tmpbuf, 128, 100);
     buffer.reserve(strlen(m->Mtext) + 1);
+
+    /* Determine if we should elide commas ( ,##__VA_ARGS__ extension)
+     */
+    int va_args = 0;
+    if (m->Mflags & Mellipsis)
+    {   int margs = m->Marglist.length();
+        /* Only elide commas if there are more arguments than ...
+         * This is unlike GCC, which also elides comments if there is only a ...
+         * parameter, unless Standard compliant switches are thrown.
+         */
+        if (margs >= 2)
+        {
+            // Only elide commas if __VA_ARGS__ was missing (not blank)
+            if ((char *)getIthArg(args, margs) == null_arg)
+                va_args = margs;
+        }
+    }
 
     /* PRE_ARG, PRE_STR and PRE_CAT only appear in Mtext
      */
@@ -497,7 +526,18 @@ unsigned char *macro_replacement_text(macro_t *m, phstring_t args)
 
                 case PRE_CAT:
                     if (q[1] == PRE_ARG)
-                    {   expand = 0;
+                    {
+                        /* Look for special case of:
+                         * ',' PRE_ARG PRE_CAT PRE_ARG __VA_ARGS__
+                         */
+                        if (q[2] == va_args && q - 2 >= (unsigned char *)m->Mtext && q[-2] == ',')
+                        {
+                            /* Elide the comma that was already in buffer,
+                             * replace it with PRE_BRK
+                             */
+                             buffer.p[-1] = PRE_BRK;
+                        }
+                        expand = 0;
                         trimleft = 1;
                         q++;
                         goto Lagain2;

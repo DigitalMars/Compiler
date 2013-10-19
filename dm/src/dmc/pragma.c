@@ -800,7 +800,7 @@ phstring_t inarglst(macro_t *m, BlklstSave *blsave)
         // If we're short the last argument, and the last argument is ...
         if ((m->Mflags & Mellipsis) && (n == (nargs-1)))
         {   // __VA_ARGS__ will be ""
-            al.push((char *) MEM_PH_STRDUP(""));
+            al.push((char *) NULL);
             n++;
         }
 
