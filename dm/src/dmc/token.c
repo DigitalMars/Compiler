@@ -1588,8 +1588,9 @@ loop1:
 
         case '#':
         case_hash:
+                // BUG: not verifying that # is first on the line
 #if SPP
-                expbackup();
+                experaseline();
                 expflag++;
 #endif
                 egchar();
