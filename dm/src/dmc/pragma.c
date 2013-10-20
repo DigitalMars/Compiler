@@ -1919,10 +1919,8 @@ void pragma_include(char *filename,int flag)
         // If file is in an hx file
         if (sf->SFflags & SFhx)
         {   ph_autoread(filename);
-#if !SPP
             if (fdep)
                 fprintf(fdep, "%s ", filename);
-#endif
             goto Ldep;
         }
 
@@ -1954,10 +1952,8 @@ void pragma_include(char *filename,int flag)
         if (config.flags2 & CFG2phuse)
             if (!ph_read(filename))     // if successfully read in ph
             {
-#if !SPP
                 if (fdep)
                     fprintf(fdep, "%s ", filename);
-#endif
                 goto ret;
             }
         // If we read in an HX file, and we are reading in more .h files,

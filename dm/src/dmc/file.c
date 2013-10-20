@@ -306,12 +306,10 @@ void afopen(char *p,blklst *bl,int flag)
         dbg_printf("%s'%s'\n",buffer,p);
     }
 #endif
-#if !SPP
     if (fdep && !(flag & FQsystem))
     {
         fprintf(fdep, "%s ", p);
     }
-#endif
     mem_free(p);
 }
 
@@ -325,11 +323,6 @@ void afopen(char *p,blklst *bl,int flag)
 
 char *file_getsource(const char *iname)
 {
-    int i;
-    char *n;
-    char *p;
-    size_t len;
-
 #if TARGET_MAC
     static char ext[][4] = { "cpp","cp","c" };
 #elif M_UNIX
@@ -342,14 +335,14 @@ char *file_getsource(const char *iname)
     if (!iname || *iname == 0)
         cmderr(EM_nosource);            // no input file specified
 
-    len = strlen(iname);
-    n = (char *) malloc(len + 6);       // leave space for .xxxx0
+    size_t len = strlen(iname);
+    char *n = (char *) malloc(len + 6);       // leave space for .xxxx0
     assert(n);
     strcpy(n,iname);
-    p = filespecdotext(n);
+    char *p = filespecdotext(n);
     if (!*p)    // if no extension
     {
-        for (i = 0; i < arraysize(ext); i++)
+        for (int i = 0; i < arraysize(ext); i++)
         {   *p = '.';
             strcpy(p + 1,ext[i]);
             if (file_exists(n) & 1)
@@ -402,6 +395,12 @@ void file_iofiles()
         setvbuf(fout,NULL,_IOFBF,1024*1024);
         /* Don't check result, don't care if it fails
          */
+    }
+    getcmd_filename(&fdepname,ext_dep);
+    fdep = file_openwrite(fdepname,"w");
+    if (0 && fdep)
+    {   // Build entire makefile line
+        fprintf(fdep, "%s : ", foutname);
     }
 #else
     // See if silly user specified output file name for -HF with -o

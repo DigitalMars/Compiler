@@ -214,6 +214,8 @@ void getcmd(int argc,char **argv)
 #if SPP
                 if (filespeccmp(dotext,ext_i) == 0)
                     foutname = p;
+                else if (filespeccmp(dotext,ext_dep) == 0)
+                    fdepname = p;
 #elif HTOD
                 if (filespeccmp(dotext,ext_dmodule) == 0)
                     fdmodulename = p;
@@ -332,9 +334,7 @@ void getcmd(int argc,char **argv)
                         goto Lflags1;
 
             case 'd':
-#if SCPP
                         fdepname = on ? p : NULL;
-#endif
                         break;
 
             case 'D':   // do sw_d(p) later
@@ -1903,6 +1903,7 @@ void getcmd_term()
 #if SPP
     mem_free(cflags);
     mem_free(newargv);
+    mem_free(fdepname);
 #else
     mem_free(fdepname);
     mem_free(flstname);
