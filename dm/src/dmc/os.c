@@ -865,6 +865,8 @@ Lfail:
  * sizes.
  */
 
+#if DMDV1
+
 #if _WIN32
 int os_critsecsize32()
 {
@@ -958,3 +960,4 @@ int main()
 }
 #endif
 
+#endif
