@@ -1079,6 +1079,16 @@ void file_dependency_write()
     int col = 1;
     for (size_t i = 0; i < dim; i++)
     {
+        char *p = fdeplist[i];
+#if SPP
+        if (i == 0)
+        {
+            char *q = filespecforceext(p, ext_obj);
+            fprintf(fdep, "%s: ", q);
+            col += strlen(q) + 2;
+            mem_free(q);
+        }
+#endif
         if (col >= 70)
         {
             fputs(" \\\n ", fdep);
@@ -1089,16 +1099,7 @@ void file_dependency_write()
             fputc(' ', fdep);
             ++col;
         }
-        char *p = fdeplist[i];
-#if SPP
         fputs(p, fdep);
-        if (i == 0)
-        {   fputc(':', fdep);
-            ++col;
-        }
-#else
-        fputs(p, fdep);
-#endif
         col += strlen(p);
     }
     if (col > 1)
