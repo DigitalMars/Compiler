@@ -93,8 +93,6 @@ int main(int argc,char *argv[])
 
   pragma_term();
   file_term();
-  if (fdep)
-        fclose(fdep);
   fclose(fout);
 #if TERMCODE                            /* dump this to speed up compile */
   blklst_term();
@@ -206,8 +204,6 @@ int main(int argc,char *argv[])
 #else
   if (flst)
         fclose(flst);
-  if (fdep)
-        fclose(fdep);
 #endif
 
 #if TERMCODE                            /* dump this to speed up compile */

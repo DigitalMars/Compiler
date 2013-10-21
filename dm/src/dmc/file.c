@@ -308,9 +308,11 @@ void afopen(char *p,blklst *bl,int flag)
 #endif
     if (fdep && !(flag & FQsystem))
     {
-        fprintf(fdep, "%s ", p);
+        //fprintf(fdep, "%s ", p);
+        fdeplist.push(p);
     }
-    mem_free(p);
+    else
+        mem_free(p);
 }
 
 /*********************************************
@@ -1068,11 +1070,58 @@ long file_size(const char *fname)
 }
 
 /***********************************
+ * Write out dependency file.
+ */
+
+void file_dependency_write()
+{
+    size_t dim = fdeplist.length();
+    int col = 1;
+    for (size_t i = 0; i < dim; i++)
+    {
+        if (col >= 70)
+        {
+            fputs(" \\\n ", fdep);
+            col = 2;
+        }
+        else if (i)
+        {
+            fputc(' ', fdep);
+            ++col;
+        }
+        char *p = fdeplist[i];
+#if SPP
+        fputs(p, fdep);
+        if (i == 0)
+        {   fputc(':', fdep);
+            ++col;
+        }
+#else
+        fputs(p, fdep);
+#endif
+        col += strlen(p);
+    }
+    if (col > 1)
+        fputc('\n', fdep);
+#if SPP
+    for (size_t i = 1; i < dim; i++)
+    {
+        char *p = fdeplist[i];
+        fprintf(fdep, "\n%s:\n", p);
+    }
+#endif
+    fclose(fdep);
+    fdeplist.free(mem_freefp);
+}
+
+/***********************************
  * Terminate use of all network translated filenames.
  */
 
 void file_term()
 {
+    if (fdep)
+        file_dependency_write();
 #if _WIN32 && _WINDLL
     list_t fl;
 

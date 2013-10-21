@@ -133,6 +133,8 @@ char     *foutdir = NULL,       // directory to place output files in
         *fdepname = NULL,
         *flstname = NULL;       /* the filename strings                 */
 
+phstring_t fdeplist;
+
 list_t pathlist;                /* include paths                        */
 list_t headers;                 /* pre-include files                    */
 
