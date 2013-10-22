@@ -607,9 +607,11 @@ STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
     int tc;                             // terminating char of string
     int notinstr = 1;                   // 0 if we're in a string
     int lastxc = ' ';                   // last char read
-    int sawexp = 0;                     // checks for commas in expansion
     int pastend = 0;                    // if past end of input
     unsigned char blflags = 0;
+    bool israwstring = false;
+
+    RawString rs;
 
     //printf("+inarg()\n");
 
@@ -625,7 +627,14 @@ STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
             tok_arg = (char *) MEM_PARC_REALLOC(tok_arg,argmax);
         }
         //printf("\txc = '%c', 0x%02x\n", xc, xc);
-        switch (xc)
+        if (israwstring && xc != PRE_EOB)
+        {
+            if (!rs.inString(xc))
+            {
+                israwstring = false;
+            }
+        }
+        else switch (xc)
         {
             case '\t':
             case LF:
@@ -678,8 +687,6 @@ STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
             case ',':
                 if (ellipsisit)         // , is part of argument for ...
                     break;
-                if (sawexp)
-                    break;
             Lcomma:
                 if (notinstr && parencnt == 0)
                 {
@@ -713,8 +720,15 @@ STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
                     goto L1;
                 }
                 break;
-            case '\'':
+
             case '"':                   /* if a string delimiter        */
+                if (lastxc == 'R' && notinstr)
+                {
+                    rs.init();
+                    israwstring = true;
+                    break;
+                }
+            case '\'':
                 if (!notinstr)          /* if already in a string       */
                 {   if (xc == tc && lastxc != '\\')
                     notinstr = 1;       /* drop out of string           */
@@ -741,7 +755,6 @@ STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
                 if (dbcs && ismulti(xc))        // if asian 2 byte char
                 {   tok_arg[i++] = xc;
                     lastxc = xc;
-                L2:
                     xc = egchar();      /* no processing for this char  */
                     goto L1;
                 }
@@ -1363,6 +1376,8 @@ STATIC char * macrotext(macro_t *m)
     int buflen;
     int instr;                  // if " or ', we are in a string
     int stringize;              // if next parameter is to be ##
+    RawString rs;
+    bool israwstring;
     phstring_t al = m->Marglist;
 
     // It turns out that this can only happen when reading from
@@ -1407,6 +1422,7 @@ STATIC char * macrotext(macro_t *m)
             }
     }
 
+    israwstring = false;
     instr = 0;
     stringize = 0;
     hashidx = -1;
@@ -1421,7 +1437,17 @@ STATIC char * macrotext(macro_t *m)
         istringize = stringize;
         if (stringize)
             stringize--;
-        switch (xc)
+        if (israwstring && xc != 0)
+        {
+            if (xc == PRE_ARG)
+                *pbuf++ = xc;                   // double up the character
+
+            if (!rs.inString(xc))
+            {
+                israwstring = false;
+            }
+        }
+        else switch (xc)
         {   // Sort most likely cases first
             case ' ':
             case '\t':
@@ -1466,8 +1492,15 @@ STATIC char * macrotext(macro_t *m)
                     continue;
                 }
                 break;
-            case '\'':
+
             case '"':                   // string delimiters
+                if (lastxc == 'R' && !instr)
+                {
+                    rs.init();
+                    israwstring = true;
+                    break;
+                }
+            case '\'':
                 if (instr)
                 {   if (xc == instr && lastxc != '\\')
                         instr = 0;
@@ -3437,8 +3470,20 @@ STATIC void scantodefine()
                 }
                 break;
 
-            case '\'':
             case '"':                   /* string delimiters            */
+                if (lastxc == 'R' && !instr)
+                {
+                    RawString rs;
+                    rs.init();
+                    while (1)
+                    {
+                        egchar();
+                        if (xc == 0 || !rs.inString(xc))
+                            break;
+                    }
+                    break;
+                }
+            case '\'':
                 if (instr)
                 {   if (xc == instr && lastxc != '\\')
                         instr = 0;

@@ -3540,6 +3540,81 @@ L63:
 
 #endif
 
+/******************************************
+ */
+void RawString::init()
+{
+    rawstate = RAWdchar;
+    dchari = 0;
+}
+
+bool RawString::inString(unsigned char c)
+{
+    switch (rawstate)
+    {
+        case RAWdchar:
+            if (c == '(')       // end of d-char-string
+            {
+                dcharbuf[dchari] = 0;
+                rawstate = RAWstring;
+            }
+            else if (c == ' '  || c == '('  || c == ')'  ||
+                     c == '\\' || c == '\t' || c == '\v' ||
+                     c == '\f' || c == '\n')
+            {
+                lexerr(EM_invalid_dchar, c);
+                rawstate = RAWerror;
+            }
+            else if (dchari >= sizeof(dcharbuf) - 1)
+            {
+                lexerr(EM_string2big, sizeof(dcharbuf) - 1);
+                rawstate = RAWerror;
+            }
+            else
+            {
+                dcharbuf[dchari] = c;
+                ++dchari;
+            }
+            break;
+
+        case RAWstring:
+            if (c == ')')
+            {
+                dchari = 0;
+                rawstate = RAWend;
+            }
+            break;
+
+        case RAWend:
+            if (c == dcharbuf[dchari])
+            {
+                ++dchari;
+            }
+            else if (dcharbuf[dchari] == 0)
+            {
+                if (c == '"')
+                    rawstate = RAWdone;
+                else
+                    rawstate = RAWstring;
+            }
+            else if (c == ')')
+            {
+                // Rewind ')' dcharbuf[0..dchari]
+                dchari = 0;
+            }
+            else
+            {
+                // Rewind ')' dcharbuf[0..dchari]
+                rawstate = RAWstring;
+            }
+            break;
+
+        default:
+            assert(0);
+    }
+    return rawstate != RAWdone && rawstate != RAWerror;
+}
+
 /**********************************
  * Terminate use of scanner
  */

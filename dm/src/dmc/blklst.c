@@ -692,6 +692,9 @@ unsigned char *macro_expand(unsigned char *text)
     int lastxc = ' ';                   // last char read
     unsigned char blflags = 0;
 
+    bool israwstring = false;
+    RawString rs;
+
     // ==========
     // Save the state of the scanner
     BlklstSave blsave;
@@ -724,7 +727,14 @@ unsigned char *macro_expand(unsigned char *text)
         buffer.reserve(4);
 
         //printf("xc = '%c'\n", xc);
-        switch (xc)
+        if (israwstring && xc != PRE_EOB)
+        {
+            if (!rs.inString(xc))
+            {
+                israwstring = false;
+            }
+        }
+        else switch (xc)
         {
             case '\\':
                 if (lastxc == '\\')
@@ -733,8 +743,15 @@ unsigned char *macro_expand(unsigned char *text)
                 }
                 break;
 
-            case '\'':
             case '"':                   // if a string delimiter
+                if (notinstr && buffer.p > buffer.buf && buffer.p[-1] == 'R')
+                {
+                    rs.init();
+                    israwstring = true;
+                    //printf("\tin raw string\n");
+                    break;
+                }
+            case '\'':
                 if (!notinstr)          // if already in a string
                 {   if (xc == tc && lastxc != '\\')
                     notinstr = 1;       // drop out of string

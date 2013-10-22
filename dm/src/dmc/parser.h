@@ -789,4 +789,14 @@ extern symbol *symlinkage;              /* symbol linkage table                 
 #endif
 extern param_t *paramlst;               /* function parameter list              */
 
+struct RawString
+{
+    enum { RAWdchar, RAWstring, RAWend, RAWdone, RAWerror } rawstate;
+    char dcharbuf[16 + 1];
+    int dchari;
+
+    void init();
+    bool inString(unsigned char c);
+};
+
 #endif /* PARSER_H */
