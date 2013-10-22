@@ -136,7 +136,9 @@ char     *foutdir = NULL,       // directory to place output files in
         *fdepname = NULL,
         *flstname = NULL;       /* the filename strings                 */
 
+#if SPP || SCPP
 phstring_t fdeplist;
+#endif
 
 list_t pathlist;                /* include paths                        */
 list_t headers;                 /* pre-include files                    */
