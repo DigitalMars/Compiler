@@ -927,22 +927,16 @@ STATIC unsigned char * stringize(unsigned char *text)
     unsigned char tmpbuf[128];
     Outbuffer buffer(tmpbuf, 128, 100);
 
-    unsigned char *p;
-    unsigned char *string;
-    unsigned char c;
-    int tc;
-    int esc;
-    size_t len;
-
     //printf("+stringize('%s')\n", text);
 
     // Trim leading whitespace
     while (*text == ' ' || *text == PRE_SPACE || *text == PRE_BRK)
         text++;
 
-    len = strlen((char *)text);
+    size_t len = strlen((char *)text);
 
     // Trim trailing whitespace
+    unsigned char c;
     while (len && ((c = text[len - 1]) == ' ' ||
            c == PRE_SPACE || c == PRE_BRK))
         len--;
@@ -950,14 +944,24 @@ STATIC unsigned char * stringize(unsigned char *text)
     buffer.reserve(len + 2 + 1);
     buffer.writeByten('"');
 
-    tc = 0;
-    esc = 0;
+    RawString rs;
+    bool israwstring = false;
+
+    int tc = 0;
+    int esc = 0;
     for (size_t i = 0; i < len; i++)
     {
         unsigned char c = text[i];
+        if (israwstring && !rs.inString(c))
+            israwstring = false;
         switch (c)
         {
             case '"':
+                if (i && text[i - 1] == 'R' && !tc && !israwstring)
+                {
+                    rs.init();
+                    israwstring = true;
+                }
                 buffer.writeByte('\\');
             case '\'':
                 if (tc)
@@ -965,7 +969,7 @@ STATIC unsigned char * stringize(unsigned char *text)
                    if (tc == c && !esc)
                         tc = 0;
                 }
-                else
+                else if (!israwstring)
                     tc = c;
                 esc = 0;
                 break;
@@ -975,7 +979,7 @@ STATIC unsigned char * stringize(unsigned char *text)
                 break;
 
             case '\\':
-                if (tc)
+                if (tc || israwstring)
                 {   buffer.writeByte('\\');
                     esc ^= 1;
                 }
@@ -996,7 +1000,7 @@ STATIC unsigned char * stringize(unsigned char *text)
     buffer.writeByte('"');
 
     len = buffer.size();
-    string = (unsigned char *)parc_malloc(len + 1);
+    unsigned char *string = (unsigned char *)parc_malloc(len + 1);
     memcpy(string, buffer.buf, len);
     string[len] = 0;
 
