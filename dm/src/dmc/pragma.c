@@ -3301,7 +3301,10 @@ STATIC void scantoelseend()
                 {   comment();
                     continue;           /* treat comment as whitespace  */
                 }
-                break;
+                eatrol();
+                egchar();
+                continue;
+
             case '#':                   /* could be start of pragma     */
                 break;
             case '%':
