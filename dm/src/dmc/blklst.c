@@ -1231,7 +1231,6 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
                                                 /* text not in PH */
                         p->BLtextmax = 80;
                         afopen((char *) text,p,flag);   /* open input file */
-                        uselastpos = true;
                         cstate.CSfilblk = p;
                         sfile_debug(&srcpos_sfile(cstate.CSfilblk->BLsrcpos));
 #if IMPLIED_PRAGMA_ONCE
@@ -1240,7 +1239,13 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
 #endif
                         if (flag & FQsystem)
                             p->BLflags |= BLsystem;
+                        if (!lastpos.Sfilptr)
+                        {   lastpos = p->BLsrcpos;
+                            lastpos_flag = p->BLflags & BLsystem;
+                        }
+                        uselastpos = true;
                         break;
+
 #if TARGET_MAC
         case BLpdef:    p->BLflags |= BFpdef;   /* flag pre_compilation data */
                         p->BLtyp = BLarg;
