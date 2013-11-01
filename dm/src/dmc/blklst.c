@@ -1239,11 +1239,8 @@ void insblk(unsigned char *text, int typ, list_t aargs, int nargs, macro_t *m)
 #endif
                         if (flag & FQsystem)
                             p->BLflags |= BLsystem;
-                        if (!lastpos.Sfilptr)
-                        {   lastpos = p->BLsrcpos;
-                            lastpos_flag = p->BLflags & BLsystem;
-                        }
-                        uselastpos = true;
+                        if (lastpos.Sfilptr)
+                            uselastpos = true;
                         break;
 
 #if TARGET_MAC
