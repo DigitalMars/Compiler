@@ -1805,6 +1805,12 @@ STATIC void princlude_flag(bool next)
 {
     //printf("princlude_flag(%d)\n", next);
     file_progress();
+
+    /* If the current file is system, then the #include'd file is also system,
+     * whether it is in " " or < >
+     */
+    const bool incbysys = (cstate.CSfilblk && cstate.CSfilblk->BLflags & BLsystem);
+
     ininclude++;
     enum_TK strtok = stoken();
     ininclude--;
@@ -1822,7 +1828,7 @@ STATIC void princlude_flag(bool next)
                                         /*  EOL in #include file)       */
     experaseline();
 
-    pragma_include(tok.TKstr,next ? FQnext : ((strtok == TKstring)
+    pragma_include(tok.TKstr,next ? FQnext : ((strtok == TKstring && !incbysys)
                 ? FQcwd | FQpath : FQsystem | FQpath));
     egchar();
 }
