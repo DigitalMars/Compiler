@@ -1870,7 +1870,7 @@ void pragma_include(char *filename,int flag)
     }
 
 #if SPP
-    list_t pl;
+    int pl;
     if (file_qualify(&filename,flag,pathlist,&pl) == 0)      // if file not found
     {
 #if M_UNIX
@@ -1903,13 +1903,15 @@ void pragma_include(char *filename,int flag)
     }
 
     // Parse #include file as text
+    if (pl >= pathsysi)
+        flag |= FQsystem;
     insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag | FQqual,NULL);
     cstate.CSfilblk->BLsearchpath = pl;
 #else
 
 #if HEADER_LIST
 #if TX86
-    list_t pl;
+    int pl;
     if (file_qualify(&filename,flag,pathlist,&pl) == 0)      // if file not found
     {
 #if M_UNIX
@@ -2005,6 +2007,8 @@ void pragma_include(char *filename,int flag)
 text:
     // Parse #include file as text
     pstate.STflags |= PFLinclude;               // BUG: -HI doesn't affect PFLinclude
+    if (pl >= pathsysi)
+        flag |= FQsystem;
     //dbg_printf("\tReading file %s\n",filename);
     insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag | FQqual,NULL);
     cstate.CSfilblk->BLsearchpath = pl;

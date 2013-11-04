@@ -112,17 +112,21 @@ FILE *file_openwrite(const char *name,const char *mode)
 list_t pathsyslist;
 #endif
 
-int file_qualify(char **pfilename, int flag, list_t pathlist, list_t *next_path)
+int file_qualify(char **pfilename, int flag, phstring_t pathlist, int *next_path)
 {
     char *fname;
-    list_t __searchpath = pathlist;
+    phstring_t __searchpath = pathlist;
 
     char *p = *pfilename;
     assert(p);
 
-    //printf("file_qualify(file='%s',flag=x%x)\n",p,flag);
+#if 0
+    printf("file_qualify(file='%s',flag=x%x)\n",p,flag);
+    for (int i = 0; i < pathlist.length(); ++i)
+        printf("[%d] = '%s'\n", i, pathlist[i]);
+#endif
 
-    *next_path = NULL;
+    *next_path = -1;
 
     if (flag & FQtop)
     {
@@ -157,15 +161,15 @@ int file_qualify(char **pfilename, int flag, list_t pathlist, list_t *next_path)
     {
         /* Look at the path remaining after the current file was found.
          */
-        if (b && b->BLsearchpath)
+        if (b && b->BLsearchpath >= 0)
         {
-            for (list_t pl = list_next(b->BLsearchpath); pl; pl=list_next(pl))
+            for (int i = b->BLsearchpath + 1; i < pathlist.length(); ++i)
             {
-                fname = filespecaddpath((char *)list_ptr(pl),p);
+                fname = filespecaddpath(pathlist[i],p);
                 int result = file_exists(fname);
                 if (result)         // if file exists
                 {
-                    *next_path = pl;
+                    *next_path = i;
                     *pfilename = fname;
                     return result;
                 }
@@ -186,7 +190,7 @@ retry:
         switch (flag & (FQcwd | FQpath))
         {
             case FQpath:
-                if (__searchpath)
+                if (__searchpath.length())
                     break;
                 /* FALL-THROUGH */
             case FQcwd | FQpath:                /* check current directory first */
@@ -223,14 +227,14 @@ retry:
         }
         if (flag & FQpath)      // if look at include path
         {
-            for (list_t pl = __searchpath; pl; pl = list_next(pl))
+            for (int i = 0; i < __searchpath.length(); ++i)
             {
-                fname = filespecaddpath((char *)list_ptr(pl),p);
+                fname = filespecaddpath(__searchpath[i], p);
                 //dbg_printf("2 stat('%s')\n",fname);
                 int result = file_exists(fname);
                 if (result)             // if file exists
                 {
-                    *next_path = pl;    // remember for FQnext
+                    *next_path = i;    // remember for FQnext
                     *pfilename = fname;
                     return result;
                 }

@@ -432,13 +432,6 @@ typedef int (*__mptr)();\
 
             insblk2((unsigned char *)text5,BLrtext);
         }
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
-        if (pathsyslist)
-        {
-            static char text6[] = "#include \"mcc.h\"\n";
-            insblk2((unsigned char *)text6,BLrtext);
-        }
-#endif
     }
 }
 

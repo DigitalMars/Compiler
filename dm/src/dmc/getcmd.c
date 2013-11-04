@@ -42,7 +42,8 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 STATIC void predefine(const char *name);
 STATIC void sw_d(char *);
-STATIC void addpath(const char *);
+STATIC void addpath(phstring_t *, const char *);
+static phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist);
 STATIC void getcmd_cflags(int *,char ***);
 
 static char one[] = "1";
@@ -119,6 +120,7 @@ void getcmd(int argc,char **argv)
     void *mmfiobase = 0;
     unsigned reservesize = 0;
     int cvtype = CV4;
+    phstring_t pathsyslist;
 
 #if __OS2__
     config.exe = EX_OS1;
@@ -594,6 +596,9 @@ void getcmd(int argc,char **argv)
 
             case 'I':
                 //addpath(p);
+                break;
+
+            case 'i':
                 break;
 
 /*
@@ -1342,7 +1347,12 @@ void getcmd(int argc,char **argv)
                     list_prepend(&headers,p + 1);
                 break;
             case 'I':
-                addpath(p);
+                addpath(&pathlist, p);
+                break;
+            case 'i':
+                if (memcmp(p, "system=", 7))
+                    goto badflag;
+                addpath(&pathsyslist, p + 7);
                 break;
             case 'X':
                 if (CPP && template_getcmd(p))
@@ -1358,8 +1368,9 @@ void getcmd(int argc,char **argv)
         /* To see what paths gcc uses on linux,
          *    `gcc -print-prog-name=cc1` -v
          */
-        addpath(getenv(INC_ENV));       // get path from environment
+        addpath(&pathlist, getenv(INC_ENV));       // get path from environment
     }
+    pathlist = mergepaths(pathlist, pathsyslist);
 
     if (!switch_U)                      /* if didn't turn them off      */
     {
@@ -1658,7 +1669,8 @@ STATIC void sw_d(char *p)
 }
 
 /*****************************
- * Break up a ';' delimited path into a list of paths.
+ * Break up a ';' delimited path into a list of paths
+ * and append to *ppathlist
  */
 
 #if _WIN32
@@ -1667,7 +1679,7 @@ STATIC void sw_d(char *p)
 #define PATH_SEP ':'
 #endif
 
-STATIC void addpath(const char *q)
+STATIC void addpath(phstring_t *ppathlist, const char *q)
 {   char *t,c;
     char *buf;
     char *s;
@@ -1719,10 +1731,47 @@ STATIC void addpath(const char *q)
             }
             *s = 0;
             if (*t)                     // if path is not blank
-                list_append(&pathlist,mem_strdup(t));
+                ppathlist->push(mem_strdup(t));
         } while (c);
         mem_free(buf);
     }
+}
+
+/*****************************************
+ * Append pathsyslist to pathlist.
+ * Remove any paths in pathlist that are also in pathsyslist.
+ * Output:
+ *      pathsysi
+ */
+
+static phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist)
+{
+    if (pathsyslist.length() == 0)
+    {
+        pathsysi = pathlist.length();
+        return pathlist;
+    }
+
+    phstring_t result;
+
+    for (size_t i = 0; i < pathlist.length(); ++i)
+    {
+        for (size_t j = 0; j < pathsyslist.length(); ++j)
+        {
+            if (filespeccmp(pathlist[i], pathsyslist[j]) == 0)
+                goto L1;
+        }
+        result.push(mem_strdup(pathlist[i]));
+     L1: ;
+    }
+    pathsysi = result.length();
+    for (size_t j = 0; j < pathsyslist.length(); ++j)
+        result.push(mem_strdup(pathsyslist[j]));
+
+    pathlist.free(mem_freefp);
+    pathsyslist.free(mem_freefp);
+
+    return result;
 }
 
 /*********************************
@@ -1915,6 +1964,7 @@ void getcmd_term()
 #endif
     mem_free(finname);
     list_free(&pathlist,mem_freefp);
+    list_free(&pathsyslist,mem_freefp);
     list_free(&headers,FPNULL);
 #endif
 }

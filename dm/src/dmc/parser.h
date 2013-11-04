@@ -259,7 +259,7 @@ struct BLKLST
     unsigned char *BLbuf;       // BLfile: file buffer
     unsigned char *BLbufp;      // BLfile: next position in file buffer
     Srcpos      BLsrcpos;       /* BLfile, position in that file        */
-    list_t      BLsearchpath;   // BLfile: remaining search path for #include_next
+    int         BLsearchpath;   // BLfile: remaining search path for #include_next
 #if SOURCE_OFFSETS
     long        BLfoffset;      /* BLfile, offset into file             */
     short       BLcurcnt;       /* BLfile, current count from offset    */
@@ -433,7 +433,7 @@ extern char ext_dmodule[];
 extern int includenest;
 #endif
 
-int file_qualify(char **pfilename,int flag,list_t pathlist, list_t *next_path);
+int file_qualify(char **pfilename,int flag,phstring_t pathlist, int *next_path);
 void afopen(char *,blklst *,int);
 FILE *file_openwrite(const char *name,const char *mode);
 void file_iofiles(void);
@@ -750,11 +750,9 @@ char *arglist_tostring(Outbuffer *,list_t el);
 char *ptpl_tostring(Outbuffer *, param_t *ptpl);
 char *el_tostring(Outbuffer *, elem *e);
 
-extern list_t pathlist;                 // include paths
+extern phstring_t pathlist;             // include paths
+extern int pathsysi;                    // pathlist[pathsysi] is start of -isystem=
 extern list_t headers;                  // pre-include files
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
-extern list_t pathsyslist;              // include path for .h file overrides
-#endif
 
 extern int structalign;                 /* alignment for members of structures  */
 extern char dbcs;

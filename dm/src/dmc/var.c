@@ -140,7 +140,8 @@ char     *foutdir = NULL,       // directory to place output files in
 phstring_t fdeplist;
 #endif
 
-list_t pathlist;                /* include paths                        */
+phstring_t pathlist;            // include paths
+int pathsysi;                   // -isystem= index
 list_t headers;                 /* pre-include files                    */
 
 /* Data from lexical analyzer: */
