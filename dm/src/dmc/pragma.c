@@ -1828,8 +1828,20 @@ STATIC void princlude_flag(bool next)
                                         /*  EOL in #include file)       */
     experaseline();
 
-    pragma_include(tok.TKstr,next ? FQnext : ((strtok == TKstring && !incbysys)
-                ? FQcwd | FQpath : FQsystem | FQpath));
+    int flag;
+    if (next)
+        flag = FQnext;
+    else
+    {
+        flag = FQpath;
+        if (strtok == TKstring)
+            flag |= FQcwd;
+        else
+            flag |= FQsystem;
+        if (incbysys)
+            flag |= FQsystem;
+    }
+    pragma_include(tok.TKstr, flag);
     egchar();
 }
 
