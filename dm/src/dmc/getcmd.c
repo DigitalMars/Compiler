@@ -336,7 +336,7 @@ void getcmd(int argc,char **argv)
                         goto Lflags1;
 
             case 'd':
-                        fdepname = on ? p : NULL;
+                        fdepname = (on || strcmp(p,"-")) ? p : NULL;
                         break;
 
             case 'D':   // do sw_d(p) later
