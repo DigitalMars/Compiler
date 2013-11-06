@@ -1317,6 +1317,7 @@ STATIC phstring_t gargs(unsigned char *pflags)
                         // #define X(y ...)     nonstandard GCC way
                         if (!ANSI)
                         {
+                            preerr(EM_arg_ellipsis);
                             goto Lellipsis;     // treat same as X(y, ...)
                         }
                     }

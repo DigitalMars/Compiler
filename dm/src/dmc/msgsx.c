@@ -226,6 +226,9 @@ struct Msgtable msgtable[] =
         "')' requis",
         "')' ‚Å‚È‚¯‚ê‚Î‚È‚ç‚È‚¢",
   },
+  { "arg_ellipsis",
+        "macro argument list arg... form is obsolete",
+  },
   { "ident_exp",
         "identifier expected",                          /* 20   */
         "Bezeichner erwartet",                          /* 20   */
