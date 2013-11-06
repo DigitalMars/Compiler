@@ -213,7 +213,21 @@ void explist(int c)
                     if (linnum == elinnum + 1)
                         FPUTC('\n',fout);
                     else if (!(config.flags3 & CFG3noline))
-                        fprintf(fout,"#line %d\n",linnum);
+                    {
+                        if (elinnum + 30 < linnum)
+                        {
+                            for (int i = elinnum; i < linnum; ++i)
+                                FPUTC('\n', fout);
+                        }
+                        else
+                        {
+#if 1
+                            exp_linemarker(&b->BLsrcpos, (b->BLflags & BLsystem));
+#else
+                            fprintf(fout,"#line %d\n",linnum);
+#endif
+                        }
+                    }
                 }
                 elinnum = linnum;
             }
