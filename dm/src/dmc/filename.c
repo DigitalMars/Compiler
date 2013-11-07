@@ -39,26 +39,92 @@ static unsigned filename_transi;
 /***********************************
  */
 
-__inline const char *filename_adj(const char *f)
+static __inline const char *filename_adj(const char *f)
 {
-#if 1
-    return (*f == '.' && (f[1] == '\\' || f[1] == '/')) ? f + 2 : f;
-#else
-    if (*f == '.' && (f[1] == '\\' || f[1] == '/'))
-        f += 2;
-    return f;
-#endif
+    // Remove leading ./
+    f = (*f == '.' && (f[1] == '\\' || f[1] == '/')) ? f + 2 : f;
+
+    char *newf = (char *)f;
+    char *q;
+    for (const char *p = f; *p; ++p)
+    {
+        if ((*p == '/' || *p == '\\') && p[1] == '.')
+        {
+            if (p[2] == '/' || p[2] == '\\')
+            {   // Replace /./ with /
+                if (newf == f)
+                {
+                    newf = mem_strdup(f);       // memory leak
+                    q = newf + (p - f);
+                }
+                p += 2;
+            }
+            else if (p[2] == '.' && (p[3] == '/' || p[3] == '\\'))
+            {   // Replace /dir/../ with /
+                if (newf == f)
+                {
+                    newf = mem_strdup(f);       // memory leak
+                    q = newf + (p - f);
+                }
+                // Back up q to previous /
+                while (q > newf && !(q[-1] == '/' || q[-1] == '\\'))
+                    --q;
+                --q;
+                p += 3;
+            }
+        }
+
+        if (newf != f)
+        {
+            *q = *p;
+            ++q;
+            *q = 0;
+        }
+    }
+
+    return newf;
 }
+
+#ifdef DEBUG
+void unittest_filename_adj()
+{
+    static bool run = false;
+    if (run)
+        return;
+    run = true;
+
+    const char *f;
+    f = filename_adj("abc");
+    assert(strcmp(f, "abc") == 0);
+    f = filename_adj("./abc");
+    assert(strcmp(f, "abc") == 0);
+    f = filename_adj(".\\abc");
+    assert(strcmp(f, "abc") == 0);
+    f = filename_adj("abc./d");
+    assert(strcmp(f, "abc./d") == 0);
+    f = filename_adj("abc../d");
+    assert(strcmp(f, "abc../d") == 0);
+    f = filename_adj("abc/./d");
+    assert(strcmp(f, "abc/d") == 0);
+    f = filename_adj("abc\\.\\d/./e");
+    assert(strcmp(f, "abc\\d/e") == 0);
+    f = filename_adj("abc/d/../e");
+    //printf("f = '%s'\n", f);
+    assert(strcmp(f, "abc/e") == 0);
+    f = filename_adj("abc\\.\\d\\..\\e");
+    assert(strcmp(f, "abc\\e") == 0);
+}
+#endif
 
 /**************************************
  * Compute hash of filename.
  */
 
 STATIC unsigned filename_hash(const char *name)
-{   int len;
+{
     unsigned hashval;
 
-    len = strlen(name);
+    int len = strlen(name);
     for (hashval = len; len >= (int)(sizeof(unsigned) - 1); len -= sizeof(unsigned))
     {
         // The ~0x20... is to make it case insensitive
@@ -90,16 +156,12 @@ Sfile **filename_indirect(Sfile *sf)
  */
 
 Sfile *filename_search(const char *name)
-{   unsigned u;
-    unsigned hashval;
-
+{
     //printf("filename_search('%s',%d)\n",name,srcfiles.idx);
     name = filename_adj(name);
-    hashval = filename_hash(name);
-    for (u = 0; u < srcfiles.idx; u++)
-    {   Sfile *sf;
-
-        sf = &sfile(u);
+    unsigned hashval = filename_hash(name);
+    for (unsigned u = 0; u < srcfiles.idx; u++)
+    {   Sfile *sf = &sfile(u);
         if (sf->SFhashval == hashval &&
             filespeccmp(sf->SFname,name) == 0)
             return sf;
@@ -114,17 +176,18 @@ Sfile *filename_search(const char *name)
  */
 
 Sfile *filename_add(const char *name)
-{   unsigned u;
-    unsigned hashval;
-    Sfile *sf;
+{
+#ifdef DEBUG
+    unittest_filename_adj();
+#endif
 
     name = filename_adj(name);
-    sf = filename_search(name);
+    Sfile *sf = filename_search(name);
     if (sf)
         return sf;
 
     // Extend the array
-    u = srcfiles.idx;
+    unsigned u = srcfiles.idx;
     // Make sure pfiles[] is initialized
     if (!srcfiles.pfiles)
         srcfiles.pfiles = (Sfile **) mem_malloc(sizeof(Sfile *) * SRCFILES_MAX);
