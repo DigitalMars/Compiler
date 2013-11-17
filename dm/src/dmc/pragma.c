@@ -377,7 +377,7 @@ STATIC macro_t ** macinsert(const char *p,unsigned hashval)
 
 macro_t * macfind()
 { macro_t *m;
-  signed char cmp;
+  int cmp;
   char c;
   int len;
 
