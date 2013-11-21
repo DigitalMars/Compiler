@@ -174,17 +174,21 @@ inline char *textbuf_reserve(char *pbuf, int n)
     if (newlen > bufmax)                // if potential buffer overflow
     {   unsigned newmax;
 
+#if SCPP // SPP does not use precompiled headers so does not have this limitation
         #define TEXTMAX 0x3FF0          // must fit in PH buffer
         if (newlen > TEXTMAX)
         {
             err_fatal(EM_max_macro_text,"macro text",TEXTMAX);  // too long
         }
+#endif
 
         newmax = bufmax * 2;
         if (newmax < newlen)
             newmax = newlen;
+#if SCPP
         else if (newmax > TEXTMAX)
             newmax = TEXTMAX;
+#endif
 
         bufmax = newmax;
 #if TX86
