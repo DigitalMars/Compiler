@@ -129,10 +129,6 @@ static struct IFNEST
 static unsigned ifnidx = 0;     /* index into ifn[]                     */
 static unsigned ifnmax = 0;     /* # of entries alloced for ifn[]       */
 
-#if IMPLIED_PRAGMA_ONCE
-static char *inc_once_id;               /* save the 1st #ifndef id */
-#endif
-
 static list_t pack_stack;       // stack of struct packing alignment
 static list_t dbcs_stack;       // stack of dbcs flag
 
@@ -327,15 +323,15 @@ void pragma_process()
         }
 #endif
 
-#if IMPLIED_PRAGMA_ONCE
+#if 0 && IMPLIED_PRAGMA_ONCE
         /* If the pragma after #ifndef ident is not #define,
          * then this is not an include guard.
          */
-        if (inc_once_id && (tok.TKutok.pragma != PRdefine))
+        if (tok.TKutok.pragma != PRdefine && cstate.CSfilblk->BLinc_once_id)
         {
-            parc_free(inc_once_id);
-            inc_once_id = NULL;
-            cstate.CSfilblk->BLflags &= ~BLckonce;
+            mem_free(cstate.CSfilblk->BLinc_once_id);
+            cstate.CSfilblk->BLinc_once_id = NULL;
+            cstate.CSfilblk->BLflags &= ~(BLnew|BLifndef|BLendif);
         }
 #endif
         if (tok.TKutok.pragma != -1)
@@ -369,6 +365,18 @@ STATIC macro_t ** macinsert(const char *p,unsigned hashval)
     return mp;
 }
 
+/***********************************
+ * Return pointer to macro if id is define'd else NULL
+ */
+
+macro_t *macdefined(const char *id)
+{
+    char *idsave = tok.TKid;
+    tok.TKid = (char *)id;
+    macro_t *m = macfind();
+    tok.TKid = idsave;
+    return (m && m->Mflags & Mdefined) ? m : NULL;
+}
 
 /***************************
  * Search for the macro in the macro symbol table.
@@ -1190,10 +1198,10 @@ STATIC void prdefine()
         }
     }
 
-#if IMPLIED_PRAGMA_ONCE
-    if (inc_once_id)
+#if 0 && IMPLIED_PRAGMA_ONCE
+    if (cstate.CSfilblk->BLinc_once_id)
     {
-        if (!strcmp(inc_once_id,tok.TKid))
+        if (!strcmp(cstate.CSfilblk->BLinc_once_id, tok.TKid))
         {   /* Found:
              *   #ifndef ident
              *   #define ident
@@ -1203,9 +1211,9 @@ STATIC void prdefine()
             cstate.CSfilblk->BLflags |= BLifndef;
         }
         else
-            cstate.CSfilblk->BLflags &= ~BLckonce;
-        parc_free(inc_once_id);
-        inc_once_id = NULL;
+            cstate.CSfilblk->BLflags &= ~(BLnew|BLifndef|BLendif);
+        mem_free(cstate.CSfilblk->BLinc_once_id);
+        cstate.CSfilblk->BLinc_once_id = NULL;
     }
 #endif
     m = macro_calloc(tok.TKid);
@@ -1902,11 +1910,15 @@ void pragma_include(char *filename,int flag)
     Sfile *sf = filename_search(filename);
     if (sf)
     {   sfile_debug(sf);
+        macro_t *m;
+
         //dbg_printf("\t File already read in\n");
 
         if (config.flags2 & CFG2once ||   // if only #include files once
-        // If file is to be only #include'd once, skip it
-            sf->SFflags & SFonce)
+            // If file is to be only #include'd once, skip it
+            sf->SFflags & SFonce ||
+            // include guard
+            (sf->SFinc_once_id && macdefined(sf->SFinc_once_id)))
         {
             //dbg_printf("\tSFonce set\n");
             if (cstate.CSfilblk)
@@ -1980,7 +1992,10 @@ void pragma_include(char *filename,int flag)
 
         // If file is to be only #include'd once, skip it
         // (Do this after check above)
-        if (sf->SFflags & SFonce)
+        if (sf->SFflags & SFonce ||
+            // include guard
+            (sf->SFinc_once_id && macdefined(sf->SFinc_once_id))
+           )
         {
             //dbg_printf("\tSFonce set\n");
             goto Ldep;
@@ -3109,12 +3124,19 @@ STATIC void prendif()
     {                                   // Found closing #endif for 1st #if
         blklst *bl = cstate.CSfilblk;
         if (bl &&          // candidate for single inclusion
-            (bl->BLflags & (BLnew|BLifndef)) == (BLnew|BLifndef) &&
+            (bl->BLflags & BLifndef) &&
             bl->ifnidx == ifnidx)
         {
-            bl->BLflags |= BLendif;
-            //dbg_printf("\tprendif setting BLendif\n");
-            bl->BLflags &= ~BLtokens;
+            if (bl->BLflags & BLendif)
+                bl->BLflags &= ~(BLifndef | BLendif);
+            else
+            {
+                bl->BLflags |= BLendif;
+                //dbg_printf("\tprendif setting BLendif\n");
+
+                // BLtokens gets set if there are any more tokens between #endif and end of file
+                bl->BLflags &= ~BLtokens;
+            }
         }
     }
 #endif
@@ -3193,8 +3215,8 @@ STATIC void prifndef()
             bl->BLflags |= BLifndef;
             bl->ifnidx = ifnidx;
             assert(tok.TKval == TKident);
-            inc_once_id = parc_strdup(tok.TKid);        // Save the identifier
-            //dbg_printf("\tSetting BLifndef for token %s \n",inc_once_id);
+            bl->BLinc_once_id = mem_strdup(tok.TKid);        // Save the identifier
+            //dbg_printf("\tSetting BLifndef for token %s \n", bl->inc_once_id);
         }
 #endif
   }

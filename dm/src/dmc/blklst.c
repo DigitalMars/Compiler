@@ -821,22 +821,18 @@ unsigned char *macro_expand(unsigned char *text)
                      */
                     if (!isdigit(lastxc))
                     {
-                        // Determine if tok_ident[] is a macro
-                        char *idsave = tok.TKid;
-                        tok.TKid = tok_ident;
                         if (blflags & BLexpanded && bl && bl->BLflags & BLexpanded)
                         {   /* Identifier was already scanned, and is
                              * not the last token in the scanned text.
                              */
-                            tok.TKid = idsave;
                             buffer.write(tok_ident);
                             lastxc = ' ';
                             continue;
                         }
-                        m = macfind();
-                        tok.TKid = idsave;
 
-                        if (m && m->Mflags & Mdefined)
+                        // Determine if tok_ident[] is a macro
+                        m = macdefined(tok_ident);
+                        if (m)
                         {   phstring_t args;
 
                             if (m->Mflags & Minuse)
@@ -1352,10 +1348,17 @@ STATIC void freeblk(blklst *p)
 #endif
 #if IMPLIED_PRAGMA_ONCE
                 // See if file was totally wrapped in #ifndef xxx #define xxx ... #endif
-                if ((p->BLflags & BLendif) && (p->BLflags & BLtokens) == 0)
-                {                               // Mark file to only include once
-                    srcpos_sfile(p->BLsrcpos).SFflags |= SFonce;
-                    //dbg_printf("Setting the once flag\n");
+                if (p->BLinc_once_id)
+                {
+                    if ((p->BLflags & BLendif) && (p->BLflags & BLtokens) == 0)
+                    {   // Mark file to only include once
+                        // If this identifier is defined, don't need to include again
+                        srcpos_sfile(p->BLsrcpos).SFinc_once_id = p->BLinc_once_id;
+                        p->BLinc_once_id = NULL;
+                        //dbg_printf("Setting the once flag\n");
+                    }
+                    else
+                        mem_free(p->BLinc_once_id);
                 }
 #endif
 

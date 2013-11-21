@@ -224,6 +224,7 @@ void filename_hydrate(Srcfiles *fn)
 
         sf = (Sfile *)ph_hydrate(&fn->pfiles[u]);
         ph_hydrate(&sf->SFname);
+        ph_hydrate(&sf->SFinc_once_id);
         list_hydrate(&sf->SFfillist,FPNULL);
     }
 }
@@ -244,6 +245,7 @@ void filename_dehydrate(Srcfiles *fn)
         sf = fn->pfiles[u];
         ph_dehydrate(&fn->pfiles[u]);
         ph_dehydrate(&sf->SFname);
+        ph_dehydrate(&sf->SFinc_once_id);
         list_dehydrate(&sf->SFfillist,FPNULL);
     }
     //ph_dehydrate(&fn->arr);
@@ -307,7 +309,7 @@ void filename_merge(Srcfiles *fn)
         sf->SFmacdefs = sfn->SFmacdefs;
         sf->SFsymdefs = sfn->SFsymdefs;
         sf->SFcomdefs = sfn->SFcomdefs;
-
+        sf->SFinc_once_id = sfn->SFinc_once_id;
     }
 #else
     unsigned t;
@@ -319,6 +321,7 @@ void filename_merge(Srcfiles *fn)
     {   t = filename_add(fn->arr[u].SFname);
         filename_trans[u] = t;
         sfile(t).SFflags |= fn->arr[u].SFflags & (SFonce | SFtop);
+        sfile(t).SFinc_once_id = fn->arr[u].SFinc_once_id;
     }
 #endif
 }

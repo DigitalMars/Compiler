@@ -2042,7 +2042,9 @@ STATIC int instring(int tc,int flags)
         }
         else
 #endif
+        {
             tok_string[i++] = c;        // store char in tok_string
+        }
     }
 
   Ldone:

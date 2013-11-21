@@ -248,7 +248,6 @@ struct BLKLST
 #       define BLnew     0x02   // start of new file
 #       define BLifndef  0x20   // found #ifndef/#define at start
 #       define BLendif   0x08   // found matching #endif
-#       define BLckonce  (BLnew|BLifndef|BLendif)
     unsigned ifnidx;            // index into ifn[] of IF_FIRSTIF
 #endif
 
@@ -258,6 +257,9 @@ struct BLKLST
     int         BLtextmax;      /* size of text buffer                  */
     unsigned char *BLbuf;       // BLfile: file buffer
     unsigned char *BLbufp;      // BLfile: next position in file buffer
+#if IMPLIED_PRAGMA_ONCE
+    char        *BLinc_once_id; // macro identifier for #include guard
+#endif
     Srcpos      BLsrcpos;       /* BLfile, position in that file        */
     int         BLsearchpath;   // BLfile: remaining search path for #include_next
 #if SOURCE_OFFSETS
@@ -619,6 +621,7 @@ extern short pragma_param_cnt;
 #endif
 int pragma_search(const char *id);
 macro_t *macfind(void);
+macro_t *macdefined(const char *id);
 void listident(void);
 char *filename_stringize(char *name);
 unsigned char *macro_predefined(macro_t *m);
