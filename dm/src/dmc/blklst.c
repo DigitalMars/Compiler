@@ -831,7 +831,7 @@ unsigned char *macro_expand(unsigned char *text)
                         }
 
                         // Determine if tok_ident[] is a macro
-                        m = macdefined(tok_ident);
+                        m = macdefined(tok_ident, idhash);
                         if (m)
                         {   phstring_t args;
 
@@ -1355,7 +1355,7 @@ STATIC void freeblk(blklst *p)
                         // If this identifier is defined, don't need to include again
                         srcpos_sfile(p->BLsrcpos).SFinc_once_id = p->BLinc_once_id;
                         p->BLinc_once_id = NULL;
-                        //dbg_printf("Setting the once flag\n");
+                        //printf("Setting the once flag %s\n", srcpos_sfile(p->BLsrcpos).SFinc_once_id);
                     }
                     else
                         mem_free(p->BLinc_once_id);

@@ -369,12 +369,22 @@ STATIC macro_t ** macinsert(const char *p,unsigned hashval)
  * Return pointer to macro if id is define'd else NULL
  */
 
-macro_t *macdefined(const char *id)
+macro_t *macdefined(const char *id, unsigned hash)
 {
+    //printf("macdefined(%s)\n", id);
+    if (!hash)
+    {
+        size_t len = strlen(id);
+        hash = ((id[0] & 0xFF) << 16) | (len << 8) | (id[len - 1] & 0xFF);
+    }
+
+    unsigned hashsave = idhash;
+    idhash = hash;
     char *idsave = tok.TKid;
     tok.TKid = (char *)id;
     macro_t *m = macfind();
     tok.TKid = idsave;
+    idhash = hashsave;
     return (m && m->Mflags & Mdefined) ? m : NULL;
 }
 
@@ -1910,17 +1920,16 @@ void pragma_include(char *filename,int flag)
     Sfile *sf = filename_search(filename);
     if (sf)
     {   sfile_debug(sf);
-        macro_t *m;
 
-        //dbg_printf("\t File already read in\n");
+        //printf("\t File already read in, %s\n", sf->SFinc_once_id);
 
         if (config.flags2 & CFG2once ||   // if only #include files once
             // If file is to be only #include'd once, skip it
             sf->SFflags & SFonce ||
             // include guard
-            (sf->SFinc_once_id && macdefined(sf->SFinc_once_id)))
+            (sf->SFinc_once_id && macdefined(sf->SFinc_once_id, 0)))
         {
-            //dbg_printf("\tSFonce set\n");
+            //printf("\tSFonce set\n");
             if (cstate.CSfilblk)
                 list_append(&srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFfillist,sf);
             goto ret;
@@ -1994,7 +2003,7 @@ void pragma_include(char *filename,int flag)
         // (Do this after check above)
         if (sf->SFflags & SFonce ||
             // include guard
-            (sf->SFinc_once_id && macdefined(sf->SFinc_once_id))
+            (sf->SFinc_once_id && macdefined(sf->SFinc_once_id, 0))
            )
         {
             //dbg_printf("\tSFonce set\n");

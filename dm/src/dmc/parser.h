@@ -621,7 +621,7 @@ extern short pragma_param_cnt;
 #endif
 int pragma_search(const char *id);
 macro_t *macfind(void);
-macro_t *macdefined(const char *id);
+macro_t *macdefined(const char *id, unsigned hash);
 void listident(void);
 char *filename_stringize(char *name);
 unsigned char *macro_predefined(macro_t *m);
