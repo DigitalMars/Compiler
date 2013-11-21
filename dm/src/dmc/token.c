@@ -86,7 +86,7 @@ unsigned argmax;                /* length of argument buffer            */
 
 int isUniAlpha(unsigned u);
 void cppcomment(void);
-STATIC enum_TK inpragma(void);
+STATIC bool inpragma();
 
 /* This is so the isless(), etc., macros in math.h work even with -A99
  */
@@ -1064,6 +1064,7 @@ enum_TK rtoken(int flag)
         unsigned char blflags;
         int insflags;
 
+        //printf("rtoken(%d)\n", flag);
 #if TARGET_MAC
         tok.TKflags &= ~TKFinherited;
         //tok.tokfoffset = getlinnum(); /* Hate to do this for each token */
@@ -1071,7 +1072,10 @@ enum_TK rtoken(int flag)
 #endif
 #if IMPLIED_PRAGMA_ONCE
         if (cstate.CSfilblk)
+        {
+            //printf("BLtokens %s\n", blklst_filename(cstate.CSfilblk));
             cstate.CSfilblk->BLflags |= BLtokens;
+        }
 #endif
 #if PASCAL_STRINGS
         tok.TKflags &= ~TKFpasstr;
@@ -1594,7 +1598,10 @@ loop1:
                 expflag++;
 #endif
                 egchar();
-                inpragma();
+                if (!inpragma())
+                {
+                    goto loop1;
+                }
                 if (flag && tok.TKval == TKpragma)
                 {
                     pragma_process();
@@ -3314,9 +3321,12 @@ done:
  * Read in pragma.
  * Pragmas must start in first column.
  * pragma ::= "#" [identifier]
+ * Returns:
+ *      true    it's a pragma; tok is set to which one
+ *      false   it's just # followed by whitespace
  */
 
-STATIC enum_TK inpragma()
+STATIC bool inpragma()
 {
 
     while (1)
@@ -3325,13 +3335,15 @@ STATIC enum_TK inpragma()
         {
             inident();                  // read in identifier
             tok.TKutok.pragma = pragma_search(tok_ident);
-            return tok.TKval = TKpragma;
+            tok.TKval = TKpragma;
+            return true;
         }
         else if (isdigit(xc))
         {
             tok.TKutok.pragma = pragma_search("__linemarker");
-            return tok.TKval = TKpragma;
-        };
+            tok.TKval = TKpragma;
+            return true;
+        }
 
         switch (xc)
         {   case ' ':
@@ -3360,7 +3372,7 @@ STATIC enum_TK inpragma()
         }
         break;
     }
-    return token();
+    return false;
 }
 
 /*******************************************
