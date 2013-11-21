@@ -323,17 +323,6 @@ void pragma_process()
         }
 #endif
 
-#if 0 && IMPLIED_PRAGMA_ONCE
-        /* If the pragma after #ifndef ident is not #define,
-         * then this is not an include guard.
-         */
-        if (tok.TKutok.pragma != PRdefine && cstate.CSfilblk->BLinc_once_id)
-        {
-            mem_free(cstate.CSfilblk->BLinc_once_id);
-            cstate.CSfilblk->BLinc_once_id = NULL;
-            cstate.CSfilblk->BLflags &= ~(BLnew|BLifndef|BLendif);
-        }
-#endif
         if (tok.TKutok.pragma != -1)
         {
             pstate.STflags |= PFLpreprocessor;  // in preprocessor
@@ -1208,24 +1197,6 @@ STATIC void prdefine()
         }
     }
 
-#if 0 && IMPLIED_PRAGMA_ONCE
-    if (cstate.CSfilblk->BLinc_once_id)
-    {
-        if (!strcmp(cstate.CSfilblk->BLinc_once_id, tok.TKid))
-        {   /* Found:
-             *   #ifndef ident
-             *   #define ident
-             * pattern
-             */
-            //printf("\tset BLifndef flag\n");
-            cstate.CSfilblk->BLflags |= BLifndef;
-        }
-        else
-            cstate.CSfilblk->BLflags &= ~(BLnew|BLifndef|BLendif);
-        mem_free(cstate.CSfilblk->BLinc_once_id);
-        cstate.CSfilblk->BLinc_once_id = NULL;
-    }
-#endif
     m = macro_calloc(tok.TKid);
     *pm = m;
 
