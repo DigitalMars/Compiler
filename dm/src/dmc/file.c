@@ -212,7 +212,7 @@ retry:
                     fname = mem_strdup(p);
                 }
             {
-                //dbg_printf("1 stat('%s')\n",fname);
+                //printf("file_exists 1 stat('%s')\n",fname);
                 int result = file_exists(fname);
                 if (result)             // if file exists
                 {
@@ -230,7 +230,7 @@ retry:
             for (int i = 0; i < __searchpath.length(); ++i)
             {
                 fname = filespecaddpath(__searchpath[i], p);
-                //dbg_printf("2 stat('%s')\n",fname);
+                //printf("file_exists 2 stat('%s')\n",fname);
                 int result = file_exists(fname);
                 if (result)             // if file exists
                 {
@@ -285,7 +285,9 @@ void afopen(char *p,blklst *bl,int flag)
 #if HTOD
     htod_include(p, flag);
 #endif
-    if (!file_qualify(&p, flag, pathlist, &bl->BLsearchpath))
+    if (flag & FQqual)
+        p = mem_strdup(p);
+    else if (!file_qualify(&p, flag, pathlist, &bl->BLsearchpath))
         err_fatal(EM_open_input,p);             // open failure
     bl->BLsrcpos.Sfilptr = filename_indirect(filename_add(p));
     sfile_debug(&srcpos_sfile(bl->BLsrcpos));
@@ -510,7 +512,7 @@ STATIC void file_openread(const char *name,blklst *b)
     char *newname;
     int fd;
 
-    //dbg_printf("file_openread('%s')\n",name);
+    //printf("file_openread('%s')\n",name);
     assert(__INTSIZE == 4);
 
     newname = file_nettranslate(name,"rb");
@@ -972,6 +974,7 @@ void file_remove(char *fname)
 
 int file_stat(const char *fname,struct stat *pbuf)
 {
+    //printf("file_stat(%s)\n", fname);
 #if _WIN32 && _WINDLL
     int result;
     char *newname;
@@ -1019,6 +1022,7 @@ int file_isdir(const char *fname)
 
 int file_exists(const char *fname)
 {
+    //printf("file_exists(%s)\n", fname);
 #if __SC__
     int result;
     char *newname;
@@ -1049,6 +1053,7 @@ int file_exists(const char *fname)
 
 long file_size(const char *fname)
 {
+    //printf("file_size(%s)\n", fname);
 #if __SC__
     long result;
     char *newname;
