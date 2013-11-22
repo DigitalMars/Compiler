@@ -573,45 +573,7 @@ STATIC void file_openread(const char *name,blklst *b)
         close(fd);
     }
 
-    // Put a ^Z past the end of the buffer as a sentinel
-    // (So buffer is guaranteed to end in ^Z)
-    b->BLbufp[size] = 0x1A;
-
-    // Scan buffer looking for terminating ^Z
-#if __SC__ && TX86 && __INTSIZE == 4
-    // Guarantee alignment
-    assert(((long)(b->BLbufp) & 3) == 3);
-    __asm
-    {
-        // This saves about 1/4 cycle per char over memchr()
-        // due to a 0x1A must be there
-        mov     ECX,b
-        mov     ECX,BLbufp[ECX]
-        mov     AL,0x1A
-        cmp     [ECX],AL
-        jz      Lf
-        inc     ECX                     // to 4 byte alignment
-L1:     mov     EDX,[ECX]
-        add     ECX,4
-        cmp     DL,AL
-        jz      Lf1
-        cmp     DH,AL
-        jz      Lf2
-        shr     EDX,16
-        cmp     DL,AL
-        jz      Lf3
-        cmp     DH,AL
-        jnz     L1
-        inc     ECX
-Lf3:    inc     ECX
-Lf2:    inc     ECX
-Lf1:    sub     ECX,4
-Lf:     mov     p,ECX
-    }
-#else
-    p = (unsigned char *)memchr(b->BLbufp,0x1A,size + 1);
-    assert(p);
-#endif
+    p = (unsigned char *)&b->BLbufp[size];
 
     // File must end in LF. If it doesn't, make it.
     if (p[-1] != LF)
@@ -621,8 +583,12 @@ Lf:     mov     p,ECX
             lexerr(EM_no_nl);   // file must be terminated by '\n'
 #endif
         p[0] = LF;
-        p[1] = 0x1A;
+        ++p;
     }
+
+    // Put a ^Z past the end of the buffer as a sentinel
+    // (So buffer is guaranteed to end in ^Z)
+    *p = 0x1A;
 }
 
 
