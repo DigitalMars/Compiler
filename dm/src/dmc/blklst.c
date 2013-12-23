@@ -199,12 +199,15 @@ void explist(int c)
                     if (!(config.flags3 & CFG3noline))
                     {
                         if (uselastpos)
+//printf("test1\n"),
                             exp_linemarker(&lastpos, lastpos_flag);
                         else
+//printf("test2\n"),
                             exp_linemarker(&b->BLsrcpos, (b->BLflags & BLsystem));
                     }
                     if (!uselastpos)
                     {   lastpos.Sfilptr = b->BLsrcpos.Sfilptr;
+                        lastpos.Slinnum = b->BLsrcpos.Slinnum;
                         lastpos_flag = (b->BLflags & BLsystem);
                     }
                 }
@@ -222,6 +225,7 @@ void explist(int c)
                         else
                         {
 #if 1
+//printf("test3\n"),
                             exp_linemarker(&b->BLsrcpos, (b->BLflags & BLsystem));
 #else
                             fprintf(fout,"#line %d\n",linnum);
@@ -233,6 +237,7 @@ void explist(int c)
             }
             else if (uselastpos && lastpos.Sfilptr && !(config.flags3 & CFG3noline))
             {
+//printf("test4\n"),
                 exp_linemarker(&lastpos, lastpos_flag);
             }
         }
@@ -328,6 +333,7 @@ void wrtexp(FILE *fstream)
             case PRE_BRK:                               // token separator
                 /* If token separator is needed to separate tokens, output a space.
                  * Multiple PRE_BRKs are treated as one.
+                 * BUG: not sure if multipe PRE_BRKs at the start are handled properly
                  */
                 if (eline < p && p[1] != 0)
                 {   unsigned char xclast, xcnext;
@@ -506,6 +512,7 @@ unsigned char *macro_replacement_text(macro_t *m, phstring_t args)
             if ((char *)getIthArg(args, margs) == null_arg)
                 va_args = margs;
         }
+        //printf("va_args = %d\n", va_args);
     }
 
     /* PRE_ARG, PRE_STR and PRE_CAT only appear in Mtext
@@ -610,8 +617,12 @@ unsigned char *macro_replacement_text(macro_t *m, phstring_t args)
                                     goto L1;
                             }
 
+                            //printf("CAT pe = %s, a.length = %d, b.length = %d\n", pe - 1, len, strlen((char *)b));
+//printf("\t\t1: '%.*s'\n", pe - a, a);
                             buffer.write(a, pe - a);
+//printf("\t\t2: '%.*s'\n", len - (pe + 1 - a), pe + 1);
                             buffer.write(pe + 1, len - (pe + 1 - a));
+//printf("\t\t3: '%s'\n", b);
                             buffer.write(b);
                             q += 4;
                             continue;
@@ -624,7 +635,9 @@ unsigned char *macro_replacement_text(macro_t *m, phstring_t args)
             //printf("\targ[%d] = '%s'\n", argi, a);
             if (expand)
             {
+                //printf("\t\tbefore '%s'\n", a);
                 a = macro_expand(a);
+                //printf("\t\tafter '%s'\n", a);
                 trimPreWhiteSpace(a);
                 buffer.write(a);
                 parc_free(a);
@@ -818,6 +831,7 @@ unsigned char *macro_expand(unsigned char *text)
 #endif
                     /* Handle case of 1234ULL.
                      * BUG: still regards ABC as a macro in: 0x123.ABC
+                     * also string prefixes and suffixes
                      */
                     if (!isdigit(lastxc))
                     {
@@ -859,7 +873,11 @@ unsigned char *macro_expand(unsigned char *text)
 
                                 putback(xc);
                                 p = macro_replacement_text(m, args);
+                                //printf("\texpanded  '%s'\n", p);
                                 q = macro_rescan(m, p);
+#if LOG_MACRO_EXPAND
+                                printf("\trescanned '%s'\n", q);
+#endif
                                 parc_free(p);
 
                                 /*
@@ -890,7 +908,7 @@ unsigned char *macro_expand(unsigned char *text)
 
     L1:
 #if LOG_MACRO_EXPAND
-        printf("\twriteByten('%c', x%02x)\n", xc, xc);
+        //printf("\twriteByten('%c', x%02x)\n", xc, xc);
 #endif
         buffer.writeByten(xc);
         egchar();
@@ -916,7 +934,7 @@ unsigned char *macro_expand(unsigned char *text)
     // ==========
 
 #if LOG_MACRO_EXPAND
-    printf("\tlen = %d\n", len);
+//    printf("\tlen = %d\n", len);
 //    for (int i = 0; i < len; i++)
 //      printf("\tx%02x\n", string[i]);
     printf("-macro_expand() = '%s', expflag = %d\n", string, expflag);

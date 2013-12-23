@@ -619,7 +619,6 @@ STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
     int notinstr = 1;                   // 0 if we're in a string
     int lastxc = ' ';                   // last char read
     int pastend = 0;                    // if past end of input
-    unsigned char blflags = 0;
     bool israwstring = false;
 
     RawString rs;
@@ -847,6 +846,9 @@ phstring_t inarglst(macro_t *m, BlklstSave *blsave)
             warerr(WM_num_args,nargs,m->Mid,n);         // wrong # of args
     }
     egchar();
+//printf("args[]\n");
+//for (int i = 0; i < al.length(); ++i)
+//    printf("\t[%d] = '%s'\n", i, al[i] ? al[i] : "null");
     return al;
 }
 
@@ -1136,7 +1138,10 @@ int pragma_defined()
         synerr(EM_ident_exp);           // identifier expected
     else
     {   if ((m = macfind()) != NULL && m->Mflags & Mdefined)
+        {
+            //printf("defined(%s)\n", m->Mid);
             i = 1;                      /* macro is defined             */
+        }
         listident();
         stoken();
     }
@@ -1605,6 +1610,9 @@ STATIC char * macrotext(macro_t *m)
                 }
                 if (!al.empty() && isidstart(xc) && !instr) // if possible parameter
                 {
+                    /* BUG: wrongly picks up suffixes at end of integer and
+                     * float literals, string literal suffixes, and string literal prefixes
+                     */
                     inident();                  // read in identifier
 
                     // look for ident in parameter list
@@ -3155,6 +3163,7 @@ STATIC void prifdef()
   if (m != NULL &&                      /* if macro is in table and     */
       m->Mflags & Mdefined)             /* it's defined                 */
   {
+        //printf("ifdef %s\n", m->Mid);
   }
   else                                  /* false conditional            */
   {     expflag++;                      /* shut off listing             */
@@ -3170,6 +3179,7 @@ STATIC void prifdef()
 
 STATIC void prifndef()
 {
+    //printf("prifndef()\n");
     unsigned char bfl = 0;
     blklst *bl = cstate.CSfilblk;
     if (bl)
