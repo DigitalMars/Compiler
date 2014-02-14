@@ -3862,7 +3862,7 @@ Lret:
                     code_orrex(c, REX_W);
             }
             else
-            c = genc2(c,op,0,Para.offset);          // RET Para.offset
+                c = genc2(c,op,0,Para.offset);          // RET Para.offset
         }
     }
 

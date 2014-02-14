@@ -2858,7 +2858,7 @@ STATIC elem * elind(elem *e, goal_t goal)
 #endif
             break;
         case OPcomma:
-            // Replace (*(ea,eb)) with (ea,*eb)
+           // Replace (*(ea,eb)) with (ea,*eb)
             e->E1->ET = e->ET;
             type *t = e->ET;
             e = el_selecte1(e);
@@ -4931,18 +4931,42 @@ beg:
             case OPcond:
                 if (!goal)
                 {   // Transform x?y:z into x&&y or x||z
-                    if (!el_sideeffect(e->E2->E1))
+                    elem *e2 = e->E2;
+                    if (!el_sideeffect(e2->E1))
                     {   e->Eoper = OPoror;
-                        e->E2 = el_selecte2(e->E2);
+                        e->E2 = el_selecte2(e2);
                         e->Ety = TYint;
                         goto beg;
                     }
-                    else if (!el_sideeffect(e->E2->E2))
+                    else if (!el_sideeffect(e2->E2))
                     {   e->Eoper = OPandand;
-                        e->E2 = el_selecte1(e->E2);
+                        e->E2 = el_selecte1(e2);
                         e->Ety = TYint;
                         goto beg;
                     }
+                    assert(e2->Eoper == OPcolon || e2->Eoper == OPcolon2);
+                    elem *e21 = e2->E1 = optelem(e2->E1, goal);
+                    elem *e22 = e2->E2 = optelem(e2->E2, goal);
+                    if (!e21)
+                    {   if (!e22)
+                        {
+                            e = el_selecte1(e);
+                            goto beg;
+                        }
+                        // Rewrite (e1 ? null : e22) as (e1 || e22)
+                        e->Eoper = OPoror;
+                        e->E2 = el_selecte2(e2);
+                        goto beg;
+                    }
+                    if (!e22)
+                    {
+                        // Rewrite (e1 ? e22 : null) as (e1 && e21)
+                        e->Eoper = OPandand;
+                        e->E2 = el_selecte1(e2);
+                        goto beg;
+                    }
+                    if (!rightgoal)
+                        rightgoal = GOALvalue;
                 }
                 goto Llog;
 
@@ -5002,6 +5026,11 @@ beg:
             e1 = e->E1 = optelem(e1,leftgoal);
 
         e2 = e->E2 = optelem(e->E2,rightgoal);
+        if (op == OPcolon)
+{
+//if (!(e1 && e2)) elem_print(e);
+            assert(e1 && e2);
+}
         if (!e1)
         {   if (!e2)
                 goto retnull;
