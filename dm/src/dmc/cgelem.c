@@ -27,7 +27,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-extern void error(const char *filename, unsigned linnum, const char *format, ...);
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 
 STATIC elem * optelem(elem *,goal_t);
 STATIC elem * elarray(elem *e);
@@ -2192,7 +2192,7 @@ STATIC elem * elremquo(elem *e, goal_t goal)
 {
 #if 0 && MARS
     if (cnst(e->E2) && !boolres(e->E2))
-        error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "divide by zero\n");
+        error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero\n");
 #endif
     return e;
 }
@@ -2229,7 +2229,7 @@ STATIC elem * eldiv(elem *e, goal_t goal)
     {
 #if 0 && MARS
       if (!boolres(e2))
-        error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "divide by zero\n");
+        error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero\n");
 #endif
       if (uns)
       { int i;
@@ -2858,7 +2858,7 @@ STATIC elem * elind(elem *e, goal_t goal)
 #endif
             break;
         case OPcomma:
-           // Replace (*(ea,eb)) with (ea,*eb)
+            // Replace (*(ea,eb)) with (ea,*eb)
             e->E1->ET = e->ET;
             type *t = e->ET;
             e = el_selecte1(e);
@@ -4948,7 +4948,8 @@ beg:
                     elem *e21 = e2->E1 = optelem(e2->E1, goal);
                     elem *e22 = e2->E2 = optelem(e2->E2, goal);
                     if (!e21)
-                    {   if (!e22)
+                    {
+                        if (!e22)
                         {
                             e = el_selecte1(e);
                             goto beg;
@@ -4960,7 +4961,7 @@ beg:
                     }
                     if (!e22)
                     {
-                        // Rewrite (e1 ? e22 : null) as (e1 && e21)
+                        // Rewrite (e1 ? e21 : null) as (e1 && e21)
                         e->Eoper = OPandand;
                         e->E2 = el_selecte1(e2);
                         goto beg;
@@ -5026,11 +5027,6 @@ beg:
             e1 = e->E1 = optelem(e1,leftgoal);
 
         e2 = e->E2 = optelem(e->E2,rightgoal);
-        if (op == OPcolon)
-{
-//if (!(e1 && e2)) elem_print(e);
-            assert(e1 && e2);
-}
         if (!e1)
         {   if (!e2)
                 goto retnull;
@@ -5322,8 +5318,7 @@ elem *doptelem(elem *e, goal_t goal)
 
 void postoptelem(elem *e)
 {
-    int linnum = 0;
-    const char *filename = NULL;
+    Srcpos pos = {0};
 
     elem_debug(e);
     while (1)
@@ -5333,10 +5328,8 @@ void postoptelem(elem *e)
             /* This is necessary as the optimizer tends to lose this information
              */
 #if MARS
-            if (e->Esrcpos.Slinnum > linnum)
-            {   linnum = e->Esrcpos.Slinnum;
-                filename = e->Esrcpos.Sfilename;
-            }
+            if (e->Esrcpos.Slinnum > pos.Slinnum)
+                pos = e->Esrcpos;
 #endif
             if (e->Eoper == OPind)
             {
@@ -5344,7 +5337,7 @@ void postoptelem(elem *e)
                 if (e->E1->Eoper == OPconst &&
                     el_tolong(e->E1) >= 0 && el_tolong(e->E1) < 4096)
                 {
-                    error(filename, linnum, "null dereference in function %s", funcsym_p->Sident);
+                    error(pos.Sfilename, pos.Slinnum, pos.Scharnum, "null dereference in function %s", funcsym_p->Sident);
                     e->E1->EV.Vlong = 4096;     // suppress redundant messages
                 }
 #endif
@@ -5356,10 +5349,8 @@ void postoptelem(elem *e)
 #if MARS
             /* This is necessary as the optimizer tends to lose this information
              */
-            if (e->Esrcpos.Slinnum > linnum)
-            {   linnum = e->Esrcpos.Slinnum;
-                filename = e->Esrcpos.Sfilename;
-            }
+            if (e->Esrcpos.Slinnum > pos.Slinnum)
+                pos = e->Esrcpos;
 #endif
             if (e->Eoper == OPparam)
             {
