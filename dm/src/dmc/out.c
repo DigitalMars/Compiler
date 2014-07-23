@@ -1162,7 +1162,7 @@ STATIC void writefunc2(symbol *sfunc)
     }
     else
     {
-        //printf("blockopt()\n");
+        //dbg_printf("blockopt()\n");
         blockopt(0);                    /* optimize                     */
     }
 
