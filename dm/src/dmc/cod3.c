@@ -2213,6 +2213,8 @@ code* gen_testcse(code *c, unsigned sz, targ_uns i)
                 FLcs,i, FLconst,(targ_uns) 0);
     if ((I64 || I32) && sz == 2)
         c->Iflags |= CFopsize;
+    if (I64 && sz == 8)
+        code_orrex(c, REX_W);
     return c;
 }
 
@@ -4150,7 +4152,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     objmod->pubdef(cseg,sthunk,sthunk->Soffset);
 #endif
 #if TARGET_WINDOS
-    if (config.exe == EX_WIN64)
+    if (config.objfmt == OBJ_MSCOFF)
         objmod->pubdef(cseg,sthunk,sthunk->Soffset);
 #endif
     searchfixlist(sthunk);              /* resolve forward refs */
