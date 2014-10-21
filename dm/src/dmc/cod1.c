@@ -2506,8 +2506,8 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
             /* Structs occupy a general purpose register, regardless of the struct
              * size or the number & types of its fields.
              */
-            t = NULL;
             ty = TYnptr;
+            t = NULL;
         }
         else
         {

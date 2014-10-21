@@ -3116,6 +3116,9 @@ void elem_print(elem *e)
             case OPconst:
                 elem_print_const(e);
                 break;
+            case OPdctor:
+                dbg_printf(" %p",e->EV.ed.Edecl);
+                break;
 
             default:
                 break;
