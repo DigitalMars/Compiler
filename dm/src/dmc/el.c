@@ -2239,7 +2239,11 @@ elem *el_dctor(elem *e,void *decl)
     ector->Ety = TYvoid;
     ector->EV.ed.Edecl = decl;
     if (e)
+    {
         e = el_bin(OPinfo,e->Ety,ector,e);
+        if (tyaggregate(e->Ety))
+            e->ET = e->E2->ET;
+    }
     else
         /* Remember that a "constructor" may execute no code, hence
          * the need for OPinfo if there is code to execute.
@@ -3053,7 +3057,12 @@ void elem_print(elem *e)
   elem_debug(e);
   if (configv.addlinenumbers)
   {
+#if MARS
+        if (e->Esrcpos.Sfilename)
+            printf("%s(%u) ", e->Esrcpos.Sfilename, e->Esrcpos.Slinnum);
+#else
         e->Esrcpos.print("elem_print");
+#endif
   }
   if (!PARSER)
   {     dbg_printf("cnt=%d ",e->Ecount);

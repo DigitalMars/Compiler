@@ -754,10 +754,14 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             nextb = bs2;
             bl->Bcode = NULL;
         L2:
+            if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
+                !(funcsym_p->ty() & mTYnaked))
+            {
+                //printf("BCiftrue: %s(%u)\n", bl->Bsrcpos.Sfilename ? bl->Bsrcpos.Sfilename : "", bl->Bsrcpos.Slinnum);
+                cgen_linnum(&c,bl->Bsrcpos);
+            }
             if (nextb != bl->Bnext)
-            {   if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
-                    !(funcsym_p->ty() & mTYnaked))
-                    cgen_linnum(&c,bl->Bsrcpos);
+            {
                 assert(!(bl->Bflags & BFLepilog));
                 c = cat(c,genjmp(CNIL,JMP,FLblock,nextb));
             }
@@ -1415,6 +1419,8 @@ void doswitch(block *b)
                 gen2sib(ce,0x63,(REX_W << 16) | modregxrm(0,r2,4), modregxrmx(2,reg,r1)); // MOVSXD R2,[reg*4][R1]
                 gen2sib(ce,LEA,(REX_W << 16) | modregxrm(0,r1,4),modregxrmx(0,r1,r2));    // LEA R1,[R1][R2]
                 gen2(ce,0xFF,modregrmx(3,4,r1));                                          // JMP R1
+
+                pinholeopt(ce, NULL);
 
                 b->Btablesize = (int) (vmax - vmin + 1) * 4;
             }
@@ -5243,7 +5249,8 @@ void pinholeopt(code *c,block *b)
             }
 
             // Replace [R13] with 0[R13]
-            if (c->Irex & REX_B && (c->Irm & modregrm(3,0,5)) == modregrm(0,0,5))
+            if (c->Irex & REX_B && ((c->Irm & modregrm(3,0,7)) == modregrm(0,0,BP) ||
+                                    issib(c->Irm) && (c->Irm & modregrm(3,0,0)) == 0 && (c->Isib & 7) == BP))
             {
                 c->Irm |= modregrm(1,0,0);
                 c->IFL1 = FLconst;
