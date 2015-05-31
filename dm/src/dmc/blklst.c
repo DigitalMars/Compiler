@@ -1118,7 +1118,7 @@ L2:
  */
 
 #if 1
-#if 1 && TX86 && __SC__ && __INTSIZE == 4
+#if 1 && TX86 && __SC__
 
 __declspec(naked) unsigned egchar()
 {
@@ -1149,36 +1149,6 @@ L3:     push    EAX
         mov     EAX,xc
         ret
     }
-}
-
-#elif TX86 && __SC__ && __INTSIZE == 2
-
-unsigned egchar()
-{
-    _asm
-    {
-        les     BX,btextp
-        mov     AL,ES:[BX]
-        xor     AH,AH
-        mov     xc,AX
-        test    AL,AL
-        jle     L1
-L2:     inc     BX
-        mov     word ptr btextp,BX
-        cmp     byte ptr switch_E,AH
-        jne     L4
-        retf
-
-L1:     jz      L3
-        cmp     AL,0FFh
-        jne     L2
-    }
-L3:
-    return egchar2();
-
-L4:
-    explist(_AX);
-    return xc;
 }
 
 #else

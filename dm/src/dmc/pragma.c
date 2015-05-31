@@ -39,10 +39,8 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 // Other primes: 547,739,1009,2003,3001,4001,5003,6007,7001,8009
 #if _WIN32
 #define MACROHASHSIZE   2003            // size of macro hash table (prime)
-#elif __INTSIZE == 4
-#define MACROHASHSIZE   1009            // size of macro hash table (prime)
 #else
-#define MACROHASHSIZE   547             // size of macro hash table (prime)
+#define MACROHASHSIZE   1009            // size of macro hash table (prime)
 #endif
 
 // Convert hash to [0 .. MACROHASHSIZE-1]
@@ -284,7 +282,7 @@ static void (*pragfptab[PRMAX])() =
 
 int pragma_search(const char *id)
 {
-#if TX86 && __INTSIZE == 4 && !__GNUC__
+#if TX86 && !__GNUC__
     // Assume id[] is big enough to do this
     if (((int *)id)[0] == 'ifed' &&
         ((((char*)id)[7] = 0),(((int *)id)[1] == 'en'))
@@ -392,7 +390,7 @@ macro_t * macfind()
   char c;
   int len;
 
-#if 0 && TX86 && __INTSIZE == 4 && !defined(_MSC_VER) && !M_UNIX
+#if 0 && TX86 && !defined(_MSC_VER) && !M_UNIX
     m = mactabroot[hashtoidx(idhash)]; /* root of macro table   */
     if (!m)
         return (macro_t *) NULL;
@@ -3893,8 +3891,6 @@ void pragma_hydrate_macdefs(macro_t **pmb,int flag)
 
 #if 0       // inlined for speed
             hash = comphash(p);
-#elif __INTSIZE == 2
-            hash = ((((int)c << 4) + len) << 6) + (p[len - 1] & 0x3F);;
 #else
             hash = ((((int)c << 8) + len) << 8) + (p[len - 1] & 0xFF);;
 #endif
@@ -4284,12 +4280,6 @@ STATIC void macrotable_balance(macro_t **ps)
     //dbg_printf("Number of macros = %d\n",nmacs);
     if (nmacs <= 2)
         return;
-
-#if __INTSIZE == 2
-    // Don't balance tree if we get 16 bit overflow
-    if (nmacs >= (unsigned)(0x10000 / sizeof(macro_t *)))
-        return;
-#endif
 
     if (nmacs > mac_dim)
     {

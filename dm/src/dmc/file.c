@@ -513,7 +513,6 @@ STATIC void file_openread(const char *name,blklst *b)
     int fd;
 
     //printf("file_openread('%s')\n",name);
-    assert(__INTSIZE == 4);
 
     newname = file_nettranslate(name,"rb");
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__

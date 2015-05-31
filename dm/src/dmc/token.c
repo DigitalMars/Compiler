@@ -2546,11 +2546,7 @@ void inident()
     int err = FALSE;
     char *p = &tok_ident[0];
 
-#if __INTSIZE == 2
-    idhash = xc << 10;
-#else
     idhash = xc << 16;
-#endif
     // printf("inident xc '%c', bl %x\n",xc,bl);
     *p++ = xc;
     while (isidchar(egchar()))
@@ -2569,11 +2565,7 @@ void inident()
     }
     *p = 0;                             /* terminate string             */
     //printf("After inident xc '%c', bl %x, id %s\n",xc,bl,tok_ident);
-#if __INTSIZE == 2
-    idhash += ((p - tok_ident) << 6) + (*(p - 1) & 0x3F);
-#else
     idhash += ((p - tok_ident) << 8) + (*(p - 1) & 0xFF);
-#endif
 }
 #endif
 
@@ -2659,13 +2651,8 @@ Lerr:
     lexerr(EM_badtoken);
 Ldone:
     *p = 0;
-#if __INTSIZE == 2
-    idhash = tok_ident[0] << 10;
-    idhash += ((p - tok_ident) << 6) + (*(p - 1) & 0x3F);
-#else
     idhash = tok_ident[0] << 16;
     idhash += ((p - tok_ident) << 8) + (*(p - 1) & 0xFF);
-#endif
 }
 
 /*********************************
@@ -2677,13 +2664,9 @@ unsigned comphash(const char *p)
 {       int idlen;
 
         idlen = strlen(p);
-#if __INTSIZE == 2
-        return (((*p << 4) + idlen) << 6) + (p[idlen - 1] & 0x3F);;
-#else
         return (((*p << 8) + idlen) << 8) + (p[idlen - 1] & 0xFF);;
-#endif
 }
-
+
 /**************************************
  * Read in a number.
  * If it's an integer, store it in tok.TKutok.Vlong.
@@ -3462,7 +3445,7 @@ bool iswhite(int c)                     /* is c white space?            */
  *      else -1
  */
 
-#if !(TX86 && __INTSIZE == 4 && __SC__ && !_DEBUG_TRACE)
+#if !(TX86 && __SC__ && !_DEBUG_TRACE)
 
 int binary(const char *p, const char * *table,int high)
 { int low,mid;

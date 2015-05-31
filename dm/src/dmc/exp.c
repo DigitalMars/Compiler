@@ -593,7 +593,7 @@ Lret:
  *      e1   e2
  */
 
-#if 0 //&& !CPP  && __SC__ && __INTSIZE == 4 && TX86 && !_DEBUG_TRACE
+#if 0 //&& !CPP  && __SC__ && TX86 && !_DEBUG_TRACE
 
 STATIC __declspec(naked) elem * inc_or_exp()
 {
@@ -659,7 +659,7 @@ STATIC elem *inc_or_exp()
  *      e1   e2
  */
 
-#if 0 //&& !CPP && __SC__ && __INTSIZE == 4 && TX86 && !_DEBUG_TRACE
+#if 0 //&& !CPP && __SC__ && TX86 && !_DEBUG_TRACE
 
 STATIC __declspec(naked) elem * xor_exp()
 {
@@ -727,7 +727,7 @@ STATIC elem *xor_exp()
  *      e1   e2
  */
 
-#if 0 //&& !CPP && __SC__ && __INTSIZE == 4 && TX86 && !_DEBUG_TRACE
+#if 0 //&& !CPP && __SC__ && TX86 && !_DEBUG_TRACE
 
 STATIC __declspec(naked) elem * and_exp()
 {

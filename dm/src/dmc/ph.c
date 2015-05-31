@@ -634,7 +634,7 @@ STATIC void ph_setadjust(Root *r)
 
 #if H_STYLE & H_COMPLEX
 
-#if TX86 && __INTSIZE == 4 && !defined(_MSC_VER)
+#if TX86 && !defined(_MSC_VER)
 __declspec(naked) void *ph_dehydrate(void *pp)
 {
     _asm
@@ -708,9 +708,6 @@ void *ph_dehydrate(void *pp)
 #ifdef DEBUG
             assert(i < ph_bufi);
 #endif
-#if defined(__I86__) && __INTSIZE == 2
-            if (FP_SEG(pb) == FP_SEG(p))
-#endif
             {
                 if (pb <= p && p < pb + PHBUFSIZE)
                 {
@@ -750,7 +747,7 @@ void *ph_dehydrate(void *pp)
  *      *pp
  */
 
-#if TX86 && __INTSIZE == 4 && !defined(_MSC_VER)
+#if TX86 && !defined(_MSC_VER)
 __declspec(naked) void *ph_hydrate(void *pp)
 {
     _asm
@@ -1908,9 +1905,6 @@ void *ph_calloc(size_t nbytes)
 void ph_free(void *p)
 {
     int i;
-#if defined(__I86__) && __INTSIZE == 2
-    unsigned short pseg = FP_SEG(p);
-#endif
 #if __GNUC__
     if (!p)
         return;
@@ -1931,9 +1925,6 @@ void ph_free(void *p)
         buf = ph_buf[i];
 
         if (
-#if defined(__I86__) && __INTSIZE == 2
-            FP_SEG(buf) == pseg &&
-#endif
             buf <= p && p < (void *)((char *)buf + PHBUFSIZE))
         {
 #if !__GNUC__                   // finish later
@@ -1968,9 +1959,6 @@ void * ph_realloc(void *p,size_t nbytes)
         assert(i < ph_bufi);
         buf = ph_buf[i];
         if (
-#if defined(__I86__) && __INTSIZE == 2
-            FP_SEG(buf) == FP_SEG(p) &&
-#endif
             buf <= p && p < (void *)((char *)buf + PHBUFSIZE))
         {   unsigned offset = (char *)p - (char *)buf;
             unsigned oldsize;

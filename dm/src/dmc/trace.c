@@ -100,11 +100,7 @@ static void trace_free(void *p);
 static void trace_place(Symbol *s,unsigned count);
 static void trace_merge();
 
-#if __INTSIZE == 4
 #define FARFP   __near
-#else
-#define FARFP   __far
-#endif
 
 __declspec(naked) void FARFP _trace_pro_n();
 __declspec(naked) void FARFP _trace_epi_n();
@@ -840,13 +836,6 @@ static void trace_merge()
 /////////////////////////////////////////////
 // Function called by trace code in function prolog.
 
-#if __INTSIZE == 2
-__declspec(naked) void FARFP _trace_pro_f()
-{
-    // Fall through to next function
-}
-#endif
-
 __declspec(naked) void FARFP _trace_pro_n()
 {
     /* Length of string is either:
@@ -859,7 +848,7 @@ __declspec(naked) void FARFP _trace_pro_n()
      *  ascii   string
      */
 
-#if __INTSIZE == 4 && _WIN32
+#if _WIN32
     __asm
     {
         pushad
@@ -883,7 +872,7 @@ __declspec(naked) void FARFP _trace_pro_n()
         popad
         ret
     }
-#elif __INTSIZE == 4    // should be DOS386
+#elif 1    // should be DOS386
     char __far *p;
     __asm
     {
@@ -957,16 +946,8 @@ __declspec(naked) void FARFP _trace_pro_n()
 /////////////////////////////////////////////
 // Function called by trace code in function epilog.
 
-#if __INTSIZE == 2
-__declspec(naked) void FARFP _trace_epi_f()
-{
-    // Fall through to next function
-}
-#endif
-
 __declspec(naked) void FARFP _trace_epi_n()
 {
-#if __INTSIZE == 4
     __asm
     {
         pushad
@@ -977,20 +958,6 @@ __declspec(naked) void FARFP _trace_epi_n()
         popad
         ret
     }
-#else
-    __asm
-    {
-        pusha
-        push    ES
-    }
-    trace_epi();
-    __asm
-    {
-        pop     ES
-        popa
-        retf
-    }
-#endif
 }
 
 }

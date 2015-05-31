@@ -278,13 +278,8 @@ void *util_malloc(unsigned n,unsigned size)
     unsigned long nbytes;
 
     nbytes = (unsigned long) n * (unsigned long) size;
-#if __INTSIZE == 2
-    if (nbytes & ~0xFFFF)
-        goto L1;
-#endif
     p = malloc(nbytes);
     if (!p && (size_t)nbytes)
-L1:
         err_nomem();
     return p;
 #endif
@@ -306,13 +301,8 @@ void *util_calloc(unsigned n,unsigned size)
     unsigned long nbytes;
 
     nbytes = (unsigned long) n * (unsigned long) size;
-#if __INTSIZE == 2
-    if (nbytes & ~0xFFFF)
-        goto L1;
-#endif
     p = calloc(n,size);
     if (!p && (size_t)nbytes)
-L1:
         err_nomem();
     return p;
 #endif
@@ -344,13 +334,8 @@ void *util_realloc(void *oldp,unsigned n,unsigned size)
     unsigned long nbytes;
 
     nbytes = (unsigned long) n * (unsigned long) size;
-#if __INTSIZE == 2              // check for 16 bit overflow
-    if (nbytes & ~0xFFFF)
-        goto L1;
-#endif
     p = realloc(oldp,nbytes);
     if (!p && (size_t)nbytes)
-L1:
         err_nomem();
     return p;
 #endif
