@@ -561,7 +561,7 @@ void cv_init()
 #endif
         cv_debtyp(d);
 }
-
+
 /////////////////////////// CodeView 4 ///////////////////////////////
 
 /***********************************
@@ -2162,6 +2162,7 @@ L1:
 #endif
 #if MARS
         case TYref:
+        case TYnref:
             attribute |= 0x20;          // indicate reference pointer
             tym = TYnptr;               // convert to C data type
             goto L1;                    // and try again
@@ -2226,7 +2227,7 @@ L1:
     assert(typidx);
     return typidx;
 }
-
+
 /******************************************
  * Write out symbol s.
  */
@@ -2617,6 +2618,7 @@ STATIC void cv4_func(Funcsym *s)
 #endif
             case TYnullptr:
             case TYnptr:
+            case TYnref:
                 if (I32)
                     goto case_eax;
                 else
@@ -2747,7 +2749,7 @@ STATIC void cv4_func(Funcsym *s)
 
     cv_outlist();
 }
-
+
 //////////////////////////////////////////////////////////
 
 /******************************************
@@ -2926,5 +2928,3 @@ unsigned cv_typidx(type *t)
 }
 
 #endif // !SPP
-
-

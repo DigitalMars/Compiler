@@ -1769,7 +1769,7 @@ elem * el_ptr_offset(symbol *s,targ_size_t offset)
 }
 
 #endif
-
+
 /*************************
  * Returns:
  *      !=0     elem evaluates right-to-left
@@ -2522,6 +2522,7 @@ L1:
 #endif
                     case TYnullptr:
                     case TYnptr:
+                    case TYnref:
 #if TARGET_SEGMENTED
                     case TYsptr:
                     case TYcptr:
@@ -2807,6 +2808,7 @@ L1:
 #endif
         case TYnptr:
         case TYnullptr:
+        case TYnref:
             if (NPTRSIZE == SHORTSIZE)
                 goto Ushort;
             if (NPTRSIZE == LONGSIZE)
@@ -3030,7 +3032,7 @@ void el_check(elem *e)
 }
 
 #endif
-
+
 /*******************************
  * Write out expression elem.
  */
@@ -3151,6 +3153,7 @@ case_tym:
 #endif
         case TYnullptr:
         case TYnptr:
+        case TYnref:
             if (NPTRSIZE == LONGSIZE)
                 goto L1;
             if (NPTRSIZE == SHORTSIZE)

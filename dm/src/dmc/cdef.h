@@ -435,7 +435,7 @@ typedef long double longdouble;
 #endif
 
 #define TOOFFSET(a,b)   (I32 ? TOLONG(a,b) : TOWORD(a,b))
-
+
 /***************************
  * Target machine data types as they appear on the host.
  */
@@ -622,7 +622,7 @@ Written by Walter Bright"
 #endif
 #endif
 #endif
-
+
 /**********************************
  * Configuration
  */
@@ -947,6 +947,8 @@ union eve
         targ_llong      Vllong;
         targ_ullong     Vullong;
         Cent            Vcent;
+        targ_float      Vfloat4[4];
+        targ_double     Vdouble2[2];
         targ_float      Vfloat;
         targ_double     Vdouble;
         targ_ldouble    Vldouble;
