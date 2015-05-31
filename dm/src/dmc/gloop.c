@@ -118,13 +118,12 @@ STATIC void elimspecwalk(elem **pn);
 static  bool addblk;                    /* if TRUE, then we added a block */
 
 /* is elem loop invariant?      */
-#define isLI(n) ((n)->Nflags & NFLli)
+inline int isLI(elem *n) { return n->Nflags & NFLli; }
 
 /* make elem loop invariant     */
-#define makeLI(n) ((n)->Nflags |= NFLli)
+inline void makeLI(elem *n) { n->Nflags |= NFLli; }
 
 /******************************
- * UNAMBIG being defined means that:
  *      Only variables that could only be unambiguously defined
  *      are candidates for loop invariant removal and induction
  *      variables.
@@ -133,8 +132,6 @@ static  bool addblk;                    /* if TRUE, then we added a block */
  *      Doing this will still cover 90% (I hope) of the cases, and
  *      is a lot faster to compute.
  */
-
-#define UNAMBIG 1
 
 /****************************
  */
@@ -233,18 +230,18 @@ STATIC void freeloop(loop **pl)
  */
 
 int blockinit()
-{ register unsigned i;
-  register block *b;
+{ unsigned i;
+  block *b;
   int hasasm = 0;
 
   assert(dfo);
   for (i = 0, b = startblock; b; i++, b = b->Bnext)
   {
 #ifdef DEBUG                    /* check integrity of Bpred and Bsucc   */
-        register list_t blp;
+        list_t blp;
 
         for (blp = b->Bpred; blp; blp = list_next(blp))
-        {       register list_t bls;
+        {       list_t bls;
 
                 for (bls = list_block(blp)->Bsucc; bls; bls = list_next(bls))
                         if (list_block(bls) == b)
@@ -479,8 +476,8 @@ L1:
  * Add a block b and all its predecessors to loop lv.
  */
 
-STATIC void insert(register block *b, register vec_t lv)
-{ register list_t bl;
+STATIC void insert(block *b, vec_t lv)
+{ list_t bl;
 
   assert(b && lv);
   if (!vec_testbit(b->Bdfoidx,lv))      /* if block is not in loop      */
@@ -552,9 +549,9 @@ STATIC void insert(register block *b, register vec_t lv)
 
 STATIC int looprotate(loop *l)
 {
-    register    block *tail = l->Ltail;
-    register    block *head = l->Lhead;
-    register    block *b;
+       block *tail = l->Ltail;
+       block *head = l->Lhead;
+       block *b;
 
     //printf("looprotate(%p)\n",l);
 
@@ -586,8 +583,8 @@ STATIC int looprotate(loop *l)
     {   // Duplicate the header past the tail (but doing
         // switches would be too expensive in terms of code
         // generated).
-        register    block *head2;
-        register    list_t bl, *pbl2, *pbl, *pbln;
+           block *head2;
+           list_t bl, *pbl2, *pbl, *pbln;
 
         head2 = block_calloc(); // create new head block
         numblks++;                      // number of blocks in existence
@@ -731,7 +728,7 @@ restart:
         //if (debugc) l->print();
 #endif
         if (!l->Lpreheader)             /* if no preheader               */
-        {   register block *h, *p;
+        {   block *h, *p;
 
             cmes("Generating preheader for loop\n");
             addblk = TRUE;              /* add one                       */
@@ -744,7 +741,7 @@ restart:
             if (h == startblock)
                 startblock = p;
             else
-            {   register block *ph;
+            {   block *ph;
 
                 for (ph = startblock; 1; ph = ph->Bnext)
                 {   assert(ph);         /* should have found it         */
@@ -766,10 +763,10 @@ restart:
 
             // Move preds of h that aren't in the loop to preds of p
             for (bl = h->Bpred; bl;)
-            {   register block *b = list_block(bl);
+            {   block *b = list_block(bl);
 
                 if (!vec_testbit (b->Bdfoidx, l->Lloop))
-                {   register list_t bls;
+                {   list_t bls;
 
                     list_append(&(p->Bpred), b);
                     list_subtract(&(h->Bpred), b);
@@ -803,7 +800,7 @@ restart:
     cmes("Starting loop invariants\n");
 
     for (l = startloop; l; l = l->Lnext)
-    {   register unsigned i,j;
+    {   unsigned i,j;
 
 #ifdef DEBUG
         //if (debugc) l->print();
@@ -1085,9 +1082,7 @@ STATIC void markinvar(elem *n,vec_t rd)
                 /*    than the current def)                             */
                 if (isLI(n->E2) && n1->Eoper == OPvar)          /* 1 & 2 */
                 {   v = n1->EV.sp.Vsym;
-#if UNAMBIG
                     if (v->Sflags & SFLunambig)
-#endif
                     {
                         tmp = vec_calloc(deftop);
                         //filterrd(tmp,rd,v);
@@ -1195,9 +1190,7 @@ STATIC void markinvar(elem *n,vec_t rd)
                 break;
         case OPvar:
                 v = n->EV.sp.Vsym;
-#if UNAMBIG
                 if (v->Sflags & SFLunambig)     // must be unambiguous to be LI
-#endif
                 {
                     tmp = vec_calloc(deftop);
                     //filterrd(tmp,rd,v);       // only the RDs pertaining to v
@@ -1378,87 +1371,6 @@ STATIC void unmarkall(elem *e)
   }
 }
 
-/*******************************
- * Take a RD vector and filter out all RDs but
- * ones that are defs of symbol s.
- * Output:
- *      f
- */
-
-#if 0 // replaced by listrds()
-void filterrd(vec_t f,vec_t rd,symbol *s)
-{
-  register unsigned i;
-  register elem *n;
-
-  vec_copy(f,rd);
-#if UNAMBIG
-  foreach (i,deftop,f)                  /* for each def in f            */
-  {     n = defnod[i].DNelem;           /* the definition elem          */
-        elem_debug(n);
-        if (n->Eoper == OPasm)          // OPasm defs always reach (sigh)
-                continue;
-        /* Clear bit if it's not an unambiguous def of si               */
-        if (OTassign(n->Eoper))         /* if assignment elem           */
-        {       if (!(n->E1->Eoper == OPvar && n->E1->EV.sp.Vsym == s
-                   ))
-                        vec_clearbit(i,f);
-        }
-        else                            /* else ambiguous def           */
-            vec_clearbit(i,f);          // and couldn't def this var
-  }
-#else
-  assert(0);                            /* not implemented              */
-#endif
-}
-#endif
-
-/*******************************
- * Take a RD vector and filter out all RDs but
- * ones that are possible defs of OPind elem e.
- * Output:
- *      f
- */
-
-#if 0
-
-STATIC void filterrdind(vec_t f,vec_t rd,elem *e)
-{
-    unsigned i;
-    elem *n;
-    tym_t jty = e->Ejty;
-
-    vec_copy(f,rd);
-#if UNAMBIG
-    foreach (i,deftop,f)                // for each def in f
-    {   n = defnod[i].DNelem;           // the definition elem
-        elem_debug(n);
-        if (n->Eoper == OPasm)          // OPasm defs always reach (sigh)
-                continue;
-        // Clear bit if it's not an unambiguous def of si
-        if (OTassign(n->Eoper))         // if assignment elem
-        {       elem *n1 = n->E1;
-
-                if (n1->Eoper == OPind)
-                {
-                    if (jty && n1->Ejty && jty != n1->Ejty)
-                        vec_clearbit(i,f);
-                }
-                else if (n1->Eoper == OPvar)
-                {
-                    if (jty || n1->EV.sp.Vsym->Sflags & SFLunambig)
-                        vec_clearbit(i,f);
-                }
-        }
-        else if (OTcall(n->Eoper) && el_noreturn(n))
-            vec_clearbit(i,f);
-    }
-#else
-    assert(0);                          // not implemented
-#endif
-}
-
-#endif
 
 /********************************
  * Return TRUE if there are any refs of v in n before nstop is encountered.
@@ -1469,8 +1381,8 @@ STATIC void filterrdind(vec_t f,vec_t rd,elem *e)
 static int refstop;                     /* flag to stop refs()                  */
 
 STATIC bool refs(symbol *v,elem *n,elem *nstop)
-{ register bool f;
-  register unsigned op;
+{ bool f;
+  unsigned op;
 
   symbol_debug(v);
   elem_debug(n);
@@ -1479,7 +1391,6 @@ STATIC bool refs(symbol *v,elem *n,elem *nstop)
   assert(n);
 
   op = n->Eoper;
-#if UNAMBIG
   if (refstop == 0)
         return FALSE;
   f = FALSE;
@@ -1512,9 +1423,6 @@ STATIC bool refs(symbol *v,elem *n,elem *nstop)
   else if (op == OPasm)                 /* everything is referenced     */
         return TRUE;
   return f;
-#else
-  assert(0);
-#endif
 }
 
 /*************************
@@ -1551,10 +1459,10 @@ STATIC bool refs(symbol *v,elem *n,elem *nstop)
  */
 
 STATIC void movelis(elem *n,block *b,loop *l,int *pdomexit)
-{ register unsigned i,j,op;
-  register vec_t tmp;
-  register elem *ne,*t,*n2;
-  register list_t nl;
+{ unsigned i,j,op;
+  vec_t tmp;
+  elem *ne,*t,*n2;
+  list_t nl;
   symbol *v;
   tym_t ty;
 
@@ -1587,9 +1495,7 @@ Lnextlis:
             if (isLI(n) && n->E1->Eoper == OPvar)
             {   v = n->E1->EV.sp.Vsym;          // variable index number
 
-        #ifdef UNAMBIG
                 if (!(v->Sflags & SFLunambig)) goto L3;         // case 6
-        #endif
 
                 // If case 4 is not satisfied, return
 
@@ -1607,7 +1513,7 @@ Lnextlis:
                 if (!(*pdomexit & 1))                   // if not case 1
                 {
                     foreach (i,dfotop,l->Lexit)         // for each exit block
-                    {   register list_t bl;
+                    {   list_t bl;
 
                         for (bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
                         {   block *s;           // successor to exit block
@@ -1780,7 +1686,7 @@ L3:
         goto Lret;
 
 #if 0
-printf("*pdomexit = %d\n",*pdomexit);
+    printf("*pdomexit = %d\n",*pdomexit);
     if (*pdomexit & 2)
     {
         // If any indirections, can't LI it
@@ -1789,8 +1695,8 @@ printf("*pdomexit = %d\n",*pdomexit);
         // it pass.
         Symbol *s;
 
-printf("looking at:\n");
-elem_print(n);
+        printf("looking at:\n");
+        elem_print(n);
         s = el_basesym(n->E1);
         if (s)
         {
@@ -1800,15 +1706,15 @@ elem_print(n);
 
                 el = list_elem(nl);
                 el = el->E2;
-elem_print(el);
+                elem_print(el);
                 if (el->Eoper == OPind && el_basesym(el->E1) == s)
                 {
-printf("  pass!\n");
+                    printf("  pass!\n");
                     goto Lpass;
                 }
             }
         }
-printf("  skip!\n");
+        printf("  skip!\n");
         goto Lret;
 
     Lpass:
@@ -1911,7 +1817,7 @@ Lret:
  *      *pn     elem to append to
  */
 
-STATIC void appendelem(register elem *n,elem **pn)
+STATIC void appendelem(elem *n,elem **pn)
 {
   assert(n && pn);
   if (*pn)                                      /* if this elem exists  */
@@ -1971,11 +1877,11 @@ Iv *Iv::mycalloc()
  * Free iv list.
  */
 
-STATIC void freeivlist(register Iv *biv)
-{ register Iv *bivnext;
+STATIC void freeivlist(Iv *biv)
+{ Iv *bivnext;
 
   while (biv)
-  {     register famlist *fl,*fln;
+  {     famlist *fl,*fln;
 
         for (fl = biv->IVfamily; fl; fl = fln)
         {       el_free(fl->c1);
@@ -1999,7 +1905,7 @@ STATIC void freeivlist(register Iv *biv)
  */
 
 STATIC famlist * newfamlist(tym_t ty)
-{       register famlist *fl;
+{       famlist *fl;
         union eve c;
 
         memset(&c,0,sizeof(c));
@@ -2082,11 +1988,6 @@ STATIC famlist * newfamlist(tym_t ty)
             default:
                 c.Vlong = 1;
                 break;
-#if 0
-            default:
-                printf("ty = x%x\n", tybasic(ty));
-                assert(0);
-#endif
 #endif
         }
         fl->c1 = el_const(ty,&c);               /* c1 = 1               */
@@ -2110,7 +2011,7 @@ STATIC famlist * newfamlist(tym_t ty)
  * Loop invariant removal should have been done just previously.
  */
 
-STATIC void loopiv(register loop *l)
+STATIC void loopiv(loop *l)
 {
   cmes2("loopiv(%p)\n",l);
   assert(l->Livlist == NULL && l->Lopeqlist == NULL);
@@ -2216,7 +2117,7 @@ STATIC void findbasivs(loop *l)
 
   /* create list of IVs */
   foreach (i,globsym.top,poss)          /* for each basic IV            */
-  {     register Iv *biv;
+  {     Iv *biv;
         symbol *s;
 
         /* Skip if we don't want it to be a basic IV (see funcprev())   */
@@ -2350,7 +2251,7 @@ STATIC void findopeqs(loop *l)
 
     // create list of IVs
     foreach (i,globsym.top,poss)        // for each opeq IV
-    {   register Iv *biv;
+    {   Iv *biv;
         symbol *s;
 
         s = globsym.tab[i];
@@ -2407,10 +2308,10 @@ STATIC void findopeqs(loop *l)
  * Note that we do not do divides, because of roundoff error problems.
  */
 
-STATIC void findivfams(register loop *l)
-{ register Iv *biv;
-  register unsigned i;
-  register famlist *fl;
+STATIC void findivfams(loop *l)
+{ Iv *biv;
+  unsigned i;
+  famlist *fl;
 
   cmes2("findivfams(%p)\n",l);
   for (biv = l->Livlist; biv; biv = biv->IVnext)
@@ -2431,11 +2332,11 @@ STATIC void findivfams(register loop *l)
  *      pn      pointer to elem
  */
 
-STATIC void ivfamelems(register Iv *biv,register elem **pn)
-{ register unsigned op;
-  register tym_t ty,c2ty;
-  register famlist *f;
-  register elem *n,*n1,*n2;
+STATIC void ivfamelems(Iv *biv,elem **pn)
+{ unsigned op;
+  tym_t ty,c2ty;
+  famlist *f;
+  elem *n,*n1,*n2;
 
   assert(pn);
   n = *pn;
@@ -2497,7 +2398,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
         /* Look for function of basic IV (-biv or biv op const)         */
         if (n1->Eoper == OPvar && n1->EV.sp.Vsym == biv->IVbasic)
         {       if (op == OPneg)
-                {       register famlist *fl;
+                {       famlist *fl;
 
                         cmes2("found (-biv), elem %p\n",n);
                         fl = newfamlist(ty);
@@ -2509,7 +2410,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
                 }
                 else if (n2->Eoper == OPconst ||
                          isLI(n2) && (op == OPadd || op == OPmin))
-                {       register famlist *fl;
+                {       famlist *fl;
 
 #ifdef DEBUG
                         if (debugc)
@@ -2620,17 +2521,17 @@ STATIC void elimfrivivs(loop *l)
         famlist *fl;
         int nrefs;
 
-cmes("elimfrivivs()\n");
+        cmes("elimfrivivs()\n");
         /* Compute number of family ivs for biv */
         nfams = 0;
         for (fl = biv->IVfamily; fl; fl = fl->FLnext)
                 nfams++;
-cmes2("nfams = %d\n",nfams);
+        cmes2("nfams = %d\n",nfams);
 
         /* Compute number of references to biv  */
         if (onlyref(biv->IVbasic,l,*biv->IVincr,&nrefs))
                 nrefs--;
-cmes2("nrefs = %d\n",nrefs);
+        cmes2("nrefs = %d\n",nrefs);
         assert(nrefs + 1 >= nfams);
         if (nrefs > nfams ||            // if we won't eliminate the biv
             (!I16 && nrefs == nfams))
@@ -2675,7 +2576,7 @@ STATIC void intronvars(loop *l)
 
     cmes2("intronvars(%p)\n",l);
     for (biv = l->Livlist; biv; biv = biv->IVnext)      // for each basic IV
-    {   register elem *bivinc = *biv->IVincr;   /* ptr to increment elem */
+    {   elem *bivinc = *biv->IVincr;   /* ptr to increment elem */
 
         for (fl = biv->IVfamily; fl; fl = fl->FLnext)
         {                               /* for each IV in family of biv  */
@@ -2853,11 +2754,13 @@ L1:
                                     e2,
                                     el_copytree(fls->c2)));
         if (sz < tysize(tymin) && sz == tysize(e1->Ety))
+        {
 #if TARGET_SEGMENTED
             flse1->E2 = el_una(OPoffset,fl->FLty,flse1->E2);
 #else
             assert(0);
 #endif
+        }
 
         flse1 = doptelem(flse1,GOALvalue | GOALagain);
         fl->c2 = NULL;
@@ -2891,12 +2794,12 @@ L1:
  * Eliminate basic IVs.
  */
 
-STATIC void elimbasivs(register loop *l)
+STATIC void elimbasivs(loop *l)
 { famlist *fl;
-  register Iv *biv;
-  register unsigned i;
-  register tym_t ty;
-  register elem **pref,*fofe,*C2;
+  Iv *biv;
+  unsigned i;
+  tym_t ty;
+  elem **pref,*fofe,*C2;
   symbol *X;
   int refcount;
 
@@ -2941,18 +2844,13 @@ STATIC void elimbasivs(register loop *l)
                     flty = touns(flty);
 
                 if (ref->Eoper >= OPle && ref->Eoper <= OPge &&
-#if 1
                     !(tyuns(ref->E1->Ety) | tyuns(ref->E2->Ety)) &&
                      tyuns(flty))
-#else
-                    (tyuns(ref->E1->Ety) | tyuns(ref->E2->Ety)) !=
-                     tyuns(flty))
-#endif
                         continue;
 
                 /* if we have (e relop X), replace it with (X relop e)  */
                 if (ref->E2->Eoper == OPvar && ref->E2->EV.sp.Vsym == X)
-                {       register elem *tmp;
+                {       elem *tmp;
 
                         tmp = ref->E2;
                         ref->E2 = ref->E1;
@@ -3114,9 +3012,9 @@ STATIC void elimbasivs(register loop *l)
                 /*      prepend elem X=(T-c2)/c1 to S.Belem     */
 
                 foreach (i,dfotop,l->Lexit)     /* for each exit block  */
-                {       register elem *ne;
-                        register block *b;
-                        register list_t bl;
+                {       elem *ne;
+                        block *b;
+                        list_t bl;
 
                         for (bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
                         {                       /* for each successor   */
@@ -3156,7 +3054,7 @@ STATIC void elimbasivs(register loop *l)
                                 /* more than one predecessor to b.      */
                                 if (list_next(b->Bpred))
                                 {   block *bn;
-                                    register list_t bl2;
+                                    list_t bl2;
 
                                     bn = block_calloc();
                                     bn->Btry = b->Btry;
@@ -3196,8 +3094,8 @@ STATIC void elimbasivs(register loop *l)
         else if (refcount == 0)                 /* if no uses of IV in loop  */
         {       /* Eliminate the basic IV if it is not live on any successor */
                 foreach (i,dfotop,l->Lexit)     /* for each exit block       */
-                {       register block *b;
-                        register list_t bl;
+                {       block *b;
+                        list_t bl;
 
                         for (bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
                         {                       /* for each successor   */
@@ -3229,7 +3127,7 @@ STATIC void elimbasivs(register loop *l)
  * Eliminate opeq IVs that are not used outside the loop.
  */
 
-STATIC void elimopeqs(register loop *l)
+STATIC void elimopeqs(loop *l)
 {
     Iv *biv;
     unsigned i;
@@ -3435,7 +3333,7 @@ static elem **nd,*sincn;
 static symbol *X;
 
 STATIC elem ** onlyref(symbol *x,loop *l,elem *incn,int *prefcount)
-{ register unsigned i;
+{ unsigned i;
 
   //printf("onlyref('%s')\n", x->Sident);
   X = x;                                /* save some parameter passing  */
@@ -3473,7 +3371,7 @@ STATIC elem ** onlyref(symbol *x,loop *l,elem *incn,int *prefcount)
  *      flag:   TRUE if block wants to test the elem
  */
 
-STATIC void countrefs(register elem **pn,bool flag)
+STATIC void countrefs(elem **pn,bool flag)
 { elem *n = *pn;
 
   assert(n);
@@ -3533,7 +3431,7 @@ STATIC int countrefs2(elem *e)
  */
 
 STATIC void elimspec(loop *l)
-{ register unsigned i;
+{ unsigned i;
 
   foreach (i,dfotop,l->Lloop)           /* for each block in loop       */
   {     block *b;
