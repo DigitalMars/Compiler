@@ -110,7 +110,7 @@ int main(int argc,char *argv[])
                                         /* (use emulation only)         */
   }
 #endif
-#if (_MSDOS || __OS2__ || _WIN32) && !_WINDOWS
+#if _WIN32 && !_WINDOWS
     // Set unbuffered output in case output is redirected to a file
     // and we need to see how far it got before a crash.
     stdout->_flag |= _IONBF;

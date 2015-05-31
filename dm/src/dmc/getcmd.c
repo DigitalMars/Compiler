@@ -150,7 +150,7 @@ void getcmd(int argc,char **argv)
 #if SPP
     getcmd_cflags(&argc,&argv);         // handle CFLAGS
 #endif
-#if __SC__ && (_MSDOS || __OS2__ || _WIN32)
+#if __SC__ && _WIN32
     if (response_expand(&argc,&argv))   /* expand response files        */
         cmderr(EM_response_file);       // can't open response file
 #endif

@@ -507,7 +507,7 @@ if (expflag < 0) *(char*)0=0;
 char *filename_stringize(char *name)
 {   char *s;
     char *s2;
-#if _MSDOS || __OS2__ || _WIN32
+#if _WIN32
     int i;
     char *s3;
 

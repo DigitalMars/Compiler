@@ -28,7 +28,7 @@
 #include        "TG.h"
 #endif
 
-#if _MSDOS || __OS2__ || _WINDOWS
+#if _MSDOS || _WINDOWS
 #include        <dos.h>
 #endif
 
@@ -189,7 +189,7 @@ int ispow2(targ_ullong c)
 #if !(linux || __APPLE__ || __FreeBSD__ || __OpenBSD__)
 #if TX86
 
-#if _MSDOS || __OS2__ || _WIN32
+#if _MSDOS || _WIN32
 
 /********************************
  * Control C interrupts go here.
