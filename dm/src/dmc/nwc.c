@@ -1014,9 +1014,7 @@ L2:
         case TKshort:           tkwx = TKWshort;        goto L6;
         case TKint:             tkwx = TKWint;          goto L6;
         case TKlong:            tkwx = TKWlong;         goto L6;
-#if LONGLONG
         case TK_int64:          tkwx = TKWllong;        stoken(); goto L11;
-#endif
         case TKfloat:           tkwx = TKWfloat;        goto L6;
         case TKdouble:          tkwx = TKWdouble;       goto L6;
         case TK_Imaginary:      tkwx = TKWimaginary;    goto L6;
@@ -1031,7 +1029,6 @@ L2:
         L6:
             stoken();
         L8:
-#if LONGLONG
             if (tkw & tkwx & TKWlong)   // recognize "long long"
             {   tkw &= ~TKWlong;
                 tkwx = TKWllong;
@@ -1047,12 +1044,6 @@ L2:
             else
                 tkw |= tkwx;
             goto L2;
-#else
-            if (tkw & tkwx)
-                goto error;             /* illegal combination of types */
-            tkw |= tkwx;
-            goto L2;
-#endif
 
 #if TARGET_MAC
         case TK__pascal:

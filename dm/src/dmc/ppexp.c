@@ -54,11 +54,7 @@ int pragma_option(void);
  *      Root element of expression tree.
  */
 
-#if LONGLONG
 targ_llong msc_getnum()
-#else
-targ_long msc_getnum()
-#endif
 { targ_long e;
 
   e = cond_exp();

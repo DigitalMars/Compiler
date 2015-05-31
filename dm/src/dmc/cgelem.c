@@ -132,9 +132,6 @@ int elemisone(elem *e)
             case TYllong:
             case TYullong:
             case TYnullptr:
-#if JHANDLE
-            case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
@@ -198,9 +195,6 @@ int elemisnegone(elem *e)
             case TYullong:
             case TYnullptr:
             case TYnptr:
-#if JHANDLE
-            case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
@@ -3510,13 +3504,11 @@ STATIC elem * eleq(elem *e, goal_t goal)
                     es->EV.Vlong = 0x80000000;
                     break;
                 case DOUBLESIZE:
-#if LONGLONG
                     if (I32)
                     {   ty = TYllong;
                         es->EV.Vllong = 0x8000000000000000LL;
                         break;
                     }
-#endif
                 default:
                     el_free(es);
                     goto L8;

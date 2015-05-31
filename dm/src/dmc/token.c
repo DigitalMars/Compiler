@@ -2910,11 +2910,7 @@ done:
     if (i == 1 && (state == STATE_decimal || state == STATE_0))
         tok.TKutok.Vllong = tok_string[0] - '0';
     else
-#if LONGLONG
-    tok.TKutok.Vllong = strtoull(tok_string,NULL,base); /* convert string to integer    */
-#else
-    tok.TKutok.Vlong = strtoul(tok_string,NULL,base); /* convert string to integer      */
-#endif
+        tok.TKutok.Vllong = strtoull(tok_string,NULL,base); /* convert string to integer    */
     if (errno == ERANGE)                /* if overflow                  */
         lexerr(EM_badnumber);           // overflow
 
