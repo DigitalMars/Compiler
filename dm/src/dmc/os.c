@@ -803,9 +803,6 @@ err2:
 err:
     return 1;
 #endif
-#if _MSDOS
-    return 1;
-#endif
 }
 
 /********************************
@@ -851,9 +848,6 @@ int file_createdirs(char *name)
     }
 
 Lfail:
-    return 1;
-#endif
-#if _MSDOS
     return 1;
 #endif
 }

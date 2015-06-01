@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1993 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -28,7 +28,7 @@
 #include        "TG.h"
 #endif
 
-#if _MSDOS || _WINDOWS
+#if _WINDOWS
 #include        <dos.h>
 #endif
 
@@ -189,7 +189,7 @@ int ispow2(targ_ullong c)
 #if !(linux || __APPLE__ || __FreeBSD__ || __OpenBSD__)
 #if TX86
 
-#if _MSDOS || _WIN32
+#if _WIN32
 
 /********************************
  * Control C interrupts go here.

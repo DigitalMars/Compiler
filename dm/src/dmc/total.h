@@ -2,7 +2,7 @@
 #include        <time.h>
 #include        <string.h>
 #include        <stdlib.h>
-#if _WIN32 || _MSDOS
+#if _WIN32
 #include        <dos.h>
 #endif
 
