@@ -319,7 +319,6 @@ tym_t tym_conv(type *t)
         case TYmemptr:
             switch (tybasic(t->Tnext->Tty))
             {
-                T68000(case TYpsfunc:)
                 case TYffunc:
                 case TYfpfunc:
 #if TX86

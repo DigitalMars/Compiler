@@ -298,7 +298,6 @@ void afopen(char *p,blklst *bl,int flag)
         list_append(&srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFfillist,*bl->BLsrcpos.Sfilptr);
     }
 
-#if !TARGET_68000
     if (configv.verbose)
         NetSpawnFile(p,(flag & FQsystem) ? -(includenest + 1) : includenest);
     includenest++;
@@ -311,7 +310,7 @@ void afopen(char *p,blklst *bl,int flag)
         buffer[i] = 0;
         dbg_printf("%s'%s'\n",buffer,p);
     }
-#endif
+
     if (fdep && !(flag & FQsystem))
     {
         //fprintf(fdep, "%s ", p);

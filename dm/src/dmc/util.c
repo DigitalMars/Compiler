@@ -41,11 +41,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 #if TX86
 
-#if __SC__ && !TARGET_68000 && !DEBUG
-/* disable library versions from being linked in */
-//void __cdecl _fltused() { }
-#endif
-
 /*******************************
  * Alternative assert failure.
  */
@@ -99,10 +94,6 @@ void util_exit(int exitcode)
             fclose(fdep);
         if (flst)
             fclose(flst);
-#if 0
-        file_remove(fdepname);
-        file_remove(flstname);          // delete corrupt output file
-#endif
 #if SPP
         if (fout)
             fclose(fout);               // don't care if fclose fails
@@ -148,7 +139,7 @@ char *unsstr(unsigned i)
  * Hex digit?
  */
 
-#ifndef __ZTC__
+#ifndef __DMC__
 int ishex(int c)
 { return isdigit(c) || isxdigit(c); }
 #endif

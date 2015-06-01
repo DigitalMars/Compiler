@@ -205,7 +205,6 @@ void func_body(symbol *s)
   symlist_t plist;
   elem *e;
   tym_t ety;
-  T68000(Srcpos save_offset;)
   func_t *f;
   symbol *svirtbase;
   unsigned param;
@@ -548,8 +547,6 @@ void func_body(symbol *s)
     }
     else
         param_free(&paramlst);
-
-    T68000(funcsym_p = s;)
 
     assert(!CPP || globsym.top == 0);           // no local symbols yet
 

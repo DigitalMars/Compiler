@@ -1319,12 +1319,10 @@ STATIC type * strdcllst(Classsym *stag,int flags)
                         !tyfunc(memtype->Tty) ||
                         /* Destructor can't have parameters     */
                         ((destructor | invariant) && memtype->Tparamtypes) ||
-                        T68000((memtype->Tty & (mTYconst | mTYvolatile)) ||)
                         !(destructor | invariant) &&
                             class_m & (mskl(SCvirtual) | mskl(SCextern)) ||
                         /* Destructors can be virtual   */
                         (destructor | invariant) && class_m & mskl(SCextern)
-                         T68000(|| (class_m & mskl(SCstatic)))
                        )
                     {   cpperr(EM_bad_ctor_dtor);       // illegal ctor/dtor declaration
                         constructor = FALSE;

@@ -460,7 +460,6 @@ STATIC elem * inline_args(elem *e,int *pn)
                             elem_print(e);
 #endif
                         assert(e->Eoper == OPcall || e->Eoper == OPcond || e->Eoper == OPinfo);
-                        T68000(e->Eflags &= ~EFstrctor;)/* do hidden param rewrite */
                         exp2_setstrthis(e,s,0,ecopy->ET);
                     }
                     else

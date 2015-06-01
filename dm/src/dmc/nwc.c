@@ -585,13 +585,9 @@ L1:
 
         declaration(flag);              // declare stuff of type
         output_func();                  /* write any queue'd functions  */
-        if (!CPP)
-        {
-            T68000(ext_term();)
-        }
     }
 }
-
+
 /******************* THUNKS *************************/
 
 #if THUNKS
@@ -729,7 +725,6 @@ void output_func()
         else
 #endif
         {
-            T68000(file_progress();)
             writefunc(s);
         }
     }
