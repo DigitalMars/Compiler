@@ -20,11 +20,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if DOS386
-#include <dos.h>
-#include <sys\stat.h>
-#endif
-
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -610,32 +605,6 @@ unsigned long os_unique()
     return x;
 }
 
-#elif DOS386
-
-//////////////////////////////////////////
-// Return a value that will hopefully be unique every time
-// we call it.
-
-unsigned long os_unique()
-{
-    if (cputype() >= 5)                 // if cpuid instruction supported
-    {
-        __asm
-        {
-                mov     EAX,1
-                cpuid
-                test    EDX,0x20        // is rdtsc supported?
-                jz      L1              // no
-                rdtsc
-        }
-    }
-    else
-    {
-L1:     time(NULL);
-    }
-    return _EAX;
-}
-
 #endif
 
 /*******************************************
@@ -659,13 +628,6 @@ int os_file_exists(const char *name)
     else
         result = 1;
     return result;
-#elif DOS386
-    struct FIND *find;
-
-    find = findfirst(name,FA_DIREC | FA_SYSTEM | FA_HIDDEN);
-    if (!find)
-        return 0;
-    return (find->attribute & FA_DIREC) ? 2 : 1;
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     struct stat buf;
 

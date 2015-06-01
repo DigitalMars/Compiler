@@ -205,32 +205,8 @@ static void __cdecl controlc_handler(void)
  * Trap control C interrupts.
  */
 
-#if 1
-#if __cplusplus
-extern "C" {
-#endif
-#undef __far
-extern int __cdecl _x32_memlock(void __far *,unsigned);
-extern int __cdecl _x32_memunlock(void __far *,unsigned);
-#if __cplusplus
-}
-#endif
-#else
-#undef __far
-int __cdecl _x32_memlock(void __far *p,unsigned l) {}
-int __cdecl _x32_memunlock(void __far *p,unsigned l) {}
-#endif
-
 void _STI_controlc()
 {
-#if DOS386
-  #undef __far
-  {
-    _x32_memlock((void __far *)controlc_handler,
-                (char *)_STI_controlc - (char *)controlc_handler);
-    _x32_memlock((void __far *)&controlc_saw,sizeof(controlc_saw));
-  }
-#endif
     //printf("_STI_controlc()\n");
     _controlc_handler = controlc_handler;
     controlc_open();                    /* trap control C               */
@@ -240,13 +216,6 @@ void _STD_controlc()
 {
     //printf("_STD_controlc()\n");
     controlc_close();
-#if DOS386
-  {
-    _x32_memunlock((void __far *)controlc_handler,
-                (char *)_STI_controlc - (char *)controlc_handler);
-    _x32_memunlock((void __far *)&controlc_saw,sizeof(controlc_saw));
-  }
-#endif
 }
 
 

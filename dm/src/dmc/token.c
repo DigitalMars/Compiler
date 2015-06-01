@@ -3477,10 +3477,6 @@ int binary(const char *p, const char * *table,int high)
 #define len high        // reuse parameter storage
     _asm
     {
-#if DOS386
-        mov     AX,DS
-        mov     ES,AX
-#endif
 
 ;First find the length of the identifier.
         xor     EAX,EAX         ;Scan for a 0.
@@ -3508,11 +3504,7 @@ L15:    lea     EAX,[EBX + EDX] ;EAX = low + high
         mov     EDI,table
         sar     EAX,1           ;mid = (low + high) >> 1;
         mov     ESI,p
-#if DOS386
-        mov     EDI,DS:[4*EAX+EDI] ;Load table[mid]
-#else
         mov     EDI,[4*EAX+EDI] ;Load table[mid]
-#endif
         mov     ECX,len         ;length of id
         repe    cmpsb
 
