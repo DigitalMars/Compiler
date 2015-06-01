@@ -207,9 +207,6 @@ typedef struct Srcpos
     const char *Sfilename;
     #define srcpos_name(p)      ((p)->Sfilename)
 #endif
-#if M_UNIX
-    short Sfilnum;              // file number
-#endif
 #if SOURCE_OFFSETS
     unsigned long Sfiloff;      // byte offset
 #endif

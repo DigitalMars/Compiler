@@ -13,19 +13,21 @@
 #include        <stdio.h>
 #include        <string.h>
 #include        <ctype.h>
-#if !HOST_UNIX && !(linux || __APPLE__ || __FreeBSD__ || __OpenBSD__)
-#include        <io.h>
-#include        <share.h>
-#endif
 #include        <stdlib.h>
 #include        <fcntl.h>
 #include        <time.h>
-#if M_UNIX || HOST_UNIX || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
-#include        <sys/stat.h>
-#include        <unistd.h>
-#else
+
+#if _WIN32 || _WIN64
+#include        <io.h>
+#include        <share.h>
 #include        <sys\stat.h>
 #endif
+
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#include        <sys/stat.h>
+#include        <unistd.h>
+#endif
+
 #include        "cc.h"
 #include        "parser.h"
 #include        "global.h"
@@ -49,11 +51,14 @@ static list_t file_list;
 #endif
 
 // File name extensions
-#if M_UNIX || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 char ext_obj[] = ".o";
-#else
+#endif
+
+#if _WIN32 || _WIN64
 char ext_obj[] = ".obj";
 #endif
+
 char ext_i[]   = ".i";
 char ext_dep[] = ".dep";
 char ext_lst[] = ".lst";
@@ -62,9 +67,7 @@ char ext_c[]   = ".c";
 char ext_cpp[] = ".cpp";
 char ext_sym[] = ".sym";
 char ext_tdb[] = ".tdb";
-#if HTOD
 char ext_dmodule[]   = ".d";
-#endif
 
 /*********************************
  * Open file for writing.
@@ -241,7 +244,6 @@ retry:
                 mem_free(fname);
             }
         }
-#if 1
         if (filespeccmp(filespecdotext(p),ext_hpp) == 0)
         {   // Chop off the "pp" and try again
             pext = p + strlen(p) - 2;
@@ -252,9 +254,6 @@ retry:
                 *pext = 'p';            // restore ".hpp"
             break;
         }
-#else
-        break;
-#endif
     }
 #if PATHSYSLIST
     if (__searchpath == pathsyslist)
@@ -514,7 +513,7 @@ STATIC void file_openread(const char *name,blklst *b)
     //printf("file_openread('%s')\n",name);
 
     newname = file_nettranslate(name,"rb");
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     fd = open(newname,O_RDONLY,S_IREAD);
 #else
     fd = _sopen(newname,O_RDONLY | O_BINARY,_SH_DENYWR);
@@ -555,7 +554,7 @@ STATIC void file_openread(const char *name,blklst *b)
         b->BLbuf = buf.buf;
         b->BLtext = b->BLbuf + 1;
         b->BLbufp = b->BLbuf + 3;
-#if !__GNUC__
+#if __DMC__
         buf = NULL;
 #endif
     }
@@ -576,10 +575,8 @@ STATIC void file_openread(const char *name,blklst *b)
     // File must end in LF. If it doesn't, make it.
     if (p[-1] != LF)
     {
-#if !HOST_MAC           // Mac editor does not always terminate last line
         if (ANSI && !CPP)
             lexerr(EM_no_nl);   // file must be terminated by '\n'
-#endif
         p[0] = LF;
         ++p;
     }
@@ -608,7 +605,7 @@ int readln()
     assert(bl);
     b->BLsrcpos.Slinnum++;              // line counter
 
-#if TX86 && !(linux || __APPLE__ || __FreeBSD__ || __OpenBSD__)
+#if TX86 && !(__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
         __asm
         {
                 mov     ESI,b
@@ -760,7 +757,7 @@ int readln()
                     }
                     p--;
                     b->BLsrcpos.Slinnum++;
-#if TX86 && !__GNUC__
+#if TX86 && __DMC__
                     _asm
                     {
                         mov     EDI,p
@@ -825,7 +822,7 @@ void wrtpos(FILE *fstream)
             p = eline;
             ptop = p + elini;
         }
-#if M_UNIX || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
         else if (fstream == stderr)     /* line already written to .LST */
 #else
         else if (fstream == stdout)     /* line already written to .LST */
@@ -987,7 +984,7 @@ int file_isdir(const char *fname)
 int file_exists(const char *fname)
 {
     //printf("file_exists(%s)\n", fname);
-#if __SC__
+#if _WIN32
     int result;
     char *newname;
 
@@ -999,7 +996,7 @@ int file_exists(const char *fname)
     else
         result = 0;
     return result;
-#elif HOST_UNIX || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     struct stat buf;
 
     return stat(fname,&buf) == 0;       /* file exists if stat succeeded */
@@ -1018,7 +1015,7 @@ int file_exists(const char *fname)
 long file_size(const char *fname)
 {
     //printf("file_size(%s)\n", fname);
-#if __SC__
+#if __DMC__
     long result;
     char *newname;
 
@@ -1126,7 +1123,7 @@ char *file_unique()
         p = (char *)malloc(len);
         //printf("malloc(%d) = %p\n",len,p);
         cstate.modname = p;
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
         snprintf(p,len,"__%s%lu",finname,getpid());
 #else
         sprintf(p,"?%%%s%lu",finname,os_unique());

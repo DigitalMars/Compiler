@@ -310,6 +310,29 @@ BUILDSRC= sppn.tra sccn.tra htodn.tra scppn.tra makefile posix.mak
 
 LICENSE= backendlicense.txt artistic.txt gpl.txt
 
+# D back end
+BACKSRC= cdef.h cc.h oper.h ty.h optabgen.c \
+	global.h code.h code_x86.h code_stub.h platform_stub.c \
+	type.h dt.h cgcv.h \
+	el.h iasm.h rtlsym.h \
+	bcomplex.c blockopt.c cg.c cg87.c cgxmm.c \
+	cgcod.c cgcs.c cgcv.c cgelem.c cgen.c cgobj.c \
+	cgreg.c var.c \
+	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
+	code.c symbol.c debug.c dt.c ee.c el.c \
+	evalu8.c go.c gflow.c gdag.c \
+	gother.c glocal.c gloop.c newman.c \
+	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
+	type.c melf.h mach.h mscoff.h bcomplex.h \
+	cdeflnx.h outbuf.h token.h tassert.h \
+	elfobj.c cv4.h dwarf2.h exh.h go.h \
+	dwarf.c dwarf.h cppman.c machobj.c \
+	strtold.c aa.h aa.c tinfo.h ti_achar.c \
+	md5.h md5.c ti_pvoid.c xmm.h ph2.c util2.c \
+	mscoffobj.c obj.h pdata.c cv8.c backconfig.c \
+	divcoeff.c \
+	backend.txt
+
 VERSION=857
 
 zip:
@@ -344,6 +367,10 @@ git: detab tolf $(BUILDSRC)
         $(SCP) $(TKSRC) $(SCPDIR)/Compiler/dm/src/dmc/tk
         $(SCP) $(SHELLSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/include
         $(SCP) $(LIBSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/lib
+
+gitback: detab tolf $(BACKSRC)
+        $(SCP) $(BACKSRC) walter@mercury:forks/dmd/
+
 
 ##################### SPECIAL BUILDS #####################
 
