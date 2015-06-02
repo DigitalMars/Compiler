@@ -369,7 +369,7 @@ git: detab tolf $(BUILDSRC)
         $(SCP) $(LIBSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/lib
 
 gitback: detab tolf $(BACKSRC)
-        $(SCP) $(BACKSRC) walter@mercury:forks/dmd/
+        $(SCP) $(BACKSRC) walter@mercury:forks/dmd/src/backend/
 
 
 ##################### SPECIAL BUILDS #####################
