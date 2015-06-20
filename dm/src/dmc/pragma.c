@@ -60,13 +60,6 @@ static macro_t **mac_array;
 static macro_t *premacdefs;             // threaded list of predefined macros
 #endif
 
-#if HOST_THINK
-#include        "callbacks.h"
-#include        "dataview.h"
-static macro_t **head_mactabroot;       /* root of precompiled header macro symbol table */
-#define strcmpl(s1,s2) strcmp(s1,s2)
-#endif
-
 void cppcomment(void);
 STATIC macro_t ** macinsert(const char *p , unsigned hashval);
 STATIC macro_t ** macfindparent(const char *p,unsigned hashval);
@@ -2575,7 +2568,7 @@ STATIC void prpragma()
                 if (level != 0)
                     preerr(EM_cseg_global);     // only at global scope
                 output_func();          /* flush pending functions */
-#if !SPP && !HOST_THINK
+#if !SPP
                 outcsegname(tok.TKid);
 #endif
                 ptoken();
@@ -2754,7 +2747,7 @@ STATIC void prpragma()
                     if (level != 0)
                         preerr(EM_cseg_global); // only at global scope
                     output_func();      /* flush pending functions */
-#if !SPP && !HOST_THINK
+#if !SPP
                     outcsegname(segname);
 #endif
                     mem_free(segname);
@@ -3016,9 +3009,7 @@ STATIC void prerror()
         egchar();
     }
     *p = 0;
-#if HOST_THINK
-    err_message("#error directive: %s",buffer);
-#elif HOST_MPW
+#if HOST_MPW
     err_message("# File %s; line %d # Error ",name,line,buffer);
 #else
     err_message("Error %s %d: %s",name,line,buffer);
@@ -3901,13 +3892,9 @@ void pragma_hydrate_macdefs(macro_t **pmb,int flag)
             {
                 if (!m)
                 {
-#if HOST_THINK
-                    if ((config.flags2 & CFG2phgen))
-#endif
-                    {   if (mb->ML || mb->MR)
-                            mb->ML = mb->MR = NULL;
-                        *mp = mb;
-                    }
+                    if (mb->ML || mb->MR)
+                        mb->ML = mb->MR = NULL;
+                    *mp = mb;
                     break;
                 }
                 macro_debug(m);
@@ -4029,10 +4016,6 @@ void pragma_hydrate(macro_t **pmactabroot)
             macro_hydrate(pmactabroot[i]);
         }
     }
-#if HOST_THINK
-    if (!(config.flags2 & CFG2phgen))
-        head_mactabroot = pmactabroot;
-#endif
     }
 
     // Run through the old macro table, and transfer any #defines in there
@@ -4073,8 +4056,6 @@ STATIC void macro_dehydrate(macro_t *m)
  * Hydrate a macro, including all it's children.
  * Sort the macros into the global macro table.
  * Discard macros that we don't need.
- * When rehydrating in THINK, don't insert into mactab, and don't change
- * precompiled header binary tree.
  */
 
 #if HYDRATE
@@ -4101,111 +4082,6 @@ STATIC void macro_hydrate(macro_t *mb)
 }
 #endif
 
-#if HOST_THINK
-static void macro_hydrate_loaded(macro_t *mb)
-{
-    while (mb) {
-        macro_t *ml,*mr;
-        ml = mb->ML;
-        mr = mb->MR;
-        /* Skip undefined or predefined macros  */
-        if ((mb->Mflags & (Mdefined | Mfixeddef)) == Mdefined) {
-            char *p;
-            unsigned hash;
-            int cmp;
-            macro_t *m,**mp;
-
-            if ((config.flags2 & CFG2phgen)) {
-                mb->MR = NULL;
-                mb->ML = NULL;
-            }
-            p = mb->Mid;
-            mb->Mflags |= Mnoheap;      /* not in heap          */
-
-            hash = comphash(p);
-
-            mp = &mactabroot[hashtoidx(hash)];  /* parent of root       */
-            m = *mp;                            /* root of macro table  */
-            while (m) {                         /* while more tree      */
-                if ((config.flags2 & CFG2phgen))
-                    *mp = mb;
-                cmp = strcmp(p,m->Mid);         /* compare identifiers  */
-                if (cmp == 0) {                 /* already there        */
-                    if (m->Mflags & Mdefined) {
-                        if (strcmp(m->Mtext,mb->Mtext) ||
-                            m->Mflags & (Minuse | Mfixeddef))
-                            preerr(EM_multiple_def,p);  // already defined
-                    }
-                    else {                      /* it was #undef'd      */
-                        assert(!m->Mflags & Mdefined);
-                        m->Mtext = mb->Mtext;
-                        m->Marglist = mb->Marglist;
-                        m->Mflags = (m->Mflags & Mnoheap) |
-                                    (mb->Mflags & ~Mnoheap);
-                    }
-                    break;
-                }
-                mp = (cmp < 0) ? &m->ML : &m->MR;       /* select correct child */
-                m = *mp;
-            }
-        }
-        macro_hydrate_loaded(ml);
-        mb = mr;
-    }
-}
-
-/*
- * Rehydrate an already loaded precompiled header. All we need to do here is
- * to hide macros that are undef'd in our current macro table but defined in
- * the precompiled header. This is not necessary for dataview compilation, since
- * this hiding has already taken place during regular compilation.
- */
-void
-pragma_hydrate_loaded(macro_t **pmactabroot)
-{
-    int i;
-
-    if (compile_state != kDataView) {
-        for (i = 0; i < MACROHASHSIZE; i++) {
-            macro_hydrate_loaded(pmactabroot[i]);
-        }
-    }
-    if (!(config.flags2 & CFG2phgen))
-        head_mactabroot = pmactabroot;
-}
-
-static void
-macro_hydrate_xsym(macro_t *m)
-{
-    while (m) {
-        ph_hydrate(&m->ML);
-        ph_hydrate(&m->MR);
-        ph_hydrate(&m->Mtext);
-        m->Marglist.hydrate();
-        macro_hydrate_xsym(m->ML);
-        m = m->MR;
-    }
-}
-
-/*
- * Rehydrate the XSYM's macro table. Presumably we've already loaded the
- * precompiled header macro table, and it's been placed in head_mactabroot.
- * We rehydrate as usual, and put the result in mactabroot.
- */
-void pragma_hydrate_xsym(macro_t **pmactabroot, short loaded)
-{
-    int i;
-
-    if (!loaded) {
-        for (i = 0; i < MACROHASHSIZE; i++) {
-            ph_hydrate(&pmactabroot[i]);
-            macro_hydrate_xsym(pmactabroot[i]);
-        }
-    }
-    mactabroot = pmactabroot;
-}
-#endif
-
 #if 1
 
 /*

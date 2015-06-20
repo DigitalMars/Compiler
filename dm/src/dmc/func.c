@@ -806,10 +806,6 @@ void paramtypadj(type **pt)
         t = tsldouble;
         break;
 #else
-#if HOST_THINK
-    case TYcomp:
-    case TYdouble:                      // necessary to mention TYdouble here?
-#endif
     case TYfloat:
         t = tsdouble;                   /* convert to double            */
         break;
@@ -2244,12 +2240,7 @@ STATIC void return_state()
            ))
                 synerr(EM_void_novalue);        // void has no value
 #if TARGET_68K
-#if HOST_THINK
-        /* only use long doubles for C++ functions */
-        if (tycppfunc(tf->Tty) && tyfloating(tybasic(tr->Tty)))
-#else
         if(!(typasfunc(tf->Tty)) && tyfloating(tybasic(tr->Tty)))
-#endif
             e = typechk(e,tsldouble);   /* return long doubles for C and C++ */
         else
 #endif

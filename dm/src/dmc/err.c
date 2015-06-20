@@ -1,5 +1,5 @@
 // Copyright (C) 1983-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -14,9 +14,6 @@
 
 
 #include        <stdio.h>
-#ifdef THINK_CPLUS
-#include        "transio.h"
-#endif
 #include        <stdlib.h>
 #include        <string.h>
 #include        <stdarg.h>

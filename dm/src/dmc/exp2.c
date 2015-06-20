@@ -1003,11 +1003,6 @@ PO1:
                 result = 1;
 PO2:
             if (!result)
-#if HOST_THINK
-                if (compile_state == kDataView)         /* debugger can violate access restrictions */
-                    return;
-                else
-#endif
                 cpperr(EM_not_accessible,cpp_prettyident(s),sclass->Sident);    /* no access to member */
             }
 #endif
@@ -2872,11 +2867,6 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
         el_settype(e,tsldouble);                /* C and C++ always return long double */
 #endif
 
-#if HOST_THINK
-  if (tyfloating(ty) && tycppfunc(tfunc->Tty))  /* C++ functions can use any return method they like */
-        el_settype(e,tsldouble);
-#endif
-
 #endif
 
   // For functions returning references, put a * in front
@@ -4128,12 +4118,7 @@ int typematch(type *t1,type *t2,int relax)
             (tybasic(t1ty) != TYstruct
                 && tybasic(t1ty) != TYenum
                 && tybasic(t1ty) != TYmemptr
-#if HOST_THINK
-        // cheat a little here to support forward referenced types in PH files
-             || (t1->Ttag == t2->Ttag || t1->Ttag->Stype->Ttag == t2->Ttag) )
-#else
              || t1->Ttag == t2->Ttag)
-#endif
                  &&
 
             (typematch(t1->Tnext,t2->Tnext,(relax & (4 | 2)) | 1)

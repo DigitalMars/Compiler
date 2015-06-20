@@ -711,20 +711,6 @@ void *ph_dehydrate(void *pp)
             {
                 if (pb <= p && p < pb + PHBUFSIZE)
                 {
-#if HOST_THINK
-                /* "relocate" references to precompiled header memory vs xsym
-                 * memory. Place precompiled header before xsym, and move
-                 * xsym after precompiled header.
-                 * This is unnecessary when generating a ph file.
-                 */
-                    if (!(config.flags2 & CFG2phgen) && i < (head_start + head_num))
-                    {
-                        if (i < head_start)     /* xsym memory before ph memory */
-                            i += head_num;
-                        else
-                            i -= head_start;    /* ph memory */
-                    }
-#endif
                     *(long *)pp = ((long)i * PHBUFSIZE + (p - pb)) | 1;
 #if PH_METRICS
                     hydrate_count++;

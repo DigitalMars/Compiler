@@ -28,10 +28,6 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-#if HOST_THINK
-#include        "callbacks.h"
-#endif
-
 /*********************** COMMON FUNCTIONS ********************/
 
 /*******************************

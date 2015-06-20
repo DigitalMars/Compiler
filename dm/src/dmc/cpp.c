@@ -544,11 +544,7 @@ elem *cpp_new(int global,symbol *sfunc,elem *esize,list_t arglist,type *tret)
         name = alloca_strdup2("_",t->Ttag->Sident);
         sa = scope_search(name,SCTglobal);
         if (t->Ttag != snew->Sscope)            /* inheriting the function so */
-#if HOST_THINK
-             sa = po_func_Methout(t->Ttag, SCextern);   /* define the pascal method table */
-#else
              sa = po_func_Methout(t->Ttag);
-#endif
         else if (!sa)                           /* function def will output table */
             sa = po_def_class(t->Ttag);         /* reference the pascal method table */
         sa->Smethod = t->Ttag;
@@ -3505,14 +3501,10 @@ void cpp_memberaccess(symbol *smember,symbol *sfunc,Classsym *sclass)
 {
     if (!cpp_memberaccesst(smember, sfunc, sclass))
     {
-#if HOST_THINK
-        if (compile_state != kDataView) // debugger can violate access restrictions
-#endif
-        {   char *p = (char *) MEM_PARF_STRDUP(cpp_prettyident(smember));
+        char *p = (char *) MEM_PARF_STRDUP(cpp_prettyident(smember));
 
-            cpperr(EM_not_accessible,p,cpp_prettyident(sclass));        // no access to member
-            MEM_PARF_FREE(p);
-        }
+        cpperr(EM_not_accessible,p,cpp_prettyident(sclass));        // no access to member
+        MEM_PARF_FREE(p);
     }
 }
 

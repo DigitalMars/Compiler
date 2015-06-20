@@ -13,10 +13,6 @@
 /* Read in characters from a block.                     */
 
 #include        <stdio.h>
-#ifdef THINK_CPLUS
-#include "transio.h"
-#endif
-
 #include        <string.h>
 #include        <malloc.h>
 

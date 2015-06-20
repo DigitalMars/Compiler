@@ -4249,10 +4249,6 @@ STATIC void n2_static(Classsym *stag,symbol *s)
 // were extern and the code was not used.  I have forced (through the #if 1 below)
 // all of them to be extern until we decide to re-enable the code below.
 // WB forced the same, so share the code
-/* In the THINK Shell, the linker can't resolve multiple data contributions
-   for a single data object. Instead, we force the user to conform to ANSI and
-   declare their static members outside of their class declaration.
- */
         /* NOBODY, including our tech support, seems to be able to figure
            this out, as I get repeated bug reports on it. So, I give up
            and we'll just do it the ansi c++ way.
@@ -4676,7 +4672,6 @@ void n2_genvtbl(Classsym *stag,enum SC sc,int flag)
         /* Don't generate vtbl[]        */
     }
 
-#if !HOST_THINK
     // Sharing vtbls is bad if your linker can't resolve multiply defined
     // names, as in Babel.
 
@@ -4694,7 +4689,6 @@ void n2_genvtbl(Classsym *stag,enum SC sc,int flag)
         n2_genvtbl(sbase,sc,flag);
         st->Svtbl = sbase->Sstruct->Svtbl;
     }
-#endif
     else if (st->Svirtual)
     {   /* Generate our own vtbl[] array        */
 

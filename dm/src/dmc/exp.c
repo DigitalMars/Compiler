@@ -2460,27 +2460,12 @@ if (!bColcol)
             goto L4;
 #else
         case TK_inf:
-#if HOST_THINK
-            if (PCrel_option & PC_THINKC_DBL)
-                tok.TKutok.Vldouble = INFINITY; /* rely on hosts's SANE engine for conversions */
-            else
-#endif
             tok.TKutok.Vdouble = INFINITY;
             goto L4;
         case TK_nan:
-#if HOST_THINK
-            if (PCrel_option & PC_THINKC_DBL)
-                tok.TKutok.Vldouble = NAN;
-            else
-#endif
             tok.TKutok.Vdouble = NAN;
             goto L4;
         case TK_nans:
-#if HOST_THINK
-            if (PCrel_option & PC_THINKC_DBL)
-                tok.TKutok.Vldouble = NANS;
-            else
-#endif
             tok.TKutok.Vdouble = NANS;
             goto L4;
 #endif
