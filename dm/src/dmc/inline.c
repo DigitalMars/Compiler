@@ -487,7 +487,7 @@ STATIC elem * inline_args(elem *e,int *pn)
 
 STATIC void inline_expandwalk(elem *e)
 {
-#if __SC__
+#if __DMC__
     _chkstack();
 #endif
     while (1)

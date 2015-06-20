@@ -32,7 +32,7 @@
 #include        <dos.h>
 #endif
 
-#if __SC__ && !(TARGET_MAC)
+#if __DMC__ && !(TARGET_MAC)
 #include        <controlc.h>
 #endif
 

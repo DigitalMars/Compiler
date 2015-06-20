@@ -1118,7 +1118,7 @@ L2:
  */
 
 #if 1
-#if 1 && TX86 && __SC__
+#if 1 && TX86 && __DMC__
 
 __declspec(naked) unsigned egchar()
 {

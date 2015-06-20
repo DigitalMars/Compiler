@@ -3249,7 +3249,7 @@ STATIC enum_TK inreal(const char *p)
 done:
     tok_string[i] = 0;
     errno = 0;
-#if _WIN32 && __SC__
+#if _WIN32 && __DMC__
     char *save = __locale_decpoint;
     __locale_decpoint = ".";
 #endif
@@ -3284,7 +3284,7 @@ done:
             result = TKreal_d;
             break;
     }
-#if _WIN32 && __SC__
+#if _WIN32 && __DMC__
     __locale_decpoint = save;
 #endif
     // ANSI C99 says let it slide
@@ -3445,7 +3445,7 @@ bool iswhite(int c)                     /* is c white space?            */
  *      else -1
  */
 
-#if !(TX86 && __SC__ && !_DEBUG_TRACE)
+#if !(TX86 && __DMC__ && !_DEBUG_TRACE)
 
 int binary(const char *p, const char * *table,int high)
 { int low,mid;
