@@ -2415,19 +2415,11 @@ STATIC int escape()
         switch (i)
         {
             case 'a':   i = 007; break;
-#if HOST_MPW
-            case 'n':   i = 015; break;
-#else
             case 'n':   i = 012; break;
-#endif
             case 't':   i = 011; break;
             case 'b':   i = 010; break;
             case 'v':   i = 013; break;
-#if HOST_MPW
-            case 'r':   i = 012; break;
-#else
             case 'r':   i = 015; break;
-#endif
             case 'f':   i = 014; break;
             case 'x':
                         if (!ishex(xc))

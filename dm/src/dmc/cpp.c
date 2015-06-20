@@ -94,13 +94,8 @@ char cpp_name_initvbases[] = "$initVBases";
 char cpp_name_invariant[] = "__invariant";
 
 #if TARGET_MAC
-#if HOST_MPW
-char cpp_name_pasnew[]  = "__nw__12PascalObjectSFPFv_vUi";
-char cpp_name_pasdel[] = "__dl__12PascalObjectSFPPv";
-#else
 char cpp_name_pasnew[]  = "__nw__12PascalObjectFPvUi";
 char cpp_name_pasdel[] = "__dl__12PascalObjectFPv";
-#endif
 #endif
 
 /***********************************

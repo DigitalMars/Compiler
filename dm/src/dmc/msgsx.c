@@ -2736,19 +2736,11 @@ struct Msgtable msgtable[] =
         "šberlagerungs-, Typkonvertierungs- oder Operator-Funktion nicht zul„ssig", /* CPP+94 */
         "appel d'informations de type, conversion de type ou fonction op‚rateur non autoris‚", /* CPP+94 */
   },
-#if HOST_MPW
-  { "vtbl_redecl",
-        "dump file requirement: vtable key function '%s' cannot be redeclared inline", /* CPP+95 */
-        "Speicherauszugsdatei: Vtable-Schlsselfunktion '%s' kann nicht als 'inline' redeklariert werden", /* CPP+95 */
-        "exigence du fichier de vidage : la fonction cl‚ vtable '%s' ne doit pas ˆtre red‚clar‚e de type inline", /* CPP+95 */
-  },
-#else
   { "vtbl_redecl",
         "vtable key function '%s' cannot be redeclared inline in precompiled header", /* CPP+95 */
         "Vtable-Schlsselfunktion '%s' kann nicht in vorkompiliertem Header als 'inline' redeklariert werden", /* CPP+95 */
         "a fonction cl‚ vtable '%s' ne doit pas ˆtre red‚clar‚e de type inline dans un en-tˆte pr‚compil‚", /* CPP+95 */
   },
-#endif
   { "vtbl_inline",
         "vtable key function '%s' redeclared inline (vtable will be static)", /* CPP+96 */
         "Vtable-Schlsselfunktion '%s' als 'inline' redeklariert (Vtable knftig statisch)", /* CPP+96 */

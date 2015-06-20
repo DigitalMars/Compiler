@@ -2199,19 +2199,11 @@ STATIC elem * defaultpromotions(elem *e)
         switch (tybasic(e->ET->Tty))
         {
 #if TARGET_MAC
-#if HOST_MPW
-            case TYfloat:
-            case TYdouble:
-            case TYcomp:
-                t = tsldouble;
-                break;
-#else
             case TYfloat:
             case TYdouble:
             case TYcomp:
                     t = tsdouble;               /* double is smaller size */
                 break;
-#endif
 #else
             case TYfloat:
                 t = tsdouble;
@@ -2860,14 +2852,6 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
         }
         e = el_unat(OPind,t,e);
   }
-
-#if (TARGET_68K)
-#if HOST_MPW
-  if (tyfloating(ty) && !typasfunc(tfunc->Tty))
-        el_settype(e,tsldouble);                /* C and C++ always return long double */
-#endif
-
-#endif
 
   // For functions returning references, put a * in front
   else if (tyref(t->Tty))

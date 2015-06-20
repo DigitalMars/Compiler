@@ -3009,11 +3009,7 @@ STATIC void prerror()
         egchar();
     }
     *p = 0;
-#if HOST_MPW
-    err_message("# File %s; line %d # Error ",name,line,buffer);
-#else
     err_message("Error %s %d: %s",name,line,buffer);
-#endif
     err_exit();
 }
 
