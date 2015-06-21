@@ -440,17 +440,6 @@ void func_body(symbol *s)
 #if SOURCE_4PARAMS
         sp->Ssrcpos = p->Psrcpos;
 #endif
-#if TARGET_68K
-        if (tybasic(sp->Stype->Tty) == TYfloat)
-                {   elem *ec;
-
-                ec = el_var(sp);
-                el_settype(ec,tsldouble);
-                ec = el_unat(OPdblsflt,tsfloat,ec);
-                e = el_combine(e,el_bint(OPeq,tsfloat,el_var(sp),ec));
-                sp->Sflags |= SFLdouble;
-                }
-#else
         if (tybasic(sp->Stype->Tty) == TYfloat)
         {   elem *ec;
 
@@ -461,7 +450,6 @@ void func_body(symbol *s)
             e = el_combine(e,el_bint(OPeq,tsfloat,el_var(sp),ec));
             sp->Sflags |= SFLdouble;
         }
-#endif
         tp = p->Ptype;
         tp->Tcount++;                   // create copy before adjustment
         if (!typtr(p->Ptype->Tty))
@@ -2193,11 +2181,6 @@ STATIC void return_state()
             || funcsym_p->Sfunc->Fflags & (Fctor | Fdtor | Finvariant)
            ))
                 synerr(EM_void_novalue);        // void has no value
-#if TARGET_68K
-        if(!(typasfunc(tf->Tty)) && tyfloating(tybasic(tr->Tty)))
-            e = typechk(e,tsldouble);   /* return long doubles for C and C++ */
-        else
-#endif
         if (funcsym_p->Sfunc->Fflags3 & F3badoparrow)
             e = el_bint(OPcomma,tr,e,el_longt(tr,0));
         e = typechk(e,tr);
