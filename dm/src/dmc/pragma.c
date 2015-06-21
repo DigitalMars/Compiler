@@ -2608,29 +2608,6 @@ STATIC void prpragma()
                 }
                 break;
 
-#if TARGET_POWERPC
-            case PRXoptions:
-                if (tok.TKval != TKident || strcmp( tok.TKid, "align" ) )
-                    goto err;
-                ptoken();
-                if (tok.TKval != TKeq)
-                    goto err;
-                ptoken();
-                if (tok.TKval != TKident)
-                    goto err;
-                if (!strcmp(tok.TKid, "mac68k"))
-                    structalign = 1;            // #pragma align 2 equivalent
-                else
-                if (!strcmp(tok.TKid, "reset" ))
-                    structalign = config.defstructalign;
-                else
-                if (!strcmp(tok.TKid, "power" ))
-                    structalign = 3;            // #pragma align 4 equivalent
-                else
-                    goto err;
-                break;
-#endif
-
             case PRXsetlocale:
                 prstring(2);
                 return;

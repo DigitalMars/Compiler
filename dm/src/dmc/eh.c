@@ -28,10 +28,6 @@
 #include "code.h"
 #include "scope.h"
 
-#if TARGET_POWERPC // DJB
-#include "cgobjxcoff.h"
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 

@@ -2492,13 +2492,6 @@ STATIC elem * strarg(elem *e)
  *      call expression tree
  */
 
-#if TARGET_POWERPC
-// this is silly but i don't want to put this in parser.h and i don't understand
-//why tgexp2.c is included at the bottom instead of at the top but i don't want
-// to disrupt anybody so there.....
-extern elem * insert_hidden(type *, elem * , elem *);   // in tgexp2.c
-#endif
-
 elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
 {   type *tfunc;
     const char *funcid;
@@ -2750,12 +2743,7 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
                 e = el_bint(OPparam,tsint,ehidden,e);
             else
 #endif
-
-#if TARGET_POWERPC
-                e = insert_hidden(tsint, e, ehidden);
-#else
                 e = el_bint(OPparam,tsint,e,ehidden);
-#endif
         }
         else
             e = ehidden;
@@ -4386,24 +4374,10 @@ void impcnv(elem *e)
 
     assert(e && EBIN(e));
     elem_debug(e);
-#if TARGET_POWERPC
-    e1 = e->E1 = cpp_bool(e->E1, 0);
-    e2 = e->E2 = cpp_bool(e->E2, 0); /* perform integral promotions */
-
-    t1 = tybasic(e1->ET->Tty);
-    t2 = tybasic(e2->ET->Tty);
-    if (!tyfloating(t1)) {      // do default promotion only for non-floats
-        e1 = e->E1 = convertchk(e1);
-    }
-    if (!tyfloating(t2)) {      // do default promotion only for non-floats
-        e2 = e->E2 = convertchk(e2);
-    }
-#else
     e1 = e->E1 = convertchk(cpp_bool(e->E1, 0));
     e2 = e->E2 = convertchk(cpp_bool(e->E2, 0)); /* perform integral promotions */
     t1 = tybasic(e1->ET->Tty);
     t2 = tybasic(e2->ET->Tty);
-#endif
 
     if (!tyscalar(t1) || !tyscalar(t2))
     {
@@ -5359,12 +5333,7 @@ L1:
                 goto doaction;
         case LONG:      t = tslong;     goto retry;
         case ULONG:     t = tsulong;    goto retry;
-#if TARGET_POWERPC
-        case DOUBLE:    t = tsdouble;   goto retry;
-#else
-// 68k
         case DOUBLE:    t = tsldouble;  goto retry;
-#endif
         case INT:       t = tsshort;    goto retry;
         case UINT:      t = tsushort;   goto retry;
         retry:
