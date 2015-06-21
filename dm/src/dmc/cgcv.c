@@ -733,9 +733,7 @@ STATIC int cv4_methodlist(symbol *sf,int *pcount)
             case 0:
                 break;
             default:
-#ifdef DEBUG
                 symbol_print(s);
-#endif
                 assert(0);
         }
         TOIDX(p,attribute);
@@ -981,7 +979,7 @@ idx_t cv4_struct(Classsym *s,int flags)
         }
             break;
         default:
-#if DEBUG && SCPP
+#if SCPP
             symbol_print(s);
 #endif
             assert(0);

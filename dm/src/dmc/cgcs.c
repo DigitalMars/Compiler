@@ -215,10 +215,8 @@ STATIC void ecom(elem **pe)
     case OPnegass:
             if (EOP(e->E1))             /* if lvalue is an operator     */
             {
-#ifdef DEBUG
                 if (e->E1->Eoper != OPind)
                     elem_print(e);
-#endif
                 assert(e->E1->Eoper == OPind);
                 ecom(&(e->E1->E1));
             }
@@ -348,9 +346,7 @@ STATIC void ecom(elem **pe)
     case OPaddr:
     case OPbit:
         WROP(e->Eoper);
-#ifdef DEBUG
         elem_print(e);
-#endif
         assert(0);              /* optelem() should have removed these  */
         /* NOTREACHED */
 
@@ -529,10 +525,8 @@ STATIC void touchlvalue(elem *e)
                 hcstab[i].Helem = NULL;
     }
 
-#ifdef DEBUG
     if (!(e->Eoper == OPvar || e->Eoper == OPrelconst))
         elem_print(e);
-#endif
     assert(e->Eoper == OPvar || e->Eoper == OPrelconst);
     switch (e->EV.sp.Vsym->Sclass)
     {
@@ -560,10 +554,8 @@ STATIC void touchlvalue(elem *e)
             touchstar();
             break;
         default:
-#ifdef DEBUG
             elem_print(e);
             symbol_print(e->EV.sp.Vsym);
-#endif
             assert(0);
     }
 }

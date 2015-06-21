@@ -175,10 +175,6 @@ L1:
     switch (op)
     {
         case OPconst:
-#if FLOATS_IN_CODE
-            if (!PARSER && FLT_CODESEG_CELEM(e))
-                flt_free_elem(e);
-#endif
             break;
 
         case OPvar:
