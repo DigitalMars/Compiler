@@ -245,11 +245,6 @@ Lret:
 STATIC void enumdcllst(symbol *se)
 {   targ_llong enumval = -1LL;
     symbol *s;
-#if TARGET_MAC
-    long max = 0, min = 0;
-    type *t;
-    symlist_t enumlist = NULL;
-#endif
     symlist_t el;
     type *tmember;
     type *tbase;
@@ -306,9 +301,6 @@ STATIC void enumdcllst(symbol *se)
                 list_append(&se->Senumlist,s);  // add to member list of enum
 #endif
         }
-#if TARGET_MAC // DJB - This is never freed in the C compiler
-        list_append(&enumlist,s);       // add to member list of enum
-#endif
         s->Sflags |= SFLvalue;
     L1:
         stoken();
@@ -418,12 +410,6 @@ STATIC void enumdcllst(symbol *se)
             }
             enumval++;
         }
-#if TARGET_MAC
-        if (enumval < min)
-            min = enumval;
-        if (enumval > max)
-            max = enumval;
-#endif
         s->Svalue = el_longt(s->Stype,enumval);
 #if HTOD
         if (!CPP && !se)
@@ -459,55 +445,6 @@ STATIC void enumdcllst(symbol *se)
             s->Svalue = e;
         }
     }
-
-#if TARGET_MAC
-  if(min >= 0)
-        {                               /* can use unsigned range sizes */
-#if 0                                   /* C doc conflict */
-        if (max <= 0x7f)                /* 1st says smallest size that can hold value */
-            t = tschar;                 /* 2nd says same as pascal */
-        else if ( max <= 0x0ff)         /* pascal will not allow chars enums > 127 */
-            t = tsuchar;                /* or less than -128 */
-        else if(max <= 0x7fff)
-            t = tsshort;
-        else if( max <= 0x0ffff)
-            t = tsushort;
-        else if (max > 0x7fffffff)
-            t = tsuns;
-        else
-            t = tsint;
-#else
-        if (max <= 0xff)                /* doing Pascal way, always unsigned cause */
-            t = tsuchar;                /* thats the way MPW C generates code */
-        else if (max <= 0xffff)
-            t = tsushort;
-        else
-            t =tsuns;
-#endif
-        }
-  else                                  /* must use a signed range */
-        {
-        if ( max < 128 && min > -129)
-            t = tschar;
-        else if( max < 32768 && min > -32769)
-            t = tsshort;
-        else
-            t = tsint;
-        }
-  if(!config.flags2&CFG2sizedenum)      /* ignore range if ansi C */
-        t = tsint;
-  se->Stype->Tnext = t;                 /* both C and C++ now have TYenum */
-  t->Tcount++;
-  if (!CPP)
-  {
-        for(el = enumlist; el; el = list_next(el))
-        {                               /* have to set it in all the elements also */
-            s = list_symbol(el);
-            type_settype(&s->Stype, t);
-        }
-        list_free(&enumlist,NULL);
-  }
-#endif /* TARGET_MAC */
 }
 
 /*********************************
