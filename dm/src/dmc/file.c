@@ -329,9 +329,7 @@ void afopen(char *p,blklst *bl,int flag)
 
 char *file_getsource(const char *iname)
 {
-#if TARGET_MAC
-    static char ext[][4] = { "cpp","cp","c" };
-#elif M_UNIX
+#if M_UNIX
     static char ext[][4] = { "cpp","cxx","c", "C", "cc", "c++" };
 #else
     static char ext[][5] = { "cpp","c","cxx","htm","html" };

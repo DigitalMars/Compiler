@@ -58,13 +58,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 //#define err_nomem() (dbg_printf("err_nomem: %d\n",__LINE__),err_nomem())
 
-#if TARGET_MAC
-#define fclose(f)       MacClose(f)
-#ifndef __PGOFF
-#define __PGOFF         sizeof(unsigned short)
-#endif
-#endif
-
 #if TX86
 char *ph_directory;             /* directory to read PH files from      */
 
@@ -765,7 +758,7 @@ void *ph_hydrate(void *pp)
     if (off & 1)                        /* if dehydrated        */
     {
         i = ph_bufk + (int)(off / PHBUFSIZE);
-#if (TARGET_MAC) || defined(DEBUG)
+#if defined(DEBUG)
         assert(i < ph_bufi);
 #endif
         *(void **)pp = (void *)((char *)ph_buf[i] + (off & ((PHBUFSIZE - 1) & ~1)));

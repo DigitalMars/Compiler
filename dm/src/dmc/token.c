@@ -25,9 +25,6 @@
 #include        "global.h"
 #include        "outbuf.h"
 #include        "utf.h"
-#if TARGET_MAC
-#include        "TG.h"
-#endif
 
 #if _WIN32 && __DMC__
 // from \sc\src\include\setlocal.h
@@ -115,11 +112,7 @@ unsigned char _chartype[257] =
 {       0,                      // in case we use EOF as an index
         _ZFF,0,0,0,0,0,0,0,0,0,_EOL,_EOL,_EOL,0,0,0,
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-#if TARGET_MAC  // allow '$' for pascal function names
-        0,0,0,0,_ID,0,0,0,                      //  !"#$%&'
-#else
         0,0,0,0,0,0,0,0,
-#endif
         _TOK,_TOK,_MTK,_MTK,_TOK,_MTK,_MTK,_MTK, // ()*+,-./
         _ID,_ID,_ID,_ID,_ID,_ID,_ID,_ID,
         _ID,_ID,_MTK,_TOK,_MTK,_MTK,_MTK,_TOK,  // 89:;<=>?
@@ -240,9 +233,6 @@ void token_hydrate(token_t **pt)
     {
         tl = (token_t *) ph_hydrate(pt);
         token_debug(tl);
-#if TARGET_MAC
-        tl->TKsrcpos.Sfilnum += File_Hydrate_Num;       /* file number relative header build */
-#endif
         //type_hydrate(&tl->TKtype);
         switch (tl->TKval)
         {   case TKident:
@@ -544,9 +534,6 @@ Srcpos token_linnum()
 #else
     return toklist
         ?
-#if TARGET_MAC
-          (TkIdStrtSrcpos = tok.TKsrcpos),
-#endif
           tok.TKsrcpos
         : getlinnum();
 #endif
@@ -1065,11 +1052,6 @@ enum_TK rtoken(int flag)
         int insflags;
 
         //printf("rtoken(%d)\n", flag);
-#if TARGET_MAC
-        tok.TKflags &= ~TKFinherited;
-        //tok.tokfoffset = getlinnum(); /* Hate to do this for each token */
-        //tok.tokfnum = TokenFile;
-#endif
 #if IMPLIED_PRAGMA_ONCE
         if (cstate.CSfilblk)
         {
@@ -1131,9 +1113,6 @@ loop1:
                 goto loop1;
         case LF:
         case_LF:
-#if TARGET_MAC
-                file_progress();
-#endif
                 egchar();
                 if (pstate.STflags & (PFLpreprocessor | PFLmasm | PFLbasm))
                     return tok.TKval = TKeol;   // end of line is a token
@@ -1626,12 +1605,7 @@ loop1:
         case ']':       egchar(); return tok.TKval = TKrbra;
         case '(':       egchar(); return tok.TKval = TKlpar;
         case ')':       egchar(); return tok.TKval = TKrpar;
-        case '{':
-#if TARGET_MAC
-                        if(configv.addlinenumbers)
-                            TklbrackSrcpos = getlinnum();
-#endif
-                        egchar(); return tok.TKval = TKlcur;
+        case '{':       egchar(); return tok.TKval = TKlcur;
         case '}':       egchar(); return tok.TKval = TKrcur;
         case ',':       egchar(); return tok.TKval = TKcomma;
         case '?':       egchar(); return tok.TKval = TKques;
@@ -1639,9 +1613,6 @@ loop1:
         case 0:
                 if (bl)
                 {       bl->BLtextp--;
-#if (TARGET_MAC) && SOURCE_OFFSETS
-                        bl->Bcurcnt--;
-#endif
                         egchar();
                         goto loop1;
                 }
@@ -1837,16 +1808,6 @@ void comment()
                     break;
               case 0:                           // end of file found
               case_eof:
-#if TARGET_MAC
-                    if (bl)                     // if not really end of file
-                    {   bl->BLtextp--;
-#if SOURCE_OFFSETS
-                        bl->Bcurcnt--;
-#endif
-                        egchar();               // get us back on track
-                        break;
-                    }
-#endif
                     lexerr(EM_no_comment_term,line);    // EOF before end of comment
                     err_fatal(EM_eof);
                     /* NOTREACHED */
@@ -2302,16 +2263,11 @@ STATIC enum_TK inchar(int flags)
         len -= 2;
 #endif
 
-#if (TARGET_MAC) && 0   /* fix later with warning */
-  if (len > LONGSIZE)
-        len = 4;
-#else
   if (len > LONGSIZE)
   {     lexerr(EM_string2big,LONGSIZE);
         tok.TKty = TYint;
         return TKnum;
   }
-#endif
 
 #if !SPP
   /* If signed chars, this needs to be redone                           */
@@ -2341,13 +2297,6 @@ STATIC enum_TK inchar(int flags)
     }
     else
     {
-#if TARGET_MAC
-        // Pat: you need to fix this for UNICODE
-        tok.TKutok.Vlong = 0;
-        char *p = (char *) &tok.TKutok.Vlong + LONGSIZE-1;
-        while (len--)
-            *p-- = tok_string[len];     /* reverse the order of bytes */
-#else
 #if UNICODE
         if (flags & INSwchar_t)
         {
@@ -2375,11 +2324,11 @@ STATIC enum_TK inchar(int flags)
             while (len--)
                 *p++ = tok_string[len]; // reverse the order of bytes
         }
-#endif
     }
     return TKnum;
 }
-
+
+
 /*************************************
  * Read in and return character value from escape sequence.
  * Sequence can be:
@@ -2723,9 +2672,6 @@ STATIC enum_TK innum()
                     case 'b':                   // 0b
                         if (!ANSI)
                         {   state = STATE_binary0;
-#if TARGET_MAC
-                            base = 2;
-#endif
                             break;
                         }
                         goto case_hex;
@@ -2877,11 +2823,6 @@ done:
 #endif
 
     errno = 0;
-#if TARGET_MAC
-    if (base == 2)      // skip 0b prefix
-        tok.TKutok.Vlong = strtoul(&tok_string[2],NULL,base);
-    else
-#endif
     if (i == 1 && (state == STATE_decimal || state == STATE_0))
         tok.TKutok.Vllong = tok_string[0] - '0';
     else
@@ -3612,10 +3553,6 @@ void token_term()
     MEM_PARC_FREE(tok_string);
     MEM_PARC_FREE(tok_arg);
 }
-#endif
-
-#if TARGET_MAC
-#include "TGtoken.c"
 #endif
 
 #ifdef DEBUG

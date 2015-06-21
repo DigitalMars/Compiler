@@ -881,12 +881,8 @@ symbol *init_typeinfo(type *ptype)
 
         // The first entry is a pointer to the vtbl[]
         assert(st->Svptr->Smemoff == 0);        // should be first member
-#if TARGET_MAC
-        scvtbl = (enum SC) (st->Sflags & STRvtblext) ? SCextern : SCstatic;
-#else
         scvtbl = (enum SC) (config.flags2 & CFG2comdat) ? SCcomdat :
              (st->Sflags & STRvtblext) ? SCextern : SCstatic;
-#endif
         n2_genvtbl(srtti,scvtbl,0);
         dtxoff(&s->Sdt,st->Svtbl,0,pty);
 
@@ -1630,23 +1626,6 @@ Lagain:
     case OPconst:
     {
         size = type_size(e->ET);
-#if TARGET_MAC
-        switch(size)
-        {   case 1:     p = &e->EV.Vchar;               break;
-            case 2:     p = (char *)&e->EV.Vshort;      break;
-            case 4:     p = (char *)&e->EV.Vlong;       break;
-            case 8:     p = (char *)&e->EV.Vdouble;     break;
-            case 10:    p = (char *)&e->EV.Vldouble;    break;
-            case 12:
-                        {
-                        long ldbl[3];
-                        short len;
-                        util_ldbl(e, &ldbl[0],&ldbl[1],&ldbl[2], &len);
-                        p = (char *)&ldbl[0];           break;
-                        }
-            default:    assert(0);
-        };
-#else
         targ_float f;
         targ_double d;
         Complex_f fc;
@@ -1680,7 +1659,6 @@ Lagain:
                 p = (char *) &e->EV;
                 break;
         }
-#endif
         dsout += size;
         dtnbytes(&dt,size,p);
         break;
@@ -1767,11 +1745,7 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 
     symbol_debug(s_vtbl);
     symbol_debug(stag);
-#if TARGET_MAC
-    fty = TYfptr;
-#else
     fty = LARGECODE ? TYfptr : TYnptr;
-#endif
     cpp_getpredefined();                        /* get s_mptr           */
 #ifdef DEBUG
 #if THUNKS

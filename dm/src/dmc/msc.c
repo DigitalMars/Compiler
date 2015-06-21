@@ -354,14 +354,7 @@ tym_t tym_conv(type *t)
             nty = TYulong;
             break;
         case TYenum:
-#if TARGET_MAC
-            if (config.flags2&CFG2sizedenum)
-                nty = t->Tnext->Tty;
-            else
-                nty = TYint;
-#else
             nty = t->Tnext->Tty;
-#endif
             break;
         case TYref:
             if (type_struct(t->Tnext))  // if reference to struct

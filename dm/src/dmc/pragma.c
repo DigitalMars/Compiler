@@ -2248,28 +2248,6 @@ STATIC void prassertid()
 
 #endif
 
-#if TARGET_MAC
-/******************
- * Decode pragma parameter registers
- */
-STATIC reg_decode(id)
-    char *id;
-    {
-    short reg,i;
-    if (id[4] != 0 && id[0] != '_' && id[1] != '_')
-        return -1;
-    if (id[2] == 'A')
-         reg = 1;
-    else if (id[2] == 'D')
-         reg = 3;
-    i = id[3] - '0';
-    if (i < 0 || i > 2)
-        return -1;
-    if (id[2] == 'A' && i == 2)
-        return -1;
-    return reg + i;
-    }
-#endif
 
 /***************************
  * Parse pack/dbcs pragma.
@@ -2612,108 +2590,6 @@ STATIC void prpragma()
                 prstring(2);
                 return;
 
-#if TARGET_MAC
-            case PRXtemplate:
-                {
-                    char *text;
-
-                    while (iswhite(xc))
-                        egchar();               /* skip white space     */
-                    text = macrotext(NULL);     /* read like macro text */
-                    if (*text)
-                        template_getcmd('I',text);
-                    else
-                        goto err;
-                    return;
-                }
-                break;
-
-            case PRXtemp_access:
-                {   char *s;
-
-                    switch(tok.TKid[0])
-                    {
-                        case 'e':
-                            s = "e";
-                            break;
-                        case 'p':
-                            s = "p";
-                            break;
-                        case 's':
-                            s = "s";
-                            break;
-                        default:
-                            goto err;
-                    }
-                    if (template_getcmd('A',s))
-                        goto err;
-                    ptoken();
-                    break;
-                }
-            case PRXpasobj:
-                Add_pascal_object = TRUE;
-                break;
-
-            case PRXparameter:                  /* parameter [reg] func(reg,...) */
-                {
-                int i;
-                if (ParamFunc)
-                        MEM_PARF_FREE(ParamFunc);
-                i = reg_decode(tok.TKid);
-                if (i < 0)
-                    {
-                    ParamFunc = (char *) MEM_PARF_STRDUP(tok.TKid);
-                    ParamRegs[0] = 0;
-                    }
-                else
-                    {
-                    ParamRegs[0] = i;
-                    ptoken();
-                    if (tok.TKval != TKident)
-                        goto err;
-                    ParamFunc = (char *) MEM_PARF_STRDUP(tok.TKid);
-                    }
-                ptoken();
-                if (tok.TKval == TKeol)
-                    return;
-                if (tok.TKval != TKlpar)
-                    goto err;
-                ptoken();
-                for(pragma_param_cnt=1; tok.TKval != TKrpar; pragma_param_cnt++)
-                    {
-                    char flag[6] = {0,0,0,0,0,0};
-                    short reg;
-                    if (tok.TKval != TKident)
-                        goto err;
-                    reg = ParamRegs[pragma_param_cnt] = reg_decode(tok.TKid);
-                    if(reg < 0 || flag[reg] != 0)
-                        goto err;
-                    flag[reg] = 1;
-                    ptoken();
-                    if (tok.TKval == TKcomma)
-                        ptoken();
-                    if (tok.TKval == TKeol)
-                        goto err;
-                    }
-                ptoken();
-                break;
-                }
-            case PRXtrace:                              /* pragma trace */
-                if (strcmp(tok.TKid,"on") == 0)
-                    {
-                    if (!(PragmaStatus & P_TRACE_NEVER))
-                        PragmaStatus |= P_TRACE_ON;
-                    }
-                else if (strcmp(tok.TKid,"off") == 0)
-                    {
-                    if (!(PragmaStatus & P_TRACE_ALWAYS))
-                        PragmaStatus &= ~P_TRACE_ON;
-                    }
-                else
-                    preerr(EM_ident_exp);
-                ptoken();
-                break;
-#else                           // 80x86 pragmas
             case PRXcode_seg:
                 {   char *segname;
                     targ_size_t len;
@@ -2900,7 +2776,6 @@ STATIC void prpragma()
                 }
                 ptoken();
                 break;
-#endif /* TARGET_MAC */
 
             case PRXhdrstop:
 #if !SPP && TX86
@@ -4132,12 +4007,8 @@ STATIC void macrotable_balance(macro_t **ps)
 
     if (nmacs > mac_dim)
     {
-#if TARGET_MAC
-        mac_array = (macro_t **) MEM_PARF_REALLOC(nmacs * sizeof(macro_t *));
-#else
         // Use malloc instead of mem because of pagesize limits
         mac_array = (macro_t **) realloc(mac_array,nmacs * sizeof(macro_t *));
-#endif
         mac_dim = nmacs;
         if (!mac_array)
             err_nomem();

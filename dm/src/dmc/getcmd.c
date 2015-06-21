@@ -18,15 +18,7 @@
 #include        <string.h>
 #include        <stdlib.h>
 
-#if TARGET_MAC
-#define INC_ENV "Zincludes"
-#else
 #define INC_ENV "INCLUDE"
-#endif
-
-#if TARGET_MAC
-extern char *getenv (const char *);
-#endif
 
 #include        "cc.h"
 #include        "parser.h"
@@ -1140,11 +1132,6 @@ void getcmd(int argc,char **argv)
             config.linkage = LINK_STDCALL;
     }
 
-#if TARGET_MAC
-    config.memmodel = Lmodel;           /* too many in the code to drop */
-    config.wflags |= WFssneds;
-    pointertype = TYfptr;
-#else
 #if !_WINDLL
     if (configv.verbose == 2)
         notice();
@@ -1309,7 +1296,6 @@ void getcmd(int argc,char **argv)
         (config.flags4 & (CFG4stdcall | CFG4oldstdmangle)) == CFG4stdcall
        )
         config.flags3 |= CFG3autoproto; // turn on autoprototyping
-#endif
 
 #if _WIN32 && _WINDLL
     netspawn_flags = NetSpawnGetCompilerFlags();
@@ -1534,19 +1520,9 @@ void getcmd(int argc,char **argv)
     }
 #endif
 
-#if TARGET_MAC
-    fixeddefmac("macintosh",one);
-    fixeddefmac("MC68000",one);
-    fixeddefmac("mc68000",one);
-    fixeddefmac("m68k",one);
-    fixeddefmac("applec",one);
-#endif
     if (CPP || config.flags3 & CFG3cpp)
     {
         defmac("__cplusplus", "199711L");
-#if TARGET_MAC
-        fixeddefmac("__safe_link",one);
-#endif
     }
     else
     {

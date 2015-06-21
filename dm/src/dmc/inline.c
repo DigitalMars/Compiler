@@ -136,26 +136,6 @@ STATIC elem * inline_do_walk(elem *e)
             {   e1->E1 = inline_do_walk(e1->E1);
                 e1 = e1->E2;
             }
-#if TARGET_MAC
-            if (e1->Eoper == OPcond)
-                {
-                elem *e2;
-
-                e1->E1 = inline_do_walk(e1->E1);        // do the conditional
-                e2 = e1->E2;                            // the OPcolon
-                assert(e2->E1->Eoper == OPstrctor);
-                e1 = e2->E1->E1;                        // 1st call
-                /* Never inline expand this function    */
-                assert(e1->Eoper == OPcall);
-
-                if (e1->E1->Eoper == OPvar)
-                    ;
-                else
-                    e1->E1 = inline_do_walk(e1->E1);
-                e1->E2 = inline_do_walk(e1->E2);
-                e1 = e2->E2->E1;                        // 2nd call
-                }                               // fall through and finish 2nd call
-#endif
             if (e1->Eoper == OPcall && e1->E1->Eoper == OPvar)
             {   // Never inline expand this function
 
@@ -257,16 +237,6 @@ STATIC elem * inline_ifcan(elem *e)
         // sfunc may not be a function due to user's clever casting
         if (!tyfunc(sfunc->Stype->Tty))
             return e;
-
-#if TARGET_MAC
-        // virtual pascal object functions are OPvar type calls, don't inline
-        if (sfunc->Sfunc->Fflags & Fvirtual &&
-            isclassmember(sfunc) && sfunc->Sscope->Sstruct->Sflags & STRpasobj)
-            {
-            nwc_mustwrite(sfunc);
-            return e;
-            }
-#endif
 
         // This function might be an inline template function that was
         // never parsed. If so, parse it now.
@@ -495,11 +465,9 @@ STATIC void inline_expandwalk(elem *e)
         assert(e);
         elem_debug(e);
         //dbg_printf("inline_expandwalk(%p) ",e);WROP(e->Eoper);dbg_printf("\n");
-#if 1 || TARGET_MAC
         // the debugger falls over on debugging inlines
         if (configv.addlinenumbers)
             e->Esrcpos.Slinnum = 0;             // suppress debug info for inlines
-#endif
         if (EOP(e))
         {
             if (EBIN(e))
