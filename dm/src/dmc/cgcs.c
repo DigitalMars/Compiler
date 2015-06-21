@@ -324,9 +324,8 @@ STATIC void ecom(elem **pe)
         touchfunc(0);
         return;
     default:                            /* other operators */
-#ifdef DEBUG
-        if (!EBIN(e)) WROP(e->Eoper);
-#endif
+        if (!EBIN(e))
+           WROP(e->Eoper);
         assert(EBIN(e));
     case OPadd:
     case OPmin:
@@ -348,8 +347,8 @@ STATIC void ecom(elem **pe)
     case OPstring:
     case OPaddr:
     case OPbit:
-#ifdef DEBUG
         WROP(e->Eoper);
+#ifdef DEBUG
         elem_print(e);
 #endif
         assert(0);              /* optelem() should have removed these  */

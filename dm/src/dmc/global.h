@@ -439,11 +439,24 @@ void WRarglst(list_t a);
 void WRblock(block *b);
 void WRblocklist(list_t bl);
 void WReqn(elem *e);
-void WRfunc(void);
-void WRdefnod(void);
+void WRfunc();
+void WRdefnod();
 void WRFL(enum FL);
 char *sym_ident(SYMIDX si);
 
+#else
+#define WRclass(sc)
+#define WRTYxx(ty)
+#define WROP(oper)
+#define WRBC(bc)
+#define WRarglst(a)
+#define WRblock(b)
+#define WRblocklist(bl)
+#define WReqn(e)
+#define WRfunc()
+#define WRdefnod()
+#define WRFL(fl)
+#define sym_ident(si)
 #endif
 
 /* cgelem.c     */

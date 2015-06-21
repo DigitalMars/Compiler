@@ -2097,9 +2097,7 @@ DATA_REF:
                                 break;          // already taken care of
 
                         default:
-#ifdef DEBUG
                                 WRFL((enum FL)s->Sfl);
-#endif
                                 asmerr( EM_bad_addr_mode );     // illegal addressing mode
                     }
                     break;

@@ -59,12 +59,6 @@ static unsigned debtyphash[DEBTYPHASHDIM];
  */
 #define CVIDMAX (0xFF0-20)   // the -20 is picked by trial and error
 
-#if 0
-#define DBG(a)  a
-#else
-#define DBG(a)
-#endif
-
 #define LOCATsegrel     0xC000
 
 /* Unfortunately, the fixup stuff is different for EASY OMF and Microsoft */
