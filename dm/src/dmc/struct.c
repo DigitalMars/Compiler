@@ -151,11 +151,6 @@ type *stunspec(enum_TK tk, Symbol *s, Symbol *stempsym, param_t *template_argume
                         goto L5;
                     }
 #endif
-#if TARGET_MAC
-        case TK_handle: ptrtype = TYvptr;       goto L5;
-        case TK_pasobj: ptrtype = TYvptr; structflags |= STRpasobj;     goto L5;
-        case TK_machdl: ptrtype = TYvptr; structflags |= STRmachdl;     goto L5;
-#endif
         L5:     stoken();
                 break;
 
@@ -400,27 +395,8 @@ type *stunspec(enum_TK tk, Symbol *s, Symbol *stempsym, param_t *template_argume
             s->Sstruct->Sbase = struct_getbaseclass(ptrtype,stempsym,&structflags,flags);
             stoken();                   /* skip over left curly bracket */
             strdcllst((Classsym *)s,
-#if TARGET_MAC
-                    (funcsym_p && !stempsym) | flags
-#endif
                     flags);
 
-#if TARGET_MAC
-                if (structflags & STRpasobj)
-                {   symlist_t sl;               /* __vptr is in wrong place */
-                    for (sl = s->Sstruct->Sfldlst; sl; sl = list_next(sl))
-                    {
-                    //dbg_printf("class field %s\n",list_symbol(sl)->Sident);
-                        if (strcmp(list_symbol(sl)->Sident,cpp_name_vptr) == 0)
-                        {
-                        //dbg_printf("found __vptr to remove\n");
-                            list_subtract(&s->Sstruct->Sfldlst,list_symbol(sl));
-                            list_prepend(&s->Sstruct->Sfldlst,list_symbol(sl));
-                            break;
-                        }
-                    }
-                }
-#endif
             // See if we should generate debug info for the class definition
 #if SYMDEB_CODEVIEW
             if (config.fulltypes == CV4 && !eecontext.EEcompile)
@@ -652,18 +628,12 @@ STATIC baseclass_t * struct_getbaseclass(tym_t ptrtype,symbol *stempsym,
             // Append b to end of baseclass list
             *pb = b;
             pb = &(b->BCnext);
-#if TARGET_MAC
-            // FIX - Add error for pascal object multiple base classes
-            ptrtype = sbase->Sstruct->ptrtype;
-            *pstructflags |= sbase->Sstruct->Sflags & (STRpasobj | STRmachdl);
-#else
             if (ptrtype)
             {   if (ptrtype != sbase->Sstruct->ptrtype)
                     cpperr(EM_base_memmodel,prettyident(sbase));
             }
             else
                 ptrtype = sbase->Sstruct->ptrtype;
-#endif
         } while (tok.TKval == TKcomma);
         if (tok.TKval != TKlcur)
             synerr(EM_lcur_exp);                // must be a definition
@@ -791,25 +761,12 @@ STATIC baseclass_t * struct_getbaseclass(tym_t ptrtype,symbol *stempsym,
                                 // Append b to end of baseclass list
                                 *pb = b;
                                 pb = &(b->BCnext);
-#if TARGET_MAC
-                                // FIX - Add error for pascal object multiple base classes
-                                ptrtype = sbase->Sstruct->ptrtype;
-                                if(sbase->Sstruct->Sflags & STRpasobj)
-                                    {                   /* inherit handle tag, pascal obj */
-                                    *pstructflags |= STRpasobj;
-                                    }
-                                if(sbase->Sstruct->Sflags & STRmachdl)
-                                    {                   /* inherit handle tag, mac handle */
-                                    *pstructflags |= STRmachdl;
-                                    }
-#else
                                 if (ptrtype)
                                 {   if (ptrtype != sbase->Sstruct->ptrtype)
                                         cpperr(EM_base_memmodel,prettyident(sbase));
                                 }
                                 else
                                     ptrtype = sbase->Sstruct->ptrtype;
-#endif
                             L3:
                                 break;
 
@@ -1051,21 +1008,6 @@ STATIC type * strdcllst(Classsym *stag,int flags)
 
         switch (tok.TKval)              // check for pascal before constructor
         {
-#if TARGET_MAC
-            case TKpascal:
-#if CFMV2
-                if (!config.CFMOption)
-#endif
-                {
-                    modifier = mTYpascal|mTYman_pas;
-                    stoken();
-                    break;
-                }
-            case TKcdecl:
-                modifier = mTYcdecl;
-                stoken();
-                break;
-#endif
             case TK_declspec:
                 modifier = nwc_declspec();
                 stoken();
@@ -1123,10 +1065,6 @@ STATIC type * strdcllst(Classsym *stag,int flags)
 
         if (modifier)
         {   type_setty(&typ_spec,typ_spec->Tty | modifier);
-#if TARGET_MAC
-            if (modifier & mTYpascal)
-                type_setmangle(&typ_spec,mTYman_pas);
-#endif
         }
         pstate.STclasssym = stag;
       }
@@ -1597,11 +1535,6 @@ STATIC type * strdcllst(Classsym *stag,int flags)
                         if (s->Sclass != SCfield)
                             offset += size;
                     }
-#if TARGET_MAC  /* change from right->left to left->right */
-                    s->Sbit = (size*8) - s->Sbit - s->Swidth;
-                                        /* using same bit numbering scheme, modify */
-                                        /* start bit to right most bit left justified */
-#endif
                     /* Check for already existing member name   */
                     n2_chkexist(stag,s->Sident);
                 }
@@ -1614,11 +1547,6 @@ STATIC type * strdcllst(Classsym *stag,int flags)
             L7:
                 if (body)               /* if saw a function body       */
                     goto L5;            /* ends this declaration loop   */
-#if TARGET_MAC
-                else if ((flags & 1) && (tyfunc(s->Stype->Tty) ||
-                        class_m & mskl(SCstatic)))
-                    cpperr(EM_local_static, s->Sident);
-#endif
             L3: ;
               }
               else // C
@@ -1731,13 +1659,6 @@ STATIC type * strdcllst(Classsym *stag,int flags)
                     if (s->Sclass != SCfield)
                         offset += size;
                 }
-#if TARGET_MAC
-                /* change from right->left to left->right
-                 * using same bit numbering scheme, modify
-                 * start bit to right most bit left justified
-                 */
-                s->Sbit = (size*8) - s->Sbit - s->Swidth;
-#endif
 
                 /* Check for already existing member name               */
                 n2_chkexist(stag,vident);
@@ -2176,18 +2097,12 @@ STATIC void n2_parsememberfuncs(Classsym *stag,int flag)
             s->Sfunc->Fbody)
         {
             //printf("\t\tparsing\n");
-#if TARGET_MAC
-            FromTokenList = TRUE;
-#endif
             //assert(s->Sfunc->Fbody);
             token_markfree(s->Sfunc->Fbody);
             token_setlist(s->Sfunc->Fbody);
             s->Sfunc->Fbody = NULL;
             stoken();
             func_nest(s);
-#if TARGET_MAC
-            FromTokenList = FALSE;
-#endif
         }
     }
 
@@ -2229,17 +2144,11 @@ void n2_instantiate_memfunc(symbol *s)
         template_createsymtab(stempl->Stemplate->TMptpl,stag->Sstruct->Sarglist);
         nscopes++;
 
-#if TARGET_MAC
-        FromTokenList = TRUE;
-#endif
         token_markfree(s->Sfunc->Fbody);
         token_setlist(s->Sfunc->Fbody);
         s->Sfunc->Fbody = NULL;
         stoken();
         func_nest(s);
-#if TARGET_MAC
-        FromTokenList = FALSE;
-#endif
 
         // Unwind scope back to global
         scope_unwind(nscopes);
@@ -2273,9 +2182,6 @@ STATIC void n2_parsefriends(Classsym *stag,list_t friendlist,char *vident)
     for (fl = friendlist; fl; fl = list_next(fl))
     {   token_t *t = (token_t *) list_ptr(fl);
 
-#if TARGET_MAC
-        FromTokenList = TRUE;
-#endif
         assert(t);
         token_markfree(t);
         token_setlist(t);
@@ -2319,10 +2225,6 @@ STATIC void n2_parsefriends(Classsym *stag,list_t friendlist,char *vident)
         if (!vident[0])
             type_free(memtype);
         type_free(typ_spec);
-
-#if TARGET_MAC
-        FromTokenList = FALSE;
-#endif
     }
     list_free(&friendlist,FPNULL);
 
@@ -2403,11 +2305,6 @@ STATIC targ_size_t n2_analysebase(Classsym *stag)
     symbol_debug(stag);
     st = stag->Sstruct;
 
-#if TARGET_MAC
-            /* pre-reserve space for vtable*/
-           if(st->Sflags & STRpasobj && !st->Sbase && !baseoffset)
-                baseoffset = (PCrel_option & PC_FARCODE) ? 4 : 2;
-#endif
 #if VBTABLES
     //dbg_printf("n2_analysebase('%s')\n",stag->Sident);
     /* Determine if we need an Svbptr.
@@ -2839,15 +2736,9 @@ STATIC void n2_virtbase(Classsym *stag)
 
     if (st->Sstructsize == 0)           /* disallow 0 sized structs     */
     {
-#if TARGET_MAC
-        st->Salignsize = 2;
-        st->Sstructsize = 2;            /* no byte length sizes */
-        st->Snonvirtsize = 2;           /* messes up pascal */
-#else
         st->Salignsize++;
         st->Sstructsize++;
         st->Snonvirtsize++;
-#endif
         st->Sflags |= STR0size;
 
         if (!(config.flags4 & CFG4noemptybaseopt))
@@ -3117,9 +3008,6 @@ STATIC void chkmemtyp(symbol *s)
         {
             case TYffunc:
             case TYfpfunc:
-        #if TARGET_MAC
-            case TYpsfunc:
-        #endif
         #if TX86
             case TYnfunc:
             case TYnpfunc:
@@ -3196,24 +3084,10 @@ STATIC void n2_createvptr(Classsym *stag,targ_size_t *poffset)
         else
 #endif
             t = s_mptr->Stype;          // __mptr *_vptr
-#if TARGET_MAC
-        if (!st->ptrtype || st->Sflags & STRmachdl)
-            t = type_allocn(TYfptr,t);          // vptr is not handle for HandleObjects
-        else
-#endif
         t = type_allocn(st->ptrtype,t);
 #endif
         s_vptr = symbol_name(cpp_name_vptr,SCmember,t);
         s_vptr->Sflags |= SFLpublic;
-#if TARGET_MAC
-        if (st->Sflags & STRpasobj)
-        {   // it has access to all virtual funcs
-            // can't have real size in pascal objects
-            s_vptr->Stype->Tty |= mTYpasobj;
-            s_vptr->Stype->Tmangle = mTYman_pas;
-        }
-        else
-#endif
 #if VBTABLES
         // vptr members always appear at 0 offset to this, so we
         // must adjust down the other base classes and members
@@ -3270,17 +3144,6 @@ STATIC void n2_createvptr(Classsym *stag,targ_size_t *poffset)
             }
         }
 #else
-#if TARGET_MAC
-         // For pascal objects the space for the vptr is always required
-         // and already reserved, so don't allow it to take up space
-         if (st->Sflags & STRpasobj)
-            {
-            s_vptr->Stype->Tty |= mTYpasobj;
-            s_vptr->Stype->Tmangle = mTYman_pas;
-            s_vptr->Smemoff = n2_structaddsize(t,0,poffset);
-            }                   /* can't have real size in pasal objects */
-        else
-#endif
         {   targ_size_t sz = type_size(t);
 
             if (sz > st->Salignsize)
@@ -3857,9 +3720,6 @@ void n2_addfunctoclass(Classsym *stag,Funcsym *sfunc, int flags)
     struct_t *st;
     func_t *f;
     type *tfunc;
-#if TARGET_MAC
-    short pasobj_func;
-#endif
 
 #if 0
     printf("n2_addfunctoclass(stag = '%s', sfunc = '%s', %p, flags = %d)\n", stag->Sident, sfunc->Sident, sfunc, flags);
@@ -3878,9 +3738,6 @@ void n2_addfunctoclass(Classsym *stag,Funcsym *sfunc, int flags)
 
     st = stag->Sstruct;
     f->Fclass = stag;
-#if TARGET_MAC
-    pasobj_func = stag->Sstruct->Sflags & STRpasobj && sfunc->Sfunc->Fflags&Fvirtual;
-#endif
 
     /* See if symbol is already defined         */
     sp = n2_searchmember(stag,sfunc->Sident);
@@ -3968,10 +3825,6 @@ void n2_addfunctoclass(Classsym *stag,Funcsym *sfunc, int flags)
                 }
             }
 
-#if TARGET_MAC
-            if (pasobj_func)                    /* can't overload pascal object */
-                synerr(EM_multiple_def,sfunc->Sident);  /* virtual functions */
-#endif
             // Append to list of overloaded functions
             *ps = sfunc;
             sfunc->Sfunc->Fflags |= Fnotparent; /* sfunc is not first in list */
@@ -3986,10 +3839,6 @@ void n2_addfunctoclass(Classsym *stag,Funcsym *sfunc, int flags)
         n2_addmember(stag,sfunc);
     }
 
-#if TARGET_MAC
-    if(pasobj_func)
-        tfunc->Tty |= mTYpasobj;                /* virtual pascal object function */
-#endif
     assert(tfunc->Tflags & TFprototype);
 
     if (f->Fflags & Fdtor)
@@ -4395,11 +4244,7 @@ STATIC int n2_friend(Classsym *stag,type *tfriend,char *vident,unsigned long cla
                 return TRUE;            // function has a body
             }
             /* Function is not defined  */
-#if TARGET_MAC
-            if (s->Sclass != SCinline && s->Sclass != SCstatic)
-#else
             if (s->Sclass != SCinline)
-#endif
                 s->Sclass = mclass;
         }
     }
@@ -4640,11 +4485,7 @@ STATIC type * n2_vtbltype(Classsym *stag,int nitems)
 #endif
     }
 #endif
-#if TARGET_MAC
-    t->Tdim = nitems ;
-#else
     t->Tdim = 1 + nitems + 1;
-#endif
     return t;
 }
 
@@ -5066,21 +4907,9 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
     si = f->Flocsym.top;
 
     /* Do "this"        */
-#if TARGET_MAC
-    {
-    type *t;
-    t = newpointer(stag->Stype);
-    if (stag->Stype->Ttag->Sstruct->Sflags & (STRpasobj | STRmachdl))
-    {
-        t->Tty = TYvptr;
-    }
-    sthis = symbol_name(cpp_name_this,SCparameter,t);
-    }
-#else
     sthis = symbol_name(cpp_name_this,
         ((tybasic(t->Tty) == TYmfunc) ? SCfastpar : SCparameter),
         newpointer(stag->Stype));
-#endif
     sthis->Ssymnum = 0;
     sthis->Sflags |= SFLfree;
     f->Flocsym.tab[0] = sthis;
@@ -5134,9 +4963,6 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
         param_append_type(&t->Tparamtypes,newref(stag->Stype));
     }
 
-#if TARGET_MAC
-    sfunc->Sclass = (flags & Finline) ? SCinline : SCstatic;
-#endif
     sfunc->Sflags |= SFLimplem | SFLpublic;     /* seen implementation  */
     n2_addfunctoclass(stag,sfunc,0);
 

@@ -39,14 +39,6 @@ int errcnt = 0;                 // error count
 
 void prttype (type *);
 void errmsgs_init();
-#if TARGET_MAC
-static short do_head = TRUE;
-static void notice()
-{
-  printf("%s1 %s %s\n",COMPILER,VERSION,COPYRIGHT);
-}
-#endif
-
 
 
 /*********************************
@@ -187,9 +179,6 @@ static void err_print(FILE *fp,const char *q,const char *format,va_list args)
 #endif
     fputs(q,fp);
     vfprintf(fp,format,args);
-#if TARGET_MAC
-    fprintf(fp,"\n#-----------------------");
-#endif
     crlf(fp);
 #if _WIN32
     fflush(fp);
@@ -368,13 +357,8 @@ static short war_to_msg[] =
         -1,
         -1,
         EM_used_b4_set,
-    #if TARGET_MAC
-        -1,
-        -1,
-    #else
         EM_bad_op,
         EM_386_op,
-    #endif
         EM_ret_auto,
         EM_ds_ne_dgroup,
         EM_unknown_pragma,
@@ -397,13 +381,8 @@ static short war_to_msg[] =
         EM_obsolete_inc,
         EM_init2tmp,
         EM_used_b4_set,
-    #if TARGET_MAC
-        -1,
-        -1,
-    #else
         EM_bad_op,
         EM_386_op,
-    #endif
         EM_ret_auto,
         EM_ds_ne_dgroup,
         EM_unknown_pragma,
@@ -741,7 +720,4 @@ void err_notamember(const char *id, Classsym *s, symbol *alternate)
 
 #endif
 
-#if TARGET_MAC
-#include "TGerr.c"
-#endif
 
