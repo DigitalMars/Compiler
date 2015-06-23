@@ -50,9 +50,6 @@ static Srcpos lastpos = {
 #else
 -1,     // file number
 #endif
-#if SOURCE_OFFSETS
-0       // byte offset
-#endif
 };      // last filename/line seen
 static unsigned char lastpos_flag;
 static bool uselastpos;
@@ -1314,9 +1311,6 @@ STATIC void freeblk(blklst *p)
 #else
                 MEM_PARC_FREE(p->BLtext);       /* free file data       */
 #endif
-#if SOURCE_OFFSETS
-                lastpos.Sfiloff = p->Bfoffset+p->Blincnt;
-#endif
 #if IMPLIED_PRAGMA_ONCE
                 // See if file was totally wrapped in #ifndef xxx #define xxx ... #endif
                 if (p->BLinc_once_id)
@@ -1386,29 +1380,6 @@ Srcpos getlinnum()
         // If past end of file, use last known position
         return b ? b->BLsrcpos : lastpos;
 }
-
-#if SOURCE_4SYMS || SOURCE_4TYPES || SOURCE_4PARAMS
-/*****************************
- * Get current character position into TkIdStrtSrcpos.
- *      source file position
- */
-
-void getcharnum()
-{       blklst *b; long i;
-
-        b = cstate.CSfilblk;
-        if (b)
-        {
-            TkIdStrtSrcpos = b->BLsrcpos;
-#if SOURCE_OFFSETS
-            TkIdStrtSrcpos.Sfiloff = b->Bfoffset+b->Blincnt + (b->BLtextp-b->BLtext) - 1;
-#endif
-        }
-        else
-            TkIdStrtSrcpos = lastpos;
-}
-#endif
-
 
 /**************************
  * Terminate.

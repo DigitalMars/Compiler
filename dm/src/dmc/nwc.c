@@ -1784,9 +1784,6 @@ elem *declaration(int flag)
         s = symdecl(vident, dt, sc_specifier, NULL);
         if (!s)
             goto L1;
-#if SOURCE_4SYMS
-        s->Ssrcpos = TkIdStrtSrcpos;
-#endif
 
         /* If function returning        */
         if (tyfunc(s->Stype->Tty))
@@ -3606,10 +3603,6 @@ STATIC void getparamlst(type *tfunc,type *tprev)
         nactual++;
         p = param_calloc();
         p->Pident = mem_strdup(tok.TKid);       /* copy in identifier   */
-#if SOURCE_4PARAMS
-        if (DoFileOffsets)
-            p->Psrcpos = TkIdStrtSrcpos;
-#endif
         *pp = p;
         pp = &(p->Pnext);               /* append to list               */
         if (stoken() != TKcomma)        /* commas mean more idents      */

@@ -262,11 +262,6 @@ struct BLKLST
 #endif
     Srcpos      BLsrcpos;       /* BLfile, position in that file        */
     int         BLsearchpath;   // BLfile: remaining search path for #include_next
-#if SOURCE_OFFSETS
-    long        BLfoffset;      /* BLfile, offset into file             */
-    short       BLcurcnt;       /* BLfile, current count from offset    */
-    short       BLlincnt;       /* BLfile, start of cur line from offset*/
-#endif
 
     void print();
 };

@@ -372,9 +372,6 @@ void func_body(symbol *s)
                     sp = scope_define(p->Pident,SCTlocal,SCparameter);
                     sp->Sscope = funcsym_p;
                     sp->Stype = t;
-#if SOURCE_4PARAMS
-                    sp->Ssrcpos = p->Psrcpos;
-#endif
                     t->Tcount++;
                 }
                 MEM_PH_FREE(p->Pident);
@@ -415,9 +412,6 @@ void func_body(symbol *s)
 
         sp->Stype = p->Ptype;
         sp->Stype->Tcount++;
-#if SOURCE_4PARAMS
-        sp->Ssrcpos = p->Psrcpos;
-#endif
         if (tybasic(sp->Stype->Tty) == TYfloat)
         {   elem *ec;
 
@@ -741,9 +735,6 @@ elem *addlinnum(elem *e)
         if (debugd)
         {
             dbg_printf("line number %d file %p ",e->Esrcpos.Slinnum,e->Esrcpos.Sfilptr);
-#if SOURCE_OFFSETS
-            dbg_printf("source offset %d ",e->Esrcpos.Sfiloff);
-#endif
             dbg_printf("added to elem %x\n",e);
         }
 #endif
