@@ -38,8 +38,6 @@ STATIC int paramlstcompat(param_t *,param_t *);
 STATIC elem * strarg(elem *e);
 STATIC elem * exp2_castx(elem *e,type *newt,elem **pethis,int flags);
 
-#define M68HDL(e)       (e)
-
 /*******************************
  * Read list of comma-separated arguments into *parglist.
  * Input:
@@ -1265,7 +1263,7 @@ Lsymfound:
 #endif
 
   mos = el_longt(tsint,s->Smemoff);             // offset of member
-  M68HDL(eplus = el_bint(OPadd,at,ethis,mos));  // &e1 + mos
+  eplus = el_bint(OPadd,at,ethis,mos);          // &e1 + mos
 
   e = el_unat(OPind,s->Stype,eplus);    /* *(&e1 + mos)                 */
   if (s->Sflags & SFLmutable)
@@ -3480,7 +3478,7 @@ elem *exp2_ptrvbaseclass(elem *ethis,Classsym *stag,Classsym *sbase)
     assert(b);
     e = el_longt(tsint,b->memoffset);
     tp = type_allocn(tpbase->Tty,tpbase);
-    M68HDL(e = el_bint(OPadd,tp,ethis,e));
+    e = el_bint(OPadd,tp,ethis,e);
     ethis = el_unat(OPind,tpbase,e);
 #endif /* VBTABLES */
     return ethis;
@@ -3635,7 +3633,7 @@ STATIC int c1isbaseofc2x(elem **pethis,symbol *c1,symbol *c2,Classsym **psvirtua
 
                         tpbase = type_allocn(ethis->ET->Tty,sbase->Stype);
                         assert(typtr(tpbase->Tty));
-                        M68HDL(ethis = el_bint(OPadd,tpbase,ethis,el_longt(tsint,b->BCoffset)));
+                        ethis = el_bint(OPadd,tpbase,ethis,el_longt(tsint,b->BCoffset));
                     }
                     *pethis = ethis;
                     if (c1 != sbase)
@@ -4813,7 +4811,7 @@ again:
             else
             {   /* pointer to data member       */
                 el_settype(e,tsint);
-                M68HDL(e = el_bint(OPadd,newt,e,el_longt(tsint,d)));
+                e = el_bint(OPadd,newt,e,el_longt(tsint,d));
                 goto ret;
             }
         }
