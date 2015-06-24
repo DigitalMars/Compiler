@@ -4589,7 +4589,7 @@ ret:
 #define PTRLPTR OPnp_fp
 #define OFFSET  OPoffset
 #define FPTR    OPvp_fp
-#if ELFOBJ
+#if TARGET_OSX
 #define TOF16   NONE
 #define FRF16   PAINT
 #else
