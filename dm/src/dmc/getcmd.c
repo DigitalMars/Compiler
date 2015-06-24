@@ -119,6 +119,7 @@ void getcmd(int argc,char **argv)
 #else
     config.exe = EX_MZ;
 #endif
+    config.objfmt = OBJ_OMF;
     config.threshold = THRESHMAX;       // default to near data
     config.flags4 |= CFG4anew;
     config.flags4 |= CFG4forscope;
