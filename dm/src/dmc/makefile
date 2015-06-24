@@ -3,7 +3,7 @@
 # Copyright (c) 2000-2012 by Digital Mars
 # Written by Walter Bright
 # All Rights Reserved
-#       for C/C++ compiler parser and preprocessor (SCC, SCPP, SPP and HTOD)
+#       for C/C++ compiler parser and preprocessor (SCPP, SPP and HTOD)
 
 # Suffixes:
 #       n       WIN32 EXE
@@ -24,7 +24,7 @@ SCPDIR=..\backup
 SCPDIR=walter@mercury:dm
 
 # Options:
-#       TARGET          one of SCC, SCPP, SPP, HTOD for C, C++, Preprocessor
+#       TARGET          one of SCPP, SPP, HTOD for C, C++, Preprocessor
 #       XFLG            other compiler switches
 #       OPT             optimization switches
 #       DEBUG           debug switches
@@ -33,7 +33,7 @@ SCPDIR=walter@mercury:dm
 #       LFLAGS          flags to DOS linker
 #       LINKN           linker to use for target
 
-TARGET=SCC
+TARGET=
 XFLG=
 OPT=
 DEBUG=-gl
@@ -105,10 +105,6 @@ release:
 
 ################ NT COMMAND LINE RELEASE #########################
 
-sccn:
-#       make TARGET=SCC  OPT=-o "DEBUG=-gt -DSTATIC= -Nc" LFLAGS=/noi/noe/map sccn.exe
-        make TARGET=SCC  OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map sccn.exe
-
 scppn:
 #       make TARGET=SCPP OPT=-o "DEBUG=-gt -g -DSTATIC= -Nc" LFLAGS=/noi/noe/map scppn.exe
 #       make TARGET=SCPP OPT=-o "DEBUG=-g -DSTATIC= -Nc" LFLAGS=/noi/noe/map/co scppn.exe
@@ -122,9 +118,6 @@ htodn:
 
 ################ NT COMMAND LINE DEBUG #########################
 
-debccn:
-        make TARGET=SCC  OPT= "DEBUG=-D -g" LFLAGS=/noi/noe/co/m sccn.exe
-
 debcppn:
         make TARGET=SCPP OPT= "DEBUG=-D -g -DMEM_DEBUG" LFLAGS=/noi/noe/co/m scppn.exe
 
@@ -136,9 +129,6 @@ debhtodn:
 
 ################ NT DLL RELEASE #########################
 
-sccnd:
-        make TARGET=SCC  OPT=-o+space "XFLG=$(NTDLL)" DEBUG= LFLAGS=/noi/noe/map BASE=20578304 sccnd.dll
-
 scppnd:
         make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG= LFLAGS=/noi/noe/map BASE=18087936 scppnd.dll
 #       make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG=-g LFLAGS=/noi/noe/map/co BASE=18087936 scppnd.dll
@@ -147,9 +137,6 @@ sppnd:
         make TARGET=SPP  OPT=-o+space "XFLG=$(NTDLL)" DEBUG= LFLAGS=/noi/noe/map BASE=21430272 sppnd.dll
 
 ################ NT DLL DEBUG #########################
-
-debccnd:
-        make TARGET=SCC  OPT=-o+space "XFLG=$(NTDLL)" LFLAGS=/noi/noe/map/co sccnd.dll
 
 debcppnd:
         make TARGET=SCPP OPT= "DEBUG=-g -D -DMEM_DEBUG -DTERMCODE" "XFLG=$(NTDLL)" LFLAGS=/noi/noe/map/co scppnd.dll

@@ -1,5 +1,5 @@
 // Copyright (C) 1983-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -15,17 +15,10 @@
 // when compiled and run, generates the tables used by the compiler.
 // Currently it puts all languages into one table, but it can be changed
 // to generate binary files for different files loaded at runtime.
-// This eliminates the old scheme of trying to keep multiple files exactly
-// in sync.
 
-// Compile with -DSPP (preprocessor), -DSCC (C compiler), or -DSCPP (C++ compiler)
-
-#if HTOD
-#define SCPP 1
-#endif
+// Compile with -DSPP (preprocessor), -DSCPP (C/C++ compiler), -DHTOD (.h to .d converter)
 
 #define TX86            1
-//#define TARGET_LINUX  1
 
 struct Msgtable
 {
@@ -309,18 +302,11 @@ struct Msgtable msgtable[] =
         "ƒ}ƒNƒˆø”‚ªI—¹‚µ‚Ä‚¢‚È‚¢",                   // 34 P
   },
   { "align",
-    #if TX86
         // Alignment for struct members must be 1,2,4,8, etc.
         "alignment must be a power of 2",                       /* 35 P,C */
         "Ausrichtung muá eine Potenz von 2 sein",               /* 35 P,C */
         "l'alignement doit ˆtre une puissance de 2",            /* 35 P,C */
         "ƒAƒ‰ƒCƒ“ƒƒ“ƒg‚Ìw’è‚Í2‚Ì™pæ‚Å‚È‚¯‚ê‚Î‚È‚ç‚È‚¢",      // 35 P,C
-    #else
-        "alignment must be 1,2,4",                              /* 35   */
-        "Ausrichtung muá 1,2,4 sein",                           /* 35   */
-        "la valeur d'alignement doit ˆtre 1, 2 ou 4",           /* 35   */
-        "ƒAƒ‰ƒCƒ“ƒƒ“ƒg‚Í1,2,4‚Å‚È‚¯‚ê‚Î‚È‚ç‚È‚¢",              /* 35   */
-    #endif
   },
         // ANSI C 3.8.8
   { "undef",
@@ -811,7 +797,7 @@ struct Msgtable msgtable[] =
         "nullptr cannot give boolean result",
    },
 
-#if TX86 // Error messages specific to TX86
+// Error messages specific to TX86
         // Can't specify 16 bit instruction set for 32 bit memory model
   { "bad_iset",
         "invalid instruction set '%c' for memory model '%c'",   // 166
@@ -824,7 +810,6 @@ struct Msgtable msgtable[] =
         "more than %d symbols in object file",
    },
 
-#endif
 
 //////////////////////////////////////////////////////////////////
 // Preprocessor and C messages
@@ -838,8 +823,6 @@ struct Msgtable msgtable[] =
 
 //////////////////////////////////////////////////////////////////
 // C messages
-
-#if SCC || SCPP
 
         /* ANSI 3.5.2.1 There must be at least one member
            of the struct
@@ -880,14 +863,13 @@ struct Msgtable msgtable[] =
         "•s³‚ÈŒ^‚Ì‘g‡‚¹",                             /* 125S */
   },
 
-#if SCC || SCPP
   { "ptr_to_ref",
         "illegal pointer to reference",
   },
+
   { "ref_to_ref",
         "illegal reference to reference",
   },
-#endif
 
   { "illegal_cast",
         "illegal cast",                                 /* 82 S */
@@ -1281,8 +1263,7 @@ struct Msgtable msgtable[] =
         "'%s' ‚ÌŒ^‚ªŠÖ”ƒvƒƒgƒ^ƒCƒv‚Æ–µ‚‚µ‚Ä‚¢‚é",    /* 105 S */
   },
   { "void_novalue",
-    #if SCPP
-        /* Also, void& is an illegal type       */
+        // Also, void& is an illegal type
         // Constructors, destructors and invariants cannot return values.
         /* Functions returning void cannot return values.       */
         "voids have no value; ctors, dtors and invariants have no return value", // 106
@@ -1291,12 +1272,6 @@ struct Msgtable msgtable[] =
         #pragma dbcs(push,1)
         "void ‚É‚Í’l‚ª‚È‚­A\’zqAÁ–Åq‚É‚Í–ß‚è’l‚ª‚È‚¢", /* 106 */
         #pragma dbcs(pop)
-    #else
-        "voids have no value",                          /* 106  */
-        "Voids haben keinen Wert",                              /* 106  */
-        "les void sont d‚pourvus de valeur",                            /* 106  */
-        "void ‚É‚Í’l‚ª‚È‚¢",                            /* 106  */
-    #endif
   },
         /* Precompiled headers must be compiled with same
            switches as when it is used.
@@ -1311,35 +1286,19 @@ struct Msgtable msgtable[] =
         // Use -cpp to precompile a header file with C++, as the default
         // is to compile a .h file with the C compiler.
   { "wrong_lang",
-    #if SCPP
         "precompiled header compiled with C instead of C++",    // 182 F
         "Vorkompilierter Header wurde mit C statt mit C++ kompiliert",  // 182 F
         "en-tˆte pr‚compil‚ sous C et non sous C++",    // 182 F
-    #else
-        "precompiled header compiled with C++ instead of C",    // 182 F
-        "Vorkompilierter Header wurde mit C++ statt mit C kompiliert",  // 182 F
-        "en-tˆte pr‚compil‚ sous C++ et non sous C",    // 182 F
-    #endif
   },
 
         // Define the struct before referencing its members.
   { "not_a_member",
-    #if SCPP
         "'%s' is not a member of undefined class '%s'", // 175
         "'%s' ist nicht Glied des vorausreferenzierten Class '%s'",     // 175
         "'%s' n'est pas membre de la structure r‚f‚renc‚e '%s'",        // 175
-    #else
-        "'%s' is not a member of undefined struct '%s'",        // 175
-        "'%s' ist nicht Glied des vorausreferenzierten Struct '%s'",    // 175
-        "'%s' n'est pas membre de la structure r‚f‚renc‚e '%s'",        // 175
-    #endif
   },
   { "not_a_member_alt",
-    #if SCPP
         "'%s' is not a member of undefined class '%s', did you mean '%s'?",
-    #else
-        "'%s' is not a member of undefined struct '%s', did you mean '%s'?",
-    #endif
   },
 
         // ANSI 3.7
@@ -1408,17 +1367,10 @@ struct Msgtable msgtable[] =
   },
 
   { "pointer",
-    #if SCPP
         "pointer required before '->', '->*' or after '*'",     /* 95 S */
         "Pointer erforderlich vor '->', '->*' oder nach '*'",   /* 95 S */
         "pointeur requis avant '->' ou '->*' et aprŠs '*'",     /* 95 S */
         "'->'A'->*' ‚Ì‘O‚¨‚æ‚Ñ '*' ‚ÌŒã‚Íƒ|ƒCƒ“ƒ^‚Å‚È‚¯‚ê‚Î‚È‚ç‚È‚¢",  /* 95 S */
-    #else
-        "pointer required before '->' or after '*'",            /* 95 S */
-        "Pointer erforderlich vor '->' oder nach '*'",  /* 95 S */
-        "pointeur requis avant '->' ou aprŠs '*'",              /* 95 S */
-        "'->' ‚Ì‘O‚¨‚æ‚Ñ '*' ‚ÌŒã‚Íƒ|ƒCƒ“ƒ^‚Å‚È‚¯‚ê‚Î‚È‚ç‚È‚¢", /* 95 S */
-    #endif
   },
   { "not_variable",
         // The symbol is not a variable, or is not a static variable.
@@ -1508,30 +1460,16 @@ struct Msgtable msgtable[] =
         "%s storage class is illegal for %s",
   },
   { "array_of_funcs",
-    #if SCC
-        "array of functions or voids is illegal",               /* 42 S */
-        "Array von Funktionen ungltig",                        /* 42 S */
-        "tableau de fonctions non autoris‚",                    /* 42 S */
-        "ŠÖ”‚Ì”z—ñ‚ğéŒ¾‚Å‚«‚È‚¢",                             /* 42 S */
-    #else
         "array of functions, references or voids is illegal",   /* 42 S */
         "Array von Funktionen oder Referenzen ungltig",        /* 42 S */
         "tableau de fonctions ou de r‚f‚rences non autoris‚",   /* 42 S */
         "ŠÖ”‚Ü‚½‚ÍQÆ‚Ì”z—ñ‚ğéŒ¾‚Å‚«‚È‚¢",                   /* 42 S */
-    #endif
   },
   { "return_type",
-    #if SCC
-        "functions can't return arrays or functions",   /* 43 S */
-        "Funktionen k”nnen keine Arrays oder Funktionen zurckgeben",   /* 43 S */
-        "une fonction ne peut pas renvoyer un tableau ou une autre fonction",   /* 43 S */
-        "”z—ñAŠÖ”‚ğ–ß‚è’l‚Æ‚·‚é‚±‚Æ‚ª‚Å‚«‚È‚¢",               /* 43 S */
-    #else
         "can't return arrays, functions or abstract classes",   /* 43 S */
         "Rckgabe von Arrays, Funktionen oder abstrakten Klassen nicht m”glich",        /* 43 S */
         "renvoi de tableaux, de fonctions ou de classes abstraites impossible", /* 43 S */
         "”z—ñAŠÖ”A’ŠÛƒNƒ‰ƒX‚ğ–ß‚è’l‚Æ‚·‚é‚±‚Æ‚Í‚Å‚«‚È‚¢",   /* 43 S */
-    #endif
   },
   { "body",
         "__body statement expected following __in or __out",
@@ -1821,12 +1759,10 @@ struct Msgtable msgtable[] =
         "static inline %s not defined",
   },
 #endif
-#endif
 
 //////////////////////////////////////////////////////////////////
 // C++ messages
 
-#if SCC || SCPP
         // When initializing a reference, the object being used as
         // an initializer must be of the same type or it must be const.
   { "bad_ref",
@@ -2920,14 +2856,12 @@ struct Msgtable msgtable[] =
   { "typename_expected",
         "%s is expected to be a typename member of %s",
   },
-#if TX86
-        // Use one scheme or the other
+  // Use one scheme or the other
   { "mix_EH",
         "cannot mix C++ EH with NT structured EH",              // CPP+112
         "C++ EH kann nicht mit NT-Strukturiertem EH vermischt werden",          // CPP+112
         "impossible d'utiliser EH de C++ et EH structur‚ de NT ensemble",               // CPP+112
   },
-#endif
   // CPP98 14.5.4-1
   { "primary_template_first",
         "Primary template '%s' must be declared before any specializations",
@@ -3101,8 +3035,6 @@ struct Msgtable msgtable[] =
         "exception specification not allowed for typedef declaration '%s'",
    },
 
-
-#endif /* CPP */
 
 ///////////////////////////////////////////////////
 // HTML messages
