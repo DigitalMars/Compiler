@@ -1884,7 +1884,7 @@ STATIC type * strdcllst(Classsym *stag,int flags)
  * real tag symbol.
  */
 
-int n2_isstruct(symbol * __ss *ps)
+int n2_isstruct(symbol **ps)
 {   symbol *s;
     int result = 0;
 

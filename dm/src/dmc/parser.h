@@ -528,7 +528,7 @@ type *stunspec(enum_TK tk, Symbol *s, Symbol *stempsym, param_t *template_argume
 Classsym * n2_definestruct(char *struct_tag,unsigned flags,tym_t ptrtype,
         symbol *stempsym,param_t *template_argument_list,int nestdecl);
 void n2_classfriends(Classsym *stag);
-int n2_isstruct(symbol * __ss *ps);
+int n2_isstruct(symbol **ps);
 void n2_addfunctoclass(Classsym *,Funcsym *,int flags);
 void n2_chkexist(Classsym *stag, char *name);
 void n2_addmember(Classsym *stag,symbol *smember);

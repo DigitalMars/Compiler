@@ -34,7 +34,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 STATIC void enumdcllst(symbol *se);
 STATIC symbol * n2_defineenum(char *enum_tag,int flags);
-STATIC int n2_isenum(symbol * __ss *ps);
+STATIC int n2_isenum(symbol **ps);
 
 /****************************
  * Do enum specifier.
@@ -501,7 +501,7 @@ STATIC symbol * n2_defineenum(char *enum_tag,int flags)
  * real tag symbol.
  */
 
-STATIC int n2_isenum(symbol * __ss *ps)
+STATIC int n2_isenum(symbol **ps)
 {   symbol *s;
     int result = 0;
 
