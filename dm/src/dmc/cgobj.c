@@ -380,7 +380,7 @@ void too_many_symbols()
 }
 
 #if !DEBUG && TX86 && !defined(_MSC_VER)
-__declspec(naked) int __pascal insidx(char *p,unsigned index)
+__declspec(naked) int insidx(char *p,unsigned index)
 {
 #undef AL
 #undef AH
@@ -410,8 +410,10 @@ __declspec(naked) int __pascal insidx(char *p,unsigned index)
     L2:
         too_many_symbols();
 }
-#else
-__inline int insidx(char *p,unsigned index)
+#endif
+#if 1
+//__inline
+ int insidxxx(char *p,unsigned index)
 {
     //if (index > 0x7FFF) printf("index = x%x\n",index);
     /* OFM spec says it could be <=0x7F, but that seems to cause
