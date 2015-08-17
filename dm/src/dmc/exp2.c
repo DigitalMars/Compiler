@@ -1712,6 +1712,7 @@ elem *builtinFunc(elem *ec)
                 "btc",
                 "btr",
                 "bts",
+                "cmpxchg",
                 "cos",
                 "cosf",
                 "cosl",
@@ -1765,6 +1766,7 @@ elem *builtinFunc(elem *ec)
         {
 #if TX86
                   OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,
+                  OPcmpxchg,
                   OPcos,OPcos,OPcos,
                   OPabs,OPabs,OPabs,OPmemcmp,OPmemcpy,OPmemset,
                   OPstrcmp,OPstrcpy,OPstrlen,
@@ -1787,10 +1789,12 @@ elem *builtinFunc(elem *ec)
 #if TX86
         static tym_t ty1[] =
                 { TYptr,TYptr,TYptr,TYptr,TYptr,TYptr,
+                  TYptr,
                   TYdouble,TYfloat,TYuint,TYuint,TYptr,TYptr,TYuint,
                   TYuint,TYdouble,TYfloat,TYptr };
         static tym_t ty2[] =
                 { ~0,~0,~0,~0,~0,~0,
+                  ~0,
                   ~0,~0,TYuint,TYuint,~0,~0,TYchar,TYuint,~0,~0,~0 };
 #else
         static tym_t ty1[] =
@@ -1941,6 +1945,19 @@ elem *builtinFunc(elem *ec)
                     ec->E1->ET->Tcount++;
                     ec->E1->E2 = NULL;
 #endif
+                }
+                else if (op == OPcmpxchg)
+                {   // Build (e1 OPcmpxchg (old param new))
+                    // from  (cmpxchg call (new param (old param e1)))
+                    if (ec->E2->Eoper != OPparam)
+                        goto ret;
+                    e2 = ec->E2->E2;
+                    if (e2->Eoper != OPparam)
+                        goto ret;
+                    ec->E1 = el_unat(OPind,e2->E2->ET->Tnext,e2->E2);            // e1
+                    ec->E2->E2 = ec->E2->E1;    // new
+                    ec->E2->E1 = e2->E1;        // old
+                    goto Le2;
                 }
 #endif
                 else if (OTbinary(op))
