@@ -1690,7 +1690,6 @@ elem *builtinFunc(elem *ec)
     elem *e = ec->E1;
     elem *e2;
 
-#ifdef TARGET_INLINEFUNC_NAMES
     if (e->Eoper == OPvar &&
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
         // In linux this is controlled by an option instead of adding defines to
@@ -1705,7 +1704,6 @@ elem *builtinFunc(elem *ec)
         int i;
         static const char *inlinefunc[] = /* names of inline functions  */
         {
-#if TX86
                 "bsf",
                 "bsr",
                 "bt",
@@ -1757,14 +1755,10 @@ elem *builtinFunc(elem *ec)
                 "strlen",
                 "yl2x",
                 "yl2xp1",
-#else
-        TARGET_INLINEFUNC_NAMES
-#endif
         };
         /* Parallel table of corresponding opcodes      */
         static unsigned char opcode[] =
         {
-#if TX86
                   OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,
                   OPcmpxchg,
                   OPcos,OPcos,OPcos,
@@ -1779,14 +1773,10 @@ elem *builtinFunc(elem *ec)
                   OPsetjmp,OPsin,OPsin,OPsin,OPsqrt,OPsqrt,OPsqrt,
                   OPstrcmp,OPstrcpy,OPstrlen,
                   OPyl2x,OPyl2xp1,
-#else
-        TARGET_INLINEFUNC_OPS
-#endif
         };
         /* Types of the operands. We check against these to make sure
            we are not inlining an overloaded function.
          */
-#if TX86
         static tym_t ty1[] =
                 { TYptr,TYptr,TYptr,TYptr,TYptr,TYptr,
                   TYptr,
@@ -1796,12 +1786,6 @@ elem *builtinFunc(elem *ec)
                 { ~0,~0,~0,~0,~0,~0,
                   ~0,
                   ~0,~0,TYuint,TYuint,~0,~0,TYchar,TYuint,~0,~0,~0 };
-#else
-        static tym_t ty1[] =
-                { TARGET_INLINEFUNC_ARGTY1 };
-        static tym_t ty2[] =
-                { TARGET_INLINEFUNC_ARGTY2 };
-#endif
 
         s = e->EV.sp.Vsym;
         symbol_debug(s);
@@ -1853,7 +1837,6 @@ elem *builtinFunc(elem *ec)
                         ec->E2 = NULL;
                     }
                 }
-#if TX86
                 else if (op == OPmemcpy)
                 {   // Build (s1 memcpy (s2 param n))
                     // from  (memcpy call (n param (s2 param s1)))
@@ -1927,7 +1910,6 @@ elem *builtinFunc(elem *ec)
                     // from  (ldexp call (exp param x))
                     if (ec->E2->Eoper != OPparam)
                         goto ret;
-#if 1
                     e2 = ec->E2->E2;            // x
                     ec->E1 = ec->E2->E1;        // exp
                     ec->E2->E1 = NULL;
@@ -1935,16 +1917,6 @@ elem *builtinFunc(elem *ec)
                     el_free(ec->E2);            // param
                     ec->E2 = e2;
                     ec->E1 = exp2_cast(ec->E1, e2->ET);
-#else
-                    e2 = ec->E2->E2;
-                    ec->E1 = ec->E2;
-                    ec->E2 = e2;
-                    ec->E1->Eoper = OPs32_d;
-                    type_free(ec->E1->ET);
-                    ec->E1->ET = e2->ET;
-                    ec->E1->ET->Tcount++;
-                    ec->E1->E2 = NULL;
-#endif
                 }
                 else if (op == OPcmpxchg)
                 {   // Build (e1 OPcmpxchg (old param new))
@@ -1959,7 +1931,6 @@ elem *builtinFunc(elem *ec)
                     ec->E2->E1 = e2->E1;        // old
                     goto Le2;
                 }
-#endif
                 else if (OTbinary(op))
                 {       /* Convert the 2 parameters to the 2 operands           */
                     e2 = ec->E2;
@@ -2022,7 +1993,6 @@ elem *builtinFunc(elem *ec)
         }
 #endif
     }
-#endif
 
 ret:
     elem_debug(ec);
