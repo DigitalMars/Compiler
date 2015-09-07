@@ -296,12 +296,10 @@ elem *rtti_typeid(type *t,elem *e)
 
         symbol_debug(svptr);
         emos = el_longt(tsint,svptr->Smemoff);
-#if VBTABLES
         // Account for offset due to reuse of primary base class vtbl
         st = stag->Sstruct;
         if (st->Sprimary && st->Sprimary->BCbase->Sstruct->Svptr == st->Svptr)
             emos->EV.sp.Voffset = st->Sprimary->BCoffset;
-#endif
         e = el_unat(OPaddr,newpointer(e->ET),e);
         t = type_allocn(st->ptrtype,svptr->Stype); // match pointer type of ethis
         e = el_bint(OPadd,t,e,emos);               // ethis + mos

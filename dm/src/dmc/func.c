@@ -309,7 +309,6 @@ void func_body(symbol *s)
             /* if X::X()        */
             if (f->Fflags & Fctor)
             {   /* Put out virtual base class parameters        */
-#if VBTABLES
                 if (f->Fclass->Sstruct->Svirtbase)
                 {   sf = scope_define(cpp_name_initvbases,SCTlocal,SCparameter);
                     sf->Stype = tsint;
@@ -319,29 +318,7 @@ void func_body(symbol *s)
                     else
                         list_append(&plist,sf);
                 }
-#else
-                for (b = f->Fclass->Sstruct->Svirtbase; b; b = b->BCnext)
-                {
-                    char *p;
-
-                    p = alloca_strdup2("__O",b->BCbase->Sident);
-                    sf = scope_define(p,SCTlocal,SCparamter);
-                    sf->Stype = newpointer(b->BCbase->Stype);
-                    sf->Stype->Tcount++;
-                    list_append(&plist,sf);
-                }
-#endif
             }
-
-#if !VBTABLES
-            if (f->Fflags & (Fdtor | Finvariant))
-            {
-                sf = scope_define(cpp_name_free,SCTlocal,SCparameter);
-                sf->Stype = tsint;
-                tsint->Tcount++;
-                list_append(&plist,sf);
-            }
-#endif
         }
   }
 
@@ -635,16 +612,12 @@ void func_body(symbol *s)
 
             // If we already generated an SCextern reference to it
             if (stag->Sstruct->Svtbl
-#if VBTABLES
                 || stag->Sstruct->Svbtbl
-#endif
                 )
             {
                 scvtbl = (enum SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCstatic);
                 n2_genvtbl(stag,scvtbl,1);
-#if VBTABLES
                 n2_genvbtbl(stag,scvtbl,1);
-#endif
             }
         }
     }

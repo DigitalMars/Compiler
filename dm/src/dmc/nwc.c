@@ -696,20 +696,7 @@ void output_func()
         t = (f->Fflags & Finstance) ? NULL : f->Fthunk;
         if (t)                          /* if this is a thunk           */
         {
-            unsigned p;
-            type *tf;
-
-            p = 0;
-#if !VBTABLES                   // 'this' is always first for VBTABLES
-            if (exp2_retmethod(tf = t->sfunc->Stype) == RET_STACK)
-            {   /* Returning a struct. Allow space for hidden pointer   */
-                type *thidden = exp2_hiddentype(tf);
-
-                p = type_size(thidden);
-                thidden->Tcount++;
-                type_free(thidden);
-            }
-#endif
+            unsigned p = 0;
             outthunk(t->sthunk,t->sfunc,p,pointertype,t->d,t->i,t->d2);
             //mem_free(t);
             //f->Fthunk = NULL;
@@ -5035,7 +5022,6 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
       if (s->Sclass == SCglobal && sc_specifier == SCcomdat)
         s->Sclass = SCcomdat;
 
-#if VBTABLES
     // Cleverly make member functions default to __pascal
       if (sclass &&
         !(f->Fflags & Fstatic) &&
@@ -5067,7 +5053,6 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
                 break;
         }
       }
-#endif
 
     }
     else

@@ -184,11 +184,7 @@ int exp2_retmethod(type *tfunc)
     }
     else if (tybasic(tfunc->Tty) == TYjfunc)
         return RET_REGS;
-#if VBTABLES
     else if (typfunc(tfunc->Tty) && tyfloating(ty))
-#else
-    else if (mangle == mTYman_pas && tyfloating(ty))
-#endif
         return RET_STACK;
     else
         return RET_REGS;
@@ -3391,7 +3387,6 @@ int type_exception_spec_match(type *t1, type *t2)
 
 elem *exp2_ptrvbaseclass(elem *ethis,Classsym *stag,Classsym *sbase)
 {
-#if VBTABLES
     /* Construct:
             ethis = &(ethis->vbptr) + ethis->vbptr[offset] + baseoff
      */
@@ -3449,25 +3444,6 @@ elem *exp2_ptrvbaseclass(elem *ethis,Classsym *stag,Classsym *sbase)
     ethis = el_bint(OPadd,tpbase,ethis,cast(ebaseoff,tsint));
 
     ethis = el_combine(es,ethis);
-#else
-    /* Construct:
-            ethis = ethis->vbptr
-        NOTE: only works if sbase is directly derived from stag.
-     */
-    elem *e;
-    type *tp;
-    type *tpbase;
-    baseclass_t *b;
-
-    tpbase = type_allocn(ethis->ET->Tty,sbase->Stype);
-    assert(typtr(tpbase->Tty));
-    b = baseclass_find(stag->Sstruct->Sbase,sbase);
-    assert(b);
-    e = el_longt(tsint,b->memoffset);
-    tp = type_allocn(tpbase->Tty,tpbase);
-    e = el_bint(OPadd,tp,ethis,e);
-    ethis = el_unat(OPind,tpbase,e);
-#endif /* VBTABLES */
     return ethis;
 }
 
@@ -3510,7 +3486,6 @@ int c1isbaseofc2(elem **pethis,symbol *c1,symbol *c2)
 
     //printf("c1isbaseofc2(c1 = '%s', c2 = '%s')\n", c1->Sident, c2->Sident);
     template_instantiate_forward((Classsym *)c2);
-#if VBTABLES
     int result;
     elem **pe;
 
@@ -3529,9 +3504,6 @@ int c1isbaseofc2(elem **pethis,symbol *c1,symbol *c2)
         }
     }
     return result;
-#else
-    return c1isbaseofc2x(pethis,c1,c2,&svirtual);
-#endif
 }
 
 STATIC int c1isbaseofc2x(elem **pethis,symbol *c1,symbol *c2,Classsym **psvirtual)

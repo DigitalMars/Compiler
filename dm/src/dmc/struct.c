@@ -2292,9 +2292,7 @@ STATIC targ_size_t n2_analysebase(Classsym *stag)
 {
     baseclass_t *b;
     baseclass_t **pb;
-#if VBTABLES
     baseclass_t *vbptr_base;
-#endif
     struct_t *st;
     targ_size_t baseoffset;
     targ_size_t lastbaseoffset;
@@ -2305,7 +2303,6 @@ STATIC targ_size_t n2_analysebase(Classsym *stag)
     symbol_debug(stag);
     st = stag->Sstruct;
 
-#if VBTABLES
     //dbg_printf("n2_analysebase('%s')\n",stag->Sident);
     /* Determine if we need an Svbptr.
        We need one if there are any virtual base classes.
@@ -2351,10 +2348,7 @@ need_vbptr:
 
 skip:
 
-#endif
-
     // Determine offsets of base classes
-#if VBTABLES
     // Order base classes so that base classes that define virtual
     // functions come before those that don't
     lastbaseoffset = ~0;
@@ -2396,25 +2390,9 @@ skip:
                 &baseoffset);
         }
     }
-#else
-    for (b = st->Sbase; b; b = b->BCnext)
-    {
-        // Also take care of alignment
-        if (b->BCbase->Sstruct->Salignsize > st->Salignsize)
-            st->Salignsize = b->BCbase->Sstruct->Salignsize;
 
-        if (!(b->BCflags & BCFvirtual))
-        {   b->BCoffset = n2_structaddsize(b->BCbase->Stype,
-                b->BCbase->Sstruct->Snonvirtsize,
-                &baseoffset);
-        }
-    }
-#endif
-
-#if VBTABLES
     if (vbptr_base)
         st->Svbptr_off = vbptr_base->BCbase->Sstruct->Svbptr_off + vbptr_base->BCoffset;
-#endif
 
     /* Construct Smptrbase, list of base classes with separate vtbl[]s  */
     //dbg_printf("Constructing Smptrbase for '%s'\n",stag->Sident);
@@ -2445,9 +2423,8 @@ skip:
                         ? &list_next(list_last(st->Svirtual))
                         : &st->Svirtual;
                 st->Svptr = sbase->Sstruct->Svptr; /* remember ptr to vtbl[] */
-#if VBTABLES
                 assert(!st->Svptr || st->Svptr->Smemoff == 0);
-#endif
+
                 /* Primary base class does not appear in Smptrbase list unless
                    the offset to it is non-zero.  This means that this class
                    and the base cannot share "this".
@@ -2468,7 +2445,6 @@ skip:
         pb = &bm->BCnext;
         *pb = NULL;
 
-#if 1
         // Append any primary base classes of a virtual base class to
         // the Smptrbase list
 
@@ -2491,7 +2467,6 @@ skip:
                 *pb = NULL;
             }
         }
-#endif
     L1:
         /* Append sbase's Smptrbase list to Smptrbase list      */
         for (bs = sbase->Sstruct->Smptrbase; bs; bs = bs->BCnext)
@@ -2691,30 +2666,6 @@ STATIC void n2_virtbase(Classsym *stag)
                     memset(*pb,0,sizeof(baseclass_t));
                     (*pb)->BCbase = sb;
                     (*pb)->BCflags = b->BCflags & BCFpmask;
-#if !VBTABLES
-                    if (sb == b->BCbase)        /* if first appearance of this base */
-                    {   type *t;
-                        symbol *sptr;
-                        targ_size_t sz;
-                        char *p;
-
-                        b->BCflags |= BCFvfirst;
-                        (*pb)->BCflags |= BCFvfirst;
-                        /* Create member that is a pointer to sb        */
-                        t = newpointer(sb->Stype);
-                        sz = type_size(t);
-                        p = alloca_strdup2("__P",sb->Sident);
-                        sptr = symbol_name(p,SCmember,t);
-                        sptr->Sflags |= SFLpublic;
-                        sptr->Smemoff =
-                                (*pb)->BCmemoffset =
-                                b->BCmemoffset =
-                                n2_structaddsize(t,sz,&st->Sstructsize);
-                        if (sz > st->Salignsize)
-                            st->Salignsize = sz;
-                        n2_addmember(stag,sptr);
-                    }
-#endif
                     break;
                 }
                 else if ((*pb)->BCbase == sb)   /* already in virtual list */
@@ -2855,7 +2806,6 @@ STATIC void n2_virtbase(Classsym *stag)
         }
     }
 
-#if VBTABLES
     // For each virtual base class, compute the offset for its entry
     // in the vbtbl[], vbtbloff
     {   int vbtbl_offset = intsize;
@@ -2968,9 +2918,9 @@ STATIC void n2_virtbase(Classsym *stag)
             b->BCoffset = b2->BCoffset;
         }
     }
-#endif
 }
-
+
+
 /*************************
  * Get width of bit field.
  *      maxn    Maximum number of bits
@@ -3088,7 +3038,7 @@ STATIC void n2_createvptr(Classsym *stag,targ_size_t *poffset)
 #endif
         s_vptr = symbol_name(cpp_name_vptr,SCmember,t);
         s_vptr->Sflags |= SFLpublic;
-#if VBTABLES
+
         // vptr members always appear at 0 offset to this, so we
         // must adjust down the other base classes and members
         {   unsigned sz;
@@ -3116,9 +3066,7 @@ STATIC void n2_createvptr(Classsym *stag,targ_size_t *poffset)
                         break;
                 }
             }
-#if VBTABLES
             st->Svbptr_off += sz;
-#endif
 
             // Ajust up base class offsets
             for (i = 0; 1; i++)
@@ -3126,15 +3074,10 @@ STATIC void n2_createvptr(Classsym *stag,targ_size_t *poffset)
                 {   case 0:     b = st->Sbase;          goto L1;
                     case 1:     b = st->Svirtbase;      goto L1;
                     case 2:     b = st->Smptrbase;      goto L1;
-#if VBTABLES
                     case 3:     b = st->Svbptrbase;     goto L1;
-#endif
                     L1:
                         for (; b; b = b->BCnext)
                         {   b->BCoffset += sz;
-#if !VBTABLES
-                            b->memoffset += sz;
-#endif
                         }
                         continue;
                     default:
@@ -3143,14 +3086,6 @@ STATIC void n2_createvptr(Classsym *stag,targ_size_t *poffset)
                 break;
             }
         }
-#else
-        {   targ_size_t sz = type_size(t);
-
-            if (sz > st->Salignsize)
-                st->Salignsize = sz;
-            s_vptr->Smemoff = n2_structaddsize(t,sz,poffset);
-        }
-#endif
         n2_addmember(stag,s_vptr);
         st->Svptr = s_vptr;
     }
@@ -4465,7 +4400,6 @@ STATIC type * n2_vtbltype(Classsym *stag,int nitems)
 #if TX86 && TARGET_WINDOS
     if (stag->Sstruct->ptrtype == TYfptr)
     {
-#if VBTABLES
         // Put table in code segment for large data models
         if (config.flags & CFGfarvtbls || LARGECODE)
             t->Tty |= mTYfar;
@@ -4475,14 +4409,6 @@ STATIC type * n2_vtbltype(Classsym *stag,int nitems)
             t->Tty |= mTYexport;
         if (stag->Sstruct->Sflags & STRimport)
             t->Tty |= mTYimport;
-#else
-        if (config.flags & CFGfarvtbls)
-            t->Tty |= mTYfar;
-        if (stag->Sstruct->Sflags & STRexport)
-            t->Tty |= mTYexport | mTYfar;
-        if (stag->Sstruct->Sflags & STRexport)
-            t->Tty |= mTYimport | mTYfar;
-#endif
     }
 #endif
     t->Tdim = 1 + nitems + 1;
@@ -4602,7 +4528,8 @@ L1:
             datadef(s);                 // set Sfl
     }
 }
-
+
+
 /*****************************
  * Generate the definition (if it doesn't already exist):
  *      static int class__vbtbl[] = { ... };
@@ -4615,8 +4542,6 @@ L1:
  *              SCextern        generate extern declaration (no data defined)
  *      flag                    output the data definition
  */
-
-#if VBTABLES
 
 STATIC type * n2_vbtbltype(baseclass_t *b,int flags)
 {   type *t;
@@ -4632,7 +4557,6 @@ STATIC type * n2_vbtbltype(baseclass_t *b,int flags)
 #if TX86 && TARGET_WINDOS
     if (b->BCbase->Sstruct->ptrtype == TYfptr)
     {
-#if VBTABLES
         // Put table in code segment for large data models
         // Put table in code segment for large data models
         if (config.flags & CFGfarvtbls || LARGECODE)
@@ -4643,14 +4567,6 @@ STATIC type * n2_vbtbltype(baseclass_t *b,int flags)
             t->Tty |= mTYexport;
         if (flags & STRimport)
             t->Tty |= mTYimport;
-#else
-        if (config.flags & CFGfarvtbls)
-            t->Tty |= mTYfar;
-        if (flags & STRexport)
-            t->Tty |= mTYexport | mTYfar;
-        if (flags & STRimport)
-            t->Tty |= mTYimport | mTYfar;
-#endif
     }
 #endif
     t->Tdim = 1 + baseclass_nitems(b);
@@ -4733,7 +4649,6 @@ L1:
     }
 }
 
-#endif
 
 /**************************
  * Get storage classes for member.
@@ -4867,22 +4782,13 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
     if (func == CFinvariant)
         func = CFdtor;                  // no difference in generated code
 
-#if VBTABLES
     // Leave room for flag
     if (func & (CFctor | CFcopyctor) && stag->Sstruct->Svirtbase)
         nvirt++;
-#else
-    /* Compute nvirt, number of virtual base classes    */
-    if (func & (CFctor | CFcopyctor))
-        for (b = stag->Sstruct->Svirtbase; b; b = b->BCnext)
-            nvirt++;
-#endif
 
     t = n2_typector(stag,tret);
-#if VBTABLES
     if (func & CFscaldtor)
         param_append_type(&t->Tparamtypes,tsuns);
-#endif
     sclass = (flags & Finline) ? SCinline :
              ((config.flags2 & CFG2comdat) ? SCcomdat : SCstatic);
     sfunc = symbol_name(name,sclass,t);
@@ -4892,13 +4798,8 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
     f->Fflags |= Fgen;                  // compiler generated function
     if (func & (CFscaldtor | CFvecctor | CFvecdtor | CFdelete | CFveccpct))
         f->Fflags |= Fnodebug;          // do not generate debug info for this
-#if VBTABLES
     f->Flocsym.top = f->Flocsym.symmax = 1 + nvirt +
                 ((func & (CFscaldtor | CFopeq | CFcopyctor | CFveccpct)) != 0);
-#else
-    f->Flocsym.top = f->Flocsym.symmax = 1 + nvirt +
-                ((func & (CFdtor | CFopeq | CFcopyctor | CFveccpct)) != 0);
-#endif
     f->Flocsym.tab = symtab_calloc(f->Flocsym.top);
 
     /* Remember to load the symbols in reverse order, because we made   */
@@ -4914,7 +4815,6 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
     sthis->Sflags |= SFLfree;
     f->Flocsym.tab[0] = sthis;
 
-#if VBTABLES
     if (nvirt)
     {
         s = symbol_name(cpp_name_initvbases,SCparameter,tsint);
@@ -4922,25 +4822,13 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
         s->Sflags |= SFLfree;
         f->Flocsym.tab[si] = s;
     }
-#else
-    if (func & (CFctor | CFcopyctor))
-        for (b = stag->Sstruct->Svirtbase; b; b = b->BCnext)
-        {   char *p;
 
-            p = alloca_strdup2("__O",b->BCbase->Sident);
-            s = symbol_name(p, SCparameter, newpointer(b->BCbase->Stype));
-            s->Ssymnum = --si;
-            s->Sflags |= SFLfree;
-            f->Flocsym.tab[si] = s;
-        }
-#endif
-
-    if (func & ((VBTABLES ? CFscaldtor : CFdtor) | CFopeq | CFcopyctor | CFveccpct))
+    if (func & ((1 ? CFscaldtor : CFdtor) | CFopeq | CFcopyctor | CFveccpct))
     {   /* dtor() or operator=()        */
         char *p;
         type *t;
 
-        if (func & (VBTABLES ? CFscaldtor : CFdtor))
+        if (func & (1 ? CFscaldtor : CFdtor))
         {   p = cpp_name_free;
             t = tsint;
         }
@@ -5003,7 +4891,6 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
                 cpp_constructor(el_var(sthis),stag->Stype,
                         list_build(e,NULL),NULL,NULL,0);
         }
-#if VBTABLES
         else if (func & CFprimdtor)
         {
             // Call basic dtor, then dtors for virtual base classes
@@ -5078,7 +4965,6 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
             // Return this
             b->Belem = el_bint(OPcomma,sthis->Stype,e,el_var(sthis));
         }
-#endif
         cstate.CSpsymtab = psymtabsave;
         pstate.STinopeq = inopeqsave;
     }
@@ -5150,8 +5036,6 @@ STATIC void n2_createinvariant(type *tclass)
     cpp_fixinvariant(s);
 }
 
-#if VBTABLES
-
 /********************************
  * Generate primary destructor for stag.
  */
@@ -5215,7 +5099,6 @@ symbol *n2_createscaldeldtor(Classsym *stag)
     return st->Sscaldeldtor;
 }
 
-#endif
 
 /**********************************
  * Create vector constructor for class stag.
@@ -5381,10 +5264,9 @@ void n2_createopeq(Classsym *stag,int flag)
     //dbg_printf("n2_createopeq('%s',flag = x%x)\n",stag->Sident,flag);
     symbol_debug(stag);
     st = stag->Sstruct;
-#if VBTABLES
     if (flag & 2 && !st->Sopeq2)
         goto gen;
-#endif
+
     if (!st->Sopeq)
     {
         /* If a class X has any X::operator=() that takes an argument
@@ -5541,7 +5423,6 @@ void n2_createopeq(Classsym *stag,int flag)
             }
             else
             {
-#if VBTABLES
                 enum SC scvtbl;         // storage class for vbtbl[]
                 int i;
 
@@ -5612,23 +5493,7 @@ void n2_createopeq(Classsym *stag,int flag)
                         e = el_bint(OPandand,tsint,e1,e);       // e1 && e
                     }
                 }
-#else
-                /* Copy base classes */
-                e = NULL;
-                for (b = st->Sbase; b; b = b->BCnext)
-                {
-                    e1 = el_var(sthis);
-                    c1isbaseofc2(&e1,b->BCbase,stag);
-                    e1 = el_unat(OPind,b->BCbase->Stype,e1);
-                    e2 = el_var(sx);
-                    el_settype(e2,newpointer(e2->ET->Tnext));   /* ref to ptr */
-                    c1isbaseofc2(&e2,b->BCbase,stag);
-                    e2 = el_unat(OPind,b->BCbase->Stype,e2);
 
-                    e1 = el_bint(OPstreq,e1->ET,e1,e2);
-                    e = el_combine(e,cpp_structcopy(e1));
-                }
-#endif
                 /* Copy the members             */
                 lastoffset = (targ_size_t)-1;           /* an invalid value     */
                 for (sl = st->Sfldlst; sl; sl = list_next(sl))
@@ -5775,9 +5640,6 @@ STATIC int struct_internalmember(symbol *s)
     p = s->Sident;
     return p[0] == '_' && p[1] == '_' &&
         (
-#if !VBTABLES
-                p[2] == 'P' ||
-#endif
                 strcmp(p,cpp_name_vptr ) == 0 ||
                 strcmp(p,cpp_name_vbptr) == 0
         );

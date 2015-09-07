@@ -671,6 +671,7 @@ typedef struct FUNC_S
         #define Fmember         0x2000  // D member function with 'this'
         #define Fnotailrecursion 0x4000 // no tail recursion optimizations
         #define Ffakeeh         0x8000  // allocate space for NT EH context sym anyway
+        #define Fnothrow        0x10000 // function does not throw (even if not marked 'nothrow')
     unsigned char Foper;        // operator number (OPxxxx) if Foperator
 
     Symbol *Fparsescope;        // use this scope to parse friend functions
@@ -741,18 +742,9 @@ typedef struct BASECLASS
     Classsym         *BCbase;           // base class Symbol
     struct BASECLASS *BCnext;           // next base class
     targ_size_t       BCoffset;         // offset from start of derived class to this
-#if VBTABLES
     unsigned short    BCvbtbloff;       // for BCFvirtual, offset from start of
                                         //     vbtbl[] to entry for this virtual base.
                                         //     Valid in Sbase list
-#else
-    targ_size_t memoffset;      /* for BCFvirtual, offset from this to
-                                   pointer to virtual base class.
-                                   Valid in Sbase list
-                                 */
-    Symbol *param;              /* parameter for this Symbol (in        */
-                                /* Svirtbase list only)                 */
-#endif
     symlist_t         BCpublics;        // public members of base class (list is freeable)
     list_t            BCmptrlist;       // (in Smptrbase only) this is the vtbl
                                         // (NULL if not different from base class's vtbl
@@ -991,17 +983,14 @@ typedef struct STRUCT
     Funcsym *Sctor;             // constructor function
 
     Funcsym *Sdtor;             // basic destructor
-#if VBTABLES
     Funcsym *Sprimdtor;         // primary destructor
     Funcsym *Spriminv;          // primary invariant
     Funcsym *Sscaldeldtor;      // scalar deleting destructor
-#endif
 
     Funcsym *Sinvariant;        // basic invariant function
 
     Symbol *Svptr;              // Symbol of vptr
     Symbol *Svtbl;              // Symbol of vtbl[]
-#if VBTABLES
     Symbol *Svbptr;             // Symbol of pointer to vbtbl[]
     Symbol *Svbptr_parent;      // base class for which Svbptr is a member.
                                 // NULL if Svbptr is a member of this class
@@ -1009,7 +998,6 @@ typedef struct STRUCT
     Symbol *Svbtbl;             // virtual base offset table
     baseclass_t *Svbptrbase;    // list of all base classes in canonical
                                 // order that have their own vbtbl[]
-#endif
     Funcsym *Sopeq;             // X& X::operator =(X&)
     Funcsym *Sopeq2;            // Sopeq, but no copy of virtual bases
     Funcsym *Scpct;             // copy constructor

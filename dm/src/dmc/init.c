@@ -1769,32 +1769,12 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
             dtxoff(pdt,s,0,srtti->Sstruct->ptrtype);
     }
 
-#if !VBTABLES
-    if (config.flags2 & CFG2dyntyping)
-    {   size_t len;
-
-        len = strlen(stag->Sident) + 1;
-        dtnbytes(pdt,len,stag->Sident); /* put out identifier           */
-        if (len & 1)
-        {   dtnzeros(pdt,1);            /* round up to word boundary    */
-            len++;
-        }
-        offset = -(len + 2);            /* offset from vptr to start of ident */
-    }
-    else
-        offset = 0;                     /* signify no class name available */
-
-    pdt = dtnbytes(pdt,2,(char *) &offset);
-    pdt = dtnzeros(pdt,size);           // for NULL member function pointer
-#endif
-
     for (lvf = virtlist; lvf; lvf = list_next(lvf))
     {   symbol *s;
 
         m = (mptr_t *) list_ptr(lvf);
 #if THUNKS
         s = m->MPf;
-#if VBTABLES
         // Replace destructor call with scalar deleting destructor
         if (s->Sfunc->Fflags & Fdtor)
         {   Classsym *stag;
@@ -1804,7 +1784,6 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
                 n2_createscaldeldtor(stag);
             s = stag->Sstruct->Sscaldeldtor;
         }
-#endif
         if (m->MPd && !(s->Sfunc->Fflags & Fpure)) // if displacement from this
         {                                         // then a thunk is required
             symbol *sthunk;
@@ -1861,18 +1840,14 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 #endif
         }
     }
-#if !VBTABLES
-    dtnzeros(pdt,size);
-#endif
 
     /*dbg_printf("Tdim = %d\n",s_vtbl->Stype->Tdim);*/
 }
-
+
+
 /*********************************
  * Construct static initializer for vtbl[].
  */
-
-#if VBTABLES
 
 void init_vbtbl(
         symbol      *s_vbtbl,   // symbol for vbtbl[]
@@ -1921,8 +1896,7 @@ void init_vbtbl(
     MEM_PARF_FREE(pdata);
 }
 
-#endif // VBTABLES
-
+
 /******************************
  * Handle constructor for s, if any.
  *      s               either a class or an array of classes.

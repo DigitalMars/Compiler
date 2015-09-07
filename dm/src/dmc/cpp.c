@@ -73,9 +73,7 @@ extern struct OPTABLE oparray[];
 char cpp_name_free[]    = "__free";
 char cpp_name_this[]    = "this";
 char cpp_name_none[]    = "__unnamed";
-#if VBTABLES
 char cpp_name_initvbases[] = "$initVBases";
-#endif
 char cpp_name_invariant[] = "__invariant";
 
 /***********************************
@@ -3439,12 +3437,6 @@ elem *cpp_addr_vtable(Classsym *stag)
 
     /* ev = &_vtbl+offset       */
     ev = el_var(st->Svtbl);
-#if !VBTABLES
-    /* Account for offset due to class name preceding the vtbl  */
-    ev->EV.sp.Voffset = (config.flags2 & CFG2dyntyping)
-                ? (strlen(stag->Sident)+1+2+1) & ~1
-                : 2;
-#endif
     // Account for offset due to RTTI
     if (config.flags3 & CFG3rtti)
         ev->EV.sp.Voffset += tysize[st->ptrtype];
@@ -3489,11 +3481,9 @@ elem *cpp_istype(elem *e, type *t)
 
     symbol_debug(svptr);
     emos = el_longt(tsint,svptr->Smemoff);
-#if VBTABLES
     /* Account for offset due to reuse of primary base class vtbl */
     if (st->Sprimary && st->Sprimary->BCbase->Sstruct->Svptr == st->Svptr)
         emos->EV.sp.Voffset = st->Sprimary->BCoffset;
-#endif
     t = type_allocn(tym,svptr->Stype);  // match pointer type of ethis
     e = el_bint(OPadd,t,e,emos);        // ethis + mos
     e = el_unat(OPind,svptr->Stype,e);  /* *(ethis + mos)               */
@@ -3551,11 +3541,9 @@ STATIC elem * cpp_assignvptr(symbol *s_this,int ctor)
 
     symbol_debug(svptr);
     emos = el_longt(tsint,svptr->Smemoff);
-#if VBTABLES
     /* Account for offset due to reuse of primary base class vtbl */
     if (st->Sprimary && st->Sprimary->BCbase->Sstruct->Svptr == st->Svptr)
         emos->EV.sp.Voffset = st->Sprimary->BCoffset;
-#endif
     t = type_allocn(tym,svptr->Stype);  // match pointer type of ethis
     e = el_bint(OPadd,t,el_var(s_this),emos);   // ethis + mos
     e = el_unat(OPind,svptr->Stype,e);  /* *(ethis + mos)               */
@@ -3604,37 +3592,11 @@ L2:
 
         if (b->BCflags & BCFvirtual)            /* if base class is virtual */
         {
-#if VBTABLES
             e = el_var(s_this);
             e = exp2_ptrvbaseclass(e,stag,sbase);
-#else
-            if (ctor)
-            {   // Find parameter to ctor that points at the virtual base
-                char *p;
-
-                vb = baseclass_find(st->Svirtbase,sbase);
-                assert(vb);
-                // Construct (sp + offset)
-                p = alloca_strdup2("__O",vb->BCbase->Sident);
-                vb->param = funcsym_p->Sfunc->Flocsym.tab
-                        ? cpp_getlocalsym(funcsym_p,p)
-                        : scope_search(p,SCTlocal);
-                symbol_debug(vb->param);
-                e = el_var(vb->param);
-            }
-            else
-            {   /* Get pointer to virtual base  */
-                int result;
-
-                e = el_var(s_this);
-                result = c1isbaseofc2(&e,sbase,stag);
-                assert(result & BCFvirtual);
-            }
-#endif
         }
         else
         {
-#if 1 && VBTABLES
             baseclass_t *bn;
             symlist_t sl;
             symbol *s2;
@@ -3654,11 +3616,6 @@ L2:
                 s2 = s;
                 list_pop(&sl);
             }
-#else
-            /* Construct (this + boffset + soffset) */
-            vptroffset += b->BCoffset;
-            e = el_var(s_this);
-#endif
         }
 
         emos = el_longt(tsint,vptroffset);
@@ -3667,11 +3624,6 @@ L2:
 
         /* ev = &_vtbl  */
         ev = el_var(b->BCvtbl);
-#if !VBTABLES
-        ev->EV.sp.Voffset = (config.flags2 & CFG2dyntyping)
-                ? (strlen(sbase->Sident)+1+1+2) & ~1
-                : 2;
-#endif
         // Account for offset due to RTTI
         if (config.flags3 & CFG3rtti)
             ev->EV.sp.Voffset += tysize[st->ptrtype];
@@ -3685,7 +3637,8 @@ L2:
 
     return ec;
 }
-
+
+
 /***********************************
  * Given the symbol for the this pointer, construct an elem
  *      *(this + _vbptr) = &_vbtbl
@@ -3694,8 +3647,6 @@ L2:
  *      e       vbptr assignment expression
  *      NULL    no vbptr assignment
  */
-
-#if VBTABLES
 
 STATIC elem * cpp_assignvbptr(symbol *s_this)
 {   symbol *svptr;
@@ -3749,50 +3700,9 @@ STATIC elem * cpp_assignvbptr(symbol *s_this)
         symbol_debug(svptr);
 
         t = type_allocn(tym,svptr->Stype);
-#if VBTABLES
         //dbg_printf("b->BCoffset = x%lx, sbase('%s')->Svbptr_off = x%lx\n",b->BCoffset,sbase->Sident,sbase->Sstruct->Svbptr_off);
         vptroffset = b->BCoffset + sbase->Sstruct->Svbptr_off;
         e = el_var(s_this);
-#else
-        vptroffset = svptr->Smemoff;
-
-        if (b->BCflags & BCFvirtual)            /* if base class is virtual */
-        {
-#if VBTABLES
-            e = el_var(s_this);
-            e = exp2_ptrvbaseclass(e,stag,sbase);
-#else
-            if (ctor)
-            {   /* Find parameter to ctor that points at the virtual base       */
-                char *p;
-
-                vb = baseclass_find(st->Svirtbase,sbase);
-                assert(vb);
-                // Construct (sp + offset)
-                p = alloca_strdup2("__O",vb->BCbase->Sident);
-                vb->param = funcsym_p->Sfunc->Flocsym.tab
-                        ? cpp_getlocalsym(funcsym_p,p)
-                        : scope_search(p,SCTlocal);
-                symbol_debug(vb->param);
-                e = el_var(vb->param);
-            }
-            else
-            {   /* Get pointer to virtual base  */
-                int result;
-
-                e = el_var(s_this);
-                result = c1isbaseofc2(&e,sbase,stag);
-                assert(result & BCFvirtual);
-            }
-#endif
-        }
-        else
-        {
-            /* Construct (this + boffset + soffset) */
-            vptroffset += b->BCoffset;
-            e = el_var(s_this);
-        }
-#endif
         emos = el_longt(tsint,vptroffset);
         e = el_bint(OPadd,t,e,emos);
         e = el_unat(OPind,svptr->Stype,e);      /* *(&e + mos)          */
@@ -3809,8 +3719,6 @@ STATIC elem * cpp_assignvbptr(symbol *s_this)
     return ec;
 }
 
-#endif
-
 /***********************************
  * Determine offset of virtual function sfunc from the start of the
  * vtbl[] for class sclass.
@@ -3835,11 +3743,7 @@ int cpp_vtbloffset(Classsym *sclass,symbol *sfunc)
     }
 
     /* Compute offset from start of virtual table for function sfunc */
-#if VBTABLES
     i = -mptrsize;      // no NULL at start of vtbl[]
-#else
-    i = 0;
-#endif
     for (vl = sclass->Sstruct->Svirtual; ; vl = list_next(vl))
     {   mptr_t *m;
 
@@ -4291,18 +4195,10 @@ elem *cpp_constructor(elem *ethis,type *tclass,list_t arglist,elem *enelems,
             /* class pointer parameters                                 */
             if (!pvirtbase)
             {
-#if VBTABLES
                 if (st->Svirtbase)
                     // Set $initVBases to 1 to indicate ctor should
                     // construct vbases
                     list_append(&pvirtbase,el_longt(tsint,1));
-#else
-                baseclass_t *b;
-
-                /*assert(typfunc(sctor->Stype->Tty));*/
-                for (b = st->Svirtbase; b; b = b->BCnext)
-                    list_append(&pvirtbase,el_longt(newpointer(b->BCbase->Stype),0));
-#endif
             }
 
 #if 1
@@ -4401,7 +4297,6 @@ elem *cpp_destructor(type *tclass,elem *eptr,elem *enelems,int dtorflag)
             cpp_memberaccess(sdtor,funcsym_p,sftag);    // access checking
         }
         dtorflag &= ~DTORnoaccess;
-#if VBTABLES
         if (!(sdtor->Sfunc->Fflags & Fvirtual))
             dtorflag &= ~DTORvirtual;
         switch (dtorflag)
@@ -4416,9 +4311,6 @@ elem *cpp_destructor(type *tclass,elem *eptr,elem *enelems,int dtorflag)
                 sd = n2_createscaldeldtor(stag);
                 break;
         }
-#else
-        sd = sdtor;
-#endif
         if (dtorflag & DTORvirtual)
             edtor = cpp_getfunc(tclass,sd,&eptr);
         else
@@ -4694,24 +4586,8 @@ symbol *cpp_findctor0(Classsym *stag)
 STATIC list_t cpp_pvirtbase(Classsym *stag,Classsym *sbase)
 {
     list_t pvirtbase = NULL;
-#if VBTABLES
     if (sbase->Sstruct->Svirtbase)
         list_append(&pvirtbase,el_longt(tsint,0));
-#else
-    baseclass_t *bd,*bb;
-
-    /* Build parameter list for call to constructor     */
-    bd = stag->Sstruct->Svirtbase;
-    /* For each virtual base class of sbase     */
-    for (bb = sbase->Sstruct->Svirtbase; bb; bb = bb->BCnext)
-    {
-        /* Find corresponding virtual base class of stag        */
-        bd = baseclass_find(bd,bb->BCbase);
-        assert(bd);
-        /* Which we get the ethis from  */
-        list_append(&pvirtbase,el_var(bd->param));
-    }
-#endif
     return pvirtbase;
 }
 
@@ -4813,7 +4689,6 @@ void cpp_buildinitializer(symbol *s_ctor,list_t baseinit,int flag)
     /* Call constructor for each virtual base class     */
     {   baseclass_t *b;
 
-#if VBTABLES
         // Find initvbases flag
         symbol *s_initvbases;
         elem *evc;
@@ -4859,67 +4734,6 @@ void cpp_buildinitializer(symbol *s_ctor,list_t baseinit,int flag)
                                          : scope_search(cpp_name_initvbases,SCTlocal);
             e = el_bint(OPandand,tsint,el_var(s_initvbases),evc);
         }
-#else
-        /* Find all the pointers to virtual base classes        */
-        for (b = st->Svirtbase; b; b = b->BCnext)
-        {   char *p;
-
-            p = alloca_strdup2("__O",b->BCbase->Sident);
-            b->param = f->Flocsym.tab ? cpp_getlocalsym(s_ctor,p)
-                                     : scope_search(p,SCTlocal);
-        }
-
-        for (b = st->Svirtbase; b; b = b->BCnext)
-        {   elem *ethis;
-            elem *ector;
-            elem *ec;
-            symbol *sp;
-            Classsym *sbase;
-            SYMIDX marksi;
-
-            sbase = b->BCbase;
-            ethis = el_bint(OPadd,newpointer(sbase->Stype),
-                el_var(s_this),el_longt(tsint,b->BCoffset));
-            arglist = cpp_meminitializer(baseinit,sbase);
-            /*dbg_printf("Virtual base '%s', arglist = %p\n",sbase->Sident,arglist);*/
-            if (sbase->Sstruct->Sflags & STRgenctor0 && !arglist)
-                n2_creatector(sbase->Stype);
-            if (sbase->Sstruct->Sctor)          /* if constructor       */
-            {   list_t pvirtbase;
-
-                pvirtbase = cpp_pvirtbase(stag,sbase);
-                /* Construct call to virtual base constructor   */
-                marksi = globsym.top;
-                ector = cpp_constructor(ethis,sbase->Stype,arglist,NULL,pvirtbase,flags);
-                func_expadddtors(&ethis, marksi, globsym.top, TRUE);
-            }
-            else
-                ector = ethis;
-
-            /* Build (param ? param : (param = ector))  */
-            sp = b->param;
-            symbol_debug(sp);
-            ec = el_bint(OPeq,sp->Stype,el_var(sp),ector);
-            if (sp->Sclass == SCparameter)
-            {   /* Do assignment to sp only if it's not NULL    */
-                ec = el_bint(OPcolon,sp->Stype,el_var(sp),ec);
-                ec = el_bint(OPcond,sp->Stype,el_var(sp),ec);
-            }
-
-            /* Initialize pointer to virtual base class */
-            /* *(this + memoffset) = ec */
-            if (b->BCflags & BCFvfirst)
-            {   elem *eptr;
-
-                eptr = el_bint(OPadd,newpointer(newpointer(sbase->Stype)),
-                        el_var(s_this),el_longt(tsint,b->memoffset));
-                eptr = el_unat(OPind,eptr->ET->Tnext,eptr);
-                ec = el_bint(OPeq,eptr->ET,eptr,ec);
-            }
-
-            e = el_combine(e,ec);
-        }
-#endif
     }
 
     /* Do constructors for non-virtual base classes in the order declared */
@@ -5461,35 +5275,6 @@ elem *cpp_buildterminator(Classsym *stag, symbol *s_this, elem **ped)
         e = el_combine(e,e1);
     }
 
-#if !VBTABLES
-    /* Do destructors for virtual base classes */
-    {
-        e1 = NULL;
-        for (baseclass_t *b = stag->Sstruct->Svirtbase; b; b = b->BCnext)
-        {
-            sbase = b->BCbase;
-            symbol_debug(sbase);
-            if (sbase->Sstruct->Sdtor)
-            {   elem *et;
-
-                et = el_var(s_this);
-                et = el_bint(OPadd,et->ET,
-                        et,el_longt(tsint,b->BCoffset));
-                et = cpp_destructor(sbase->Stype,et,NULL,DTORnoeh);
-                e1 = el_combine(et,e1);
-            }
-        }
-        /* Only do these destructors if (_free & 2)     */
-        if (e1)
-        {   /* Construct ((_free & 2) && e1)    */
-            e1 = el_bint(OPandand,tsint,
-                el_bint(OPand,s__free->Stype,el_var(s__free),el_longt(s__free->Stype,2)),
-                e1);
-        }
-        e = el_combine(e,e1);
-    }
-#endif
-
     *ped = el_combine(edb, edm);
     return e;
 }
@@ -5531,10 +5316,6 @@ void cpp_fixdestructor(symbol *s_dtor)
 
     s_this = cpp_getthis(s_dtor);
     symbol_debug(s_this);
-#if !VBTABLES
-    s__free = cpp_getlocalsym(s_dtor,cpp_name_free);
-    symbol_debug(s__free);
-#endif
 
     assert(s_this->Stype);
     tclass = s_this->Stype->Tnext;      /* this is <pointer to><class>  */
@@ -5559,30 +5340,11 @@ void cpp_fixdestructor(symbol *s_dtor)
     for (b = baseblock; b; b = b->Bnext)
         if (b->Belem && fixctorwalk(b->Belem,NULL,s_this))
         {   sawthis = TRUE;
-#if SEPNEWDEL || VBTABLES
             synerr(EM_assignthis);
-#else
-            warerr(WM_assignthis);      // assignment to this is an anachronism
-#endif
             break;
         }
 
     abstract = stag->Sstruct->Sflags & STRabstract;
-
-#if !VBTABLES
-    /* Append (this && (e,_free & 1) && _delete(this)) to each return block */
-    if (!abstract && !sepnewdel)
-    {
-        e1 = el_bint(OPand,s__free->Stype,
-                el_var(s__free),el_longt(s__free->Stype,1));
-        e1 = el_combine(e,e1);
-        if (sawthis)
-            e1 = el_bint(OPandand,tsint,el_var(s_this),e1);
-        e2 = cpp_delete(0,s_dtor,el_var(s_this),el_typesize(tclass));
-
-        e = el_bint(OPandand,tsint,e1,e2);
-    }
-#endif
 
     for (b = baseblock; b; b = b->Bnext)
     {
@@ -5604,34 +5366,6 @@ void cpp_fixdestructor(symbol *s_dtor)
 
         // Add code that enables EH for member and base destructors
         bstart->Belem = el_combine(ed, bstart->Belem);
-
-#if !VBTABLES
-        if (!sepnewdel || abstract)
-            ;
-        else if (f->Fflags & Finline)           /* if inline function   */
-        {
-            if (bstart->Belem)
-                bstart->Belem = el_bint(OPandand,tsint,
-                    el_var(s_this),bstart->Belem);
-        }
-        else
-        {
-            /* Add the block                            */
-            /*  if (!this) return;                      */
-            /* to the beginning of the destructor.      */
-
-            assert(f->Fstartblock == baseblock);
-
-            b = block_new(BCiftrue);
-            b->Belem = el_var(s_this);
-            b->Bnext = block_new(BCret);
-            b->Bnext->Bnext = bstart;
-            f->Fstartblock = b;
-
-            list_append(&b->Bsucc,b->Bnext->Bnext);
-            list_append(&b->Bsucc,b->Bnext);
-        }
-#endif
     }
     }
 
@@ -5778,10 +5512,6 @@ void cpp_fixinvariant(symbol *s_inv)
 
     s_this = cpp_getthis(s_inv);
     symbol_debug(s_this);
-#if !VBTABLES
-    s__free = cpp_getlocalsym(s_inv,cpp_name_free);
-    symbol_debug(s__free);
-#endif
 
     assert(s_this->Stype);
     tclass = s_this->Stype->Tnext;      // this is <pointer to><class>
@@ -5845,35 +5575,6 @@ void cpp_fixinvariant(symbol *s_inv)
         e = el_combine(e,e1);
     }
 
-#if !VBTABLES
-    // Do invariants for virtual base classes
-    {
-        e1 = NULL;
-        for (b = stag->Sstruct->Svirtbase; b; b = b->BCnext)
-        {
-            sbase = b->BCbase;
-            symbol_debug(sbase);
-            if (sbase->Sstruct->Sinvariant)
-            {   elem *et;
-
-                et = el_var(s_this);
-                et = el_bint(OPadd,et->ET,
-                        et,el_longt(tsint,b->BCoffset));
-                et = cpp_invariant(sbase->Stype,et,NULL,DTORnoeh);
-                e1 = el_combine(et,e1);
-            }
-        }
-        // Only do these invariants if (_free & 2)
-        if (e1)
-        {   // Construct ((_free & 2) && e1)
-            e1 = el_bint(OPandand,tsint,
-                el_bint(OPand,s__free->Stype,el_var(s__free),el_longt(s__free->Stype,2)),
-                e1);
-        }
-        e = el_combine(e,e1);
-    }
-#endif
-
     // Put at start of function
     func_t *f;
     f = s_inv->Sfunc;
@@ -5883,7 +5584,8 @@ void cpp_fixinvariant(symbol *s_inv)
     funcsym_p = funcsym_save;
     //dbg_printf("cpp_fixinvariant() done\n");
 }
-
+
+
 /*****************************
  * Generate a function call to invariant().
  * This code is very analogous to cpp_destructor()
@@ -5931,7 +5633,6 @@ elem *cpp_invariant(type *tclass,elem *eptr,elem *enelems,int invariantflag)
             cpp_memberaccess(sinvariant,funcsym_p,sftag);       // access checking
         }
         invariantflag &= ~DTORnoaccess;
-#if VBTABLES
         if (!(sinvariant->Sfunc->Fflags & Fvirtual))
             invariantflag &= ~DTORvirtual;
         switch (invariantflag)
@@ -5947,9 +5648,6 @@ elem *cpp_invariant(type *tclass,elem *eptr,elem *enelems,int invariantflag)
                 //sd = n2_createscaldelinvariant(stag);
                 break;
         }
-#else
-        sd = sinvariant;
-#endif
         if (invariantflag & DTORvirtual)
             einvariant = cpp_getfunc(tclass,sd,&eptr);
         else
