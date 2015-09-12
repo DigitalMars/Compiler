@@ -109,7 +109,7 @@ void WRBC(unsigned bc)
          "exit  ","asm   ","switch","ifthen","jmptab",
          "try   ","catch ","jump  ",
          "_try  ","_filte","_final","_ret  ","_excep",
-         "jcatch",
+         "jcatch"
         };
 
     assert(sizeof(bcs) / sizeof(bcs[0]) == BCMAX);
@@ -244,9 +244,9 @@ void WRblocklist(list_t bl)
 void WRdefnod()
 { register int i;
 
-  for (i = 0; i < deftop; i++)
-  {     dbg_printf("defnod[%d] in B%d = (",defnod[i].DNblock->Bdfoidx,i);
-        WReqn(defnod[i].DNelem);
+  for (i = 0; i < go.deftop; i++)
+  {     dbg_printf("defnod[%d] in B%d = (", go.defnod[i].DNblock->Bdfoidx, i);
+        WReqn(go.defnod[i].DNelem);
         dbg_printf(");\n");
   }
 }
