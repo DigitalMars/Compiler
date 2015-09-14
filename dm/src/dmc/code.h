@@ -101,7 +101,6 @@ extern con_t regcon;
  *      CSEpe           pointer to saved elem
  *      CSEregm         mask of register that was saved (so for multi-
  *                      register variables we know which part we have)
- *      cstop =         # of entries in table
  */
 
 struct CSE
@@ -212,7 +211,6 @@ extern int pass;
 
 extern  int dfoidx;
 extern  struct CSE *csextab;
-extern  unsigned cstop;
 #if TX86
 extern  bool floatreg;
 #endif
@@ -395,6 +393,8 @@ extern targ_size_t spoff;
 extern targ_size_t Foff;        // BP offset of floating register
 extern targ_size_t CSoff;       // offset of common sub expressions
 extern targ_size_t NDPoff;      // offset of saved 8087 registers
+extern targ_size_t pushoff;     // offset of saved registers
+extern bool pushoffuse;         // using pushoff
 extern int BPoff;                      // offset from BP
 extern int EBPtoESP;            // add to EBP offset to get ESP offset
 extern int AllocaOff;               // offset of alloca temporary
@@ -407,6 +407,7 @@ code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushallo
 code* prolog_frameadj2(tym_t tyf, unsigned xlocalsize, bool* pushalloc);
 code* prolog_setupalloca();
 code* prolog_saveregs(code *c, regm_t topush);
+code* epilog_restoreregs(code *c, regm_t topop);
 code* prolog_trace(bool farfunc, unsigned* regsaved);
 code* prolog_gen_win64_varargs();
 code* prolog_genvarargs(symbol* sv, regm_t* namedargs);
