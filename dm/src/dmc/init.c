@@ -1619,7 +1619,7 @@ Lagain:
 
     case OPstring:
         size = e->EV.ss.Vstrlen;
-        dtabytes(&dt, e->ET->Tty, e->EV.ss.Voffset, size, e->EV.ss.Vstring);
+        dtabytes(&dt, e->ET->Tty, e->EV.ss.Voffset, size, e->EV.ss.Vstring, 0);
         dsout += tysize(e->ET->Tty);
         break;
 
