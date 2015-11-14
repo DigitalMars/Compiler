@@ -4978,7 +4978,7 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
     }
 
     // If NT, and inline function is exported, then we must write it out
-    if (config.exe == EX_NT && sclass == SCinline && stag->Sstruct->Sflags & STRexport)
+    if (config.exe == EX_WIN32 && sclass == SCinline && stag->Sstruct->Sflags & STRexport)
         nwc_mustwrite(funcsym_p);
 
     funcsym_p = funcsym_save;

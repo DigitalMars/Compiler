@@ -3800,7 +3800,7 @@ void epilog(block *b)
         useregs((ALLREGS | mBP | mES) & ~s->Sregsaved);
     }
 
-    if (usednteh & ~NTEHjmonitor && (config.exe == EX_NT || MARS))
+    if (usednteh & ~NTEHjmonitor && (config.exe == EX_WIN32 || MARS))
         c = cat(c,nteh_epilog());
 
     cpopds = CNIL;
@@ -6017,7 +6017,7 @@ unsigned codout(code *c)
                     case ESCctor:
                     case ESCdtor:
                     case ESCoffset:
-                        if (config.exe != EX_NT)
+                        if (config.exe != EX_WIN32)
                             except_pair_setoffset(c,ggen.getOffset() - funcoffset);
                         break;
                     case ESCmark:

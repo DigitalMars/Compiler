@@ -719,7 +719,7 @@ void except_push(void *p,elem *e,block *b)
     ehstack[ehstacki].el = e;
     ehstack[ehstacki].bl = b;
 #if TX86 && NTEXCEPTIONS
-    if (config.exe != EX_NT)
+    if (config.exe != EX_WIN32)
 #endif
         except_pair_append(p,ehstacki);
     //printf(" prev = %d, ehstacki = %d\n",prev,ehstacki);
@@ -756,7 +756,7 @@ void except_pop(void *p,elem *e,block *b)
            )
         {   ehstacki = ip + 1;
 #if TX86 && NTEXCEPTIONS
-            if (config.exe != EX_NT)
+            if (config.exe != EX_WIN32)
 #endif
                 except_pair_append(p,ip);
             break;
@@ -949,7 +949,7 @@ symbol *except_gentables()
         sz += 2;
     }
 
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
     {   // Address of start of function
         symbol_debug(funcsym_p);
         pdt = dtxoff(pdt,funcsym_p,0,TYnptr);

@@ -1804,7 +1804,7 @@ elem *builtinFunc(elem *ec)
             if (i != -1)
             {   int op = opcode[i];
 
-                if (op == OPsetjmp && config.exe != EX_NT)
+                if (op == OPsetjmp && config.exe != EX_WIN32)
                     goto ret;
                 if (OTunary(op))                /* if unary operator            */
                 {

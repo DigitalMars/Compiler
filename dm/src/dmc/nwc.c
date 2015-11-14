@@ -404,7 +404,7 @@ typedef int (*__mptr)();\
             insblk2((unsigned char *) text,BLrtext);
         }
 #if NTEXCEPTIONS
-        if (config.exe == EX_NT)
+        if (config.exe == EX_WIN32)
         {
 #if NTEXCEPTIONS == 1
             static char text4[] =
@@ -4667,7 +4667,7 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
 
 #if TARGET_WINDOS
         case 'w':
-            if (config.exe == EX_NT)
+            if (config.exe == EX_WIN32)
             {
                 if (strcmp(s->Sident,"wmain") == 0)
                     goto case_main;
@@ -4678,7 +4678,7 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
             goto case_def;
 
         case 'D':
-            if (config.exe != EX_NT || strcmp(s->Sident,"DllMain") ||
+            if (config.exe != EX_WIN32 || strcmp(s->Sident,"DllMain") ||
                 type_mangle(s->Stype) != mTYman_cpp)
                 goto case_def;
             // DllMain never gets C++ name mangling
@@ -4694,7 +4694,7 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
             if (strcmp(s->Sident,"WinMain"))
                 goto case_def;
         case_winmain:
-            if (config.exe == EX_NT)
+            if (config.exe == EX_WIN32)
             {   // Default to stdcall name mangling for NT version
                 type_setmangle(&s->Stype,mTYman_std);
                 goto case_sc;
@@ -4704,7 +4704,7 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
             goto case_com;
 
         case 'L':
-            if (config.exe == EX_NT || strcmp(s->Sident,"LibMain"))
+            if (config.exe == EX_WIN32 || strcmp(s->Sident,"LibMain"))
                 goto case_def;
         case_pascal:
             li = (int) LINK_PASCAL;
@@ -5997,7 +5997,7 @@ tym_t nwc_declspec()
     if (stoken() != TKrpar)
         synerr(EM_rpar);                        // ')' expected
     ty = subst[i];
-    if (!(config.exe & (EX_NT | EX_DOSX)))
+    if (!(config.exe & (EX_WIN32 | EX_DOSX)))
         ty &= ~(mTYimport | mTYthread);         // ignore for non-NT versions
     return ty;
 

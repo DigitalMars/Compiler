@@ -1145,7 +1145,7 @@ void getcmd(int argc,char **argv)
 #if TARGET_LINUX
                       config.exe = EX_LINUX;
 #else
-                      config.exe = EX_NT;
+                      config.exe = EX_WIN32;
 #endif
                       config.defstructalign = 8 - 1; // NT uses 8 byte alignment
             Lx2:
@@ -1274,7 +1274,7 @@ void getcmd(int argc,char **argv)
         config.wflags &= ~WFssneds;     // SS == DS for flat memory models
         config.flags &= ~CFGromable;    // no switch tables in code segment
         config.flags3 |= CFG3nofar;
-        if (config.exe & (EX_NT | EX_WIN64 | EX_LINUX | EX_LINUX64))
+        if (config.exe & (EX_WIN32 | EX_WIN64 | EX_LINUX | EX_LINUX64))
             config.flags3 |= CFG3eseqds;        // ES == DS for flat memory models
     }
     if (!config.inline8087)
@@ -1283,7 +1283,7 @@ void getcmd(int argc,char **argv)
         config.linkage = LINK_STDCALL;
     if (config.flags3 & CFG3eh)
     {
-        if (config.exe == EX_NT)
+        if (config.exe == EX_WIN32)
         {
             config.ehmethod = EH_WIN32;
             config.flags2 |= CFG2seh;
@@ -1296,7 +1296,7 @@ void getcmd(int argc,char **argv)
     }
     else
         config.ehmethod = EH_NONE;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
         config.flags2 |= CFG2seh;
 
     if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64))
@@ -1308,7 +1308,7 @@ void getcmd(int argc,char **argv)
 
     // Autoprototype unprototyped functions so that stdcall name
     // mangling will work.
-    if (!CPP && (config.exe == EX_NT || config.exe == EX_WIN64) &&
+    if (!CPP && (config.exe == EX_WIN32 || config.exe == EX_WIN64) &&
         (config.flags4 & (CFG4stdcall | CFG4oldstdmangle)) == CFG4stdcall
        )
         config.flags3 |= CFG3autoproto; // turn on autoprototyping
@@ -1439,7 +1439,7 @@ void getcmd(int argc,char **argv)
         case EX_OS2:
         case EX_OS1:            predefine("__OS2__");   break;
 
-        case EX_NT:             predefine(win32);
+        case EX_WIN32:             predefine(win32);
                                 predefine(win32 + 1);
                                 predefine("__NT__");    break;
 

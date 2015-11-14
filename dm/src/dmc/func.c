@@ -594,7 +594,7 @@ void func_body(symbol *s)
 #endif
 
         // If NT, and inline function is exported, then we must write it out
-        if (config.exe == EX_NT && tfunc->Tty & mTYexport)
+        if (config.exe == EX_WIN32 && tfunc->Tty & mTYexport)
             nwc_mustwrite(funcsym_p);
         if (f->Fflags & Fmustoutput)            /* if must output anyway */
             queue_func(funcsym_p);
@@ -2371,7 +2371,7 @@ STATIC void nttry_state()
     int lastindex;
 
     stoken();
-    if (config.exe != EX_NT)
+    if (config.exe != EX_WIN32)
     {   tx86err(EM_try_needs_win32);            // only for NT
         return;
     }
