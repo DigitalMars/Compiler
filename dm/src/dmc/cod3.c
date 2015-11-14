@@ -909,7 +909,6 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             }
             assert(!e);
             assert(!bl->Bcode);
-#if 1
             {   // Generate CALL to finalizer code
                 int nalign = 0;
                 if (STACKALIGN == 16)
@@ -917,25 +916,14 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     c = cod3_stackadj(c, nalign);
                 }
                 // CALL bl->Bsucc
-                c = genc(c,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bl->Bsucc));
+                c = genc(c,0xE8,0,0,0,FLblock,(targ_size_t)bl->nthSucc(0));
                 regcon.immed.mval = 0;
                 if (nalign)
                     c = cod3_stackadj(c, -nalign);
-                // JMP list_next(bl->Bsucc)
-                nextb = list_block(list_next(bl->Bsucc));
+                // JMP bl->nthSucc(1)
+                nextb = bl->nthSucc(1);
                 goto L2;
             }
-#else       // Not so good because altering return addr always causes branch misprediction
-            {
-                // Generate a PUSH of the address of the successor to the
-                // corresponding BC_ret
-                //assert(list_block(list_next(bl->Bsucc))->BC == BC_ret);
-                // PUSH &succ
-                c = genc(c,0x68,0,0,0,FLblock,(targ_size_t)list_block(list_next(bl->Bsucc)));
-                nextb = list_block(bl->Bsucc);
-                goto L2;
-            }
-#endif
 
         case BC_ret:
             c = gencodelem(c,e,&retregs,TRUE);

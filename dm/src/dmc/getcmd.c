@@ -1073,7 +1073,8 @@ void getcmd(int argc,char **argv)
     if (config.flags2 & CFG2phgen && config.fulltypes)
         config.flags2 |= CFG2hdrdebug;
     if (CPP)
-    {   config.linkage = LINK_CPP;
+    {
+        config.linkage = LINK_CPP;
         config.flags3 &= ~CFG3relax;
         config.flags3 |= CFG3cppcomment | CFG3strictproto | CFG3digraphs;
         config.flags4 |= CFG4bool | CFG4wchar_t;        // default it to on
@@ -1280,10 +1281,24 @@ void getcmd(int argc,char **argv)
         config.flags4 &= ~CFG4fastfloat;
     if (!CPP && config.exe == EX_OS2 && config.linkage != LINK_PASCAL)
         config.linkage = LINK_STDCALL;
-    if (config.flags3 & CFG3eh && config.exe != EX_NT)
+    if (config.flags3 & CFG3eh)
+    {
+        if (config.exe == EX_NT)
+        {
+            config.ehmethod = EH_WIN32;
+            config.flags2 |= CFG2seh;
+        }
+        else
+        {
+            config.ehmethod = EH_DM;
         config.flags |= CFGalwaysframe;
+        }
+    }
+    else
+        config.ehmethod = EH_NONE;
     if (config.exe == EX_NT)
         config.flags2 |= CFG2seh;
+
     if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64))
         config.flags4 |= CFG4wchar_is_long;
     if (I32)
