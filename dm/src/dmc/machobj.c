@@ -1,11 +1,11 @@
-
+// Compiler implementation of the D programming language
 // Copyright (c) 2009-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gpl.txt.
-// See the included readme.txt for details.
+// Distributed under the Boost Software License, Version 1.0.
+// http://www.boost.org/LICENSE_1_0.txt
+// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/machobj.c
 
 
 #if SCPP || MARS
@@ -17,11 +17,11 @@
 #include        <fcntl.h>
 #include        <ctype.h>
 
-#if _WIN32 || linux
+#if _WIN32 || __linux__
 #include        <malloc.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include        <signal.h>
 #include        <unistd.h>
 #endif
@@ -162,6 +162,12 @@ static IDXSTR extdef;
 
 int seg_data::isCode()
 {
+    // The codegen assumes that code->data references are indirect,
+    // but when CDATA is treated as code reftoident will emit a direct
+    // relocation.
+    if (this == SegData[CDATA])
+        return false;
+
     if (I64)
     {
         //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab64[SDshtidx].flags);
@@ -384,23 +390,11 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
 
 int Obj::data_readonly(char *p, int len, int *pseg)
 {
-    int oldoff;
-    if (I64)
-    {
-        oldoff = Doffset;
-        SegData[DATA]->SDbuf->reserve(len);
-        SegData[DATA]->SDbuf->writen(p,len);
-        Doffset += len;
-        *pseg = DATA;
-    }
-    else
-    {
-        oldoff = CDoffset;
-        SegData[CDATA]->SDbuf->reserve(len);
-        SegData[CDATA]->SDbuf->writen(p,len);
-        CDoffset += len;
-        *pseg = CDATA;
-    }
+    int oldoff = CDoffset;
+    SegData[CDATA]->SDbuf->reserve(len);
+    SegData[CDATA]->SDbuf->writen(p,len);
+    CDoffset += len;
+    *pseg = CDATA;
     return oldoff;
 }
 
@@ -482,9 +476,10 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     seg_count = 0;
     int align = I64 ? 4 : 2;            // align to 16 bytes for floating point
     MachObj::getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
-    MachObj::getsegment("__data",  "__DATA", align, S_REGULAR);         // DATA
+    MachObj::getsegment("__data",  "__DATA", align, S_REGULAR);     // DATA
     MachObj::getsegment("__const", "__TEXT", 2, S_REGULAR);         // CDATA
     MachObj::getsegment("__bss",   "__DATA", 4, S_ZEROFILL);        // UDATA
+    MachObj::getsegment("__const", "__DATA", align, S_REGULAR);     // CDATAREL
 
     if (config.fulltypes)
         dwarf_initfile(filename);
@@ -1790,6 +1785,15 @@ int MachObj::getsegment(const char *sectname, const char *segname,
     return seg;
 }
 
+/**********************************
+ * Reset code seg to existing seg.
+ * Used after a COMDAT for a function is done.
+ */
+
+void Obj::setcodeseg(int seg)
+{
+}
+
 /********************************
  * Define a new code segment.
  * Input:
@@ -1934,7 +1938,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             if (tyfunc(s->ty()) && !variadic(s->Stype))
 #else
             if (!(config.flags4 & CFG4oldstdmangle) &&
-                config.exe == EX_NT && tyfunc(s->ty()) &&
+                config.exe == EX_WIN32 && tyfunc(s->ty()) &&
                 !variadic(s->Stype))
 #endif
             {
@@ -2148,6 +2152,7 @@ int Obj::external(Symbol *s)
     symbol_debug(s);
     extern_symbuf->write(&s, sizeof(s));
     s->Sxtrnnum = 1;
+    return 0;
 }
 
 /*******************************
@@ -2280,8 +2285,7 @@ if (!buf) halt();
     int save = buf->size();
     //dbg_printf("Obj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
-    buf->setsize(offset);
-    buf->reserve(nbytes);
+    buf->position(offset, nbytes);
     if (p)
     {
         buf->writen(p,nbytes);
@@ -2569,7 +2573,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
 
         Outbuffer *buf = SegData[seg]->SDbuf;
         int save = buf->size();
-        buf->setsize(offset);
+        buf->position(offset, retsize);
         //printf("offset = x%llx, val = x%llx\n", offset, val);
         if (retsize == 8)
             buf->write64(val);

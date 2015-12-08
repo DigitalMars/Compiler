@@ -283,7 +283,8 @@ SRC=    tassert.h html.h html.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
         ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
-	backconfig.c ph2.c util2.c divcoeff.c cdeflnx.h dwarf.h dwarf.c
+	backconfig.c ph2.c util2.c divcoeff.c cdeflnx.h dwarf.h dwarf.c dwarfeh.c \
+	elfobj.c elfobj1.c machobj.c
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c
@@ -317,7 +318,7 @@ BACKSRC= cdef.h cc.h oper.h ty.h optabgen.c \
 	strtold.c aa.h aa.c tinfo.h ti_achar.c \
 	md5.h md5.c ti_pvoid.c xmm.h ph2.c util2.c \
 	mscoffobj.c obj.h pdata.c cv8.c backconfig.c \
-	divcoeff.c \
+	divcoeff.c dwarfeh.c \
 	backend.txt
 
 VERSION=857
@@ -396,6 +397,7 @@ cv8.obj : $(DEP) $(cv8.dep) cv8.c
 debug.obj : $(DEP) $(debug.dep) debug.c
 dt.obj : $(DEP) $(dt.dep) dt.c
 dwarf.obj : $(DEP) $(dwarf.dep) dwarf.h dwarf.c
+dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
 ee.obj : $(DEP) $(ee.dep) ee.c
 eh.obj : $(DEP) $(eh.dep) eh.c
 el.obj : $(DEP) $(el.dep) el.c
