@@ -49,7 +49,8 @@ void out_config_init(
                         // 1: D
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
-        bool stackstomp         // add stack stomping code
+        bool stackstomp,        // add stack stomping code
+        bool dwarfeh            // use Dwarf eh
         )
 {
 #if MARS
@@ -94,11 +95,13 @@ void out_config_init(
 #if TARGET_LINUX
     if (model == 64)
     {   config.exe = EX_LINUX64;
+        config.ehmethod = EH_DWARF;
         config.fpxmmregs = TRUE;
     }
     else
     {
         config.exe = EX_LINUX;
+        config.ehmethod = EH_DM;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -109,7 +112,6 @@ void out_config_init(
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
     config.objfmt = OBJ_ELF;
-    config.ehmethod = EH_DM;
 #endif
 #if TARGET_OSX
     config.fpxmmregs = TRUE;

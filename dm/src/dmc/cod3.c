@@ -551,6 +551,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
     {
         case TYvoid:
         case TYstruct:
+        case TYarray:
             return 0;
         case TYbool:
         case TYwchar_t:
@@ -3003,7 +3004,7 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
             dwarf_CFA_set_loc(1);           // address after PUSH EBP
             dwarf_CFA_set_reg_offset(SP, off); // CFA is now 8[ESP]
             dwarf_CFA_offset(BP, -off);       // EBP is at 0[ESP]
-            dwarf_CFA_set_loc(3);           // address after MOV EBP,ESP
+            dwarf_CFA_set_loc(I64 ? 4 : 3);   // address after MOV EBP,ESP
             // Yes, I know the parameter is 8 when we mean 0!
             // But this gets the cfa register set to EBP correctly
             dwarf_CFA_set_reg_offset(BP, off);        // CFA is now 0[EBP]
@@ -4024,6 +4025,7 @@ Lopt:
 #endif
     }
 
+    pinholeopt(c, NULL);
     retsize += calcblksize(c);          // compute size of function epilog
     b->Bcode = cat(ce,c);
 }

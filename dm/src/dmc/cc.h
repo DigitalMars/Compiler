@@ -729,6 +729,8 @@ typedef struct FUNC_S
     Symbol **typesTable;
     size_t typesTableDim;       // number used in typesTable[]
     size_t typesTableCapacity;  // allocated capacity of typesTable[]
+
+    unsigned LSDAoffset;        // offset in LSDA segment of the LSDA data for this function
 } func_t;
 
 #define func_calloc()   ((func_t *) mem_fcalloc(sizeof(func_t)))
@@ -1271,6 +1273,8 @@ struct Symbol
     int Sweight;                // usage count, the higher the number,
                                 // the more worthwhile it is to put in
                                 // a register
+    int Sdw_ref_idx;            // !=0 means index of DW.ref.name symbol (Dwarf EH)
+
     union
     {
         unsigned Sxtrnnum_;     // SCcomdef,SCextern,SCcomdat: external symbol # (starting from 1)

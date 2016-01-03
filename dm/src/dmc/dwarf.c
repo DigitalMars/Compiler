@@ -60,6 +60,12 @@
 
 extern int seg_count;
 
+#if ELFOBJ
+IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
+        unsigned typ, unsigned bind, IDXSEC sec,
+        unsigned char visibility = STV_DEFAULT);
+#endif
+
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
@@ -75,6 +81,18 @@ int dwarf_getsegment(const char *name, int align)
 {
 #if ELFOBJ
     return ElfObj::getsegment(name, NULL, SHT_PROGBITS, 0, align * 4);
+#elif MACHOBJ
+    return MachObj::getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
+#else
+    assert(0);
+    return 0;
+#endif
+}
+
+int dwarf_getsegment_alloc(const char *name, int align)
+{
+#if ELFOBJ
+    return ElfObj::getsegment(name, NULL, SHT_PROGBITS, SHF_ALLOC, align * 4);
 #elif MACHOBJ
     return MachObj::getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
 #else
@@ -166,9 +184,23 @@ int dwarf_regno(int reg)
         return reg;
     else
     {
+#if 1
+        /* See https://software.intel.com/sites/default/files/article/402129/mpx-linux64-abi.pdf
+         * Figure 3.3.8 pg. 62
+         * R8..15    :  8..15
+         * XMM0..15  : 17..32
+         * ST0..7    : 33..40
+         * MM0..7    : 41..48
+         * XMM16..31 : 67..82
+         */
+        static const int to_amd64_reg_map[8] =
+        // AX CX DX BX SP BP SI DI
+        {   0, 2, 1, 3, 7, 6, 4, 5 };
+#else
         static const int to_amd64_reg_map[8] =
         { 0 /*AX*/, 2 /*CX*/, 3 /*DX*/, 1 /*BX*/,
           7 /*SP*/, 6 /*BP*/, 4 /*SI*/, 5 /*DI*/ };
+#endif
         return reg < 8 ? to_amd64_reg_map[reg] : reg;
     }
 }
@@ -614,10 +646,16 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
     buf->writeByten(I64 ? 16 : 8);      // return address register
     if (config.ehmethod == EH_DWARF)
     {
+        const unsigned char personality_pointer_encoding = config.flags3 & CFG3pic
+                ? DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4
+                : DW_EH_PE_absptr | DW_EH_PE_udata4;
+        const unsigned char LSDA_pointer_encoding = config.flags3 & CFG3pic
+                ? DW_EH_PE_pcrel | DW_EH_PE_sdata4
+                : DW_EH_PE_absptr | DW_EH_PE_udata4;
         buf->writeByten(7);                                  // Augmentation Length
-        buf->writeByten(DW_EH_PE_absptr | DW_EH_PE_udata4);  // P: personality routing address encoding
-        ElfObj::reftoident(dfseg, buf->size(), personality, 0, CFoff); // PC_begin
-        buf->writeByten(DW_EH_PE_absptr | DW_EH_PE_udata4);  // L: address encoding for LSDA in FDE
+        buf->writeByten(personality_pointer_encoding);       // P: personality routine address encoding
+        dwarf_reftoident(dfseg, buf->size(), personality, 0);
+        buf->writeByten(LSDA_pointer_encoding);              // L: address encoding for LSDA in FDE
         buf->writeByten(DW_EH_PE_pcrel  | DW_EH_PE_sdata4);  // R: encoding of addresses in FDE
     }
     else
@@ -626,13 +664,14 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
         buf->writeByten(DW_EH_PE_pcrel | DW_EH_PE_sdata4);   // R: encoding of addresses in FDE
     }
 
+    // Set CFA beginning state at function entry point
     if (I64)
     {
-        buf->writeByten(DW_CFA_def_cfa);        // DEF_CFA r7,8
+        buf->writeByten(DW_CFA_def_cfa);        // DEF_CFA r7,8   RSP is at offset 8
         buf->writeByten(7);
         buf->writeByten(8);
 
-        buf->writeByten(DW_CFA_offset + 16);    // OFFSET r16,1
+        buf->writeByten(DW_CFA_offset + 16);    // OFFSET r16,1   RIP is at -8*1[RSP]
         buf->writeByten(1);
     }
     else
@@ -751,23 +790,58 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc)
     Outbuffer *buf = SegData[dfseg]->SDbuf;
     const unsigned startsize = buf->size();
 
+    if (sfunc->ty() & mTYnaked)
+    {
+        /* Do not have info on naked functions. Assume they are set up as:
+         *   push RBP
+         *   mov  RSP,RSP
+         * This doesn't take into account storing saved registers on the stack,
+         * and so the unwinder won't restore them successfully if the naked function
+         * modifies them.
+         * It may be possible to read the inline asm instructions and deduce
+         * the correct CFA ops most of the time.
+         */
+        int off = 2 * REGSIZE;
+        dwarf_CFA_set_loc(1);
+        dwarf_CFA_set_reg_offset(SP, off);
+        dwarf_CFA_offset(BP, -off);
+        dwarf_CFA_set_loc(I64 ? 4 : 3);
+        dwarf_CFA_set_reg_offset(BP, off);
+    }
+
     // Length of FDE, not including padding
     const unsigned fdelen = 4 + 4 + 4 + 4 + (config.ehmethod == EH_DWARF ? 5 : 1) + cfa_buf.size();
 
     const unsigned pad = -fdelen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
     const unsigned length = fdelen + pad - 4;
 
+    buf->reserve(length + 4);
     buf->write32(length);                               // Length (no Extended Length)
     buf->write32((startsize + 4) - CIE_offset);         // CIE Pointer
-    ElfObj::reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
+#if ELFOBJ
+    buf->write32(0);                                    // address of function
+    ElfObj::addrel(dfseg, startsize + 8, R_X86_64_PC32, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
+    //ElfObj::reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
+#else
+    assert(0);                                          // not supported yet
+#endif
     buf->write32(sfunc->Ssize);                         // PC Range
     if (config.ehmethod == EH_DWARF)
     {
         buf->writeByten(4);                             // Augmentation Data Length
-        int etseg = dwarf_getsegment(except_table_name, 1);
-        Outbuffer *etbuf = SegData[etseg]->SDbuf;
+        int etseg = dwarf_getsegment_alloc(except_table_name, 1);
+        // if CFG3pic, fixup should be R_X86_64_PC32
         buf->write32(0);                                // address of LSDA (".gcc_except_table")
-        dwarf_addrel(dfseg, buf->size() - 4, etseg, etbuf->size());      // and the fixup
+        if (config.flags3 & CFG3pic)
+        {
+#if ELFOBJ
+            ElfObj::addrel(dfseg, buf->size() - 4, R_X86_64_PC32, MAP_SEG2SYMIDX(etseg), sfunc->Sfunc->LSDAoffset);
+#else
+            assert(0);                                  // not supported yet
+#endif
+        }
+        else
+            dwarf_addrel(dfseg, buf->size() - 4, etseg, sfunc->Sfunc->LSDAoffset);      // and the fixup
     }
     else
         buf->writeByten(0);                             // Augmentation Data Length
@@ -784,9 +858,9 @@ void dwarf_initfile(const char *filename)
 {
     if (config.ehmethod == EH_DWARF)
     {
-        dwarf_getsegment(except_table_name, 1);
+        dwarf_getsegment_alloc(except_table_name, 1);
 
-        int seg = dwarf_getsegment(eh_frame_name, 1);
+        int seg = dwarf_getsegment_alloc(eh_frame_name, I64 ? 2 : 1);
         Outbuffer *buf = SegData[seg]->SDbuf;
         buf->reserve(1000);
         writeEhFrameHeader(seg, buf, getRtlsym(RTLSYM_PERSONALITY));
@@ -1269,7 +1343,7 @@ void dwarf_func_term(Symbol *sfunc)
 
     if (config.ehmethod == EH_DWARF)
     {
-        IDXSEC dfseg = dwarf_getsegment(eh_frame_name, 1);
+        IDXSEC dfseg = dwarf_getsegment_alloc(eh_frame_name, I64 ? 2 : 1);
         writeEhFrameFDE(dfseg, sfunc);
     }
     if (!config.fulltypes)
@@ -2690,9 +2764,10 @@ unsigned dwarf_abbrev_code(unsigned char *data, size_t nbytes)
  */
 void dwarf_except_gentables(Funcsym *sfunc, unsigned startoffset, unsigned retoffset)
 {
-    int seg = dwarf_getsegment(except_table_name, 1);
+    int seg = dwarf_getsegment_alloc(except_table_name, 1);
     Outbuffer *buf = SegData[seg]->SDbuf;
     buf->reserve(100);
+    sfunc->Sfunc->LSDAoffset = buf->size();
     genDwarfEh(sfunc, seg, buf, usednteh & EHcleanup, startoffset, retoffset);
 }
 
