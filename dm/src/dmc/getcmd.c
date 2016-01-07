@@ -1286,7 +1286,6 @@ void getcmd(int argc,char **argv)
         if (config.exe == EX_WIN32)
         {
             config.ehmethod = EH_WIN32;
-            config.flags2 |= CFG2seh;
         }
         else
         {
@@ -1296,8 +1295,6 @@ void getcmd(int argc,char **argv)
     }
     else
         config.ehmethod = EH_NONE;
-    if (config.exe == EX_WIN32)
-        config.flags2 |= CFG2seh;
 
     if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64))
         config.flags4 |= CFG4wchar_is_long;

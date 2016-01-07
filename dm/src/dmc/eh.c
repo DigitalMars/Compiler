@@ -993,7 +993,7 @@ symbol *except_gentables()
     sz += psize;
 
 #if TX86
-    if (!(config.flags2 & CFG2seh))
+    if (config.ehmethod == EH_DM)
 #endif
     {
         // Generate the address-table
@@ -1214,7 +1214,7 @@ symbol *except_gentables()
     outdata(ehsym);                             // output the eh data
 
 #if TX86
-    if (!(config.flags2 & CFG2seh))
+    if (config.ehmethod == EH_DM)
         Obj::ehtables(funcsym_p,funcsym_p->Ssize,ehsym);
 #endif
 
