@@ -283,7 +283,7 @@ SRC=    tassert.h html.h html.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
         ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
-	backconfig.c ph2.c util2.c divcoeff.c cdeflnx.h dwarf.h dwarf.c dwarfeh.c \
+	backconfig.c ph2.c util2.c divcoeff.c dwarf.h dwarf.c dwarfeh.c \
 	elfobj.c elfobj1.c machobj.c
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
