@@ -259,7 +259,7 @@ char *strupr(char *);
 #define PSEUDO_REGS             1
 #define INLINE_ASM              1       // support inline assembler
 #define HIDDENPARAM_1ST_ARG     1
-#define HEADER_LIST             1
+const bool HEADER_LIST          = true;
 #define PASCAL_STRINGS          0
 #define KEYWORD_WITH            1
 #define EECONTEXT               1

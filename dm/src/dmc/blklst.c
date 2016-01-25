@@ -1327,17 +1327,18 @@ STATIC void freeblk(blklst *p)
                 }
 #endif
 
-#if HEADER_LIST
-                // See if we need to start reading in another
-                // of the include files specified on the command line
-                if (headers)
-                {   assert(bl);
-                    if (!bl->BLprev)
-                    {   pragma_include((char *)list_ptr(headers),FQcwd | FQpath);
-                        headers = list_next(headers);
+                if (HEADER_LIST)
+                {
+                    // See if we need to start reading in another
+                    // of the include files specified on the command line
+                    if (headers)
+                    {   assert(bl);
+                        if (!bl->BLprev)
+                        {   pragma_include((char *)list_ptr(headers),FQcwd | FQpath);
+                            headers = list_next(headers);
+                        }
                     }
                 }
-#endif
                 break;
 
         case BLstr:

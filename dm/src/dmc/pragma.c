@@ -1917,114 +1917,115 @@ void pragma_include(char *filename,int flag)
     cstate.CSfilblk->BLsearchpath = pl;
 #else
 
-#if HEADER_LIST
+    if (HEADER_LIST)
+    {
 #if TX86
-    int pl;
-    if (file_qualify(&filename,flag,pathlist,&pl) == 0)      // if file not found
-    {
-#if M_UNIX
-        char *name;
-        int line;
-        line = token_linnum().Slinnum;
-        if (cstate.CSfilblk)
-                name = srcfiles_name(cstate.CSfilblk->BLsrcpos.Sfilnum);
-        else
-                name = "preprocessed";
-        // Display the name and line number to allow emacs to use this information
-        fprintf(stderr, "%s(%d) : ", name, line);
-#endif
-        err_fatal(EM_open_input,filename);      // open failure
-    }
-
-    // If filename doesn't end in .H or .HPP, and we are doing automatic
-    // precompiled headers, then we are done with PH.
-    if (config.flags2 & (CFG2phauto | CFG2phautoy))
-    {   char *ext;
-
-        ext = filespecdotext(filename);
-        if (filespeccmp(ext,".h")
-#if M_UNIX
-        && filespeccmp(ext,".hxx")
-#endif
-        && filespeccmp(ext,".hpp"))
-        {   ph_testautowrite();
-            goto text;
-        }
-    }
-
-    // Determine if file has already been read in
-    {
-    Sfile *sf;
-    sf = filename_search(filename);
-
-    // If already read in
-    if (sf)
-    {   sfile_debug(sf);
-        //dbg_printf("\t File already read in\n");
-
-        if (config.flags2 & CFG2once)   // if only #include files once
-            goto Ldep;
-
-        // If file is in an hx file
-        if (sf->SFflags & SFhx)
-        {   ph_autoread(filename);
-            if (fdep)
-                fprintf(fdep, "%s ", filename);
-            goto Ldep;
-        }
-
-        // If file is to be only #include'd once, skip it
-        // (Do this after check above)
-        if (sf->SFflags & SFonce ||
-            // include guard
-            (sf->SFinc_once_id && macdefined(sf->SFinc_once_id, 0))
-           )
+        int pl;
+        if (file_qualify(&filename,flag,pathlist,&pl) == 0)      // if file not found
         {
-            //dbg_printf("\tSFonce set\n");
-            goto Ldep;
-        }
-
-        // If using an automatically precompiled header
-        if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
-            !(pstate.STflags & (PFLhxwrote | PFLhxdone)))
-        {
-        Ldep:
+#if M_UNIX
+            char *name;
+            int line;
+            line = token_linnum().Slinnum;
             if (cstate.CSfilblk)
-                list_append(&srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFfillist,sf);
-            goto ret;
+                    name = srcfiles_name(cstate.CSfilblk->BLsrcpos.Sfilnum);
+            else
+                    name = "preprocessed";
+            // Display the name and line number to allow emacs to use this information
+            fprintf(stderr, "%s(%d) : ", name, line);
+#endif
+            err_fatal(EM_open_input,filename);      // open failure
         }
-    }
-    else // File not already read in
-    {
-        // If reading precompiled headers and we haven't already read in
-        // a precompiled header for this file, try reading file as a ph.
-        // (Note: This is intended for nuts who want to #include a file
-        // multiple times, but still use ph. The first read of a #include is
-        // a ph, subsequent reads are text)
-        if (config.flags2 & CFG2phuse)
-            if (!ph_read(filename))     // if successfully read in ph
-            {
+
+        // If filename doesn't end in .H or .HPP, and we are doing automatic
+        // precompiled headers, then we are done with PH.
+        if (config.flags2 & (CFG2phauto | CFG2phautoy))
+        {   char *ext;
+
+            ext = filespecdotext(filename);
+            if (filespeccmp(ext,".h")
+#if M_UNIX
+            && filespeccmp(ext,".hxx")
+#endif
+            && filespeccmp(ext,".hpp"))
+            {   ph_testautowrite();
+                goto text;
+            }
+        }
+
+        // Determine if file has already been read in
+        {
+        Sfile *sf;
+        sf = filename_search(filename);
+
+        // If already read in
+        if (sf)
+        {   sfile_debug(sf);
+            //dbg_printf("\t File already read in\n");
+
+            if (config.flags2 & CFG2once)   // if only #include files once
+                goto Ldep;
+
+            // If file is in an hx file
+            if (sf->SFflags & SFhx)
+            {   ph_autoread(filename);
                 if (fdep)
                     fprintf(fdep, "%s ", filename);
+                goto Ldep;
+            }
+
+            // If file is to be only #include'd once, skip it
+            // (Do this after check above)
+            if (sf->SFflags & SFonce ||
+                // include guard
+                (sf->SFinc_once_id && macdefined(sf->SFinc_once_id, 0))
+               )
+            {
+                //dbg_printf("\tSFonce set\n");
+                goto Ldep;
+            }
+
+            // If using an automatically precompiled header
+            if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
+                !(pstate.STflags & (PFLhxwrote | PFLhxdone)))
+            {
+            Ldep:
+                if (cstate.CSfilblk)
+                    list_append(&srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFfillist,sf);
                 goto ret;
             }
-        // If we read in an HX file, and we are reading in more .h files,
-        // then write a new HX file containing the new .h file.
-        if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
-            !(pstate.STflags & (PFLhxwrote | PFLhxdone)))
-            pstate.STflags |= PFLhxgen;
-    }
-    }
-text:
-    // Parse #include file as text
-    pstate.STflags |= PFLinclude;               // BUG: -HI doesn't affect PFLinclude
-    if (pl >= pathsysi)
-        flag |= FQsystem;
-    //dbg_printf("\tReading file %s\n",filename);
-    insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag | FQqual,NULL);
-    cstate.CSfilblk->BLsearchpath = pl;
+        }
+        else // File not already read in
+        {
+            // If reading precompiled headers and we haven't already read in
+            // a precompiled header for this file, try reading file as a ph.
+            // (Note: This is intended for nuts who want to #include a file
+            // multiple times, but still use ph. The first read of a #include is
+            // a ph, subsequent reads are text)
+            if (config.flags2 & CFG2phuse)
+                if (!ph_read(filename))     // if successfully read in ph
+                {
+                    if (fdep)
+                        fprintf(fdep, "%s ", filename);
+                    goto ret;
+                }
+            // If we read in an HX file, and we are reading in more .h files,
+            // then write a new HX file containing the new .h file.
+            if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
+                !(pstate.STflags & (PFLhxwrote | PFLhxdone)))
+                pstate.STflags |= PFLhxgen;
+        }
+        }
+    text:
+        // Parse #include file as text
+        pstate.STflags |= PFLinclude;               // BUG: -HI doesn't affect PFLinclude
+        if (pl >= pathsysi)
+            flag |= FQsystem;
+        //dbg_printf("\tReading file %s\n",filename);
+        insblk((unsigned char *) filename,BLfile,(list_t) NULL,flag | FQqual,NULL);
+        cstate.CSfilblk->BLsearchpath = pl;
 #endif
-#endif /* HEADER_LIST */
+    }
 
 #endif
 
