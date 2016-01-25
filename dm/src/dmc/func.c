@@ -1175,12 +1175,10 @@ STATIC Srcpos statement(int flag)
 #endif
             case TKtry:         except_try_state(0);    break;
             //case TKthrow:     except_throw_state();   break;
-#if INLINE_ASM
             case TK_asm:        funcstate.flags |= asm_state(PFLmasm);
                                 break;
             case TKasm:         funcstate.flags |= asm_state(PFLbasm);
                                 break;
-#endif
 #if NTEXCEPTIONS
             case TK_try:        nttry_state();          break;
             case TK_leave:      break_state(funcstate.leavelabel,EM_bad_leave); break;
