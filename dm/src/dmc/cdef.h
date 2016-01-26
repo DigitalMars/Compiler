@@ -260,7 +260,6 @@ char *strupr(char *);
 #define HIDDENPARAM_1ST_ARG     1
 const bool HEADER_LIST          = true;
 #define PASCAL_STRINGS          0
-#define KEYWORD_WITH            1
 #define EECONTEXT               1
 #define LOCALE                  0       // locale support for Unicode conversion
 #define HEXFLOATS               1       // support hex floating point constants
@@ -277,8 +276,6 @@ const bool HEADER_LIST          = true;
  */
 #define TARGET_SEGMENTED     (!MARS && TARGET_WINDOS)
 
-
-#define STATEMENT_SCOPES CPP
 
 #if __GNUC__
 #define LDOUBLE                 0       // no support for true long doubles

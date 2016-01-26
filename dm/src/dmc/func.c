@@ -1170,9 +1170,7 @@ STATIC Srcpos statement(int flag)
             case TKreturn:      return_state(); break;
             case TKgoto:        goto_state();   break;
             case TKsemi:        stoken();       break;
-#if KEYWORD_WITH
             case TK_with:       with_state();   break;
-#endif
             case TKtry:         except_try_state(0);    break;
             //case TKthrow:     except_throw_state();   break;
             case TK_asm:        funcstate.flags |= asm_state(PFLmasm);
@@ -1391,8 +1389,6 @@ STATIC void debug_state()
     }
 }
 
-#if KEYWORD_WITH
-
 /**************************
  * Scope search function for with statement.
  */
@@ -1464,7 +1460,6 @@ STATIC void with_state()
     }
 }
 
-#endif
 
 /*********************************
  * Parses the try-block.

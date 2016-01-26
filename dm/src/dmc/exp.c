@@ -1929,14 +1929,12 @@ L6:         // Look for case of #if defined(identifier)
                     impthis = 0;                // no implied "this"
                     goto Lmember;
                 }
-#if KEYWORD_WITH
                 else if (scx->sctype & SCTwith) // if s is from with object
                 {   e = (elem *) scx->root;     // retrieve with object
                     elem_debug(e);
                     impthis = 0;                // no implied "this"
                     goto Lmember;
                 }
-#endif
                 else if (scx->sctype & SCTmfunc)
                 {
                     /* If within a member function, check and see if
