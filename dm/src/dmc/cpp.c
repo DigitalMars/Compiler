@@ -966,13 +966,11 @@ NOTE: Does not include TYdchar, TYchar16, TYnullptr but should
     }
     m.toplevelcv = t2->Tty & (mTYconst | mTYvolatile);
 
-#if OVERLOAD_CV_PARAM
     // Changing const or volatile is a tie-breaker,
     // not just for references anymore
     if ((t2->Tty & (mTYconst | mTYvolatile)) ^
         (t1->Tty & (mTYconst | mTYvolatile)))
         adjustment = 1;
-#endif
 
     if ((typtr(tym1) || tym1 == TYarray) &&
         (typtr(tym2) || tym2 == TYarray)

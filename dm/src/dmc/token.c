@@ -70,6 +70,10 @@ static int tok_strmax;          /* length of tok_string buffer          */
 
 Outbuffer *utfbuf;
 
+#define LOCALE                  0       // locale support for Unicode conversion
+#define PASCAL_STRINGS          0
+
+
 #if PASCAL_STRINGS
 STATIC char tok_passtr;         /* pascal string in tok_string          */
 #endif
@@ -677,7 +681,7 @@ struct Keyword kwtab_cpp[] =
         "__typeinfo",   TK_typeinfo,
         "__typemask",   TK_typemask,
 
-#if CPP0X
+        // CPP0X
         "alignof",      TKalignof,
         "char16_t",     TKchar16_t,
         "char32_t",     TKchar32_t,
@@ -687,7 +691,6 @@ struct Keyword kwtab_cpp[] =
         "nullptr",      TKnullptr,
         "static_assert", TKstatic_assert,
         "thread_local", TKthread_local,
-#endif
 };
 
 // Non-ANSI compatible keywords
@@ -1658,8 +1661,7 @@ void cppcomment()
 #if SPP
     expflag += igncomment;
 #endif
-    if (!CPP_COMMENT)
-        synerr(EM_cpp_comments);        // // comments are not ANSI C
+    //synerr(EM_cpp_comments);        // // comments are not ANSI C
 #if 1
     if (config.flags2 & CFG2expand)
     {
@@ -2430,7 +2432,7 @@ STATIC int escape()
 
 STATIC void checkAllowedUniversal(unsigned uc)
 {
-    if (CPP && !CPP0X)
+    if (0)
     {
         // Check for disallowed characters per C++0x 2.2
         if (

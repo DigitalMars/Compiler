@@ -1051,7 +1051,6 @@ Lagain:
 
             if (btyp == BLfile)
             {
-#if EECONTEXT
                 //printf("EEpending = %d, EElinnum = %d\n",eecontext.EEpending,eecontext.EElinnum);
                 if (eecontext.EEpending &&
                     bl->BLsrcpos.Slinnum == eecontext.EElinnum &&
@@ -1064,7 +1063,7 @@ Lagain:
                     eecontext.EEimminent = 1;   // but imminent
                     goto Lagain;
                 }
-#endif
+
                 do
                 {
                     if (readln())       /* read in next line            */

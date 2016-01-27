@@ -454,11 +454,9 @@ void func_body(symbol *s)
 
     assert(!CPP || globsym.top == 0);           // no local symbols yet
 
-#if HIDDENPARAM_1ST_ARG
     // If a member function, put out the symbol for 'this'
     if (CPP && f->Fclass && !(f->Fflags & Fstatic))
         symbol_add(cpp_declarthis(s,f->Fclass));
-#endif
 
     if (exp2_retmethod(tfunc) == RET_STACK)
     {
@@ -472,23 +470,15 @@ void func_body(symbol *s)
             shidden = symbol_name(hiddenparam,SCparameter,thidden);
             shidden->Sflags |= SFLfree | SFLtrue;
             funcstate.shidden = shidden;
-#if HIDDENPARAM_1ST_ARG
             if (type_mangle(tfunc) == mTYman_cpp)
                 list_prepend(&plist,shidden);
             else
-#endif
                 symbol_add(shidden);
         }
     }
 
     if (svirtbase)
         list_append(&plist,svirtbase);
-
-#if !HIDDENPARAM_1ST_ARG
-    // If a member function, put out the symbol for 'this'
-    if (CPP && f->Fclass && !(f->Fflags & Fstatic))
-        symbol_add(cpp_declarthis(s,f->Fclass));
-#endif
 
     /* Put out parameter list (in reverse for pascal functions) */
     if (tyrevfunc(tfunc->Tty))

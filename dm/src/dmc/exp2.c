@@ -2441,15 +2441,6 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
     }
     list_free(&arglist,FPNULL);
 
-#if !HIDDENPARAM_1ST_ARG
-    if (CPP && ethis)
-    {   elem_debug(ethis);
-        /* Convert ethis into correct pointer type for this class       */
-        ethis = typechk(ethis,newpointer(ethis->ET->Tnext));
-        e = (e) ? el_bint(OPparam,tsint,e,ethis) : ethis;
-    }
-#endif
-
     /* If pascal function type that is returning a struct, add a hidden */
     /* first argument that is a pointer to a temporary struct (for the  */
     /* return value).                                           */
@@ -2462,18 +2453,15 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
         ehidden = cast(ehidden,exp2_hiddentype(tfunc));
         if (e)
         {
-#if HIDDENPARAM_1ST_ARG
             if (reverse && type_mangle(tfunc) == mTYman_cpp)
                 e = el_bint(OPparam,tsint,ehidden,e);
             else
-#endif
                 e = el_bint(OPparam,tsint,e,ehidden);
         }
         else
             e = ehidden;
     }
 
-#if HIDDENPARAM_1ST_ARG
     if (CPP && ethis)
     {   elem_debug(ethis);
         // Convert ethis into correct pointer type for this class
@@ -2481,7 +2469,6 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
         // Use tsuns instead of tsint, see exp2_gethidden() for reason
         e = (e) ? el_bint(OPparam,tsuns,e,ethis) : ethis;
     }
-#endif
 
     if (e)
         e = el_bint(OPcall,tfunc->Tnext,efunc,e);
@@ -2575,7 +2562,6 @@ void exp2_setstrthis(elem *e,symbol *s,targ_size_t offset,type *t)
 
 elem *exp2_gethidden(elem *e)
 {
-#if HIDDENPARAM_1ST_ARG
     type *tf = e->E1->ET;
 
 #ifdef DEBUG
@@ -2599,14 +2585,10 @@ elem *exp2_gethidden(elem *e)
         while (e->Eoper == OPparam)
             e = e->E2;
     }
-#else
-    do
-        e = e->E2;
-    while (e->Eoper == OPparam);
-#endif
     return e;
 }
-
+
+
 /******************************
  * Check to see that operands of an operator are arithmetic.
  */

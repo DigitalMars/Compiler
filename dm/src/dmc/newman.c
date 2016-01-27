@@ -1205,9 +1205,7 @@ STATIC void cpp_argument_list(type *t, int flag)
     ty = tybasic(t->Tty);
     if (ty <= TYldouble && ty != TYenum
         && ty != TYbool         // added for versions >= 8.1b9
-#if OVERLOAD_CV_PARAM
         && !(t->Tty & (mTYconst | mTYvolatile))
-#endif
        )
     {
         cpp_primary_data_type(t);
@@ -1219,7 +1217,6 @@ STATIC void cpp_argument_list(type *t, int flag)
         {
             if (i == mangle.argi)               // no match
             {
-#if OVERLOAD_CV_PARAM
                 if (ty <= TYcldouble || ty == TYstruct)
                 {
                     int cvidx = cpp_cvidx(t->Tty);
@@ -1230,7 +1227,6 @@ STATIC void cpp_argument_list(type *t, int flag)
                         CHAR('N' + cvidx);      // _O, _P, _Q prefix
                     }
                 }
-#endif
                 if (flag && tybasic(t->Tty) == TYarray)
                 {
                    cpp_reference_data_type(t, flag);
