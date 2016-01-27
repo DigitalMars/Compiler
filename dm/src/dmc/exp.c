@@ -1317,9 +1317,7 @@ STATIC elem *una_exp()
                             case SCregpar:
                                 if (CPP)
                                     break;
-#if PSEUDO_REGS
                             case SCpseudo:
-#endif
                                 synerr(EM_noaddress); // can't take address of register
                                 break;
 
@@ -2017,14 +2015,11 @@ L6:         // Look for case of #if defined(identifier)
                     e = el_longt(tserr,0L);
                     break;
                 }
-#if PSEUDO_REGS
                 if (!ANSI && (s = pseudo_declar(tok.TKid)) != NULL)
                 {   stoken();
                     e = el_var(s);
                 }
-                else
-#endif
-                if (tok.TKid[0] == '_' && strcmp(tok.TKid, "__func__") == 0 && funcsym_p)
+                else if (tok.TKid[0] == '_' && strcmp(tok.TKid, "__func__") == 0 && funcsym_p)
                 {
                     // Declare per C99 6.4.2.2:
                     //  static const char __func__[] = "function-name";

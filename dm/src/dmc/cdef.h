@@ -256,7 +256,6 @@ char *strupr(char *);
 
 // C/C++ Language Features
 #define IMPLIED_PRAGMA_ONCE     1       // include guards count as #pragma once
-#define PSEUDO_REGS             1
 #define HIDDENPARAM_1ST_ARG     1
 const bool HEADER_LIST          = true;
 #define PASCAL_STRINGS          0

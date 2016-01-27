@@ -2834,9 +2834,7 @@ STATIC elem * exp2_paramchk(elem *e,type *t,int param)
                         case SCregpar:
                             if (CPP)
                                 break;
-#if PSEUDO_REGS
                         case SCpseudo:
-#endif
                             synerr(EM_noaddress);       // can't take address of register
                             break;
                     }
