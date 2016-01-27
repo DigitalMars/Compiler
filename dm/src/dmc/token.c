@@ -2725,7 +2725,7 @@ STATIC enum_TK innum()
             case STATE_hex:
                 if (!ishex(xc))
                 {
-                    if (HEXFLOATS && (xc == '.' || xc == 'P' || xc == 'p'))
+                    if (xc == '.' || xc == 'P' || xc == 'p')
                         goto real;
                     if (state == STATE_hex0)
                         lexerr(EM_hexdigit,xc); // hex digit expected
@@ -3123,7 +3123,7 @@ STATIC enum_TK inreal(const char *p)
 
                 case 9:
                     dblstate = 1;
-                    if ((c == 'X' || c == 'x') && HEXFLOATS)
+                    if (c == 'X' || c == 'x')
                     {   hex++;
                         break;
                     }

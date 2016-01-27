@@ -261,7 +261,6 @@ const bool HEADER_LIST          = true;
 #define PASCAL_STRINGS          0
 #define EECONTEXT               1
 #define LOCALE                  0       // locale support for Unicode conversion
-#define HEXFLOATS               1       // support hex floating point constants
 #define OVERLOAD_CV_PARAM       1       // if int foo(int i) and int foo(const int i)
                                         // are different
 #define CPP0X                   1       // support C++0x features
