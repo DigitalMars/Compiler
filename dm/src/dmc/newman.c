@@ -577,9 +577,7 @@ STATIC int cpp_protection(symbol *s)
         case SFLprotected:      i = 1;  break;
         case SFLpublic:         i = 2;  break;
         default:
-#ifdef DEBUG
             symbol_print(s);
-#endif
             assert(0);
     }
     return i;

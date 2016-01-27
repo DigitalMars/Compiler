@@ -1055,9 +1055,7 @@ Lsymfound:
             break;
 
         default:
-#ifdef DEBUG
             symbol_print(s);
-#endif
             assert(0);
     }
     if (tyfunc(s->Stype->Tty))

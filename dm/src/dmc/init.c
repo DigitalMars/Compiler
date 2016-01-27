@@ -221,9 +221,7 @@ void datadef(symbol *s)
                     s->Sfl = FLextern;
                 break;
             default:
-#ifdef DEBUG
                 symbol_print(s);
-#endif
                 assert(0);
         }
 }
@@ -592,9 +590,7 @@ STATIC void initializer(symbol *s)
         case SCfastpar:
         case SCtypedef:
         default:
-#ifdef DEBUG
             symbol_print(s);
-#endif
             assert(0);
     }
     if (CPP && paren)
@@ -2259,9 +2255,7 @@ assert(0); // can't find any cases of this, must be an anachronism
                 break;
 
             default:
-#ifdef DEBUG
                 symbol_print(s);
-#endif
                 assert(0);
         }
     }
