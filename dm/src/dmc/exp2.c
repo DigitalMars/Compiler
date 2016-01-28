@@ -134,10 +134,8 @@ int exp2_retmethod(type *tfunc)
 
         if (mangle == mTYman_pas)
             return RET_PSTACK;
-#if NEWMANGLE
         if (mangle == mTYman_cpp)
             return RET_STACK;
-#endif
     L1:
         if (CPP)
         {   struct_t *st;

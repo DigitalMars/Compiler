@@ -356,7 +356,6 @@ void _cdecl main_parser(int argc,char **argv)
 STATIC void nwc_predefine()
 {
     static char text[] =
-#if NEWMANGLE
 "extern \"C++\"\
 { void  * __cdecl operator new(unsigned),\
         __cdecl operator delete(void *),"
@@ -376,17 +375,6 @@ __mptr __cdecl __genthunk(unsigned,unsigned,__mptr);\
 "void * __cdecl __rtti_cast(void *,void *,const char *,const char *,int);"
 "}"
 "\n";
-#else
-"extern \"C++\"\
-{ void  *operator new(unsigned),\
-        operator delete(void *),\
-        *__vec_new(void *,unsigned,int,void *(*)(void)),\
-        __vec_delete(void *,int,unsigned,int (*)(void)),\
-        *__vec_ctor(void *,unsigned,int,void *(*)(void)),\
-        __vec_dtor(void *,unsigned,int,int (*)(void));\
-typedef int (*__mptr)();\
-}\n";
-#endif
 /*struct __mptr { short d; short i; int (*f)(); };\n"; */
 
 #ifdef DEBUG
@@ -2844,41 +2832,31 @@ type *declar(type *t,char *vident,int flag)
                                 /* For 32 bit compiles, treat as syscall
                                  */
             case TK_syscall:
-#if NEWMANGLE
                                 if (linkage != LINK_CPP)
-#endif
                                     mangle = mTYman_sys;
                                 tym |= mTYsyscall;
                                 goto L3;
 
             case TK_stdcall:
-#if NEWMANGLE
                                 if (linkage != LINK_CPP)
-#endif
                                     mangle = mTYman_std;
                                 tym |= mTYstdcall;
                                 goto L3;
 
             case TK_java:
-#if NEWMANGLE
                                 if (linkage != LINK_CPP)
-#endif
                                     mangle = mTYman_d;
                                 tym |= mTYjava;
                                 goto L3;
 #endif
             case TK_cdecl:
-#if NEWMANGLE
                                 if (linkage != LINK_CPP)
-#endif
                                     mangle = mTYman_c;
                                 tym |= mTYcdecl;                goto L3;
             case TK_fortran:                    /* same as pascal       */
             case TK_pascal:
             L7:
-#if NEWMANGLE
                                 if (linkage != LINK_CPP)
-#endif
                                     mangle = mTYman_pas;
                                 tym |= mTYpascal;               goto L3;
             case TK_handle:     tym |= mTYhandle;               goto L3;
@@ -3080,30 +3058,21 @@ ret:
             break;
     }
 
-#if NEWMANGLE
     if (linkage != LINK_CPP)
     {
         // Don't let default linkage be C++
         if (type_mangle(tstart) == mTYman_cpp)
             type_setmangle(&tstart,mTYman_c);
     }
-#endif
 
     /* If pascal or fortran linkage, set the bits for the name mangling.
         This is necessary for global variables.
      */
-#if NEWMANGLE
     // For C++ linkage, we *always* use C++ name mangling.
     if ((linkage == LINK_CPP || !mangle) &&
         !tyfunc(tstart->Tty) && !pstate.STinparamlist &&//!inprototype &&
         vident && vident[0])
         mangle = varmangletab[linkage];
-#else
-    if (!mangle &&
-        !tyfunc(tstart->Tty) && !pstate.STinparamlist &&//!inprototype &&
-        vident && vident[0])
-        mangle = varmangletab[linkage];
-#endif
 
     if (mangle)
         type_setmangle(&tstart,mangle);
@@ -3933,10 +3902,8 @@ void fixdeclar(type *t)
 
                     fixdeclar(tn);
 
-#if NEWMANGLE
                     // Array of consts is itself const
                     tym |= tn->Tty & (mTYconst | mTYvolatile | mTYrestrict | mTYLINK);
-#endif
                     if (intsize == 2 && !type_isvla(t)) // if we need to worry about large sizes
                     {   type *tx;
                         tym_t tymx;
@@ -4842,11 +4809,7 @@ int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
 
                     if (tyret == TYstruct &&
                         tfn->Ttag != sclass &&
-#if NEWMANGLE
-                        n2_searchmember(tfn->Ttag,"?C"))
-#else
-                        n2_searchmember(tfn->Ttag,"__rf"))
-#endif
+                        n2_searchmember(tfn->Ttag,"?C"))  // should be OParrow from newman.c
                     {
                             ;           /* object of a class with ->    */
                     }

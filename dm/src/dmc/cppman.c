@@ -17,7 +17,7 @@
 #include        <string.h>
 #include        "cc.h"
 
-#if !NEWMANGLE
+#if 0
 
 #define NEW_UNMANGLER   1
 
@@ -142,14 +142,7 @@ char *cpp_catname(char *n1,char *n2)
 
 char *cpp_genname(char *cl_name,char *mem_name)
 {
-#if NEWMANGLE
     return cpp_catname(alloca_strdup2(mem_name,cl_name),"@");
-#else
-    char format[2 + 3 + 1];
-
-    sprintf(format,"__%d",strlen(cl_name));
-    return cpp_catname(cpp_catname(mem_name,format),cl_name);
-#endif
 }
 
 /****************************************

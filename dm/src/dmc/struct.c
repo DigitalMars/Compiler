@@ -4391,12 +4391,8 @@ STATIC type * n2_vtbltype(Classsym *stag,int nitems)
 
     /* Construct the type of (*vtbl[])(...)     */
     t = type_allocn(TYarray,s_mptr->Stype);
-#if NEWMANGLE
     t->Tmangle = mTYman_sys;
     type_setty(&t->Tnext,t->Tnext->Tty | mTYconst);
-#else
-    t->Tmangle = mTYman_c;
-#endif
 #if TX86 && TARGET_WINDOS
     if (stag->Sstruct->ptrtype == TYfptr)
     {
@@ -4548,12 +4544,8 @@ STATIC type * n2_vbtbltype(baseclass_t *b,int flags)
 
     // Construct the type of int vbtbl[]
     t = type_allocn(TYarray,tsint);
-#if NEWMANGLE
     t->Tmangle = mTYman_sys;
     type_setty(&t->Tnext,tsint->Tty | mTYconst);
-#else
-    t->Tmangle = mTYman_c;
-#endif
 #if TX86 && TARGET_WINDOS
     if (b->BCbase->Sstruct->ptrtype == TYfptr)
     {
