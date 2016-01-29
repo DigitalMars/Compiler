@@ -3493,8 +3493,6 @@ void Obj::gotref(symbol *s)
     }
 }
 
-#endif
-
 /******************************************
  * Generate fixup specific to .eh_frame and .gcc_except_table sections.
  * Params:
@@ -3543,5 +3541,7 @@ int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
     }
     return 4;
 }
+
+#endif
 
 #endif

@@ -148,7 +148,7 @@ debppnd:
 
 OBJ1a=blklst.obj blockopt.obj cpp.obj debug.obj ee.obj el.obj enum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
-OBJ1c=getcmd.obj ini.obj init.obj inline.obj loadline.obj cppman.obj msc.obj
+OBJ1c=getcmd.obj ini.obj init.obj inline.obj loadline.obj msc.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=struct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj
@@ -270,7 +270,7 @@ SRC=    tassert.h html.h html.c \
         ini.c cgcv.h cv4.h tdb.h loadline.c ppexp.c errmsgs2.c tdbx.c \
         allocast.h go.h iasm.h cg.c scdll.h objrecor.c rtlsym.c util.c \
         total.h exh.h cpp.h iasm.c type.c enum.c nspace.c err.c \
-        filename.c blklst.c tytostr.c ee.c cppman.c msgs.h symbol.c \
+        filename.c blklst.c tytostr.c ee.c msgs.h symbol.c \
         msgsx.c eh.c template.c rtti.c scope.h scope.c token.h outbuf.h \
         outbuf.c trace.c dt.h file.c parser.h cod5.c type.h newman.c out.c \
         ty.h glocal.c pseudo.c init.c nteh.c \
@@ -314,7 +314,7 @@ BACKSRC= cdef.h cc.h oper.h ty.h optabgen.c \
 	type.c melf.h mach.h mscoff.h bcomplex.h \
 	cdeflnx.h outbuf.h token.h tassert.h \
 	elfobj.c cv4.h dwarf2.h exh.h go.h \
-	dwarf.c dwarf.h cppman.c machobj.c \
+	dwarf.c dwarf.h machobj.c \
 	strtold.c aa.h aa.c tinfo.h ti_achar.c \
 	md5.h md5.c ti_pvoid.c xmm.h ph2.c util2.c \
 	mscoffobj.c obj.h pdata.c cv8.c backconfig.c \
@@ -412,7 +412,6 @@ html.obj : $(DEP) $(html.dep) html.c
 init.obj : $(DEP) $(init.dep) init.c
 inline.obj : $(DEP) $(inline.dep) inline.c
 loadline.obj : $(DEP) $(loadline.dep) loadline.c
-cppman.obj : $(DEP) $(cppman.dep) cppman.c
 msc.obj : $(DEP) $(msc.dep) msc.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 objrecor.obj : $(DEP) $(objrecor.dep) objrecor.c
