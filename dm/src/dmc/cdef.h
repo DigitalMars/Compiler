@@ -352,8 +352,6 @@ typedef long double longdouble;
 #ifndef TRIGRAPHS
 #define TRIGRAPHS   ANSI
 #endif
-#define ARG_TRUE
-#define ARG_FALSE
 #define T80x86(x)       x
 
 // For Share MEM_ macros - default to mem_xxx package

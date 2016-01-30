@@ -223,7 +223,7 @@ STATIC param_t *template_parameter_list()
                 }
                 pstate.STintemplate += 2;
                 stoken();
-                type_specifier(&typ_spec ARG_FALSE);
+                type_specifier(&typ_spec);
                 t = declar_abstract(typ_spec);
                 fixdeclar(t);
                 p->Pdeftype = t;
@@ -299,7 +299,7 @@ STATIC param_t *template_parameter_list()
         L1:
             //printf("parameter_declaration\n");
             pstate.STintemplate++;
-            type_specifier(&pt ARG_TRUE);
+            type_specifier(&pt);
             p->Ptype = declar(pt,vident,0);
             fixdeclar(p->Ptype);
             type_free(pt);
@@ -2384,7 +2384,7 @@ void template_instantiate()
                         {   type *typ_spec;
                             type *t;
 
-                            if (!type_specifier(&typ_spec ARG_TRUE) )
+                            if (!type_specifier(&typ_spec) )
                             {   type_free(typ_spec);
                                 param_free(&pl);
                                 goto err;
@@ -3074,7 +3074,7 @@ param_t * template_gargs(symbol *s)
             }
             else
             {
-                if (!type_specifier(&t ARG_FALSE))
+                if (!type_specifier(&t))
                     cpperr(EM_type_argument,pt->Pident,s->Sident);      // must be type-argument
                 p->Ptype = declar_abstract(t);
                 fixdeclar(p->Ptype);
@@ -3253,7 +3253,7 @@ param_t * template_gargs2(symbol *s)
             type *t = NULL;
 
             //printf("istype\n");
-            if (!type_specifier(&t ARG_FALSE))
+            if (!type_specifier(&t))
             {   type_free(t);
                 goto Lisexp;
             }
@@ -4076,7 +4076,7 @@ pstate.STclasssym = NULL;
         if (Fflags & Fexplicit)
             synerr(EM_explicit);        // explicit is only for constructors
 
-        if (!(declaration_specifier(&typ_spec,&sc,NULL ARG_TRUE) & 2))
+        if (!(declaration_specifier(&typ_spec,&sc,NULL) & 2))
             sc = SCglobal;
         if (config.flags2 & CFG2comdat && (sc == SCglobal /*|| sc == SCinline*/))
             sc = SCcomdat;

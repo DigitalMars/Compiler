@@ -399,9 +399,9 @@ type *except_declaration(symbol *cv)
         list_t lt;
 
 #if TX86 && VERSIONINT >= 0x710
-        type_specifier( &typ_spec ARG_FALSE );
+        type_specifier( &typ_spec );
 #else
-        type_specifier( &typ_spec, NULL ARG_FALSE );
+        type_specifier( &typ_spec, NULL );
 #endif
         tcatch = declar_fix(typ_spec,vident);
         type_free(typ_spec);
@@ -464,9 +464,9 @@ void except_exception_spec(type *t)
 
                 // Get type-id
 #if TX86 && VERSIONINT >= 0x710
-                type_specifier(&typ_spec ARG_FALSE);
+                type_specifier(&typ_spec);
 #else
-                type_specifier(&typ_spec, NULL ARG_FALSE);
+                type_specifier(&typ_spec, NULL);
 #endif
                 type_id = declar_abstract(typ_spec);
                 fixdeclar(type_id);
@@ -538,9 +538,9 @@ void except_exception_spec_old(symbol *sfunc)
 
                 // Get type-id
 #if TX86 && VERSIONINT >= 0x710
-                type_specifier(&typ_spec ARG_FALSE);
+                type_specifier(&typ_spec);
 #else
-                type_specifier(&typ_spec, NULL ARG_FALSE);
+                type_specifier(&typ_spec, NULL);
 #endif
                 type_id = declar_abstract(typ_spec);
                 fixdeclar(type_id);

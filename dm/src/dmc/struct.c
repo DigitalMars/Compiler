@@ -1060,7 +1060,7 @@ STATIC type * strdcllst(Classsym *stag,int flags)
             pstate.STclasssym = NULL;
 
         unsigned long m = class_m;
-        ts = declaration_specifier(&typ_spec,NULL,&m ARG_TRUE); // get declaration specifier
+        ts = declaration_specifier(&typ_spec,NULL,&m); // get declaration specifier
         class_m |= m;
 
         if (modifier)
@@ -1070,7 +1070,7 @@ STATIC type * strdcllst(Classsym *stag,int flags)
       }
       else // C
       {
-            type_specifier(&typ_spec ARG_TRUE); // get type specifier
+            type_specifier(&typ_spec); // get type specifier
         }
 
         while (TRUE)
@@ -2187,7 +2187,7 @@ STATIC void n2_parsefriends(Classsym *stag,list_t friendlist,char *vident)
         token_setlist(t);
         stoken();
         class_m = 0;
-        ts = declaration_specifier(&typ_spec,NULL,&class_m ARG_FALSE);
+        ts = declaration_specifier(&typ_spec,NULL,&class_m);
 
     Lgetts:
         pstate.STexplicitSpecialization++;      // account for: friend void f<>(int);
@@ -2219,7 +2219,7 @@ STATIC void n2_parsefriends(Classsym *stag,list_t friendlist,char *vident)
                 type_free(memtype);
             stoken();
             type_free(typ_spec);
-            ts = type_specifier(&typ_spec ARG_FALSE);
+            ts = type_specifier(&typ_spec);
             goto Lgetts;
         }
         if (!vident[0])
@@ -2262,7 +2262,7 @@ STATIC void n2_parsenestedfriends(Classsym *stag)
             token_setlist(tmnf->tdecl);
             stoken();
             class_m = 0;
-            ts = declaration_specifier(&typ_spec,NULL,&class_m ARG_FALSE);
+            ts = declaration_specifier(&typ_spec,NULL,&class_m);
             memtype = declar_fix(typ_spec, NULL);
 
             if (type_struct(memtype))

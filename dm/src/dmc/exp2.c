@@ -1403,7 +1403,7 @@ elem *doarrow(elem *e1)
         stoken();
         chktok(TKlpar, EM_lpar);
 
-        type_specifier(&typ_spec ARG_FALSE);
+        type_specifier(&typ_spec);
         t = declar_abstract(typ_spec);
         fixdeclar(t);
 

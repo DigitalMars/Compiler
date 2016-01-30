@@ -1501,7 +1501,7 @@ STATIC elem *una_exp()
                 goto def;
             {   type *t;
 
-                type_specifier(&t ARG_FALSE);
+                type_specifier(&t);
                 e = exp_simplecast(t);
                 type_free(t);
             }
@@ -1514,7 +1514,7 @@ STATIC elem *una_exp()
                                                 // Where Anum is a nested enumeration
             if (isexpression() > 1 )
                 goto def;
-            if (type_specifier(&typ_spec ARG_FALSE ))
+            if (type_specifier(&typ_spec ))
             {
                 if (tok.TKval != TKlpar &&
                     pstate.STintemplate &&
@@ -1547,7 +1547,7 @@ STATIC elem *una_exp()
 
             // Parse type-name
             stoken();
-            type_specifier(&typ_spec ARG_FALSE);
+            type_specifier(&typ_spec);
             t = declar_abstract(typ_spec);
             fixdeclar(t);
 
@@ -1590,7 +1590,7 @@ STATIC elem *una_exp()
                 }
                 pstate.STisaddr = 0;    // not a member pointer expression
             }
-            if (type_specifier(&typ_spec ARG_FALSE)) /* if type_name            */
+            if (type_specifier(&typ_spec)) /* if type_name            */
             {   type *t;
 
                 t = declar_abstract(typ_spec); // read abstract_declarator
@@ -2544,7 +2544,7 @@ STATIC elem *prim_post(elem *e)
                     stoken();
                     chktok(TKlpar, EM_lpar);
 
-                    type_specifier(&typ_spec ARG_FALSE);
+                    type_specifier(&typ_spec);
                     t = declar_abstract(typ_spec);
                     fixdeclar(t);
 
@@ -2817,7 +2817,7 @@ elem *exp_sizeof(int tk)
         stoken();
         if (CPP && isexpression())
             goto isexp;
-        if (type_specifier(&typ_spec ARG_FALSE))        // if type_name
+        if (type_specifier(&typ_spec))        // if type_name
         {   type *t,*t1;
 
             t = declar_abstract(typ_spec);      // read abstract_declarator
