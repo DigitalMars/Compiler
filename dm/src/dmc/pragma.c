@@ -3520,7 +3520,6 @@ void macro_print(macro_t *m)
 
 #endif
 
-#if PHSTRING_ARRAY
 int phstring_t::cmp(phstring_t s2, int (*func)(void *,void *))
 {   int result = 0;
     for (int i = 0; 1; ++i)
@@ -3633,7 +3632,6 @@ void phstring_t::dehydrate()
 
 #endif
 
-#endif
 
 /**********************************************
  * Search for string.
@@ -3644,7 +3642,6 @@ void phstring_t::dehydrate()
 int phstring_t::find(const char *s)
 {
     //printf("phstring_t::find(%s)\n", s);
-#if PHSTRING_ARRAY
     size_t len = strlen(s) + 1;
     if (dim == 1)
     {
@@ -3660,17 +3657,6 @@ int phstring_t::find(const char *s)
         }
     }
     return -1;
-#else
-    size_t len = strlen(s) + 1;
-    int i = 0;
-    for (list_t li = list; li; li = li->next)
-    {
-        if (memcmp(s,(const char *)list_ptr(li),len) == 0)
-            return i;
-        ++i;
-    }
-    return -1;
-#endif
 }
 
 

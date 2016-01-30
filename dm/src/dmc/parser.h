@@ -101,8 +101,6 @@ struct Match
 
 struct phstring_t
 {
-#define PHSTRING_ARRAY 1
-#if PHSTRING_ARRAY
     phstring_t() { dim = 0; }
 
     size_t length() { return dim; }
@@ -129,36 +127,6 @@ struct phstring_t
   private:
     size_t dim;
     char** data;
-#else
-    phstring_t() { list = NULL; }
-
-    size_t length() { return list_nitems(list); }
-
-    int cmp(phstring_t s2, int (*func)(void *,void *))
-    {
-        return list_cmp(list, s2.list, func);
-    }
-
-    bool empty() { return list == NULL; }
-
-    char* operator[] (size_t index)
-    {
-        return (char *)list_ptr(list_nth(list, index));
-    }
-
-    void push(const char *s) { list_append(&list, (void *)s); }
-
-    void hydrate() { list_hydrate(&list, NULL); }
-
-    void dehydrate() { list_dehydrate(&list, NULL); }
-
-    int find(const char *s);
-
-    void free(list_free_fp freeptr) { list_free(&list, freeptr); }
-
-  private:
-    list_t list;
-#endif
 };
 
 
