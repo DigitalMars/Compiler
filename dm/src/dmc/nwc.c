@@ -383,12 +383,10 @@ __mptr __cdecl __genthunk(unsigned,unsigned,__mptr);\
     {
         if (CPP)
         {
-#if NEWSTATICDTOR
             static unsigned char text2[] = "extern \"C\" { int __cdecl __far _fatexit(void(__cdecl __far *)());}\n";
             static unsigned char text3[] = "extern \"C\" { int __cdecl _fatexit(void(__cdecl *)());}\n";
 
             insblk2((intsize == 4) ? text3 : text2,BLrtext);
-#endif
             insblk2((unsigned char *) text,BLrtext);
         }
 #if NTEXCEPTIONS

@@ -325,11 +325,7 @@ typedef long double longdouble;
 //      2: new style
 #define NTEXCEPTIONS            2
 
-#define NEWSTATICDTOR           1       // support new style static destructors
-
 // For Shared Code Base
-#define TARGET_INLINEFUNC_NAMES
-#define PASCAL pascal
 #if _WINDLL
 #define dbg_printf dll_printf
 #else
@@ -349,9 +345,7 @@ typedef long double longdouble;
 #define ANSI        config.ansi_c
 #define ANSI_STRICT config.ansi_c
 #define ANSI_RELAX  config.ansi_c
-#ifndef TRIGRAPHS
 #define TRIGRAPHS   ANSI
-#endif
 #define T80x86(x)       x
 
 // For Share MEM_ macros - default to mem_xxx package

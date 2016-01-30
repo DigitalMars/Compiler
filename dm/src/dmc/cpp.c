@@ -424,7 +424,7 @@ void cpp_getpredefined()
         s_vec_invariant = lookupsym(vecinvariant);
     symbol_debug(s_vec_invariant);
 
-#if NEWSTATICDTOR && TARGET_WINDOS
+#if TARGET_WINDOS
     if (s_fatexit == NULL)
         s_fatexit = lookupsym("_fatexit");
     symbol_debug(s_fatexit);
@@ -4419,11 +4419,7 @@ void cpp_build_STI_STD()
     }
     p = file_unique();                  // get name unique to this module
     name = (char *) alloca(strlen(p) + 6);
-#if NEWSTATICDTOR
     sprintf(name,"__SD%s_",p);
-#else
-    sprintf(name,"_STD%s_",p);
-#endif
 
     // Do destructors (_STD)
     dtor = 0;
@@ -4431,7 +4427,6 @@ void cpp_build_STI_STD()
     {   symbol *sdtor;
 
         sdtor = cpp_build_STX(name,destructor_list);
-#if NEWSTATICDTOR
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         Obj::staticctor(sdtor,1,pstate.STinitseg);
         dtor = 0;
@@ -4446,7 +4441,6 @@ void cpp_build_STI_STD()
             dtor = 1;
         }
 #endif
-#endif
     }
 
     // Do constructors (_STI)
@@ -4455,9 +4449,7 @@ void cpp_build_STI_STD()
 
         name[3] = 'I';                  // convert name to _STIxxxx
         sctor = cpp_build_STX(name,constructor_list);
-#if NEWSTATICDTOR
         Obj::staticctor(sctor,dtor,pstate.STinitseg);
-#endif
     }
 }
 
@@ -4479,13 +4471,9 @@ STATIC symbol * cpp_build_STX(char *name,list_t tor_list)
 #if MEMMODELS == 1
     t = type_alloc(functypetab[(int) linkage]);
 #else
-#if NEWSTATICDTOR
     // All are far functions for 16 bit models.
     // Bummer for .COM programs.
     t = type_alloc(functypetab[(int) LINK_C][(intsize == 4) ? Smodel : Mmodel]);
-#else
-    t = type_alloc(functypetab[(int) LINK_C][config.memmodel]);
-#endif
 #endif
     t->Tmangle = funcmangletab[(int) LINK_C];
     t->Tnext = tsvoid;

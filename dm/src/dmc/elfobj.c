@@ -1529,8 +1529,6 @@ void Obj::compiler()
 }
 
 
-//#if NEWSTATICDTOR
-
 /**************************************
  * Symbol is the function that calls the static constructors.
  * Put a pointer to it into a special segment that the startup code
@@ -1575,7 +1573,6 @@ void Obj::staticdtor(Symbol *s)
     SegData[seg]->SDoffset += sz;
 }
 
-//#else
 
 /***************************************
  * Stuff pointer to function in its own segment.
@@ -1587,7 +1584,6 @@ void Obj::funcptr(Symbol *s)
     //dbg_printf("Obj::funcptr(%s) \n",s->Sident);
 }
 
-//#endif
 
 /***************************************
  * Stuff the following data in a separate segment:
