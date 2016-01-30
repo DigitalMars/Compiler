@@ -4938,11 +4938,6 @@ STATIC symbol * n2_createfunc(Classsym *stag,const char *name,
             e = cpp_destructor(stag->Stype,el_var(sthis),NULL,DTORnoeh | DTORmostderived);
 
             // Append (this && (e,_free & 1) && _delete(this)) to return block
-#if 0
-            abstract = stag->Sstruct->Sflags & STRabstract;
-            sepnewdel = SEPNEWDEL && !(s_dtor->Sfunc->Fflags & Fvirtual);
-            if (!abstract && !sepnewdel)
-#endif
             {   elem *e1,*e2;
 
                 e1 = el_bint(OPand,sfree->Stype,

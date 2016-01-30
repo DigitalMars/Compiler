@@ -579,9 +579,6 @@ void *ph_dehydrate(void *pp);
 #endif
 
 /* pragma.c */
-#if PRAGMA_PARAM
-extern short pragma_param_cnt;
-#endif
 int pragma_search(const char *id);
 macro_t *macfind(void);
 macro_t *macdefined(const char *id, unsigned hash);

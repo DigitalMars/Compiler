@@ -4900,67 +4900,14 @@ void cpp_fixconstructor(symbol *s_ctor)
 
     if (sawthis)
     {
-#if SEPNEWDEL
         synerr(EM_assignthis);
-#else
-        warerr(WM_assignthis);
-#endif
         el_free(e);
     }
     else
     {   /* Didn't see any assignments to this. Therefore, create one at */
         /* entry to the function                                        */
 
-        elem *e1;
-
-        /* Abstract classes don't need storage allocation       */
-        if (SEPNEWDEL || abstract)
-            baseblock->Belem = el_combine(e,baseblock->Belem);
-        else
-        {
-
-        /* If function is one block     */
-        if (f->Fflags & Finline)                /* if inline function   */
-        {
-            /* this ||
-                (this = _new((targ_size_t) sizeof(tclass))) && (e,Belem) */
-
-            e1 = cpp_new(0,s_ctor,el_typesize(tclass),NULL,s_this->Stype);
-            e1 = el_bint(OPeq,s_this->Stype,el_var(s_this),e1);
-            e1 = el_bint(OPoror,tsint,el_var(s_this),e1);
-            e = el_combine(e,baseblock->Belem);
-            baseblock->Belem = e ? el_bint(OPandand,tsint,e1,e) : e1;
-        }
-        else
-        {
-            /* if (!(this || (this = _new((targ_size_t) sizeof(tclass)))) */
-            /*  return;                                                 */
-            /* e;                                                       */
-
-            block *b1,*b2,*b3;
-
-            e1 = cpp_new(0,s_ctor,el_typesize(tclass),NULL,s_this->Stype);
-            e1 = el_bint(OPeq,s_this->Stype,el_var(s_this),e1);
-            b1 = block_new(BCiftrue);
-            b1->Belem = el_bint(OPoror,tsint,el_var(s_this),e1);
-
-            b2 = block_new(BCret);
-
-            b3 = block_new(BCgoto);
-            b3->Belem = e;
-
-            list_append(&b1->Bsucc,b3);
-            list_append(&b1->Bsucc,b2);
-            list_append(&b3->Bsucc,baseblock);
-
-            /* Link blocks together     */
-            b3->Bnext = baseblock;
-            f->Fstartblock = b1;
-            assert(baseblock == f->Fstartblock);
-            b1->Bnext = b2;
-            b2->Bnext = b3;
-        }
-        }
+        baseblock->Belem = el_combine(e,baseblock->Belem);
     }
 
 fixret:
@@ -5293,7 +5240,7 @@ void cpp_fixdestructor(symbol *s_dtor)
        )
         return;
 
-    sepnewdel = SEPNEWDEL && !(s_dtor->Sfunc->Fflags & Fvirtual);
+    sepnewdel = !(s_dtor->Sfunc->Fflags & Fvirtual);
     f->Fflags |= Ffixed;
 
     /* Adjust which function we are in  */

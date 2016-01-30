@@ -3114,7 +3114,7 @@ STATIC elem *exp_new(int global)
            (it will call ::new)
          */
         enelems = el_copytree(enelems);         /* in case cpp_new changes it */
-        if (placelist || ((global || SEPNEWDEL) && !array))
+        if (placelist || !array)
         {
             elem *eptr;
             symbol *p;
@@ -3269,7 +3269,7 @@ STATIC elem *exp_delete(int global)
     type *tclass;
     tym_t ty;
     int flag = DTORmostderived | DTORnoeh;      // flag for call to destructor
-    int sepnewdel = SEPNEWDEL;
+    int sepnewdel = 1;
 
     //printf("exp_delete(global = %d)\n", global);
 
