@@ -503,6 +503,7 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
     I don't test the old ways once the new way is set.)
  */
 #define THUNKS          1       /* use thunks for virtual functions     */
+#define SEPNEWDEL       1       // new/delete are not called within the ctor/dtor,
                                 // they are separate
 #define UNICODE         1       // support Unicode (wchar_t is unsigned short)
 #define DLCMSGS         0       // if 1, have all messages in a file

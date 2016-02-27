@@ -268,6 +268,7 @@ static int local_cnt;           // Number of symbols with STB_LOCAL
 
 // Symbol Table
 Outbuffer  *SYMbuf;             // Buffer to build symbol table in
+Outbuffer  *reset_symbuf;       // Keep pointers to reset symbols
 
 // Extended section header indices
 static Outbuffer *shndx_data;
@@ -814,6 +815,18 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 
     if (SYMbuf)
         SYMbuf->setsize(0);
+    if (reset_symbuf)
+    {
+        symbol **p = (symbol **)reset_symbuf->buf;
+        const size_t n = reset_symbuf->size() / sizeof(symbol *);
+        for (size_t i = 0; i < n; ++i)
+            symbol_reset(p[i]);
+        reset_symbuf->setsize(0);
+    }
+    else
+    {
+        reset_symbuf = new Outbuffer(50 * sizeof(symbol *));
+    }
     if (shndx_data)
         shndx_data->setsize(0);
     symbol_idx = 0;
@@ -1573,7 +1586,6 @@ void Obj::staticdtor(Symbol *s)
     SegData[seg]->SDoffset += sz;
 }
 
-
 /***************************************
  * Stuff pointer to function in its own segment.
  * Used for static ctor and dtor lists.
@@ -2187,6 +2199,7 @@ void Obj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize
 #endif
 
     symbol_debug(s);
+    reset_symbuf->write(&s, sizeof(s));
     IDXSTR namidx = elf_addmangled(s);
     //printf("\tnamidx %d,section %d\n",namidx,MAP_SEG2SECIDX(seg));
     if (tyfunc(s->ty()))
@@ -2239,6 +2252,7 @@ int Obj::external(Symbol *s)
 
     //dbg_printf("Obj::external('%s') %x\n",s->Sident,s->Svalue);
     symbol_debug(s);
+    reset_symbuf->write(&s, sizeof(s));
     IDXSTR namidx = elf_addmangled(s);
 
 #if SCPP
@@ -2306,6 +2320,7 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
         return s->Sseg;
     }
 #if 0
+    reset_symbuf->write(s);
     IDXSTR namidx = elf_addmangled(s);
     alignOffset(UDATA,size);
     IDXSYM symidx = elf_addsym(namidx, SegData[UDATA]->SDoffset, size*count,
@@ -2884,7 +2899,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         case SCglobal:
             if (!s->Sxtrnnum)
             {   // not in symbol table yet - class might change
-                //dbg_printf("\tadding %s to fixlist\n",s->Sident);
+                //printf("\tadding %s to fixlist\n",s->Sident);
                 size_t numbyteswritten = addtofixlist(s,offset,seg,val,flags);
                 assert(numbyteswritten == retsize);
                 return retsize;
@@ -3501,8 +3516,6 @@ void Obj::gotref(symbol *s)
  */
 int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
 {
-    assert(I64);                // I32 not implemented yet
-
     if (config.flags3 & CFG3pic)
     {
         /* fixup: R_X86_64_PC32 sym="DW.ref.name"
@@ -3514,10 +3527,10 @@ int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
          */
         if (!s->Sdw_ref_idx)
         {
-            int dataDWref_seg = ElfObj::getsegment(".data.DW.ref.", s->Sident, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, 8);
+            int dataDWref_seg = ElfObj::getsegment(".data.DW.ref.", s->Sident, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, I64 ? 8 : 4);
             Outbuffer *buf = SegData[dataDWref_seg]->SDbuf;
             assert(buf->size() == 0);
-            ElfObj::reftoident(dataDWref_seg, 0, s, 0, CFoffset64);
+            ElfObj::reftoident(dataDWref_seg, 0, s, 0, I64 ? CFoffset64 : CFoff);
 
             // Add "DW.ref." ~ name to the symtab_strings table
             IDXSTR namidx = symtab_strings->size();
@@ -3527,7 +3540,7 @@ int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
 
             s->Sdw_ref_idx = elf_addsym(namidx, val, 8, STT_OBJECT, STB_WEAK, MAP_SEG2SECIDX(dataDWref_seg), STV_HIDDEN);
         }
-        ElfObj::writerel(seg, offset, R_X86_64_PC32, s->Sdw_ref_idx, 0);
+        ElfObj::writerel(seg, offset, I64 ? R_X86_64_PC32 : R_386_PC32, s->Sdw_ref_idx, 0);
     }
     else
     {
