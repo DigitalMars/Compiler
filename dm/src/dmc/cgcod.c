@@ -250,7 +250,17 @@ tryagain:
             block* b = dfo[dfoidx];
             blcodgen(b);                        // gen code in depth-first order
             //printf("b->Bregcon.used = %s\n", regm_str(b->Bregcon.used));
-            cgreg_used(dfoidx,b->Bregcon.used); // gather register used information
+            regm_t used = b->Bregcon.used;
+            if (config.ehmethod == EH_DWARF)
+                switch (b->BC)
+                {
+                    case BCjcatch:
+                    case BC_finally:
+                    case BC_lpad:
+                        used |= allregs;        // can't enregister live variables on landing pads
+                        break;
+                }
+            cgreg_used(dfoidx, used);           // gather register used information
         }
     }
     else
@@ -683,6 +693,7 @@ code *prolog()
 Lagain:
     spoff = 0;
     char guessneedframe = needframe;
+    int cfa_offset = 0;
 //    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_SOLARIS) && !(usednteh & ~NTEHjmonitor))
 //      usednteh |= NTEHpassthru;
 
@@ -900,7 +911,7 @@ Lagain:
     }
     else if (needframe)                 // if variables or parameters
     {
-        c = cat(c, prolog_frame(farfunc, &xlocalsize, &enter));
+        c = cat(c, prolog_frame(farfunc, &xlocalsize, &enter, &cfa_offset));
         hasframe = 1;
     }
 
@@ -996,7 +1007,7 @@ Lagain:
     }
 #endif
 
-    c = prolog_saveregs(c, topush);
+    c = prolog_saveregs(c, topush, cfa_offset);
 
 Lcont:
 
@@ -2622,12 +2633,11 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
                     break;
 
                 case TYnptr:
-#if TARGET_SEGMENTED
                 case TYsptr:
                 case TYcptr:
-#endif
                     *pretregs |= IDXREGS;
                     break;
+
                 case TYshort:
                 case TYushort:
                 case TYint:
@@ -2638,11 +2648,9 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
                 case TYullong:
                 case TYcent:
                 case TYucent:
-#if TARGET_SEGMENTED
                 case TYfptr:
                 case TYhptr:
                 case TYvptr:
-#endif
                     *pretregs |= ALLREGS;
                     break;
             }
