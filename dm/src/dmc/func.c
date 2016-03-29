@@ -940,7 +940,7 @@ STATIC void func_state()
 
     if (funcstate.outblock)
     {
-        list_append(&curblock->Bsucc, funcstate.outblock);
+        curblock->appendSucc(funcstate.outblock);
         curblock->BC = BCgoto;
         curblock->Bsymend = globsym.top;
         curblock->Bnext = funcstate.outblock;
@@ -1316,8 +1316,8 @@ STATIC void if_state()
   block_appendexp(curblock, e);
   b = curblock;
   block_next(BCiftrue,NULL);
-  list_append(&(b->Bsucc),curblock);    // label for if clause
-  list_append(&(b->Bsucc),iflbl);       // else clause
+  b->appendSucc(curblock);    // label for if clause
+  b->appendSucc(iflbl);       // else clause
   (void) statement_scope(flag);
   if (tok.TKval == TKelse)
   {
@@ -1503,7 +1503,7 @@ STATIC void except_try_state(int flags)
     pstate.STgotolist = tryblock;
 
     block_next(BCtry,NULL);
-    list_append(&tryblock->Bsucc,curblock);
+    tryblock->appendSucc(curblock);
 
     if (flags)
         funcsym_p->Sfunc->Fbaseblock = curblock;
@@ -1520,7 +1520,7 @@ STATIC void except_try_state(int flags)
     cleanuplabel = block_calloc();
 
     curblock->Bsrcpos = getlinnum();
-    list_append(&curblock->Bsucc,endlabel);     // jump past catch blocks
+    curblock->appendSucc(endlabel);     // jump past catch blocks
 
     block_next(BCgoto,NULL);
 
@@ -1529,7 +1529,7 @@ STATIC void except_try_state(int flags)
     // gets called upon all exits from the catch blocks.
     createlocalsymtab();
     fscope_beg();
-    list_append(&curblock->Bsucc,cleanuplabel);
+    curblock->appendSucc(cleanuplabel);
 
     // Create catch variable (as a "class __eh_cv TMP")
     if (!eh_cv)
@@ -1559,8 +1559,8 @@ STATIC void except_try_state(int flags)
         curblock->Bgotolist = tryblock->Bgotolist;
         pstate.STgotolist = curblock;
         curblock->BC = BCcatch;
-        list_append(&tryblock->Bsucc,curblock);
-        list_append(&bcx->Bsucc,curblock);
+        tryblock->appendSucc(curblock);
+        bcx->appendSucc(curblock);
 
         createlocalsymtab();                    // create new symbol table
         fscope_beg();                   // create a new C++ scope
@@ -1602,12 +1602,12 @@ STATIC void except_try_state(int flags)
             synerr(EM_lcur_exp);        // the catch clause
 
         b = block_calloc();
-        list_append(&curblock->Bsucc,b);
+        curblock->appendSucc(b);
         block_next((enum BC)curblock->BC,b);
 
         (void) statement(0);
 
-        list_append(&curblock->Bsucc,cleanuplabel);
+        curblock->appendSucc(cleanuplabel);
         block_next(BCgoto,NULL);
 
         fscope_end();
@@ -1660,8 +1660,8 @@ STATIC void while_state()
   block_appendexp(curblock, e);
   b = curblock;
   block_next(BCiftrue,NULL);
-  list_append(&b->Bsucc,curblock);
-  list_append(&b->Bsucc,funcstate.brklabel);
+  b->appendSucc(curblock);
+  b->appendSucc(funcstate.brklabel);
   (void) statement_scope(flag);
   block_goto(funcstate.cntlabel,funcstate.brklabel);
 
@@ -1718,10 +1718,10 @@ STATIC void do_state()
             ...
    */
   block_next(BCiftrue,NULL);
-  list_append(&b->Bsucc,curblock);
-  list_append(&b->Bsucc,funcstate.brklabel);
+  b->appendSucc(curblock);
+  b->appendSucc(funcstate.brklabel);
   curblock->Bsrcpos = srcpos;
-  list_append(&curblock->Bsucc,dolabel);
+  curblock->appendSucc(dolabel);
   block_next(BCgoto,funcstate.brklabel);
 
   funcstate.brklabel = brksave;
@@ -1788,8 +1788,8 @@ STATIC void for_state()
             block_appendexp(curblock, e2);
             b = curblock;
             block_next(BCiftrue,NULL);
-            list_append(&b->Bsucc,curblock);
-            list_append(&(b->Bsucc),funcstate.brklabel);
+            b->appendSucc(curblock);
+            b->appendSucc(funcstate.brklabel);
         }
   }
 
@@ -1889,14 +1889,14 @@ STATIC void switch_state()
 
     if (funcstate.caseptr->Cdef == NULL)                // if there wasn't a default
         funcstate.caseptr->Cdef = funcstate.brklabel;   // then it is 'break'
-    list_append(&sw->Bsucc,funcstate.caseptr->Cdef);
+    sw->appendSucc(funcstate.caseptr->Cdef);
     sw->BS.Bswitch = (targ_llong *)
         MEM_PH_MALLOC(sizeof(targ_llong) * (funcstate.caseptr->Cindex + 1));
     pu = sw->BS.Bswitch;
     *pu++ = funcstate.caseptr->Cindex;
     for (i = 0; i < funcstate.caseptr->Cindex; i++)
     {   *pu++ = funcstate.caseptr->Ccases[i].Cval;
-        list_append(&sw->Bsucc,funcstate.caseptr->Ccases[i].Clab);
+        sw->appendSucc(funcstate.caseptr->Ccases[i].Clab);
     }
 
     block_goto(funcstate.brklabel);
@@ -2014,7 +2014,7 @@ STATIC void break_state(block *label,int errnum)
   if (label)
   {
         curblock->Bsrcpos = srcpos;
-        list_append(&(curblock->Bsucc),label);
+        curblock->appendSucc(label);
         block_next(BCgoto,NULL);
   }
   else
@@ -2243,7 +2243,7 @@ STATIC void return_state()
   }
     if (funcstate.outblock)
     {   // Commandeer the result to go to outblock
-        list_append(&curblock->Bsucc, funcstate.outblock);
+        curblock->appendSucc(funcstate.outblock);
         block_next(BCgoto, NULL);
     }
     else
@@ -2330,7 +2330,7 @@ STATIC void goto_state()
             curblock->Bgotolist = pstate.STgotolist;
         }
         curblock->Bsrcpos = token_linnum();
-        list_append(&(curblock->Bsucc),s->Slabelblk);
+        curblock->appendSucc(s->Slabelblk);
         block_next(BCgoto,NULL);
         stoken();
   }
@@ -2385,7 +2385,7 @@ STATIC void nttry_state()
     block_appendexp(curblock, e);
 
     block_next((enum BC)curblock->BC,NULL);
-    list_append(&tryblock->Bsucc,curblock);
+    tryblock->appendSucc(curblock);
 
     (void) statement_scope(1);                  // guarded statement
     e = el_var(s);
@@ -2394,7 +2394,7 @@ STATIC void nttry_state()
     e = el_bint(OPeq,tsint,e,el_longt(tsint,lastindex));
     block_appendexp(curblock, e);
     funcstate.leavelabel = leavesave;
-    list_append(&curblock->Bsucc,leavelabel);
+    curblock->appendSucc(leavelabel);
     pstate.STbtry = tryblock->Btry;
 
     if (tok.TKval == TK_except)
@@ -2423,14 +2423,14 @@ STATIC void nttry_state()
         block_appendexp(curblock, efilter);
         token_semi();                           // check for extraneous ;
         chktok(TKrpar,EM_rpar);
-        list_append(&tryblock->Bsucc,curblock);
+        tryblock->appendSucc(curblock);
 
         block_next(BC_filter,NULL);
         be = curblock;
-        list_append(&tryblock->Bsucc,be);
+        tryblock->appendSucc(be);
 
         block_next(BC_except,NULL);
-        list_append(&be->Bsucc,curblock);
+        be->appendSucc(curblock);
 
         e = el_var(s);
         e->EV.sp.Voffset = nteh_offset_sindex_seh();    // offset of sindex
@@ -2467,17 +2467,17 @@ STATIC void nttry_state()
 
         funcstate.scope_index = lastindex;
         stoken();
-        list_append(&tryblock->Bsucc,leavelabel);
+        tryblock->appendSucc(leavelabel);
         bf = curblock;
         block_next(BC_finally,NULL);
-        list_append(&bf->Bsucc,curblock);
+        bf->appendSucc(curblock);
         (void) statement_scope(1);              // termination handler
 
         block_goto();
 
         b = block_calloc();
-        list_append(&bf->Bsucc,b);
-        list_append(&curblock->Bsucc,b);
+        bf->appendSucc(b);
+        curblock->appendSucc(b);
         block_next(BC_ret,b);
     }
     else

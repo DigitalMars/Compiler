@@ -1049,7 +1049,7 @@ symbol *except_gentables()
         sz += intsize;
 
 #if TX86
-        i = list_nitems(b->Bsucc) - 1;          // number of handlers
+        i = b->numSucc() - 1;          // number of handlers
         assert(i > 0);
         pdt = dtnbytes(pdt,2,(char *)&i);
 #ifdef DEBUG
@@ -1057,7 +1057,7 @@ symbol *except_gentables()
             dbg_printf("cvoffset=%X ncatches=%d\n", cvoffset, i);
 #endif
 #else
-        us = list_nitems(b->Bsucc) - 1;         // number of handlers
+        us = b->numSucc() - 1;         // number of handlers
         assert(us > 0);
         pdt = dtnbytes(pdt,2,(char *)&us);
 #endif
