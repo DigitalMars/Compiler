@@ -38,10 +38,10 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 bool init_staticctor;   /* TRUE if this is a static initializer */
 #endif
 
-STATIC elem * initelem(type *,dt_t **,symbol *,targ_size_t);
-STATIC elem * initstruct(type *, dt_t **,symbol *,targ_size_t);
-STATIC elem * initarray(type *, dt_t **,symbol *,targ_size_t);
-STATIC elem * elemtodt(symbol *,dt_t **, elem *, targ_size_t);
+STATIC elem * initelem(type *, DtBuilder&, symbol *,targ_size_t);
+STATIC elem * initstruct(type *, DtBuilder&, symbol *,targ_size_t);
+STATIC elem * initarray(type *, DtBuilder&, symbol *,targ_size_t);
+STATIC elem * elemtodt(symbol *, DtBuilder&, elem *, targ_size_t);
 STATIC int init_arraywithctor(symbol *);
 STATIC symbol * init_localstatic(elem **peinit,symbol *s);
 STATIC elem * init_sets(symbol *sauto,symbol *s);
@@ -86,7 +86,7 @@ struct DtArray
 
     void ensureSize(size_t i);
 
-    dt_t **join(dt_t **pdtend, size_t elemsize, size_t dim, char unknown);
+    void join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown);
 };
 
 void DtArray::ensureSize(size_t i)
@@ -111,23 +111,22 @@ void DtArray::ensureSize(size_t i)
  * Put all the initializers together into one.
  */
 
-dt_t **DtArray::join(dt_t **pdtend, size_t elemsize, size_t dim, char unknown)
-{   size_t i;
-
-    i = 0;
+void DtArray::join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown)
+{
+    size_t i = 0;
     for (size_t j = 0; j < this->dim; j++)
     {
         if (data[j])
         {
             if (j != i)
-                pdtend = dtnzeros(pdtend, elemsize * (j - i));
-            pdtend = dtcat(pdtend, data[j]);
+                dtb.nzeros(elemsize * (j - i));
+            dtb.cat(data[j]);
             i = j + 1;
         }
     }
 
     if (i < dim && !unknown)            // need to pad remainder with 0
-        pdtend = dtnzeros(pdtend,elemsize * (dim - i));
+        dtb.nzeros(elemsize * (dim - i));
 
     return pdtend;
 }
@@ -321,7 +320,12 @@ STATIC void initializer(symbol *s)
                         }
                     }
                 }
-                dtnzeros(&s->Sdt,type_size(t));
+                {
+                DtBuilder dtb;
+                dtb.nzeros(type_size(t));
+                assert(!s->Sdt);
+                s->Sdt = dtb.finish();
+                }
             Ls: ;
                 if (CPP && !localstatic)
                 {
@@ -411,7 +415,10 @@ STATIC void initializer(symbol *s)
                 else
                 {
                     if (sclass == SCstatic || sclass == SCglobal)
-                    {   dtnzeros(&s->Sdt,type_size(t));
+                    {
+                        DtBuilder dtb;
+                        dtb.nzeros(type_size(t));
+                        s->Sdt = dtb.finish();
                         if (!localstatic)
                             init_staticctor = TRUE;
                     }
@@ -462,7 +469,9 @@ STATIC void initializer(symbol *s)
             {
                 type_setdim(&s->Stype,e->EV.ss.Vstrlen / type_size(s->Stype->Tnext));   /* we have determined its size  */
                 assert(s->Sdt == NULL);
-                dtnbytes(&s->Sdt,e->EV.ss.Vstrlen,e->EV.ss.Vstring);
+                DtBuilder dtb;
+                dtb.nbytes(e->EV.ss.Vstrlen,e->EV.ss.Vstring);
+                s->Sdt = dtb.finish();
                 el_free(e);
                 t = s->Stype;
             }
@@ -471,7 +480,10 @@ STATIC void initializer(symbol *s)
                 e = typechk(e,t->Tnext);
                 e = poptelem(e);
                 t = type_setdim(&s->Stype,1);
-                einit = elemtodt(s,&s->Sdt,e,0);
+                DtBuilder dtb;
+                einit = elemtodt(s,dtb,e,0);
+                assert(!s->Sdt);
+                s->Sdt = dtb.finish();
             }
             if (bracket)
                 chktok(TKrcur,EM_rcur);
@@ -504,12 +516,16 @@ STATIC void initializer(symbol *s)
             {
                 i = getArrayIndex(i, 0, 1);
                 dta.ensureSize(i);
-                einit = el_combine(einit,initelem(t->Tnext,&dta.data[i],sinit,i * elemsize));
+                DtBuilder dtb;
+                einit = el_combine(einit,initelem(t->Tnext,dtb,sinit,i * elemsize));
+                dta.data[i] = dtb.finish();
                 i++;
                 if (i > dim)
                     dim = i;
             } while (!endofarray());
-            dta.join(&s->Sdt, elemsize, 0, 1);
+            DtBuilder dtb;
+            dta.join(dtb, elemsize, 0, 1);
+            s->Sdt = dtb.finish();
             t = type_setdim(&s->Stype,dim);     // we have determined its size
             chktok(TKrcur,EM_rcur);             // end with a right curly
 
@@ -551,7 +567,11 @@ STATIC void initializer(symbol *s)
         case SCstatic:
         case SCglobal:
             if (!CPP)
-            {   initelem(t,&s->Sdt,s,0);                // static initializer
+            {
+                DtBuilder dtb;
+                initelem(t,dtb,s,0);                // static initializer
+                assert(!s->Sdt);
+                s->Sdt = dtb.finish();
                 break;
             }
         case SCcomdat:
@@ -559,16 +579,19 @@ STATIC void initializer(symbol *s)
             assert(CPP);
             if (sinit == s && !localstatic)
                 init_staticctor = TRUE;
+            DtBuilder dtb;
             if (ty == TYstruct && tok.TKval != TKlcur)
             {   elem *e;
 
                 e = assign_exp();
                 e = typechk(e,t);
                 e = poptelem3(e);
-                einit = elemtodt(s,&s->Sdt,e,0);
+                einit = elemtodt(s,dtb,e,0);
             }
             else
-                einit = initelem(t,&s->Sdt,sinit,0);
+                einit = initelem(t,dtb,sinit,0);
+            assert(!s->Sdt);
+            s->Sdt = dtb.finish();
 
             /* Handle initialization of local statics   */
             si = NULL;
@@ -652,7 +675,7 @@ cret:
  * Create typeinfo data for a struct.
  */
 
-STATIC void init_typeinfo_struct(dt_t **pdt,Classsym *stag)
+STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
 {
     int nbases;
     baseclass_t *b;
@@ -661,7 +684,7 @@ STATIC void init_typeinfo_struct(dt_t **pdt,Classsym *stag)
     int flags;
 
     char c = 2;
-    pdt = dtnbytes(pdt,1,&c);
+    dtb.nbytes(1,&c);
 
     // Compute number of bases
     nbases = 0;
@@ -673,7 +696,7 @@ STATIC void init_typeinfo_struct(dt_t **pdt,Classsym *stag)
     for (b = st->Sbase; b; b = b->BCnext)
         if (!(b->BCflags & (BCFprivate | BCFvirtual)))
             nbases++;
-    pdt = dtnbytes(pdt,2,(char *)&nbases);
+    dtb.nbytes(2,(char *)&nbases);
 
     // Put out the base class info for each class
     flags = BCFprivate;
@@ -685,11 +708,11 @@ STATIC void init_typeinfo_struct(dt_t **pdt,Classsym *stag)
             {   symbol *s;
 
                 // Put out offset to base class
-                pdt = dtnbytes(pdt,intsize,(char *)&b->BCoffset);
+                dtb.nbytes(intsize,(char *)&b->BCoffset);
 
                 // Put out pointer to base class type info
                 s = init_typeinfo_data(b->BCbase->Stype);
-                pdt = dtxoff(pdt,s,0,pointertype);
+                dtb.xoff(s,0,pointertype);
             }
         }
         flags |= BCFvirtual;
@@ -738,8 +761,7 @@ symbol *init_typeinfo_data(type *ptype)
     // If it is not already there, create a new one
     if (!s)
     {   tym_t ty;
-        dt_t *dt;
-        char *name;
+        DtBuilder dtb;
 
         s = scope_define(id, SCTglobal,SCcomdat);       // create the symbol
         s->Ssequence = 0;
@@ -755,7 +777,7 @@ symbol *init_typeinfo_data(type *ptype)
         else if ((ty = tybasic(ptype->Tty)) == TYstruct)
         {   // Generate:
             //  2, type-info, name
-            init_typeinfo_struct(&s->Sdt,ptype->Ttag);
+            init_typeinfo_struct(dtb,ptype->Ttag);
             s->Sfl = fl;
             goto Lname;
         }
@@ -765,25 +787,25 @@ symbol *init_typeinfo_data(type *ptype)
             char data[2];
             symbol *sn;
             type *tn;
-            size_t len;
 
             tn = ptype->Tnext;
             data[0] = 1;                        // indicate a pointer type
             data[1] = ty | (tn->Tty & (mTYvolatile | mTYconst));
-            dtnbytes(&s->Sdt,2,data);
+            dtb.nbytes(2,data);
             sn = init_typeinfo_data(tn);
-            dtxoff(&s->Sdt->DTnext,sn,0,pointertype);
+            dtb.xoff(sn,0,pointertype);
             s->Sfl = fl;
           Lname:
             // Append RTTI human readable type name
             Outbuffer buf;
-            name = type_tostring(&buf,t);
-            len = buf.size();
+            char *name = type_tostring(&buf,t);
+            size_t len = buf.size();
             if (name[len - 1] == ' ')           // cut off trailing ' '
             {   name[len - 1] = 0;
                 len--;
             }
-            dtnbytes(&s->Sdt,len + 1,name);
+            dtb.nbytes(len + 1,name);
+            s->Sdt = dtb.finish();
         }
         else if (ty == TYvoid)
         {   // Generate reference to extern
@@ -800,10 +822,8 @@ symbol *init_typeinfo_data(type *ptype)
         {   // Generate:
 #if 1
             // 0, name
-            char data;
-
-            data = 0;
-            dtnbytes(&s->Sdt,1,&data);
+            char data = 0;
+            dtb.nbytes(1,&data);
             s->Sfl = fl;
             goto Lname;
 #else
@@ -857,10 +877,9 @@ symbol *init_typeinfo(type *ptype)
 
     // If it is not already there, create a new one
     if (!s)
-    {   symbol *sti;
+    {
         tym_t pty;
         struct_t *st;
-        enum SC scvtbl;
 
         s = scope_define(id, SCTglobal,SCcomdat);       // create the symbol
         s->Ssequence = 0;
@@ -877,14 +896,16 @@ symbol *init_typeinfo(type *ptype)
 
         // The first entry is a pointer to the vtbl[]
         assert(st->Svptr->Smemoff == 0);        // should be first member
-        scvtbl = (enum SC) (config.flags2 & CFG2comdat) ? SCcomdat :
+        enum SC scvtbl = (enum SC) (config.flags2 & CFG2comdat) ? SCcomdat :
              (st->Sflags & STRvtblext) ? SCextern : SCstatic;
         n2_genvtbl(srtti,scvtbl,0);
-        dtxoff(&s->Sdt,st->Svtbl,0,pty);
+        DtBuilder dtb;
+        dtb.xoff(st->Svtbl,0,pty);
 
         // The second is the pdata
-        sti = init_typeinfo_data(ptype);
-        dtxoff(&s->Sdt->DTnext,sti,0,pty);
+        symbol *sti = init_typeinfo_data(ptype);
+        dtb.xoff(sti,0,pty);
+        s->Sdt = dtb.finish();
         s->Sfl = CSTABLES ? CSFL : FLdatseg;
     }
     symbol_debug(s);
@@ -898,8 +919,11 @@ symbol *init_typeinfo(type *ptype)
 void init_sym(symbol *s,elem *e)
 {
     e = poptelem(e);
-    e = elemtodt(s,&s->Sdt,e,0);
+    DtBuilder dtb;
+    e = elemtodt(s,dtb,e,0);
     assert(e == NULL);
+    assert(!s->Sdt);
+    s->Sdt = dtb.finish();
 }
 
 /*********************************
@@ -1038,11 +1062,10 @@ STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown)
  *      NULL = no dynamic part of initialization
  */
 
-STATIC elem * initelem(type *t,dt_t **pdt,symbol *s,targ_size_t offset)
+STATIC elem * initelem(type *t, DtBuilder& dtb, symbol *s, targ_size_t offset)
 {   elem *e;
 
     //dbg_printf("+initelem()\n");
-    pdt = dtend(pdt);
     assert(t);
     type_debug(t);
     switch (tybasic(t->Tty))
@@ -1088,7 +1111,7 @@ STATIC elem * initelem(type *t,dt_t **pdt,symbol *s,targ_size_t offset)
         case TYmemptr:
             if (tok.TKval == TKlcur)    /* could be { initializer }     */
             {   stoken();
-                e = initelem(t,pdt,s,offset);
+                e = initelem(t,dtb,s,offset);
                 chktok(TKrcur,EM_rcur);
             }
             else
@@ -1102,18 +1125,17 @@ STATIC elem * initelem(type *t,dt_t **pdt,symbol *s,targ_size_t offset)
                 {   s->Sflags |= SFLvalue;
                     s->Svalue = el_copytree(e);
                 }
-                e = elemtodt(s,pdt,e,offset);
+                e = elemtodt(s,dtb,e,offset);
             }
             break;
         case TYstruct:
-            e = initstruct(t,pdt,s,offset);
+            e = initstruct(t,dtb,s,offset);
             break;
         case TYarray:
-            e = initarray(t,pdt,s,offset);
+            e = initarray(t,dtb,s,offset);
             break;
         default:
             /* We could get these as a result of syntax errors  */
-            *pdt = NULL;
             e = NULL;
             stoken();
             break;                      /* just ingnore them            */
@@ -1138,14 +1160,13 @@ struct StructDesignator
     dt_t *dt;           // SCmember
 };
 
-STATIC elem * initstruct(type *t,dt_t **pdt,symbol *ss,targ_size_t offset)
+STATIC elem * initstruct(type *t, DtBuilder& dtb, symbol *ss,targ_size_t offset)
 {   elem *e;
     list_t sl;
     targ_size_t dsstart;
     targ_size_t soffset;                // offset into struct s
     targ_size_t tsize;
     int brack;
-    dt_t *dt,**pdtend;
     //symbol *classsymsave;     // other compilers don't seem to do this
     elem *ei;
     elem *ec;
@@ -1156,8 +1177,6 @@ STATIC elem * initstruct(type *t,dt_t **pdt,symbol *ss,targ_size_t offset)
     int designated;
 
     ei = NULL;
-    dt = NULL;
-    pdtend = &dt;
     dsstart = dsout;
     assert(t);
     type_debug(t);
@@ -1319,7 +1338,9 @@ STATIC elem * initstruct(type *t,dt_t **pdt,symbol *ss,targ_size_t offset)
                 soffset = s->Smemoff;
                 dt_free(sd[i].dt);
                 sd[i].dt = NULL;
-                sd[i].exp = initelem(s->Stype,&sd[i].dt,ss,offset + soffset);
+                DtBuilder dtb;
+                sd[i].exp = initelem(s->Stype,dtb,ss,offset + soffset);
+                sd[i].dt = dtb.finish();
                 break;
 
             default:
@@ -1348,9 +1369,9 @@ STATIC elem * initstruct(type *t,dt_t **pdt,symbol *ss,targ_size_t offset)
             case SCfield:
                 if (e && s->Smemoff != soffset)
                 {
-                    pdtend = dtnzeros(pdtend,soffset - (dsout - dsstart));
+                    dtb.nzeros(soffset - (dsout - dsstart));
                     e = poptelem(e);
-                    ec = elemtodt(ss,pdtend,e,offset + soffset);
+                    ec = elemtodt(ss,dtb,e,offset + soffset);
                     ei = el_combine(ei,ec);
                     e = NULL;
                 }
@@ -1396,9 +1417,9 @@ STATIC elem * initstruct(type *t,dt_t **pdt,symbol *ss,targ_size_t offset)
             case SCmember:
                 if (e)                  // if bit field
                 {
-                    pdtend = dtnzeros(pdtend,soffset - (dsout - dsstart));
+                    dtb.nzeros(soffset - (dsout - dsstart));
                     e = poptelem(e);
-                    ec = elemtodt(ss,pdtend,e,offset + soffset);
+                    ec = elemtodt(ss,dtb,e,offset + soffset);
                     ei = el_combine(ei,ec);
                     e = NULL;
                 }
@@ -1406,8 +1427,8 @@ STATIC elem * initstruct(type *t,dt_t **pdt,symbol *ss,targ_size_t offset)
                 if (sd[i].dt)
                 {
                     soffset = s->Smemoff;
-                    pdtend = dtnzeros(pdtend,soffset - (dsout - dsstart));
-                    pdtend = dtcat(pdtend, sd[i].dt);
+                    dtb.nzeros(soffset - (dsout - dsstart));
+                    dtb.cat(sd[i].dt);
                     dsout += dt_size(sd[i].dt);
                 }
                 if (sd[i].exp)
@@ -1419,9 +1440,8 @@ STATIC elem * initstruct(type *t,dt_t **pdt,symbol *ss,targ_size_t offset)
     // if there is a bit field we still need to write out
     if (e)
     {
-        pdtend = dtnzeros(pdtend,soffset - (dsout - dsstart));
         e = poptelem(e);
-        ec = elemtodt(ss,pdtend,e,offset + soffset);
+        ec = elemtodt(ss,dtb,e,offset + soffset);
         ei = el_combine(ei,ec);
         e = NULL;
     }
@@ -1429,9 +1449,8 @@ STATIC elem * initstruct(type *t,dt_t **pdt,symbol *ss,targ_size_t offset)
 Ldone:
     tsize = type_size(t);
     if (tsize > (dsout - dsstart))
-        dtnzeros(pdtend,tsize - (dsout - dsstart));
+        dtb.nzeros(tsize - (dsout - dsstart));
     init_closebrack(brack);
-    *pdt = dt;
     //printf("-initstruct(): ei = %p\n", ei);
     return ei;
 }
@@ -1440,19 +1459,14 @@ Ldone:
  * Read and write an initializer for an array of type t.
  */
 
-STATIC elem * initarray(type *t,dt_t **pdt,symbol *s,targ_size_t offset)
+STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
 {
   char brack;
   targ_size_t dsstart,elemsize;
   targ_size_t tsize;
   char unknown;
 
-  dt_t **dtarray = NULL;
-  size_t dtarray_dim = 0;
-
   elem *e = NULL;
-  dt_t *dt = NULL;
-  dt_t **pdtend = &dt;
 
   if (tok.TKval == TKlcur)
   {     brack = TRUE;
@@ -1494,9 +1508,9 @@ STATIC elem * initarray(type *t,dt_t **pdt,symbol *s,targ_size_t offset)
             {   synerr(EM_2manyinits);  // string is too long
                 len = tsize;
             }
-            pdtend = dtnbytes(pdtend,len,mstring);
+            dtb.nbytes(len,mstring);
             dsout += len;
-            pdtend = dtnzeros(pdtend,tsize - len);
+            dtb.nzeros(tsize - len);
             MEM_PH_FREE(mstring);
             goto Ldone;
         }
@@ -1525,7 +1539,9 @@ STATIC elem * initarray(type *t,dt_t **pdt,symbol *s,targ_size_t offset)
             // Ensure dtarray[] is big enough
             dta.ensureSize(i);
 
-            elem *ec = initelem(t->Tnext,&dta.data[i],s,i * elemsize);
+            DtBuilder dtb;
+            elem *ec = initelem(t->Tnext,dtb,s,i * elemsize);
+            dta.data[i] = dtb.finish();
             e = el_combine(e,ec);
             i++;                        /* # of elements in array       */
             //dbg_printf("elemsize = %ld, i = %ld, dsout = %ld, dsstart = %ld, unknown = %d\n",
@@ -1537,12 +1553,11 @@ STATIC elem * initarray(type *t,dt_t **pdt,symbol *s,targ_size_t offset)
                 break;
         } while (!endofarray());
 
-        pdtend = dta.join(pdtend, elemsize, dim, unknown);
+        dta.join(dtb, elemsize, dim, unknown);
     }
 
 Ldone:
     init_closebrack(brack);
-    *pdt = dt;
     return e;
 }
 
@@ -1555,15 +1570,14 @@ Ldone:
  *      NULL = no dynamic part of initialization, e is free'd
  */
 
-STATIC elem * elemtodt(symbol *s,dt_t **pdt,elem *e,targ_size_t offset)
-{ dt_t *dt;
+STATIC elem * elemtodt(symbol *s, DtBuilder& dtb, elem *e, targ_size_t offset)
+{
   char *p;
   tym_t ty;
   targ_size_t size;
   symbol *sa;
 
 Lagain:
-  dt = NULL;
   if (errcnt)                   /* if errors have occurred in source file */
         goto ret;               /* then forget about output file        */
   assert(e);
@@ -1609,13 +1623,13 @@ Lagain:
                 assert(0);
         }
         ty = tym_conv(e->ET);
-        dtxoff(&dt,sa,e->EV.sp.Voffset,ty);
+        dtb.xoff(sa,e->EV.sp.Voffset,ty);
         dsout += tysize(ty);
         break;
 
     case OPstring:
         size = e->EV.ss.Vstrlen;
-        dtabytes(&dt, e->ET->Tty, e->EV.ss.Voffset, size, e->EV.ss.Vstring, 0);
+        dtb.abytes(e->ET->Tty, e->EV.ss.Voffset, size, e->EV.ss.Vstring, 0);
         dsout += tysize(e->ET->Tty);
         break;
 
@@ -1656,7 +1670,7 @@ Lagain:
                 break;
         }
         dsout += size;
-        dtnbytes(&dt,size,p);
+        dtb.nbytes(size,p);
         break;
     }
 
@@ -1693,7 +1707,7 @@ Lagain:
                     list_append(&constructor_list,e);
                 e = NULL;
             }
-            dtnzeros(&dt,type_size(t)); // leave a hole for it
+            dtb.nzeros(type_size(t)); // leave a hole for it
             goto ret2;
         }
         else
@@ -1705,8 +1719,6 @@ ret:
     e = NULL;
 
 ret2:
-    assert(!*pdt);
-    *pdt = dt;
     return e;
 
 err:
@@ -1714,7 +1726,6 @@ err:
     elem_print(e);
 #endif
     synerr(EM_const_init);      // constant initializer expected
-    dt = NULL;
     goto ret;
 }
 
@@ -1731,9 +1742,6 @@ err:
 
 void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 {
-    dt_t *dt;
-    dt_t **pdt;
-    mptr_t *m;
     list_t lvf;
     targ_size_t size;
     tym_t fty;                          /* pointer to function type     */
@@ -1753,7 +1761,7 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
     fty = tybasic(fty);
     size = type_size(s_mptr->Stype);
 
-    pdt = &s_vtbl->Sdt;
+    DtBuilder dtb;
 
     // Put in RTTI information
     if (config.flags3 & CFG3rtti)
@@ -1762,13 +1770,13 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
         symbol_debug(srtti);
         s = init_typeinfo(srtti->Stype);
         if (s)
-            dtxoff(pdt,s,0,srtti->Sstruct->ptrtype);
+            dtb.xoff(s,0,srtti->Sstruct->ptrtype);
     }
 
     for (lvf = virtlist; lvf; lvf = list_next(lvf))
     {   symbol *s;
 
-        m = (mptr_t *) list_ptr(lvf);
+        mptr_t *m = (mptr_t *) list_ptr(lvf);
 #if THUNKS
         s = m->MPf;
         // Replace destructor call with scalar deleting destructor
@@ -1801,10 +1809,10 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
         // for s here.
 #else
         if (sizeof(targ_short) == SHORTSIZE)
-            pdt = dtnbytes(pdt,SHORTSIZE*2,(char *) &m->MPd);
+            dtb.nbytes(SHORTSIZE*2,(char *) &m->MPd);
         else
-        {   pdt = dtnbytes(pdt,SHORTSIZE,(char *) &m->MPd);
-            pdt = dtnbytes(pdt,SHORTSIZE,(char *) &m->MPi);
+        {   dtb.nbytes(SHORTSIZE,(char *) &m->MPd);
+            dtb.nbytes(SHORTSIZE,(char *) &m->MPi);
         }
         s = m->MPf;
 #endif
@@ -1818,12 +1826,12 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
         // if 'pure' function, put a NULL in it's place in the vtbl[]
         if (s->Sfunc->Fflags & Fpure)
         {
-            pdt = dtnzeros(pdt,tysize[fty]);
+            dtb.nzeros(tysize[fty]);
         }
         else
         {
             /* Compute __mptr.f, the function pointer itself    */
-            pdt = dtxoff(pdt,s,0,fty);
+            dtb.xoff(s,0,fty);
             dsout += tysize[fty];
 #ifdef DEBUG
             /*dbg_printf(" tysize = %d, size = %d\n",
@@ -1836,6 +1844,7 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 #endif
         }
     }
+    s_vtbl->Sdt = dtb.finish();
 
     /*dbg_printf("Tdim = %d\n",s_vtbl->Stype->Tdim);*/
 }
@@ -1888,7 +1897,9 @@ void init_vbtbl(
 #endif
     }
 
-    dtnbytes(&s_vbtbl->Sdt,size,pdata);
+    DtBuilder dtb;
+    dtb.nbytes(size, pdata);
+    s_vbtbl->Sdt = dtb.finish();
     MEM_PARF_FREE(pdata);
 }
 
@@ -2479,7 +2490,11 @@ STATIC int init_arraywithctor(symbol *s)
             assert(!e);
 
         if (/*sclass == SClocstat ||*/ sclass == SCstatic || sclass == SCglobal)
-        {   dtnzeros(&s->Sdt,elemsize * t->Tdim);
+        {
+            DtBuilder dtb;
+            dtb.nzeros(elemsize * t->Tdim);
+            assert(!s->Sdt);
+            s->Sdt = dtb.finish();
 
             /* Call destructors */
             {   elem *enelems;
@@ -2551,7 +2566,9 @@ STATIC symbol * init_localstatic(elem **peinit,symbol *s)
         else
         {
             sinit = symbol_generate(SCstatic,tschar);
-            dtnzeros(&sinit->Sdt,tysize[TYchar]);
+            DtBuilder dtb;
+            dtb.nzeros(tysize[TYchar]);
+            sinit->Sdt = dtb.finish();
         }
         outdata(sinit);
         symbol_keep(sinit);

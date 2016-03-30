@@ -893,7 +893,7 @@ symbol *except_gentables()
 {
     symbol *ehsym;              // symbol for eh data
     type *tsym;                 // type for eh data
-    dt_t **pdt;
+    DtBuilder dtb;
     unsigned psize;             // target size of (void *)
     unsigned fsize;             // target size of function pointer
     int i;
@@ -916,7 +916,6 @@ symbol *except_gentables()
         return NULL;
     ehsym->Sclass = SCstatic;
     tsym = ehsym->Stype;
-    pdt = &ehsym->Sdt;
     sz = 0;
 
 #if !TX86
@@ -945,14 +944,14 @@ symbol *except_gentables()
     if (config.exe != EX_WIN64)
     {
         farfunc = tyfarfunc(funcsym_p->Stype->Tty) ? 2 : 1;
-        pdt = dtnbytes(pdt,2,(char *)&farfunc);
+        dtb.nbytes(2,(char *)&farfunc);
         sz += 2;
     }
 
     if (config.exe == EX_WIN32)
     {   // Address of start of function
         symbol_debug(funcsym_p);
-        pdt = dtxoff(pdt,funcsym_p,0,TYnptr);
+        dtb.xoff(funcsym_p,0,TYnptr);
         sz += fsize;
     }
 #endif
@@ -960,11 +959,11 @@ symbol *except_gentables()
     // Get offset of SP from BP
     // BUG: what if alloca() was used?
     spoff = cod3_spoff();
-    pdt = dtnbytes(pdt,intsize,(char *)&spoff);
+    dtb.nbytes(intsize,(char *)&spoff);
     sz += intsize;
 
     // Offset from start of function to return code
-    pdt = dtnbytes(pdt,intsize,(char *)&retoffset);
+    dtb.nbytes(intsize,(char *)&retoffset);
     sz += intsize;
 
 #endif
@@ -973,7 +972,7 @@ symbol *except_gentables()
     if (funcsym_p->Stype->Tflags & TFemptyexc)  // no exceptions thrown
     {   long x = -1L;
 
-        pdt = dtnbytes(pdt,psize,(char *)&x);
+        dtb.nbytes(psize,(char *)&x);
         sz += psize;
     }
     else
@@ -984,12 +983,12 @@ symbol *except_gentables()
             symbol *s;
 
             s = init_typeinfo_data(t);
-            pdt = dtxoff(pdt,s,0,pointertype);
+            dtb.xoff(s,0,pointertype);
             sz += psize;
         }
     }
     // Append the NULL
-    pdt = dtnzeros(pdt,psize);
+    dtb.nzeros(psize);
     sz += psize;
 
 #if TX86
@@ -998,12 +997,12 @@ symbol *except_gentables()
     {
         // Generate the address-table
         //printf("dim of address-table = %d\n",ehpairi);
-        pdt = dtnbytes(pdt,intsize,(char *)&ehpairi);
+        dtb.nbytes(intsize,(char *)&ehpairi);
         sz += intsize;
         for (i = 0; i < ehpairi; i++)
-        {   pdt = dtnbytes(pdt,intsize,(char *)&ehpair[i].offset);
+        {   dtb.nbytes(intsize,(char *)&ehpair[i].offset);
             us = ehpair[i].index;
-            pdt = dtnbytes(pdt,2,(char *)&us);
+            dtb.nbytes(2,(char *)&us);
             sz += intsize + 2;
 #if DEBUG
             if (debuge)
@@ -1029,7 +1028,7 @@ symbol *except_gentables()
     dbg_printf("ntrys = %d\n",ntrys);
 #endif
     //printf("ntrys = %d\n",ntrys);
-    pdt = dtnbytes(pdt,2,(char *)&ntrys);
+    dtb.nbytes(2,(char *)&ntrys);
     sz += 2;
     for (b = startblock; b; b = b->Bnext)
     {   list_t list;
@@ -1045,13 +1044,13 @@ symbol *except_gentables()
         // Put out BP offset of catch variable
         symbol_debug(b->catchvar);
         cvoffset = cod3_bpoffset(b->catchvar);
-        pdt = dtnbytes(pdt,intsize,(char *)&cvoffset);
+        dtb.nbytes(intsize,(char *)&cvoffset);
         sz += intsize;
 
 #if TX86
         i = b->numSucc() - 1;          // number of handlers
         assert(i > 0);
-        pdt = dtnbytes(pdt,2,(char *)&i);
+        dtb.nbytes(2,(char *)&i);
 #ifdef DEBUG
         if (debuge)
             dbg_printf("cvoffset=%X ncatches=%d\n", cvoffset, i);
@@ -1059,7 +1058,7 @@ symbol *except_gentables()
 #else
         us = b->numSucc() - 1;         // number of handlers
         assert(us > 0);
-        pdt = dtnbytes(pdt,2,(char *)&us);
+        dtb.nbytes(2,(char *)&us);
 #endif
         sz += 2;
         for (list = b->Bsucc; (list = list_next(list)) != NULL;)
@@ -1073,11 +1072,11 @@ symbol *except_gentables()
 #else
             hoffset = bc->Boffset;
 #endif
-            pdt = dtnbytes(pdt,intsize,(char *)&hoffset);
+            dtb.nbytes(intsize,(char *)&hoffset);
             sz += intsize;
 
             s = init_typeinfo_data(bc->Bcatchtype);
-            pdt = dtxoff(pdt,s,0,pointertype);
+            dtb.xoff(s,0,pointertype);
             sz += psize;
 #ifdef DEBUG
             if (debuge)
@@ -1108,7 +1107,7 @@ symbol *except_gentables()
 
         eh = &ehstack[i];
         prev = eh->prev;
-        pdt = dtnbytes(pdt,intsize,(char *)&prev);
+        dtb.nbytes(intsize,(char *)&prev);
         sz += intsize;
         tb = eh->bl;
         e = eh->el;
@@ -1116,10 +1115,10 @@ symbol *except_gentables()
         {
             assert(tb->BC == BCtry);
             type = 1;
-            pdt = dtnbytes(pdt,sizeof(type),(char *) &type);
-            pdt = dtnbytes(pdt,intsize,(char *)&tb->Btryoff);
-            pdt = dtnbytes(pdt,intsize,(char *)&zero);
-            pdt = dtnbytes(pdt,fsize,(char *)&zero);
+            dtb.nbytes(sizeof(type),(char *) &type);
+            dtb.nbytes(intsize,(char *)&tb->Btryoff);
+            dtb.nbytes(intsize,(char *)&zero);
+            dtb.nbytes(fsize,(char *)&zero);
             sz += sizeof(type) + intsize + intsize + fsize;
 #if DEBUG
             if (debuge)
@@ -1154,22 +1153,22 @@ symbol *except_gentables()
             offset = es->EV.sp.Voffset;
             if (sytab[s->Sclass] & SCSS)        // if stack variable
             {
-                pdt = dtnbytes(pdt,sizeof(type),(char *) &type);
+                dtb.nbytes(sizeof(type),(char *) &type);
                 offset += cod3_bpoffset(s);
-                pdt = dtnbytes(pdt,intsize,(char *)&offset);
-                pdt = dtnbytes(pdt,intsize,(char *)&thisoff);
+                dtb.nbytes(intsize,(char *)&offset);
+                dtb.nbytes(intsize,(char *)&thisoff);
                 sz += sizeof(type) + intsize + intsize;
             }
             else
             {   type = 4;
-                pdt = dtnbytes(pdt,sizeof(type), (char *) &type);
-                pdt = dtxoff(pdt,s,offset,pointertype);
+                dtb.nbytes(sizeof(type), (char *) &type);
+                dtb.xoff(s,offset,pointertype);
                 sz += sizeof(type) + psize;
 #if TX86
                 if (pointertype == TYnptr)
 #endif
                 {
-                    pdt = dtnbytes(pdt,intsize,(char *)&thisoff);
+                    dtb.nbytes(intsize,(char *)&thisoff);
                     sz += intsize;
                 }
             }
@@ -1184,9 +1183,9 @@ symbol *except_gentables()
             nwc_mustwrite(e->EV.eop.Edtor);
 #endif
 #if TX86
-            pdt = dtxoff(pdt,e->EV.eop.Edtor,0,LARGECODE ? TYfptr : TYnptr);
+            dtb.xoff(e->EV.eop.Edtor,0,LARGECODE ? TYfptr : TYnptr);
 #else
-            pdt = dtxoff(pdt,e->EV.eop.Edtor,0,TYfptr);
+            dtb.xoff(e->EV.eop.Edtor,0,TYfptr);
 #endif
             sz += fsize;
 #if DEBUG
@@ -1211,6 +1210,7 @@ symbol *except_gentables()
 #if !TX86
     ehsym->Stype->Tdim = sz;                    // Set the size into the type
 #endif
+    ehsym->Sdt = dtb.finish();
     outdata(ehsym);                             // output the eh data
 
 #if TX86
