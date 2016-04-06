@@ -468,20 +468,7 @@ typedef unsigned        targ_uns;
 #define CENTSIZE        16
 #define FLOATSIZE       4
 #define DOUBLESIZE      8
-#if TARGET_OSX
-#define LNGDBLSIZE      16      // 80 bit reals
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define LNGDBLSIZE      12      // 80 bit reals
-#else
-#define LNGDBLSIZE      10      // 80 bit reals
-#endif
-#define TMAXSIZE        LNGDBLSIZE      // largest size a constant can be
-
-#if 0
-#define NDPSAVESIZE     DOUBLESIZE
-#else
-#define NDPSAVESIZE     LNGDBLSIZE
-#endif
+#define TMAXSIZE        16      // largest size a constant can be
 
 #define intsize         tysize[TYint]
 #define REGSIZE         tysize[TYnptr]
@@ -587,7 +574,14 @@ typedef int bool;
 #endif
 
 #if _WINDLL
-#define COPYRIGHT "Copyright © 2001 Digital Mars"
+/* We reference the required Windows-1252 encoding of the copyright symbol
+   by escaping its character code (0xA9) rather than directly embedding it in
+   the source text. The character code is invalid in UTF-8, which causes some
+   of our source-code preprocessing tools (e.g. tolf) to choke. */
+#ifndef COPYRIGHT_SYMBOL
+#define COPYRIGHT_SYMBOL "\xA9"
+#endif
+#define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001 Digital Mars"
 #else
 #ifdef DEBUG
 #define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\

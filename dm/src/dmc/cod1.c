@@ -3261,7 +3261,8 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
     regm_t retregs;
     symbol *s;
 
-    //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d)\n",e,regm_str(*pretregs),numpara,numalign);
+    //printf("%s ", funcsym_p->Sident);
+    //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d, usefuncarg=%d)\n",e,regm_str(*pretregs),numpara,numalign,usefuncarg);
     calledafunc = 1;
     /* Determine if we need frame for function prolog/epilog    */
 #if TARGET_WINDOS
@@ -4223,7 +4224,7 @@ code *pushParams(elem *e,unsigned stackalign)
             goto L2;
         }
 
-        assert(I64 || sz <= LNGDBLSIZE);
+        assert(I64 || sz <= tysize[TYldouble]);
         int i = sz;
         if (!I16 && i == 2)
             flag = CFopsize;

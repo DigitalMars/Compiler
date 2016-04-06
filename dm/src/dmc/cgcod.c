@@ -782,11 +782,7 @@ Lagain:
 
     CSoff = alignsection(Alloca.offset - cstop * REGSIZE, REGSIZE, bias);
 
-#if TX86
-    NDPoff = alignsection(CSoff - NDP::savetop * NDPSAVESIZE, REGSIZE, bias);
-#else
-    NDPoff = CSoff;
-#endif
+    NDPoff = alignsection(CSoff - NDP::savetop * tysize[TYldouble], REGSIZE, bias);
 
     regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
     pushoffuse = false;

@@ -127,8 +127,6 @@ void DtArray::join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown)
 
     if (i < dim && !unknown)            // need to pad remainder with 0
         dtb.nzeros(elemsize * (dim - i));
-
-    return pdtend;
 }
 
 

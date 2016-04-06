@@ -122,7 +122,7 @@ void out_config_init(
     else
     {
         config.exe = EX_OSX;
-        config.ehmethod = EH_DM;
+        config.ehmethod = EH_DWARF;
     }
     config.flags |= CFGnoebp;
     if (!exe)
@@ -299,6 +299,13 @@ void out_config_debug(
 void util_set16()
 {
     // The default is 16 bits
+    tysize[TYldouble] = 10;
+    tysize[TYildouble] = 10;
+    tysize[TYcldouble] = 20;
+
+    tyalignsize[TYldouble] = 2;
+    tyalignsize[TYildouble] = 2;
+    tyalignsize[TYcldouble] = 2;
 }
 
 /*******************************

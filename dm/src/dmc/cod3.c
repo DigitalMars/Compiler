@@ -460,6 +460,7 @@ void cod3_align()
 
 code* cod3_stackadj(code* c, int nbytes)
 {
+    //printf("cod3_stackadj(%d)\n", nbytes);
     unsigned grex = I64 ? REX_W << 16 : 0;
     unsigned rm;
     if (nbytes > 0)
@@ -803,6 +804,17 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
             c = cat(c,getregs(lpadregs()));
+
+            if (config.ehmethod == EH_DWARF)
+            {
+                /* Each block must have ESP set to the same value it was at the end
+                 * of the prolog. But the unwinder calls catch blocks with ESP set
+                 * at the value it was when the throwing function was called, which
+                 * may have arguments pushed on the stack.
+                 * This instruction will reset ESP to the correct offset from EBP.
+                 */
+                c = gen1(c, ESCAPE | ESCfixesp);
+            }
             goto case_goto;
         }
 #endif
@@ -3930,13 +3942,16 @@ void epilog(block *b)
                     reg_t reg = CX;
                     mfuncreg &= ~mask[reg];
                     unsigned grex = I64 ? REX_W << 16 : 0;
-                    c = genc2(c,0xC7,grex | modregrmx(3,0,reg),value);  // MOV reg,value
-                    code *c1 = gen2sib(CNIL,0x89,grex | modregrm(0,reg,4),modregrm(0,4,SP));  // MOV [ESP],reg
+                    code *c1 = genc2(CNIL,0xC7,grex | modregrmx(3,0,reg),value);// MOV reg,value
+                    gen2sib(c1,0x89,grex | modregrm(0,reg,4),modregrm(0,4,SP)); // MOV [ESP],reg
                     genc2(c1,0x81,grex | modregrm(3,0,SP),REGSIZE);     // ADD ESP,REGSIZE
                     genregs(c1,0x39,SP,BP);                             // CMP EBP,ESP
                     if (I64)
                         code_orrex(c1,REX_W);
-                    genjmp(c1,JNE,FLcode,(block *)c1);                  // JNE L1
+                    code *cjmp = genjmp(CNIL,JNE,FLcode,(block *)c1);           // JNE L1
+                    // explicitly mark as short jump, needed for correct retsize calculation (Bugzilla 15779)
+                    cjmp->Iflags &= ~CFjmp16;
+                    c1 = cat(c1, cjmp);
                     gen1(c1,0x58 + BP);                                 // POP BP
                     c = cat(c,c1);
                 }
@@ -4621,11 +4636,26 @@ void assignaddrc(code *c)
         {
             if (c->Iop == (ESCAPE | ESCadjesp))
             {
-                //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,c->IEV2.Vint);
+                //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,(long)c->IEV1.Vint);
                 EBPtoESP += c->IEV1.Vint;
                 c->Iop = NOP;
             }
-            if (c->Iop == (ESCAPE | ESCframeptr))
+            else if (c->Iop == (ESCAPE | ESCfixesp))
+            {
+                //printf("fix ESP\n");
+                if (hasframe)
+                {
+                    // LEA ESP,-EBPtoESP-REGSIZE[EBP]
+                    c->Iop = LEA;
+                    if (c->Irm & 8)
+                        c->Irex |= REX_R;
+                    c->Irm = modregrm(2,SP,BP);
+                    c->Iflags = CFoff;
+                    c->IFL1 = FLconst;
+                    c->IEV1.Vuns = -EBPtoESP - REGSIZE;
+                }
+            }
+            else if (c->Iop == (ESCAPE | ESCframeptr))
             {   // Convert to load of frame pointer
                 // c->Irm is the register to use
                 if (hasframe)
@@ -6089,6 +6119,9 @@ unsigned codout(code *c)
                         break;
 #endif
 #endif
+                    case ESCadjesp:
+                        //printf("adjust ESP %ld\n", (long)c->IEV1.Vint);
+                        break;
                 }
 #ifdef DEBUG
                 assert(calccodsize(c) == 0);
