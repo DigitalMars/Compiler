@@ -2030,7 +2030,9 @@ L6:         // Look for case of #if defined(identifier)
                         s->Sclass = SCstatic;
                         char *id = prettyident(funcsym_p);
                         size_t dim = strlen(id) + 1;
-                        dtnbytes(&s->Sdt, dim, id);
+                        DtBuilder dtb;
+                        dtb.nbytes(dim, id);
+                        s->Sdt = dtb.finish();
                         type *t = type_alloc(mTYconst | TYchar);
                         t = type_allocn(TYarray, t);
                         t->Tdim = dim;
