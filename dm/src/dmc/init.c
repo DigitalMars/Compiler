@@ -64,6 +64,10 @@ STATIC symbol *init_alloca();
 #define CSMTY           mTYfar
 #endif
 
+static targ_size_t dsout = 0;   /* # of bytes actually output to data   */
+                                /* segment, used to pad for alignment   */
+
+
 /*********************** DtArray ***********************/
 
 struct DtArray
@@ -119,14 +123,20 @@ void DtArray::join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown)
         if (data[j])
         {
             if (j != i)
+            {
                 dtb.nzeros(elemsize * (j - i));
+                dsout += elemsize * (j - 1);
+            }
             dtb.cat(data[j]);
             i = j + 1;
         }
     }
 
     if (i < dim && !unknown)            // need to pad remainder with 0
+    {
         dtb.nzeros(elemsize * (dim - i));
+        dsout += elemsize * (dim - 1);
+    }
 }
 
 
@@ -321,6 +331,7 @@ STATIC void initializer(symbol *s)
                 {
                 DtBuilder dtb;
                 dtb.nzeros(type_size(t));
+                dsout += type_size(t);
                 assert(!s->Sdt);
                 s->Sdt = dtb.finish();
                 }
@@ -416,6 +427,7 @@ STATIC void initializer(symbol *s)
                     {
                         DtBuilder dtb;
                         dtb.nzeros(type_size(t));
+                        dsout += type_size(t);
                         s->Sdt = dtb.finish();
                         if (!localstatic)
                             init_staticctor = TRUE;
@@ -1367,7 +1379,9 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, symbol *ss,targ_size_t offset)
             case SCfield:
                 if (e && s->Smemoff != soffset)
                 {
-                    dtb.nzeros(soffset - (dsout - dsstart));
+                    unsigned n = soffset - (dsout - dsstart);
+                    dtb.nzeros(n);
+                    dsout += n;
                     e = poptelem(e);
                     ec = elemtodt(ss,dtb,e,offset + soffset);
                     ei = el_combine(ei,ec);
@@ -1415,7 +1429,9 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, symbol *ss,targ_size_t offset)
             case SCmember:
                 if (e)                  // if bit field
                 {
-                    dtb.nzeros(soffset - (dsout - dsstart));
+                    unsigned n = soffset - (dsout - dsstart);
+                    dtb.nzeros(n);
+                    dsout += n;
                     e = poptelem(e);
                     ec = elemtodt(ss,dtb,e,offset + soffset);
                     ei = el_combine(ei,ec);
@@ -1425,7 +1441,9 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, symbol *ss,targ_size_t offset)
                 if (sd[i].dt)
                 {
                     soffset = s->Smemoff;
-                    dtb.nzeros(soffset - (dsout - dsstart));
+                    unsigned n = soffset - (dsout - dsstart);
+                    dtb.nzeros(n);
+                    dsout += n;
                     dtb.cat(sd[i].dt);
                     dsout += dt_size(sd[i].dt);
                 }
@@ -1447,7 +1465,11 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, symbol *ss,targ_size_t offset)
 Ldone:
     tsize = type_size(t);
     if (tsize > (dsout - dsstart))
-        dtb.nzeros(tsize - (dsout - dsstart));
+    {
+        unsigned n = tsize - (dsout - dsstart);
+        dtb.nzeros(n);
+        dsout += n;
+    }
     init_closebrack(brack);
     //printf("-initstruct(): ei = %p\n", ei);
     return ei;
@@ -1509,6 +1531,7 @@ STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
             dtb.nbytes(len,mstring);
             dsout += len;
             dtb.nzeros(tsize - len);
+            dsout += tsize - len;
             MEM_PH_FREE(mstring);
             goto Ldone;
         }
@@ -1706,6 +1729,7 @@ Lagain:
                 e = NULL;
             }
             dtb.nzeros(type_size(t)); // leave a hole for it
+            dsout += type_size(t);
             goto ret2;
         }
         else
@@ -1825,6 +1849,7 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
         if (s->Sfunc->Fflags & Fpure)
         {
             dtb.nzeros(tysize[fty]);
+            dsout += tysize[fty];
         }
         else
         {
@@ -2491,6 +2516,7 @@ STATIC int init_arraywithctor(symbol *s)
         {
             DtBuilder dtb;
             dtb.nzeros(elemsize * t->Tdim);
+            dsout += elemsize * t->Tdim;
             assert(!s->Sdt);
             s->Sdt = dtb.finish();
 
@@ -2566,6 +2592,7 @@ STATIC symbol * init_localstatic(elem **peinit,symbol *s)
             sinit = symbol_generate(SCstatic,tschar);
             DtBuilder dtb;
             dtb.nzeros(tysize[TYchar]);
+            dsout += tysize[TYchar];
             sinit->Sdt = dtb.finish();
         }
         outdata(sinit);

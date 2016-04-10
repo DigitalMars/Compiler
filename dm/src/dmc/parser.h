@@ -721,8 +721,6 @@ extern int structalign;                 /* alignment for members of structures  
 extern char dbcs;
 extern int colnumber;                   /* current column number                */
 extern int xc;                /* character last read                  */
-extern targ_size_t      dsout;          /* # of bytes actually output to data   */
-                                        /* segment, used to pad for alignment   */
 extern phstring_t fdeplist;
 extern char *fdepname;
 extern FILE *fdep;

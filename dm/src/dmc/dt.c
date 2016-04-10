@@ -170,9 +170,6 @@ void init_common(symbol *s)
     {
         dt_t *dt = dt_calloc(DT_common);
         dt->DTazeros = size;
-#if SCPP
-        dsout += size;
-#endif
         s->Sdt = dt;
     }
 }
@@ -329,7 +326,12 @@ void DtBuilder::abytes(unsigned offset, unsigned size, const char *ptr, unsigned
  */
 void DtBuilder::dword(int value)
 {
-    assert(!*pTail);
+    if (value == 0)
+    {
+        nzeros(4);
+        return;
+    }
+
     dt_t *dt = dt_calloc(DT_ibytes);
     dt->DTn = 4;
 
@@ -337,6 +339,7 @@ void DtBuilder::dword(int value)
     u.cp = dt->DTdata;
     *u.lp = value;
 
+    assert(!*pTail);
     *pTail = dt;
     pTail = &dt->DTnext;
     assert(!*pTail);
@@ -347,6 +350,11 @@ void DtBuilder::dword(int value)
  */
 void DtBuilder::size(unsigned long long value)
 {
+    if (value == 0)
+    {
+        nzeros(NPTRSIZE);
+        return;
+    }
     dt_t *dt = dt_calloc(DT_ibytes);
     dt->DTn = NPTRSIZE;
 
@@ -373,9 +381,6 @@ void DtBuilder::nzeros(unsigned size)
 
     dt_t *dt = dt_calloc(DT_azeros);
     dt->DTazeros = size;
-#if SCPP
-    dsout += size;
-#endif
 
     assert(!*pTail);
     *pTail = dt;
