@@ -428,7 +428,6 @@ dt_t **dtnbytes(dt_t **,targ_size_t,const char *);
 dt_t **dtnzeros(dt_t **pdtend,targ_size_t size);
 dt_t **dtxoff(dt_t **pdtend,symbol *s,targ_size_t offset,tym_t ty);
 dt_t **dtcoff(dt_t **pdtend,targ_size_t offset);
-void dtsymsize(symbol *);
 void init_common(symbol *);
 symbol *init_typeinfo_data(type *ptype);
 symbol *init_typeinfo(type *ptype);

@@ -2127,13 +2127,16 @@ STATIC void return_state()
                 }
                 else
                 {   /* Generate a static struct to copy the result into */
-                    symbol *s;
 
                     /*dbg_printf("Creating symbol %d\n",globsym.top);*/
                     assert(retmethod == RET_STATIC);
-                    s = symbol_generate(SCstatic,e->ET);
+                    symbol *s = symbol_generate(SCstatic,e->ET);
                     s->Sflags |= SFLnodtor;     /* don't add dtors in later */
-                    dtsymsize(s);
+
+                    DtBuilder dtb;
+                    dtb.nzeros(type_size(s->Stype));
+                    s->Sdt = dtb.finish();
+
                     symbol_keep(s);
                     es = el_ptr(s);
                 }
