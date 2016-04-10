@@ -2570,7 +2570,6 @@ STATIC symbol * init_localstatic(elem **peinit,symbol *s)
 
         if (funcsym_p->Sclass == SCinline)
         {
-            dt_optimize(s->Sdt);
             if (dtallzeros(s->Sdt))
             {   s->Sclass = SCglobal;
                 dt2common(&s->Sdt);
@@ -2620,9 +2619,8 @@ STATIC symbol * init_localstatic(elem **peinit,symbol *s)
  */
 
 STATIC elem * init_sets(symbol *sauto,symbol *s)
-{   elem *e;
-
-    dt_optimize(s->Sdt);                // try to collapse into single DT_azeros
+{
+    elem *e;
     if (s->Sdt && dtallzeros(s->Sdt))
     {   // Generate memset(&sauto,0,n);
 
