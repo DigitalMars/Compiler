@@ -460,6 +460,17 @@ void DtBuilder::cat(dt_t *dt)
     assert(!*pTail);
 }
 
+/**********************
+ * Append dtb to data.
+ */
+void DtBuilder::cat(DtBuilder& dtb)
+{
+    assert(!*pTail);
+    *pTail = dtb.head;
+    pTail = dtb.pTail;
+    assert(!*pTail);
+}
+
 /**************************************
  * Repeat a list of dt_t's count times.
  */

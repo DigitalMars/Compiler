@@ -41,6 +41,7 @@ struct DtBuilder
     void dtoff(dt_t *dt, unsigned offset);
     void coff(unsigned offset);
     void cat(dt_t *dt);
+    void cat(DtBuilder& dtb);
     void repeat(dt_t *dt, size_t count);
     unsigned length();
     bool isZeroLength();
