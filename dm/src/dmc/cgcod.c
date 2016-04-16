@@ -335,7 +335,7 @@ tryagain:
             startoffset = coffset + calcblksize(cprolog) - funcoffset;
             b->Bcode = cat(cprolog,b->Bcode);
         }
-        cgsched_block(b);
+//        cgsched_block(b);
         b->Bsize = calcblksize(b->Bcode);       // calculate block size
         if (b->Balign)
         {   targ_size_t u = b->Balign - 1;
