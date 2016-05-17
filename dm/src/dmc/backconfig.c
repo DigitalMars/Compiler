@@ -49,8 +49,7 @@ void out_config_init(
                         // 1: D
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
-        bool stackstomp,        // add stack stomping code
-        bool dwarfeh            // use Dwarf eh
+        bool stackstomp         // add stack stomping code
         )
 {
 #if MARS
@@ -327,7 +326,7 @@ void util_set32()
     tysize[TYnullptr] = LONGSIZE;
     tysize[TYnptr] = LONGSIZE;
     tysize[TYnref] = LONGSIZE;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     tysize[TYldouble] = 12;
     tysize[TYildouble] = 12;
     tysize[TYcldouble] = 24;
@@ -354,7 +353,7 @@ void util_set32()
     tyalignsize[TYnullptr] = LONGSIZE;
     tyalignsize[TYnref] = LONGSIZE;
     tyalignsize[TYnptr] = LONGSIZE;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     tyalignsize[TYldouble] = 4;
     tyalignsize[TYildouble] = 4;
     tyalignsize[TYcldouble] = 4;
@@ -392,7 +391,7 @@ void util_set64()
     tysize[TYnullptr] = 8;
     tysize[TYnptr] = 8;
     tysize[TYnref] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS || TARGET_OSX
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
     tysize[TYldouble] = 16;
     tysize[TYildouble] = 16;
     tysize[TYcldouble] = 32;
@@ -415,7 +414,7 @@ void util_set64()
     tyalignsize[TYnullptr] = 8;
     tyalignsize[TYnptr] = 8;
     tyalignsize[TYnref] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     tyalignsize[TYldouble] = 16;
     tyalignsize[TYildouble] = 16;
     tyalignsize[TYcldouble] = 16;

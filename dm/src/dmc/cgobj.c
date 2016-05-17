@@ -336,7 +336,7 @@ STATIC void outextdata();
 STATIC void outpubdata();
 STATIC Ledatarec *ledata_new(int seg,targ_size_t offset);
 
-char *id_compress(char *id, int idlen);
+char *id_compress(char *id, int idlen, size_t *plen);
 
 /*******************************
  * Output an object file data record.
@@ -2060,6 +2060,12 @@ seg_data *Obj::tlsseg()
     return SegData[obj.tlssegi];
 }
 
+seg_data *Obj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
 
 /********************************
  * Define a far data segment.
@@ -2250,8 +2256,7 @@ size_t Obj::mangle(Symbol *s,char *dest)
         size_t len2;
 
         // Attempt to compress the name
-        name2 = id_compress(name, len);
-        len2  = strlen(name2);
+        name2 = id_compress(name, len, &len2);
 #if MARS
         if (len2 > LIBIDMAX)            // still too long
         {
@@ -3673,6 +3678,12 @@ void Obj::fltused()
     }
 }
 
+symbol *Obj::tlv_bootstrap()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
 
 /****************************************
  * Find longest match of pattern[] in dict[].
@@ -3723,7 +3734,7 @@ static int longest_match(char *dict, int dlen, char *pattern, int plen,
  *      malloc'd compressed identifier
  */
 
-char *id_compress(char *id, int idlen)
+char *id_compress(char *id, int idlen, size_t *plen)
 {
     int i;
     int count = 0;
@@ -3771,6 +3782,7 @@ char *id_compress(char *id, int idlen)
     }
     p[count] = 0;
     //printf("old size = %d, new size = %d\n", idlen, count);
+    *plen = count;
     return p;
 }
 
