@@ -64,8 +64,8 @@ static char __file__[] = __FILE__;      // for tassert.h
 
 #define MATCH_SECTION 1
 
-#define DEST_LEN (IDMAX + IDOHD + 1)
-char *obj_mangle2(Symbol *s,char *dest);
+#define DEST_LEN (IDMAX + IDOHD)
+char *obj_mangle2(Symbol *s,char *dest, size_t *destlen);
 
 #if MARS
 // C++ name mangling is handled by front end
@@ -406,19 +406,19 @@ static IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix
 static IDXSTR elf_addmangled(Symbol *s)
 {
     //printf("elf_addmangled(%s)\n", s->Sident);
-    char dest[DEST_LEN];
-    char *destr;
-    const char *name;
-    int len;
-    IDXSTR namidx;
+    char dest[DEST_LEN + 1];
 
-    namidx = symtab_strings->size();
-    destr = obj_mangle2(s, dest);
-    name = destr;
+    IDXSTR namidx = symtab_strings->size();
+    size_t len;
+    char *destr = obj_mangle2(s, dest, &len);
+    const char *name = destr;
     if (CPP && name[0] == '_' && name[1] == '_')
     {
         if (strncmp(name,"__ct__",6) == 0)
+        {
             name += 4;
+            len -= 4;
+        }
 #if 0
         switch(name[2])
         {
@@ -445,10 +445,12 @@ static IDXSTR elf_addmangled(Symbol *s)
 #endif
     }
     else if (tyfunc(s->ty()) && s->Sfunc && s->Sfunc->Fredirect)
+    {
         name = s->Sfunc->Fredirect;
-    len = strlen(name);
+        len = strlen(name);
+    }
     symtab_strings->reserve(len+1);
-    strcpy((char *)symtab_strings->p,name);
+    memcpy((char *)symtab_strings->p, name, len + 1);
     symtab_strings->setsize(namidx+len+1);
     if (destr != dest)                  // if we resized result
         mem_free(destr);
@@ -1710,8 +1712,14 @@ STATIC void setup_comdat(Symbol *s)
         flags = SHF_ALLOC|SHF_WRITE;
     }
 
-    s->Sseg = ElfObj::getsegment(prefix, cpp_mangle(s), type, flags, align);
+    char dest[DEST_LEN + 1];
+    size_t len;
+    char *name = obj_mangle2(s, dest, &len);
+    s->Sseg = ElfObj::getsegment(prefix, name, type, flags, align);
                                 // find or create new segment
+    if (name != dest)           // if we resized result
+        mem_free(name);
+
     if (s->Salignment > align)
         SegData[s->Sseg]->SDalignment = s->Salignment;
     SegData[s->Sseg]->SDsym = s;
@@ -1993,7 +2001,7 @@ char *unsstr(unsigned value)
  *      mangled name
  */
 
-char *obj_mangle2(Symbol *s,char *dest)
+char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
 {
     char *name;
 
@@ -2024,6 +2032,7 @@ char *obj_mangle2(Symbol *s,char *dest)
                     dest[i] = c + 'A' - 'a';
             }
             break;
+
         case mTYman_std:
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (tyfunc(s->ty()) && !variadic(s->Stype))
@@ -2035,24 +2044,41 @@ char *obj_mangle2(Symbol *s,char *dest)
             {
                 char *pstr = unsstr(type_paramsize(s->Stype));
                 size_t pstrlen = strlen(pstr);
-                size_t destlen = len + 1 + pstrlen + 1;
+                size_t dlen = len + 1 + pstrlen;
 
-                if (destlen > DEST_LEN)
-                    dest = (char *)mem_malloc(destlen);
+                if (dlen >= DEST_LEN)
+                    dest = (char *)mem_malloc(dlen + 1);
                 memcpy(dest,name,len);
                 dest[len] = '@';
                 memcpy(dest + 1 + len, pstr, pstrlen + 1);
+                len = dlen;
                 break;
             }
+            goto L1;
+
         case mTYman_cpp:
         case mTYman_c:
-        case mTYman_d:
         case mTYman_sys:
         case 0:
+        L1:
             if (len >= DEST_LEN)
                 dest = (char *)mem_malloc(len + 1);
             memcpy(dest,name,len+1);// copy in name and trailing 0
             break;
+
+        case mTYman_d:
+            if (len >= 64 && name[0] == '_' && name[1] == 'D')
+            {
+                size_t len2;
+                char *name2 = id_compress(name, len, &len2);
+                if (len2 >= DEST_LEN)
+                    dest = (char *)mem_malloc(len2 + 1);
+                memcpy(dest, name2 , len2 + 1); // copy in name2 and trailing 0
+                free(name2);
+                len = len2;
+                break;
+            }
+            goto L1;
 
         default:
 #ifdef DEBUG
@@ -2063,6 +2089,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             assert(0);
     }
     //dbg_printf("\t %s\n",dest);
+    *destlen = len;
     return dest;
 }
 
@@ -2126,9 +2153,13 @@ void Obj::func_start(Symbol *sfunc)
 
     if ((tybasic(sfunc->ty()) == TYmfunc) && (sfunc->Sclass == SCextern))
     {                                   // create a new code segment
+        char dest[DEST_LEN + 1];
+        size_t len;
+        char *name = obj_mangle2(sfunc, dest, &len);
         sfunc->Sseg =
-            ElfObj::getsegment(".gnu.linkonce.t.", cpp_mangle(sfunc), SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR,4);
-
+            ElfObj::getsegment(".gnu.linkonce.t.", name, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR,4);
+        if (name != dest)           // if we resized result
+            mem_free(name);
     }
     else if (sfunc->Sseg == UNKNOWN)
         sfunc->Sseg = CODE;
@@ -2303,27 +2334,35 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
     //printf("Obj::common_block('%s',%d,%d)\n",s->Sident,size,count);
     symbol_debug(s);
 
+    char dest[DEST_LEN + 1];
+    size_t len;
+    char *name = obj_mangle2(s, dest, &len);
+
     int align = I64 ? 16 : 4;
     if (s->ty() & mTYthread)
     {
-        s->Sseg = ElfObj::getsegment(".tbss.", cpp_mangle(s),
+        s->Sseg = ElfObj::getsegment(".tbss.", name,
                 SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
         s->Sfl = FLtlsdata;
         SegData[s->Sseg]->SDsym = s;
         SegData[s->Sseg]->SDoffset += size * count;
         Obj::pubdefsize(s->Sseg, s, 0, size * count);
         searchfixlist(s);
+        if (name != dest)           // if we resized result
+            mem_free(name);
         return s->Sseg;
     }
     else
     {
-        s->Sseg = ElfObj::getsegment(".bss.", cpp_mangle(s),
+        s->Sseg = ElfObj::getsegment(".bss.", name,
                 SHT_NOBITS, SHF_ALLOC|SHF_WRITE, align);
         s->Sfl = FLudata;
         SegData[s->Sseg]->SDsym = s;
         SegData[s->Sseg]->SDoffset += size * count;
         Obj::pubdefsize(s->Sseg, s, 0, size * count);
         searchfixlist(s);
+        if (name != dest)           // if we resized result
+            mem_free(name);
         return s->Sseg;
     }
 #if 0

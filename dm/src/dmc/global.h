@@ -321,7 +321,9 @@ void symbol_print(Symbol *s);
 void symbol_term(void);
 char *symbol_ident(symbol *s);
 Symbol *symbol_calloc(const char *id);
+Symbol *symbol_calloc(const char *id, size_t len);
 Symbol *symbol_name(const char *name, int sclass, type *t);
+Symbol *symbol_name(const char *name, size_t len, int sclass, type *t);
 Symbol *symbol_generate(int sclass, type *t);
 Symbol *symbol_genauto(type *t);
 Symbol *symbol_genauto(elem *e);
@@ -481,12 +483,14 @@ void rtlsym_init();
 void rtlsym_reset();
 void rtlsym_term();
 
+// compress.c
+char *id_compress(char *id, int idlen, size_t *plen);
+
 // Dwarf
 void dwarf_CFA_set_loc(size_t location);
 void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);
-
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 elem * exp_isconst();
