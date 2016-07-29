@@ -406,6 +406,21 @@ void CodeBuilder::genasm(LabelDsymbol *label)
 
 #endif
 
+#if SCPP
+void CodeBuilder::genasm(block *label)
+{
+    code *ce = code_calloc();
+    ce->Iop = ASM;
+    ce->Iflags = CFaddrsize;
+    ce->IFL1 = FLblockoff;
+    ce->IEV1.Vblock = label;
+    label->Bflags |= BFLlabel;
+
+    *pTail = ce;
+    pTail = &ce->next;
+}
+#endif
+
 #if TX86
 code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
 {   code cs;

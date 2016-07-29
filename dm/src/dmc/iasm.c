@@ -3235,30 +3235,19 @@ STATIC unsigned asm_type_size( type * ptype )
 
 STATIC void asm_da_parse( OP *pop )
 {
-    code *clst = NULL;
-    elem *e;
-
+    CodeBuilder cb;
     while (1)
     {
-        code *c;
         if (tok.TKval == TKident)
         {
-            symbol *s;
-
-            s = scope_search(tok.TKid,SCTlabel);
+            symbol *s = scope_search(tok.TKid,SCTlabel);
             if (!s)
             {   //Assume it is a forward referenced label
                 s = asm_define_label(tok.TKid);
             }
-            c = code_calloc();
-            c->Iop = ASM;
-            c->Iflags = CFaddrsize;
-            c->IFL1 = FLblockoff;
-            c->IEV1.Vblock = s->Slabelblk;
-            s->Slabelblk->Bflags |= BFLlabel;
             if (configv.addlinenumbers)
-                c = cat(genlinnum(NULL,asmstate.Asrcpos), c);
-            clst = cat(clst,c);
+                cb.genlinnum(asmstate.Asrcpos);
+            cb.genasm(s->Slabelblk);
         }
         else
             asmerr(EM_bad_addr_mode);   // illegal addressing mode
@@ -3269,7 +3258,7 @@ STATIC void asm_da_parse( OP *pop )
     }
 
 
-    curblock->Bcode = cat( curblock->Bcode, clst );
+    curblock->Bcode = cat( curblock->Bcode, cb.finish() );
     curblock->usIasmregs |= mES|ALLREGS;
     asmstate.bReturnax = TRUE;
 }
@@ -3280,9 +3269,6 @@ STATIC void asm_da_parse( OP *pop )
 
 STATIC void asm_db_parse( OP *pop )
 {
-    unsigned usSize;
-    unsigned usMaxbytes;
-    unsigned usBytes;
     union DT
     {   targ_ullong ul;
         targ_float f;
@@ -3290,23 +3276,20 @@ STATIC void asm_db_parse( OP *pop )
         targ_ldouble ld;
         char value[10];
     } dt;
-    code *c;
-    elem *e;
 
-    usSize = pop->usNumops & ITSIZE;
+    unsigned usSize = pop->usNumops & ITSIZE;
 
-    usBytes = 0;
-    usMaxbytes = 0;
-    c = code_calloc();
-    c->Iop = ASM;
+    unsigned usBytes = 0;
+    unsigned usMaxbytes = 0;
+    char *bytes = NULL;
 
     while (1)
     {
         if (usBytes+usSize > usMaxbytes)
         {   usMaxbytes = usBytes + usSize + 10;
-            c->IEV1.as.bytes = (char *)mem_realloc( c->IEV1.as.bytes,usMaxbytes );
+            bytes = (char *)mem_realloc( bytes,usMaxbytes );
         }
-        e = CPP ? assign_exp() : const_exp();
+        elem *e = CPP ? assign_exp() : const_exp();
         e = poptelem(e);
         if (e->Eoper == OPconst)                // if result is a constant
         {   targ_ullong ul;
@@ -3343,7 +3326,7 @@ STATIC void asm_db_parse( OP *pop )
                         assert(0);
                 }
             }
-            memcpy(c->IEV1.as.bytes + usBytes,&dt,usSize);
+            memcpy(bytes + usBytes, &dt, usSize);
             usBytes += usSize;
         }
         else if (e->Eoper == OPstring)
@@ -3351,9 +3334,8 @@ STATIC void asm_db_parse( OP *pop )
 
             if (len)
             {   len--;                          // leave off terminating 0
-                c->IEV1.as.bytes =
-                    (char *)mem_realloc( c->IEV1.as.bytes,usMaxbytes + len );
-                memcpy(c->IEV1.as.bytes + usBytes,e->EV.ss.Vstring,len);
+                bytes = (char *)mem_realloc( bytes, usMaxbytes + len );
+                memcpy(bytes + usBytes, e->EV.ss.Vstring,len);
                 usBytes += len;
             }
         }
@@ -3363,16 +3345,18 @@ STATIC void asm_db_parse( OP *pop )
         }
         el_free(e);
 
-        c->IEV1.as.len = usBytes;
         if (tok.TKval != TKcomma)
             break;
         asm_token();
     }
 
+    CodeBuilder cb;
     if (configv.addlinenumbers)
-        c = cat(genlinnum(NULL,asmstate.Asrcpos), c);
+        cb.genlinnum(asmstate.Asrcpos);
+    cb.genasm(bytes, usBytes);
+    mem_free(bytes);
 
-    curblock->Bcode = cat( curblock->Bcode, c );
+    curblock->Bcode = cat( curblock->Bcode, cb.finish() );
     curblock->usIasmregs |= mES|ALLREGS;
     asmstate.bReturnax = TRUE;
 }
