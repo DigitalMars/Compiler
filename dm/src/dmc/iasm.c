@@ -14,9 +14,7 @@
 /* Inline assembler                             */
 
 #include        <ctype.h>
-#if __DMC__
 #include        <limits.h>
-#endif
 #include        <stdlib.h>
 #include        <stdio.h>
 #include        <string.h>
