@@ -4078,10 +4078,6 @@ STATIC int n2_friend(Classsym *stag,type *tfriend,char *vident,unsigned long cla
         if (class_m & mskl(SCvirtual))
             cpperr(EM_friend_sclass);           // friends can't be virtual
         mclass = (enum SC) ((class_m & mskl(SCinline)) ? SCinline : SCfriend);
-#if TEMPLATE_ACCESS
-        if (stag->Sstruct->Stempsym && template_access == SCstatic)
-            mclass = SCinline;
-#endif
         if (gdeclar.explicitSpecialization)
         {
             // The symbol lookup code mirrors symdecl()'s

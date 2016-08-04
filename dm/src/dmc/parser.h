@@ -635,12 +635,7 @@ symbol *symbol_membersearch(const char *id);
 void symbol_gendebuginfo(void);
 
 /* template.c */
-#if TEMPLATE_ACCESS
-extern enum SC template_access;
-int template_getcmd(char,char *);
-#else
 int template_getcmd(char *);
-#endif
 void template_declaration(Classsym *stag, unsigned access_specifier);
 void template_instantiate(void);
 type *template_expand_type(symbol *s);

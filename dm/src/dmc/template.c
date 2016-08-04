@@ -68,46 +68,6 @@ INITIALIZED_STATIC_DEF list_t template_xlist;
  *      !=0     command line error
  */
 
-#if TEMPLATE_ACCESS
-int template_getcmd(char p,char *s)
-{
-    enum SC template_access;
-
-    //dbg_printf("template_getcmd('%c',%s)\n",p,s);
-    switch (p)
-    {
-        case 'I':
-            list_append(&template_xlist,s);
-            break;
-        case 'A':
-            switch(*s)
-            {
-                case 'c':
-                    template_access = SCcomdat;
-                    break;
-                case 'p':
-                    template_access = SCglobal;
-                    break;
-                case 'e':
-                    template_access = SCextern;
-                    break;
-                case 's':
-                    template_access = SCstatic;
-                    break;
-                default:
-                    goto err;
-            }
-            config.template_access = template_access;
-            break;
-        default:
-            goto err;
-    }
-    return 0;
-
-err:
-    return 1;
-}
-#else
 int template_getcmd(char *p)
 {
     switch (*p)
@@ -121,7 +81,6 @@ int template_getcmd(char *p)
 err:
     return 1;
 }
-#endif
 
 
 /***************************************
@@ -2300,16 +2259,6 @@ void template_instantiate()
         return;
     }
 
-#if TEMPLATE_ACCESS
-    if (config.template_access == SCextern || (config.flags2 & CFG2phgen))
-        {
-#if 1 // DJB
-        list_free(&template_ftlist,FPNULL);
-#endif
-        return;                         /* don't put out any */
-        }
-#endif
-
   {
     /* Instantiate anything given on the command line.  */
     list_t pl;
@@ -4017,11 +3966,7 @@ printf("sf  : "); type_print(sf->Stype->Tnext);
     char vident[2*IDMAX + 1];
     linkage_t save = linkage;
     int constructor = 0;
-#if TEMPLATE_ACCESS
-    enum SC sc = (enum SC) (template_access ? template_access : SCglobal);
-#else
     enum SC sc;
-#endif
     Pstate pstatesave = pstate;
     int levelSave = level;
     unsigned Fflags = 0;
