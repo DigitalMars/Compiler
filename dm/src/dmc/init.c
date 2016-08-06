@@ -2590,8 +2590,8 @@ STATIC symbol * init_localstatic(elem **peinit,symbol *s)
         {
             sinit = symbol_generate(SCstatic,tschar);
             DtBuilder dtb;
-            dtb.nzeros(tysize[TYchar]);
-            dsout += tysize[TYchar];
+            dtb.nzeros(tysize(TYchar));
+            dsout += tysize(TYchar);
             sinit->Sdt = dtb.finish();
         }
         outdata(sinit);
@@ -2666,7 +2666,7 @@ STATIC symbol * init_alloca()
         linkage_t linkage;
 
         linkage = LINK_C;
-        if (config.exe & EX_OS2 && tysize[TYint] == 4)
+        if (config.exe & EX_OS2 && tysize(TYint) == 4)
             linkage = LINK_STDCALL;
 
         tfunc = type_alloc(FUNC_TYPE((int) linkage, config.memmodel));

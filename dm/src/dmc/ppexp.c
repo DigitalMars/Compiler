@@ -536,7 +536,7 @@ STATIC targ_long exp_sizeof()
         stoken();
         if (tok.TKval == TKstar)
             {
-            siz = tysize[TYfptr];
+            siz = tysize(TYfptr);
             stoken();
             }
         if (had_paren && tok.TKval == TKrpar)

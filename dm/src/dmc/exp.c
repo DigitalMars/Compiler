@@ -3123,7 +3123,7 @@ STATIC elem *exp_new(int global)
 
             if (array)
                 // esize <= esize + sizeof(unsigned)
-                esize = el_bint(OPadd,tssize,esize,el_longt(tssize,tysize[TYuint]));
+                esize = el_bint(OPadd,tssize,esize,el_longt(tssize,tysize(TYuint)));
 
             eptr = cpp_new(global | array,funcsym_p,esize,placelist,tret);
             placelist = NULL;                   /* it's gone now        */
@@ -3423,7 +3423,7 @@ STATIC elem *exp_delete(int global)
                         enelems = *(eptr - sizeof(TYint))
                  */
 
-                eptr = el_bint(OPmin,eptr->ET,eptr,el_longt(tsint,tysize[TYint]));
+                eptr = el_bint(OPmin,eptr->ET,eptr,el_longt(tsint,tysize(TYint)));
                 enelems = el_unat(OPind,tsint,el_copytree(eptr));
                 esize = el_bint(OPmul,enelems->ET,esize,enelems);
             }

@@ -4891,7 +4891,7 @@ L1:
         goto error;
     }
 
-    action = (tysize[TYint] == LONGSIZE)
+    action = (tysize(TYint) == LONGSIZE)
                 ? casttab32[oldty][newty]
                 : casttab[oldty][newty];
     switch (action)
