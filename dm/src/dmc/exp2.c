@@ -2861,7 +2861,7 @@ STATIC elem * exp2_paramchk(elem *e,type *t,int param)
             }
 
             /* If the size fits, wear it        */
-            if (type_relax && tyintegral(ety) && tysize[ty] == tysize[ety])
+            if (type_relax && tyintegral(ety) && _tysize[ty] == _tysize[ety])
                 goto doit;
         }
 
@@ -3079,7 +3079,7 @@ STATIC elem * exp2_paramchk(elem *e,type *t,int param)
 
         /* Allow (void*) => integral    */
         if (type_relax && tymptr(ety) && tyintegral(ty) &&
-            tysize[ty] <= tysize[ety])
+            _tysize[ty] <= _tysize[ety])
         {
             e = poptelem(e);
             if (cnst(e) && !boolres(e))
@@ -4752,7 +4752,7 @@ again:
     else if (oldty == TYmemptr)
     {   tym_t tcv = tym_conv(oldt);
 
-        if (tysize[newty] == tysize(tcv))
+        if (_tysize[newty] == tysize(tcv))
         {
             /* Allow conversion of <memptr><data> to <int>              */
             if (tyintegral(newty) && tyintegral(tcv))

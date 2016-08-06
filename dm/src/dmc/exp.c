@@ -2471,7 +2471,7 @@ if (!bColcol)
                 else
                 {
                     ty = tybasic(ea->ET->Tty);
-                    size = tysize[ty];
+                    size = _tysize[ty];
                     debug(assert(size <= TMAXSIZE));
                     if (size == -1)
                         synerr(EM_integral);            // integral expression expected

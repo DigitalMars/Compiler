@@ -528,7 +528,7 @@ STATIC targ_long exp_sizeof()
             case TYfloat:
             case TYdouble:
             case TYldouble:
-                siz = tysize[tok.TKval];
+                siz = _tysize[tok.TKval];
                 break;
             default:
                 synerr(EM_function);

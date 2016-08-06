@@ -467,7 +467,7 @@ STATIC void initializer(symbol *s)
     {   char bracket = 0;
 
         /* Take care of char a[]="  ";          */
-#define isstring(t) (tok.TKval == TKstring && tyintegral((t)->Tnext->Tty) && tysize((t)->Tnext->Tty) == tysize[tok.TKty])
+#define isstring(t) (tok.TKval == TKstring && tyintegral((t)->Tnext->Tty) && tysize((t)->Tnext->Tty) == _tysize[tok.TKty])
 
         if (tok.TKval == TKstring || tok.TKval == TKlpar)
         {   elem *e;
@@ -1515,7 +1515,7 @@ STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
 
         char *mstring = combinestrings(&len, &ty);      // concatenate adjacent strings
         int ts = tysize(t->Tnext->Tty);
-        if (ts == tysize[ty])
+        if (ts == _tysize[ty])
         {
             if (unknown)
                 tsize = len;
@@ -1848,21 +1848,21 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
         // if 'pure' function, put a NULL in it's place in the vtbl[]
         if (s->Sfunc->Fflags & Fpure)
         {
-            dtb.nzeros(tysize[fty]);
-            dsout += tysize[fty];
+            dtb.nzeros(_tysize[fty]);
+            dsout += _tysize[fty];
         }
         else
         {
             /* Compute __mptr.f, the function pointer itself    */
             dtb.xoff(s,0,fty);
-            dsout += tysize[fty];
+            dsout += _tysize[fty];
 #ifdef DEBUG
             /*dbg_printf(" tysize = %d, size = %d\n",
-                tysize[fty],size - 2 * SHORTSIZE);*/
+                _tysize[fty],size - 2 * SHORTSIZE);*/
 #if THUNKS
-            assert(tysize[fty] == size);
+            assert(_tysize[fty] == size);
 #else
-            assert(tysize[fty] == size - 2 * SHORTSIZE);
+            assert(_tysize[fty] == size - 2 * SHORTSIZE);
 #endif
 #endif
         }

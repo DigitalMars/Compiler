@@ -1954,7 +1954,7 @@ STATIC void case_label()
         goto done;
   }
 
-  switch (tysize[ctym])
+  switch (_tysize[ctym])
   {     case 1:
             if ((val & 0xFFFFFF00) != 0 && (val & 0xFFFFFF00) != 0xFFFFFF00)
                 synerr(EM_const_case);          // type too big

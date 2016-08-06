@@ -2138,7 +2138,7 @@ char *combinestrings(targ_size_t *plen)
 {
     tym_t ty;
     char *p = combinestrings(plen, &ty);
-    if (tysize[ty] != 1)
+    if (_tysize[ty] != 1)
         lexerr(EM_narrow_string);
     return p;
 }
@@ -2152,7 +2152,7 @@ char *combinestrings(targ_size_t *plen, tym_t *ptym)
         lendec = 0;
     else
     {
-        lendec = tysize[ty];
+        lendec = _tysize[ty];
     }
     char *mstring = (char *) MEM_PH_MALLOC(tok.TKlenstr);
     memcpy(mstring, tok.TKstr, tok.TKlenstr);
@@ -2195,7 +2195,7 @@ char *combinestrings(targ_size_t *plen, tym_t *ptym)
                 memcpy(mstring + len, tok.TKstr, tok.TKlenstr);
                 len += tok.TKlenstr;
                 ty = tok.TKty;
-                lendec = tysize[ty];
+                lendec = _tysize[ty];
                 break;
 
             case X(TYchar, TYchar16):

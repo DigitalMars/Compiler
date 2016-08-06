@@ -345,7 +345,7 @@ STATIC void except_initialize_catchvar(symbol *psymCatchvar,symbol *sinit)
     else
     {
 #if 0
-        if (!tyref(ty) && tysize[ty] <= tysize[pointertype])
+        if (!tyref(ty) && _tysize[ty] <= _tysize[pointertype])
             // s = cv;
             el_settype(einit,t);            // copy it over directly
         else
@@ -919,12 +919,12 @@ symbol *except_gentables()
     sz = 0;
 
 #if !TX86
-    psize = tysize[pointertype];
+    psize = _tysize[pointertype];
     fsize = psize;
 
 #else
 
-    psize = tysize[pointertype];
+    psize = _tysize[pointertype];
     fsize = LARGECODE ? (2 + intsize) : intsize;
 
     if (LARGEDATA)

@@ -588,10 +588,10 @@ int cpp_typecmp(type *t1,type *t2,int flags, param_t *p1, param_t *p2)
          t1ty == pointertype || t2ty == pointertype)
                 ||
 #if TX86
-        (exp2_ptrconv(t1,t2) == 1 && (LARGEDATA || tysize[t1ty] == tysize[t2ty]) &&
+        (exp2_ptrconv(t1,t2) == 1 && (LARGEDATA || _tysize[t1ty] == _tysize[t2ty]) &&
          t1ty != TYhptr && t2ty != TYhptr)
 #else
-        (exp2_ptrconv(t1,t2) == 1 && tysize[t1ty] == tysize[t2ty])
+        (exp2_ptrconv(t1,t2) == 1 && _tysize[t1ty] == _tysize[t2ty])
 #endif
     )
         &&
@@ -709,10 +709,10 @@ int cpp_typecmp(type *t1,type *t2,int flags, param_t *p1, param_t *p2)
                 }
                 else if (!(
 #if TX86
-                        (exp2_ptrconv(t1,t2) == 1 && (LARGEDATA || tysize[t1ty] == tysize[t2ty]) &&
+                        (exp2_ptrconv(t1,t2) == 1 && (LARGEDATA || _tysize[t1ty] == _tysize[t2ty]) &&
                          t1ty != TYhptr && t2ty != TYhptr)
 #else
-                        (exp2_ptrconv(t1,t2) == 1 && tysize[t1ty] == tysize[t2ty])
+                        (exp2_ptrconv(t1,t2) == 1 && _tysize[t1ty] == _tysize[t2ty])
 #endif
                         ))
                     goto Lnomatch;
@@ -3437,7 +3437,7 @@ elem *cpp_addr_vtable(Classsym *stag)
     ev = el_var(st->Svtbl);
     // Account for offset due to RTTI
     if (config.flags3 & CFG3rtti)
-        ev->EV.sp.Voffset += tysize[st->ptrtype];
+        ev->EV.sp.Voffset += _tysize[st->ptrtype];
 
     ev = el_unat(OPaddr,svptr->Stype,ev);
     return ev;
@@ -3624,7 +3624,7 @@ L2:
         ev = el_var(b->BCvtbl);
         // Account for offset due to RTTI
         if (config.flags3 & CFG3rtti)
-            ev->EV.sp.Voffset += tysize[st->ptrtype];
+            ev->EV.sp.Voffset += _tysize[st->ptrtype];
 
         ev = el_unat(OPaddr,newpointer(sbase->Stype),ev);
 
