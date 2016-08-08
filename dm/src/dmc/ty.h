@@ -112,15 +112,13 @@ enum TYM
     TYllong2            = 0x46, // long[2]
     TYullong2           = 0x47, // ulong[2]
 
-// MARS types
-#define TYaarray        TYnptr
-#define TYdelegate      (I64 ? TYcent : TYllong)
-#define TYdarray        (I64 ? TYucent : TYullong)
-
     TYMAX               = 0x48,
 };
 
+extern int TYaarray;                            // D type
+
 // These change depending on memory model
+extern int TYdelegate, TYdarray;                // D types
 extern int TYptrdiff, TYsize, TYsize_t;
 
 enum
@@ -285,7 +283,7 @@ inline unsigned tyuns(tym_t ty) { return tytab[ty & 0xFF] & (TYFLuns | TYFLptr);
 inline unsigned typfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLpascal; }
 
 /* Array to convert a type to its unsigned equivalent   */
-extern const tym_t tytouns[];
+extern tym_t tytouns[];
 inline tym_t touns(tym_t ty) { return tytouns[ty & 0xFF]; }
 
 /* Determine if TYffunc or TYfpfunc (a far function) */
