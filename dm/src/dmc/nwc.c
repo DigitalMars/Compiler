@@ -568,8 +568,6 @@ L1:
 
 /******************* THUNKS *************************/
 
-#if THUNKS
-
 typedef struct Thunk
 {   symbol *sfunc;
     symbol *sthunk;
@@ -656,8 +654,7 @@ symbol *nwc_genthunk(symbol *s,targ_size_t d,int i,targ_size_t d2)
     return sthunk;
 }
 
-#endif
-
+
 /******************************
  * Write out any functions queued for being output
  */
@@ -669,16 +666,13 @@ void output_func()
     while (nwc_funcstowrite)
     {   symbol *s;
         func_t *f;
-#if THUNKS
         Thunk  *t;
-#endif
 
         s = list_symbol(nwc_funcstowrite);
         symbol_debug(s);
         list_subtract(&nwc_funcstowrite,s);
         assert(tyfunc(s->Stype->Tty));
         f = s->Sfunc;
-#if THUNKS
         t = (f->Fflags & Finstance) ? NULL : f->Fthunk;
         if (t)                          /* if this is a thunk           */
         {
@@ -688,7 +682,6 @@ void output_func()
             //f->Fthunk = NULL;
         }
         else
-#endif
         {
             writefunc(s);
         }

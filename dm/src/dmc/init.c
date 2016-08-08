@@ -1774,11 +1774,7 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
     fty = LARGECODE ? TYfptr : TYnptr;
     cpp_getpredefined();                        /* get s_mptr           */
 #ifdef DEBUG
-#if THUNKS
     assert(fty == s_mptr->Stype->Tty);
-#else
-    assert(fty == list_symbol(list_next(list_next(s_mptr->Sstruct->Sfldlst)))->Stype->Tty);
-#endif
 #endif
     fty = tybasic(fty);
     size = type_size(s_mptr->Stype);
@@ -1799,7 +1795,6 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
     {   symbol *s;
 
         mptr_t *m = (mptr_t *) list_ptr(lvf);
-#if THUNKS
         s = m->MPf;
         // Replace destructor call with scalar deleting destructor
         if (s->Sfunc->Fflags & Fdtor)
@@ -1829,15 +1824,6 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 
         // BUG: if covariant return type needs adjustment, build wrapper
         // for s here.
-#else
-        if (sizeof(targ_short) == SHORTSIZE)
-            dtb.nbytes(SHORTSIZE*2,(char *) &m->MPd);
-        else
-        {   dtb.nbytes(SHORTSIZE,(char *) &m->MPd);
-            dtb.nbytes(SHORTSIZE,(char *) &m->MPi);
-        }
-        s = m->MPf;
-#endif
         symbol_debug(s);
         /*dbg_printf("vtbl[] = %s\n",s->Sident);*/
         assert(s->Sfunc && tyfunc(s->Stype->Tty));
@@ -1859,11 +1845,7 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 #ifdef DEBUG
             /*dbg_printf(" tysize = %d, size = %d\n",
                 _tysize[fty],size - 2 * SHORTSIZE);*/
-#if THUNKS
             assert(_tysize[fty] == size);
-#else
-            assert(_tysize[fty] == size - 2 * SHORTSIZE);
-#endif
 #endif
         }
     }

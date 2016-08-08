@@ -3838,21 +3838,7 @@ elem * cpp_getfunc(type *tclass,symbol *sfunc,elem **pethis)
         e->ET->Tty = tym;
         e = el_unat(OPind,svptr->Stype,e);
 
-#if THUNKS
         *pethis = ethis;
-#else
-        { elem *ed;
-        /* Add _mptr.d to ethis                                         */
-
-        /* *pethis = ethis + (int) *(e + i);                            */
-        ed = el_bint(OPadd,e->ET,el_copytree(e),el_longt(tsint,i));
-        ed = el_unat(OPind,tsshort,ed);
-        ed = cast(ed,tsint);
-        *pethis = el_bint(OPadd,ethis->ET,ethis,ed);
-
-        i += SHORTSIZE + SHORTSIZE;             /* get offset to _mptr.f */
-        }
-#endif
         e = el_bint(OPadd,e->ET,e,el_longt(tsint,i));
         pfunc = el_unat(OPind,newpointer(sfunc->Stype),e);
     }

@@ -216,21 +216,26 @@ char *strupr(char *);
 //
 
 //      Types of attributes
-#define ATTR_LINKMOD    0x0001  // link modifier
-#define ATTR_TYPEMOD    0x0002  // basic type modifier
-#define ATTR_FUNCINFO   0x0004  // function information
-#define ATTR_DATAINFO   0x0008  // data information
-#define ATTR_TRANSU     0x0010  // transparent union
-#define ATTR_IGNORED    0x0020  // attribute can be ignored
-#define ATTR_WARNING    0x0040  // attribute was ignored
-#define ATTR_SEGMENT    0x0080  // segment secified
-
+enum
+{
+    ATTR_LINKMOD    = 1,     // link modifier
+    ATTR_TYPEMOD    = 2,     // basic type modifier
+    ATTR_FUNCINFO   = 4,     // function information
+    ATTR_DATAINFO   = 8,     // data information
+    ATTR_TRANSU     = 0x10,  // transparent union
+    ATTR_IGNORED    = 0x20,  // attribute can be ignored
+    ATTR_WARNING    = 0x40,  // attribute was ignored
+    ATTR_SEGMENT    = 0x80,  // segment secified
+};
 
 //      attribute location in code
-#define ALOC_DECSTART   0x001   // start of declaration
-#define ALOC_SYMDEF     0x002   // symbol defined
-#define ALOC_PARAM      0x004   // follows function parameter
-#define ALOC_FUNC       0x008   // follows function declaration
+enum
+{
+    ALOC_DECSTART   = 1,   // start of declaration
+    ALOC_SYMDEF     = 2,   // symbol defined
+    ALOC_PARAM      = 4,   // follows function parameter
+    ALOC_FUNC       = 8,   // follows function declaration
+};
 
 #define ATTR_LINK_MODIFIERS (mTYconst|mTYvolatile|mTYcdecl|mTYstdcall)
 #define ATTR_CAN_IGNORE(a) \
@@ -284,15 +289,18 @@ typedef long double longdouble;
 #define LINEARALLOC     _WIN32  // if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
-#define H_NONE          1       // no hydration/dehydration necessary
-#define H_BIT0          2       // bit 0 of the pointer determines if pointer
-                                // is dehydrated, an offset is added to
-                                // hydrate it
-#define H_OFFSET        4       // the address range of the pointer determines
-                                // if pointer is dehydrated, and an offset is
-                                // added to hydrate it. No dehydration necessary.
-#define H_COMPLEX       8       // dehydrated pointers have bit 0 set, hydrated
-                                // pointers are in non-contiguous buffers
+enum
+{
+    H_NONE    = 1,       // no hydration/dehydration necessary
+    H_BIT0    = 2,       // bit 0 of the pointer determines if pointer
+                         // is dehydrated, an offset is added to
+                         // hydrate it
+    H_OFFSET  = 4,       // the address range of the pointer determines
+                         // if pointer is dehydrated, and an offset is
+                         // added to hydrate it. No dehydration necessary.
+    H_COMPLEX = 8,       // dehydrated pointers have bit 0 set, hydrated
+                         // pointers are in non-contiguous buffers
+};
 
 // Do we need hydration code
 #define HYDRATE         (H_STYLE & (H_BIT0 | H_OFFSET | H_COMPLEX))
@@ -490,14 +498,10 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
    (Some features may no longer work the old way when compiled out,
     I don't test the old ways once the new way is set.)
  */
-#define THUNKS          1       /* use thunks for virtual functions     */
-#define SEPNEWDEL       1       // new/delete are not called within the ctor/dtor,
-                                // they are separate
 #define UNICODE         1       // support Unicode (wchar_t is unsigned short)
 #define DLCMSGS         0       // if 1, have all messages in a file
 #define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
 #define USEDLLSHELL     _WINDLL
-#define FARCLASSES      1       // support near/far classes
 #define MFUNC           (I32) //0 && config.exe == EX_WIN32)       // member functions are TYmfunc
 #define CV3             0       // 1 means support CV3 debug format
 
@@ -1104,20 +1108,6 @@ enum SC {
         SCMAX           // array dimension
     #undef X
 };
-
-#define TAG_ARGUMENTS
-
-/*******************************
- * Swap two integers.
- */
-
-inline void swap(int *a,int *b)
-{ int tmp;
-
-  tmp = *a;
-  *a = *b;
-  *b = tmp;
-}
 
 
 #endif /* CDEF_H */
