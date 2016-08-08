@@ -520,18 +520,6 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 
 #define TOOLKIT_H
 
-/* Masks so we can easily check size */
-#define CHARMASK        (0xFFL)
-#define SHORTMASK       (0xFFFFL)
-#define INTMASK         SHORTMASK
-#define LONGMASK        0xFFFFFFFF
-
-/* Common constants often checked for */
-#define LLONGMASK       0xFFFFFFFFFFFFFFFFLL
-#define ZEROLL          0LL
-#define MINLL           0x8000000000000000LL
-#define MAXLL           0x7FFFFFFFFFFFFFFFLL
-
 #define Smodel 0        /* 64k code, 64k data, or flat model           */
 
 #ifndef MEMMODELS
