@@ -1162,7 +1162,6 @@ loop1:
                 else
                     goto Lident;
                 {   /* It's a wide character constant or wide string    */
-#if UNICODE
                     tok.TKval = TKident;
                     listident();
                     if (xc == '"')
@@ -1215,11 +1214,6 @@ loop1:
                         tok.TKval = inchar(insflags);
                     }
                     break;
-#else
-                    tok.TKval = TKident;
-                    listident();
-                    goto loop1;
-#endif
                 }
                 goto Lident;
 
@@ -1998,7 +1992,6 @@ STATIC int instring(int tc,int flags)
                     break;
             }
         }
-#if UNICODE
         if (flags & INSwchar_t)                 // convert to UNICODE
         {
 #if LOCALE
@@ -2011,7 +2004,6 @@ STATIC int instring(int tc,int flags)
             i += 2;
         }
         else
-#endif
         {
             tok_string[i++] = c;        // store char in tok_string
         }
@@ -2258,12 +2250,10 @@ STATIC enum_TK inchar(int flags)
 
     len = instring('\'',flags) - 1;     /* get the character string     */
                                         /* don't include 0 in length    */
-#if UNICODE
     if (flags & (INSwchar | INSwchar_t | INSdchar))
         len--;
     if (flags & INSdchar)
         len -= 2;
-#endif
 
   if (len > LONGSIZE)
   {     lexerr(EM_string2big,LONGSIZE);
@@ -2299,7 +2289,6 @@ STATIC enum_TK inchar(int flags)
     }
     else
     {
-#if UNICODE
         if (flags & INSwchar_t)
         {
             // To be MSVC compatible, only look at first Unicode char
@@ -2319,7 +2308,6 @@ STATIC enum_TK inchar(int flags)
             tok.TKty = TYdchar;
         }
         else
-#endif
         {
             tok.TKutok.Vlong = 0;
             char *p = (char *) &tok.TKutok.Vlong; // regard tok.TKutok.Vlong as a byte array

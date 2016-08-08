@@ -498,8 +498,6 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
    (Some features may no longer work the old way when compiled out,
     I don't test the old ways once the new way is set.)
  */
-#define UNICODE         1       // support Unicode (wchar_t is unsigned short)
-#define DLCMSGS         0       // if 1, have all messages in a file
 #define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
 #define USEDLLSHELL     _WINDLL
 #define MFUNC           (I32) //0 && config.exe == EX_WIN32)       // member functions are TYmfunc
