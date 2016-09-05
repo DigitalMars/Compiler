@@ -190,7 +190,10 @@ elem *el_ptr_offset(Symbol *s,targ_size_t offset);
 void el_replacesym(elem *,Symbol *,Symbol *);
 elem *el_nelems(type *);
 
+extern "C"
+{
 elem *el_long(tym_t,targ_llong);
+}
 
 int ERTOL(elem *);
 int el_noreturn(elem *);
@@ -200,8 +203,8 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor);
 elem *el_ctor(elem *ector,elem *e,Symbol *sdtor);
 elem *el_dtor(elem *edtor,elem *e);
 elem *el_zero(type *t);
-elem *el_const(tym_t,union eve *);
-elem *el_test(tym_t,union eve *);
+elem *el_const(tym_t, eve *);
+elem *el_test(tym_t, eve *);
 elem ** el_parent(elem *,elem **);
 
 #ifdef DEBUG

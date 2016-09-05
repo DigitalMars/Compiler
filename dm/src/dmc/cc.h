@@ -177,17 +177,17 @@ typedef Symbol Funcsym;
 struct elem;
 #if !MARS
 typedef struct MACRO macro_t;
-typedef struct BLKLST blklst;
 #endif
 typedef list_t symlist_t;       /* list of pointers to Symbols          */
 struct symtab_t;
 struct code;
+struct blklst;
 
 extern Config config;
 
 /////////// Position in source file
 
-typedef struct Srcpos
+struct Srcpos
 {
     unsigned Slinnum;           // 0 means no info available
     unsigned Scharnum;
@@ -210,12 +210,14 @@ typedef struct Srcpos
         return sp;
     }
 #endif
-#if M_UNIX
+//#if M_UNIX
     short Sfilnum;              // file number
-#endif
+//#endif
 
     void print(const char *func);
-} Srcpos;
+
+    static unsigned sizeCheck();
+};
 
 #ifndef TOKEN_H
 #include "token.h"
@@ -314,7 +316,7 @@ struct Pstate
     SYMIDX STmarksi;            // to determine if temporaries are created
     char STnoparse;             // add to classlist instead of parsing
     char STdeferparse;          // defer member func parse
-    enum SC STgclass;           // default function storage class
+    SC STgclass;                // default function storage class
     int STdefertemps;           // defer allocation of temps
     int STdeferaccesscheck;     // defer access check for members (BUG: it
                                 // never does get done later)
@@ -329,6 +331,8 @@ struct Pstate
     unsigned STsequence;        // sequence number (Ssequence) of next Symbol
     unsigned STmaxsequence;     // won't find Symbols with STsequence larger
                                 // than STmaxsequence
+
+    static unsigned sizeCheck();
 };
 
 extern Pstate pstate;
@@ -337,9 +341,9 @@ extern Pstate pstate;
  * Global variables.
  */
 
-typedef struct Cstate
+struct Cstate
 {
-    struct BLKLST *CSfilblk;    // current source file we are parsing
+    blklst *CSfilblk;           // current source file we are parsing
     Symbol *CSlinkage;          // table of forward referenced linkage pragmas
     list_t CSlist_freelist;     // free list for list package
     symtab_t *CSpsymtab;        // pointer to current Symbol table
@@ -347,7 +351,9 @@ typedef struct Cstate
     void **CSphx;               // pointer to HX data block
 #endif
     char *modname;              // module unique identifier
-} Cstate;
+
+    static unsigned sizeCheck();
+};
 
 extern Cstate cstate;
 
@@ -366,11 +372,11 @@ enum
 //  done on it, so it is stack and register variables.)
 #define symbol_isintab(s)       (sytab[(s)->Sclass] & SCSS)
 
-#if defined(__DMC__) || defined(_MSC_VER)
+//#if defined(__DMC__) || defined(_MSC_VER)
 typedef char enum_SC;
-#else
-typedef enum SC enum_SC;
-#endif
+//#else
+//typedef enum SC enum_SC;
+//#endif
 
 /******************************************
  * Basic blocks:
@@ -400,6 +406,8 @@ struct Blockx
     Declaration *member;        // member we're compiling for
     Module *module;             // module we're in
 #endif
+
+    static unsigned sizeCheck();
 };
 
 typedef unsigned short bflags_t;
@@ -425,7 +433,7 @@ enum
     BFLvolatile      = 0x4000,  // block is volatile
 };
 
-typedef struct block
+struct block
 {
     union
     {
@@ -591,7 +599,9 @@ typedef struct block
     int numSucc() { return list_nitems(this->Bsucc); }
     block *nthSucc(int n) { return (block *)list_ptr(list_nth(Bsucc, n)); }
     void setNthSucc(int n, block *b) { list_ptr(list_nth(Bsucc, n)) = b; }
-} block;
+
+    static unsigned sizeCheck();
+};
 
 #define list_block(l)   ((block *) list_ptr(l))
 
@@ -729,7 +739,7 @@ struct func_t
     elem *Fbaseinit;            /* list of member initializers (meminit_t) */
                                 /* this field has meaning only for      */
                                 /* functions which are constructors     */
-    struct token_t *Fbody;      /* if deferred parse, this is the list  */
+    token_t *Fbody;             // if deferred parse, this is the list
                                 /* of tokens that make up the function  */
                                 /* body                                 */
                                 // also used if SCfunctempl, SCftexpspec
@@ -737,7 +747,7 @@ struct func_t
     union
     {
         Symbol *Ftempl;         // if Finstance this is the template that generated it
-        struct Thunk *Fthunk;   // !=NULL if this function is actually a thunk
+        Thunk *Fthunk;          // !=NULL if this function is actually a thunk
     };
     Funcsym *Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
@@ -760,12 +770,15 @@ struct func_t
     size_t typesTableDim;       // number used in typesTable[]
     size_t typesTableCapacity;  // allocated capacity of typesTable[]
 
-#if ELFOBJ
-    unsigned LSDAoffset;        // offset in LSDA segment of the LSDA data for this function
-#endif
-#if MACHOBJ
-    Symbol *LSDAsym;            // GCC_except_table%d
-#endif
+    union
+    {
+        unsigned LSDAoffset_;   // ELFOBJ: offset in LSDA segment of the LSDA data for this function
+        #define LSDAoffset lsda.LSDAoffset_
+        Symbol *LSDAsym_;       // MACHOBJ: GCC_except_table%d
+        #define LSDAsym lsda.LSDAsym_
+    } lsda;
+
+    static unsigned sizeCheck();
 };
 
 #define func_calloc()   ((func_t *) mem_fcalloc(sizeof(func_t)))
@@ -805,10 +818,10 @@ const baseclass_flags_t BCFpmask = BCFpublic | BCFprotected | BCFprivate;
  * Base classes are a list of these.
  */
 
-typedef struct BASECLASS
+struct baseclass_t
 {
     Classsym         *BCbase;           // base class Symbol
-    struct BASECLASS *BCnext;           // next base class
+    baseclass_t      *BCnext;           // next base class
     targ_size_t       BCoffset;         // offset from start of derived class to this
     unsigned short    BCvbtbloff;       // for BCFvirtual, offset from start of
                                         //     vbtbl[] to entry for this virtual base.
@@ -822,9 +835,11 @@ typedef struct BASECLASS
     Classsym         *BCparent;         // immediate parent of this base class
                                         //     in Smptrbase
 #if TX86
-    struct BASECLASS *BCpbase;          // parent base, NULL if did not come from a parent
+    baseclass_t      *BCpbase;          // parent base, NULL if did not come from a parent
 #endif
-} baseclass_t;
+
+    static unsigned sizeCheck();
+};
 
 #define baseclass_malloc()      ((baseclass_t *)mem_fmalloc(sizeof(baseclass_t)))
 #define baseclass_free(b)       ((void)(b))
@@ -940,7 +955,7 @@ struct template_t
 {
     symlist_t     TMinstances;  // list of Symbols that are instances
     param_t      *TMptpl;       // template-parameter-list
-    struct token_t *TMbody;     // tokens making up class body
+    token_t      *TMbody;     // tokens making up class body
     unsigned TMsequence;        // sequence number at point of definition
     list_t TMmemberfuncs;       // templates for member functions (list of TMF's)
     list_t TMexplicit;          // list of TME's: primary member template explicit specializations
@@ -958,6 +973,8 @@ struct template_t
                                 // classes of this template will be friends of
     list_t TMnestedfriends;     // list of TMNF's
     int TMflags2;               // !=0 means dummy template created by template_createargtab()
+
+    static unsigned sizeCheck();
 };
 
 /***********************************
@@ -1107,6 +1124,8 @@ struct struct_t
                                 // It is NULL for the
                                 // primary template class (since it would be
                                 // identical to Sarglist).
+
+    static unsigned sizeCheck();
 };
 
 #define struct_calloc() ((struct_t *) mem_fcalloc(sizeof(struct_t)))
@@ -1305,9 +1324,9 @@ struct Symbol
     const char *prettyIdent;    // the symbol identifer as the user sees it
 #endif
 
-#if TARGET_OSX
+//#if TARGET_OSX
     targ_size_t Slocalgotoffset;
-#endif
+//#endif
 
     enum_SC Sclass;             // storage class (SCxxxx)
     char Sfl;                   // flavor (FLxxxx)
@@ -1354,6 +1373,8 @@ struct Symbol
 
     int needThis();             // !=0 if symbol needs a 'this' pointer
     bool Sisdead(bool anyiasm); // if variable is not referenced
+
+    static unsigned sizeCheck();
 };
 
 #if __DMC__
@@ -1443,6 +1464,8 @@ struct param_t
     unsigned length();          // number of parameters in list
     void print();               // print this param_t
     void print_list();          // print this list of param_t's
+
+    static unsigned sizeCheck();
 };
 
 /**************************************
@@ -1539,6 +1562,8 @@ struct Sfile
     Symbol   *SFtagsymdefs;     // list of tag names (C only)
     char     *SFinc_once_id;    // macro include guard identifier
     unsigned SFhashval;         // hash of file name
+
+    static unsigned sizeCheck();
 };
 
 // Source files are referred to by a pointer into pfiles[]. This is so that
@@ -1557,6 +1582,8 @@ struct Srcfiles
 #endif
     unsigned dim;       // dimension of array
     unsigned idx;       // # used in array
+
+    static unsigned sizeCheck();
 };
 
 #define sfile(fi)               (*srcfiles.pfiles[fi])
@@ -1621,6 +1648,8 @@ struct Declar
     param_t *ptal;
     bool explicitSpecialization;
     int hasExcSpec;             // has exception specification
+
+    static unsigned sizeCheck();
 };
 
 extern Declar gdeclar;
@@ -1647,7 +1676,8 @@ extern Declar gdeclar;
  */
 
 struct dt_t
-{   dt_t *DTnext;                       // next in list
+{
+    dt_t *DTnext;                       // next in list
     char dt;                            // type (DTxxxx)
     unsigned char Dty;                  // pointer type
     unsigned char DTn;                  // DTibytes: number of bytes
@@ -1680,6 +1710,8 @@ struct dt_t
             #define DToffset _DU._DS.DToffset_
         }_DS;
     }_DU;
+
+    static unsigned sizeCheck();
 };
 
 enum

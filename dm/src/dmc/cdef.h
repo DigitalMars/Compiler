@@ -468,16 +468,18 @@ typedef int             targ_int;
 typedef unsigned        targ_uns;
 
 /* Sizes of base data types in bytes */
-
-#define CHARSIZE        1
-#define SHORTSIZE       2
-#define WCHARSIZE       2       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/Solaris
-#define LONGSIZE        4
-#define LLONGSIZE       8
-#define CENTSIZE        16
-#define FLOATSIZE       4
-#define DOUBLESIZE      8
-#define TMAXSIZE        16      // largest size a constant can be
+enum
+{
+    CHARSIZE       = 1,
+    SHORTSIZE      = 2,
+    WCHARSIZE      = 2,       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/Solaris
+    LONGSIZE       = 4,
+    LLONGSIZE      = 8,
+    CENTSIZE       = 16,
+    FLOATSIZE      = 4,
+    DOUBLESIZE     = 8,
+    TMAXSIZE       = 16,      // largest size a constant can be
+};
 
 #define intsize         _tysize[TYint]
 #define REGSIZE         _tysize[TYnptr]
@@ -534,13 +536,16 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #endif
 
 /* Segments     */
-#define CODE    1       /* code segment                 */
-#define DATA    2       /* initialized data             */
-#define CDATA   3       /* constant data                */
-#define UDATA   4       /* uninitialized data           */
-#define CDATAREL 5      /* constant data with relocs    */
-#define UNKNOWN -1      /* unknown segment              */
-#define DGROUPIDX 1     /* group index of DGROUP        */
+enum
+{
+    CODE      = 1,     // code segment
+    DATA      = 2,     // initialized data
+    CDATA     = 3,     // constant data
+    UDATA     = 4,     // uninitialized data
+    CDATAREL  = 5,     // constant data with relocs
+    UNKNOWN   = -1,    // unknown segment
+    DGROUPIDX = 1,     // group index of DGROUP
+};
 
 #define REGMAX  29      // registers are numbered 0..10
 
@@ -893,7 +898,10 @@ struct Config
                                 // to near
     linkage_t linkage;          // default function call linkage
     EHmethod ehmethod;          // exception handling method
+
+    static unsigned sizeCheck();
 };
+
 
 // Configuration that is not saved in precompiled header
 
@@ -907,6 +915,8 @@ struct Configv
     char *deflibname;           // default library name
     enum LANG language;         // message language
     int errmax;                 // max error count
+
+    static unsigned sizeCheck();
 };
 
 struct Classsym;
@@ -1019,6 +1029,8 @@ union eve
             elem *Eleft;        // left child for OPddtor
             void *Edecl;        // VarDeclaration being constructed
         } ed;                   // OPdctor,OPddtor
+
+    static unsigned sizeCheck();
 };                              // variants for each type of elem
 
 // Symbols

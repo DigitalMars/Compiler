@@ -191,16 +191,16 @@ struct MACRO
                                 // of last included file (for #include_next)
 
 /***************************************************************************
- * Which block is active is maintained by the BLKLST, which is a backwardly
+ * Which block is active is maintained by the blklst, which is a backwardly
  * linked list of which blocks are active.
  */
 
-struct BLKLST
+struct blklst
 {
     /* unsigned because of the chars with the 8th bit set       */
     unsigned char  *BLtextp;    /* current position in text buffer      */
     unsigned char  *BLtext;     /* start of text buffer                 */
-    struct BLKLST  *BLprev;     /* enclosing blklst                     */
+    blklst         *BLprev;     // enclosing blklst
     unsigned char   BLflags;    /* input block list flags               */
 #       define BLspace   0x01   /* we've put out an extra space         */
 #       define BLexpanded 0x40  // already macro expanded; don't do it again

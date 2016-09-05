@@ -1467,7 +1467,7 @@ void blklst_setcondlin()
  * Pretty-print
  */
 
-void BLKLST::print()
+void blklst::print()
 {
 #ifdef DEBUG
     char *bltyp[] = {"    ","macr ","str  ","file ","arg  ","rtext" };
