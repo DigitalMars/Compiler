@@ -211,6 +211,18 @@ One and only one of these macros must be set by the makefile:
 
 char *strupr(char *);
 
+#include <stddef.h>     // for size_t
+
+#if __APPLE__ && __i386__
+    /* size_t is 'unsigned long', which makes it mangle differently
+     * than D's 'uint'
+     */
+    typedef unsigned d_size_t;
+#else
+    typedef size_t d_size_t;
+#endif
+
+
 //
 //      Attributes
 //
@@ -455,8 +467,18 @@ typedef short           targ_short;
 typedef unsigned short  targ_ushort;
 typedef int             targ_long;
 typedef unsigned        targ_ulong;
-typedef long long       targ_llong;
-typedef unsigned long long      targ_ullong;
+
+#if defined(__UINT64_TYPE__)
+typedef __INT64_TYPE__     targ_llong;
+typedef __UINT64_TYPE__    targ_ullong;
+#elif defined(__UINTMAX_TYPE__)
+typedef __INTMAX_TYPE__    targ_llong;
+typedef __UINTMAX_TYPE__   targ_ullong;
+#else
+typedef long long          targ_llong;
+typedef unsigned long long targ_ullong;
+#endif
+
 typedef float           targ_float;
 typedef double          targ_double;
 typedef longdouble      targ_ldouble;

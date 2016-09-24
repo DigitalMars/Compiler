@@ -79,7 +79,7 @@ void Obj::lzext(Symbol *s1,Symbol *s2)
 {
 }
 
-void Obj::alias(const char *n1,const char *n2)
+void Obj::_alias(const char *n1,const char *n2)
 {
 }
 
@@ -138,7 +138,7 @@ int Obj::fardata(char *name,targ_size_t size,targ_size_t *poffset)
     return 0;
 }
 
-void Obj::import(elem *e)
+void Obj::_import(elem *e)
 {
 }
 
@@ -178,7 +178,7 @@ void Obj::lidata(int seg,targ_size_t offset,targ_size_t count)
 {
 }
 
-void Obj::byte(int seg,targ_size_t offset,unsigned byte)
+void Obj::_byte(int seg,targ_size_t offset,unsigned byte)
 {
 }
 
@@ -192,7 +192,7 @@ void Obj::ledata(int seg,targ_size_t offset,targ_size_t data,
 {
 }
 
-void Obj::write_long(int seg,targ_size_t offset,unsigned long data,
+void Obj::write_long(int seg,targ_size_t offset,unsigned data,
         unsigned lcfd,unsigned idx1,unsigned idx2)
 {
 }
@@ -231,6 +231,10 @@ int Obj::common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
 }
 
 void Obj::write_bytes(seg_data *pseg, unsigned nbytes, void *p)
+{
+}
+
+void Obj::gotref(Symbol *s)
 {
 }
 

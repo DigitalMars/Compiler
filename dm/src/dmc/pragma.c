@@ -2524,7 +2524,7 @@ STATIC void prpragma()
                         preerr(EM_string);              // string expected
                     else
                     {   str2 = combinestrings(&len2);
-                        Obj::alias(str1,str2);
+                        Obj::_alias(str1,str2);
                         mem_free(str2);
                     }
                     mem_free(str1);

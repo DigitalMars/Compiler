@@ -13,7 +13,13 @@ Source: https://github.com/dlang/dmd/blob/master/src/backend/divcoeff.c
 #include <stdio.h>
 #include <assert.h>
 
+#ifdef __UINT64_TYPE__
+typedef __UINT64_TYPE__ ullong;
+#elif defined(__UINTMAX_TYPE__)
+typedef __UINTMAX_TYPE__ ullong;
+#else
 typedef unsigned long long ullong;
+#endif
 
 void test_udiv_coefficients();
 
