@@ -157,7 +157,7 @@ OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj code.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj iasm.obj ptrntab.obj newman.obj dwarf.obj
-OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj pdata.obj cv8.obj
+OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gslice.obj pdata.obj cv8.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj speller.obj utf.obj divcoeff.obj
 
 ALLOBJS= $(OBJ1a) $(OBJ1b) $(OBJ1c) $(OBJ1d) $(OBJ1e) $(OBJ1f) $(OBJ1g) \
@@ -284,7 +284,7 @@ SRC=    tassert.h html.h html.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
         ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
 	backconfig.c ph2.c util2.c divcoeff.c dwarf.h dwarf.c dwarfeh.c \
-	elfobj.c elfobj1.c machobj.c compress.c varstats.h varstats.c
+	elfobj.c elfobj1.c machobj.c compress.c varstats.h varstats.c gslice.c
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c
@@ -308,7 +308,7 @@ BACKSRC= cdef.h cc.h oper.h ty.h optabgen.c \
 	cgreg.c var.c compress.c \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
 	code.c symbol.c debug.c dt.c ee.c el.c \
-	evalu8.c go.c gflow.c gdag.c \
+	evalu8.c go.c gflow.c gdag.c gslice.c \
 	gother.c glocal.c gloop.c newman.c \
 	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
 	type.c melf.h mach.h mscoff.h bcomplex.h \
@@ -434,6 +434,7 @@ cgelem.obj : $(DEP) $(cgelem.dep) cgelem.c
 gdag.obj : $(DEP) $(gdag.dep) gdag.c
 getcmd.obj : $(DEP) $(getcmd.dep) getcmd.c
 gother.obj : $(DEP) $(gother.dep) gother.c
+gslice.obj : $(DEP) $(gslice.dep) gslice.c
 exp2.obj : $(DEP) $(exp2.dep) castab.c exp2.c
 err.obj : $(DEP) $(err.dep) err.c
 func.obj : $(DEP) $(func.dep) func.c
