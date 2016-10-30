@@ -1799,7 +1799,14 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
         retregs = *pretregs & ~mPSW;
   }
   if (forccs)                           /* if return result in flags    */
-        c = cat(c,tstresult(retregs,tym,forregs));
+  {
+        code *cf;
+        if (retregs & (mST01 | mST0))
+            cf = fixresult87(e,retregs,pretregs);
+        else
+            cf = tstresult(retregs,tym,forregs);
+        c = cat(c, cf);
+  }
   return c;
 }
 

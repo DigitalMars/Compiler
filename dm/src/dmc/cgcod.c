@@ -2309,6 +2309,8 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 
     if (emask & XMMREGS && *pretregs == mPSW)
         ;
+    else if (tyxmmreg(e->Ety) && config.fpxmmregs)
+        ;
     else if (tyfloating(e->Ety) && config.inline8087)
         return comsub87(e,pretregs);
 
