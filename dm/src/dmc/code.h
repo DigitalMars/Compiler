@@ -451,6 +451,7 @@ cd_t cdbtst;
 cd_t cdbt;
 cd_t cdbscan;
 cd_t cdpair;
+cd_t cdprefetch;
 code *longcmp (elem *,bool,unsigned,code *);
 
 /* cod5.c */
@@ -508,6 +509,7 @@ code *cdconvt87(elem *e, regm_t *pretregs);
 code *cload87(elem *e, regm_t *pretregs);
 code *cdd_u64(elem *e, regm_t *pretregs);
 code *cdd_u32(elem *e, regm_t *pretregs);
+code *loadPair87(elem *e, regm_t *pretregs);
 
 #ifdef DEBUG
 #define pop87() pop87(__LINE__,__FILE__)

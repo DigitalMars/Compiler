@@ -1831,6 +1831,9 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         unsigned size = _tysize[tym];
         *pretregs &= mES | allregs | XMMREGS;
         regm_t retregs = *pretregs;
+#ifdef DEBUG
+if (retregs == 0) printf("allocreg: file %s(%d)\n", file, line);
+#endif
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
         {
             if (size <= REGSIZE || (retregs & XMMREGS))

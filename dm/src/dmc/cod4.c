@@ -3744,15 +3744,40 @@ code *cdpair(elem *e, regm_t *pretregs)
 
     //printf("\ncdpair(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     //printf("Ecount = %d\n", e->Ecount);
-    retregs = *pretregs & allregs;
-    if  (!retregs)
-        retregs = allregs;
-    regs1 = retregs & mLSW;
-    regs2 = retregs & mMSW;
+
+    retregs = *pretregs;
+    if (retregs == mPSW && tycomplex(e->Ety) && config.inline8087)
+    {
+        if (config.fpxmmregs)
+            retregs |= mXMM0 | mXMM1;
+        else
+            retregs |= mST01;
+    }
+
+    if (retregs & mST01)
+        return loadPair87(e, pretregs);
+
+    if (retregs & XMMREGS)
+    {
+        retregs &= XMMREGS;
+        unsigned reg = findreg(retregs);
+        regs1 = mask[reg];
+        regs2 = mask[findreg(retregs & ~regs1)];
+    }
+    else
+    {
+        retregs &= allregs;
+        if  (!retregs)
+            retregs = allregs;
+        regs1 = retregs & mLSW;
+        regs2 = retregs & mMSW;
+    }
     if (e->Eoper == OPrpair)
     {
-        regs1 = regs2;
-        regs2 = retregs & mLSW;
+        // swap
+        regs1 ^= regs2;
+        regs2 ^= regs1;
+        regs1 ^= regs2;
     }
     //printf("1: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
     c1 = codelem(e->E1, &regs1, FALSE);
@@ -3850,6 +3875,48 @@ code *cdcmpxchg(elem *e, regm_t *pretregs)
     }
 
     return cat4(cr1,cr,cl,c);
+}
+
+/*************************
+ * Generate code for OPprefetch
+ */
+
+code *cdprefetch(elem *e, regm_t *pretregs)
+{
+    /* Generate the following based on e2:
+     *    0: prefetch0
+     *    1: prefetch1
+     *    2: prefetch2
+     *    3: prefetchnta
+     *    4: prefetchw
+     *    5: prefetchwt1
+     */
+    //printf("cdprefetch\n");
+    elem *e1 = e->E1;
+
+    assert(*pretregs == 0);
+    assert(e->E2->Eoper == OPconst);
+    unsigned op;
+    unsigned reg;
+    switch (e->E2->EV.Vuns)
+    {
+        case 0: op = PREFETCH; reg = 1; break;  // PREFETCH0
+        case 1: op = PREFETCH; reg = 2; break;  // PREFETCH1
+        case 2: op = PREFETCH; reg = 3; break;  // PREFETCH2
+        case 3: op = PREFETCH; reg = 0; break;  // PREFETCHNTA
+        case 4: op = 0x0F0D;   reg = 1; break;  // PREFETCHW
+        case 5: op = 0x0F0D;   reg = 2; break;  // PREFETCHWT1
+        default: assert(0);
+    }
+
+    freenode(e->E2);
+    code cs;
+    code *c = getlvalue(&cs,e1,0);
+    cs.Iop = op;
+    cs.Irm |= modregrm(0,reg,0);
+    c = gen(c,&cs);
+    c->Iflags |= CFvolatile;            // do not schedule
+    return c;
 }
 
 #endif // !SPP

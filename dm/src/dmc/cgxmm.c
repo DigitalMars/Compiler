@@ -626,7 +626,9 @@ unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYllong2:
                 case TYullong2: op = PADDQ;  break;
 
-                default:        assert(0);
+                default:
+                    printf("tym = x%x\n", tym);
+                    assert(0);
             }
             break;
 

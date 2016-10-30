@@ -4472,9 +4472,9 @@ code *loaddata(elem *e,regm_t *pretregs)
   regm_t flags,forregs,regm;
 
 #ifdef DEBUG
-  if (debugw)
-        printf("loaddata(e = %p,*pretregs = %s)\n",e,regm_str(*pretregs));
-  //elem_print(e);
+//  if (debugw)
+//        printf("loaddata(e = %p,*pretregs = %s)\n",e,regm_str(*pretregs));
+//  elem_print(e);
 #endif
   assert(e);
   elem_debug(e);
