@@ -92,12 +92,13 @@ extern void error(const char *filename, unsigned linnum, unsigned charnum, const
 
     static int testFE()
     {
-        return _status87() & 0x3F;
+        return (ld_statusfpu() | _statusfp()) & 0x3F;
     }
 
     static void clearFE()
     {
-        _clear87();
+        _clearfp();
+        ld_clearfpu();
     }
 #else
     #define HAVE_FLOAT_EXCEPT 0
@@ -1718,7 +1719,7 @@ elem * evalu8(elem *e, goal_t goal)
                 e->EV.Vldouble = Complex_ld::abs(e1->EV.Vcldouble);
                 break;
             default:
-                e->EV.Vllong = labs(l1);
+                e->EV.Vllong = l1 < 0 ? -l1 : l1;
                 break;
         }
         break;
