@@ -2066,7 +2066,6 @@ char *obj_mangle2(Symbol *s,char *dest)
             for (char *p = dest; *p; p++)
                 *p = toupper(*p);
             break;
-
         case mTYman_std:
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (tyfunc(s->ty()) && !variadic(s->Stype))
@@ -2087,29 +2086,14 @@ char *obj_mangle2(Symbol *s,char *dest)
                 memcpy(dest + 1 + len, pstr, pstrlen + 1);
                 break;
             }
-            goto L1;
-
         case mTYman_cpp:
+        case mTYman_d:
         case mTYman_sys:
         case 0:
-        L1:
             if (len >= DEST_LEN)
                 dest = (char *)mem_malloc(len + 1);
             memcpy(dest,name,len+1);// copy in name and trailing 0
             break;
-
-        case mTYman_d:
-            if (len >= 64 && name[0] == '_' && name[1] == 'D')
-            {
-                size_t len2;
-                char *name2 = id_compress(name, len, &len2);
-                if (len2 >= DEST_LEN)
-                    dest = (char *)mem_malloc(len2 + 1);
-                memcpy(dest, name2 , len2 + 1); // copy in name2 and trailing 0
-                free(name2);
-                break;
-            }
-            goto L1;
 
         case mTYman_c:
             if (len >= DEST_LEN - 1)
@@ -2172,7 +2156,7 @@ int Obj::data_start(Symbol *sdata, targ_size_t datasize, int seg)
         alignbytes = ((offset + sdata->Salignment - 1) & ~(sdata->Salignment - 1)) - offset;
     }
     else
-        alignbytes = align(datasize, offset) - offset;
+        alignbytes = _align(datasize, offset) - offset;
     if (alignbytes)
         Obj::lidata(seg, offset, alignbytes);
     sdata->Soffset = offset + alignbytes;
