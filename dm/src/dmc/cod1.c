@@ -2513,7 +2513,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         pop87();
 
   if (config.target_cpu >= TARGET_80386 && clib == CLIBlmul && !I32)
-  {     static char lmul[] = {
+  {     static unsigned char lmul[] = {
             0x66,0xc1,0xe1,0x10,        // shl  ECX,16
             0x8b,0xcb,                  // mov  CX,BX           ;ECX = CX,BX
             0x66,0xc1,0xe0,0x10,        // shl  EAX,16
@@ -2868,7 +2868,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     for (int i = np; --i >= 0;)
     {
         elem *ep = parameters[i].e;
-        unsigned psize = align(stackalign, paramsize(ep));     // align on stack boundary
+        unsigned psize = _align(stackalign, paramsize(ep));     // align on stack boundary
         if (config.exe == EX_WIN64)
         {
             //printf("[%d] size = %u, numpara = %d ep = %p ", i, psize, numpara, ep); WRTYxx(ep->Ety); printf("\n");
@@ -3043,7 +3043,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
             unsigned numalign = parameters[i].numalign;
             if (usefuncarg)
             {
-                funcargtos -= align(stackalign, paramsize(ep)) + numalign;
+                funcargtos -= _align(stackalign, paramsize(ep)) + numalign;
                 cgstate.funcargtos = funcargtos;
             }
             else if (numalign)
@@ -3623,7 +3623,7 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
     int grex = I64 ? REX_W << 16 : 0;
 
     targ_size_t szb = paramsize(e);               // size before alignment
-    targ_size_t sz = align(stackalign,szb);       // size after alignment
+    targ_size_t sz = _align(stackalign,szb);       // size after alignment
     assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
     assert((sz & (REGSIZE - 1)) == 0);
     //printf("szb = %d sz = %d\n", (int)szb, (int)sz);
@@ -3837,7 +3837,7 @@ code *pushParams(elem *e,unsigned stackalign)
   int grex = I64 ? REX_W << 16 : 0;
 
   targ_size_t szb = paramsize(e);               // size before alignment
-  targ_size_t sz = align(stackalign,szb);       // size after alignment
+  targ_size_t sz = _align(stackalign,szb);       // size after alignment
   assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
   assert((sz & (REGSIZE - 1)) == 0);
 
