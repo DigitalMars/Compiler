@@ -75,7 +75,7 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
         c = movregconst(c,r,p[1],0);
         c = genfltreg(c,0x89,r,4);            // MOV floatreg+4,r
 
-        unsigned op = xmmload(TYdouble);
+        unsigned op = xmmload(TYdouble, true);
         c = genfltreg(c,op,xreg - XMM0,0);     // MOVSD XMMreg,floatreg
     }
     else
@@ -94,24 +94,43 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
  */
 
 code *orthxmm(elem *e, regm_t *pretregs)
-{   elem *e1 = e->E1;
+{
+    //printf("orthxmm(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    elem *e1 = e->E1;
     elem *e2 = e->E2;
-    regm_t retregs = *pretregs & XMMREGS;
-    if (!retregs)
-        retregs = XMMREGS;
-    code *c = codelem(e1,&retregs,FALSE); // eval left leaf
-    unsigned reg = findreg(retregs);
-    regm_t rretregs = XMMREGS & ~retregs;
-    code *cr = scodelem(e2, &rretregs, retregs, TRUE);  // eval right leaf
-
-    unsigned op = xmmoperator(e1->Ety, e->Eoper);
-    unsigned rreg = findreg(rretregs);
 
     // float + ifloat is not actually addition
     if ((e->Eoper == OPadd || e->Eoper == OPmin) &&
         ((tyreal(e1->Ety) && tyimaginary(e2->Ety)) ||
          (tyreal(e2->Ety) && tyimaginary(e1->Ety))))
     {
+        regm_t retregs = *pretregs & XMMREGS;
+        if (!retregs)
+            retregs = XMMREGS;
+
+        unsigned reg;
+        regm_t rretregs;
+        unsigned rreg;
+        if (tyreal(e1->Ety))
+        {
+            reg = findreg(retregs);
+            rreg = findreg(retregs & ~mask[reg]);
+            retregs = mask[reg];
+            rretregs = mask[rreg];
+        }
+        else
+        {
+            // Pick the second register, not the first
+            rreg = findreg(retregs);
+            rretregs = mask[rreg];
+            reg = findreg(retregs & ~rretregs);
+            retregs = mask[reg];
+        }
+        assert(retregs && rretregs);
+
+        code *c = codelem(e1,&retregs,FALSE); // eval left leaf
+        code *cr = scodelem(e2, &rretregs, retregs, TRUE);  // eval right leaf
+
         retregs |= rretregs;
         c = cat(c, cr);
         if (e->Eoper == OPmin)
@@ -132,6 +151,17 @@ code *orthxmm(elem *e, regm_t *pretregs)
             c = cat(c, fixresult(e,retregs,pretregs));
         return c;
     }
+
+    regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
+    code *c = codelem(e1,&retregs,FALSE); // eval left leaf
+    unsigned reg = findreg(retregs);
+    regm_t rretregs = XMMREGS & ~retregs;
+    code *cr = scodelem(e2, &rretregs, retregs, TRUE);  // eval right leaf
+
+    unsigned rreg = findreg(rretregs);
+    unsigned op = xmmoperator(e1->Ety, e->Eoper);
 
     /* We should take advantage of mem addressing modes for OP XMM,MEM
      * but we do not at the moment.
@@ -179,7 +209,8 @@ code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs)
     if (!(retregs & XMMREGS))
         retregs = XMMREGS;              // pick any XMM reg
 
-    cs.Iop = (op == OPeq) ? xmmstore(tyml) : op;
+    bool aligned = xmmIsAligned(e1);
+    cs.Iop = (op == OPeq) ? xmmstore(tyml, aligned) : op;
     regvar = FALSE;
     varregm = 0;
     if (config.flags4 & CFG4optimized)
@@ -448,7 +479,7 @@ code *xmmopass(elem *e,regm_t *pretregs)
         if (!retregs)
             retregs = XMMREGS & ~rretregs;
         cg = allocreg(&retregs,&reg,ty1);
-        cs.Iop = xmmload(ty1);                  // MOVSD xmm,xmm_m64
+        cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
         code_newreg(&cs,reg - XMM0);
         cg = gen(cg,&cs);
     }
@@ -458,7 +489,7 @@ code *xmmopass(elem *e,regm_t *pretregs)
 
     if (!regvar)
     {
-        cs.Iop = xmmstore(ty1);           // reverse operand order of MOVS[SD]
+        cs.Iop = xmmstore(ty1,true);      // reverse operand order of MOVS[SD]
         gen(co,&cs);
     }
 
@@ -474,6 +505,93 @@ code *xmmopass(elem *e,regm_t *pretregs)
     co = cat(co,fixresult(e,retregs,pretregs));
     freenode(e1);
     return cat4(cr,cl,cg,co);
+}
+
+/********************************
+ * Generate code for post increment and post decrement.
+ */
+
+code *xmmpost(elem *e,regm_t *pretregs)
+{
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
+    tym_t ty1 = tybasic(e1->Ety);
+
+    CodeBuilder cdb;
+
+    regm_t retregs;
+    unsigned reg;
+    bool regvar = FALSE;
+    if (config.flags4 & CFG4optimized)
+    {
+        // Be careful of cases like (x = x+x+x). We cannot evaluate in
+        // x if x is in a register.
+        unsigned varreg;
+        regm_t varregm;
+        if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
+            doinreg(e1->EV.sp.Vsym,e2)          // and we can compute directly into it
+           )
+        {
+            regvar = TRUE;
+            retregs = varregm;
+            reg = varreg;                       // evaluate directly in target register
+            cdb.append(getregs(retregs));       // destroy these regs
+        }
+    }
+
+    code cs;
+    if (!regvar)
+    {
+        code *c = getlvalue(&cs,e1,0);          // get EA
+        cdb.append(c);
+        retregs = XMMREGS & ~*pretregs;
+        if (!retregs)
+            retregs = XMMREGS;
+        c = allocreg(&retregs,&reg,ty1);
+        cdb.append(c);
+        cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
+        code_newreg(&cs,reg - XMM0);
+        cdb.gen(&cs);
+    }
+
+    // Result register
+    regm_t resultregs = XMMREGS & *pretregs & ~retregs;
+    if (!resultregs)
+        resultregs = XMMREGS & ~retregs;
+    unsigned resultreg;
+    code *c = allocreg(&resultregs, &resultreg, ty1);
+    cdb.append(c);
+
+    cdb.gen2(xmmload(ty1,true),modregxrmx(3,resultreg-XMM0,reg-XMM0));   // MOVSS/D resultreg,reg
+
+    regm_t rretregs = XMMREGS & ~(*pretregs | retregs | resultregs);
+    if (!rretregs)
+        rretregs = XMMREGS & ~(retregs | resultregs);
+    c = codelem(e2,&rretregs,FALSE); // eval right leaf
+    cdb.append(c);
+    unsigned rreg = findreg(rretregs);
+
+    unsigned op = xmmoperator(e1->Ety, e->Eoper);
+    cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));  // ADD reg,rreg
+
+    if (!regvar)
+    {
+        cs.Iop = xmmstore(ty1,true);      // reverse operand order of MOVS[SD]
+        cdb.gen(&cs);
+    }
+
+    if (e1->Ecount ||                     // if lvalue is a CSE or
+        regvar)                           // rvalue can't be a CSE
+    {
+        cdb.append(getregs_imm(retregs)); // necessary if both lvalue and
+                                        //  rvalue are CSEs (since a reg
+                                        //  can hold only one e at a time)
+        cssave(e1,retregs,EOP(e1));     // if lvalue is a CSE
+    }
+
+    cdb.append(fixresult(e,resultregs,pretregs));
+    freenode(e1);
+    return cdb.finish();
 }
 
 /******************
@@ -519,27 +637,30 @@ code *xmmneg(elem *e,regm_t *pretregs)
  * Get correct load operator based on type.
  * It is important to use the right one even if the number of bits moved is the same,
  * as there are performance consequences for using the wrong one.
+ * Params:
+ *      tym = type of data to load
+ *      aligned = for vectors, true if aligned to 16 bytes
  */
 
-unsigned xmmload(tym_t tym)
+unsigned xmmload(tym_t tym, bool aligned)
 {   unsigned op;
     switch (tybasic(tym))
     {
         case TYuint:
         case TYint:
         case TYlong:
-        case TYulong:
+        case TYulong:   op = LODD;  break;       // MOVD
         case TYfloat:
         case TYcfloat:
         case TYifloat:  op = LODSS; break;       // MOVSS
         case TYllong:
-        case TYullong:
+        case TYullong:  op = LODQ;  break;       // MOVQ
         case TYdouble:
         case TYcdouble:
         case TYidouble: op = LODSD; break;       // MOVSD
 
-        case TYfloat4:  op = LODAPS; break;      // MOVAPS
-        case TYdouble2: op = LODAPD; break;      // MOVAPD
+        case TYfloat4:  op = aligned ? LODAPS : LODUPS; break;      // MOVAPS / MOVUPS
+        case TYdouble2: op = aligned ? LODAPD : LODUPD; break;      // MOVAPD / MOVUPD
         case TYschar16:
         case TYuchar16:
         case TYshort8:
@@ -547,7 +668,7 @@ unsigned xmmload(tym_t tym)
         case TYlong4:
         case TYulong4:
         case TYllong2:
-        case TYullong2: op = LODDQA; break;      // MOVDQA
+        case TYullong2: op = aligned ? LODDQA : LODDQU; break;      // MOVDQA / MOVDQU
 
         default:
             printf("tym = x%x\n", tym);
@@ -560,25 +681,25 @@ unsigned xmmload(tym_t tym)
  * Get correct store operator based on type.
  */
 
-unsigned xmmstore(tym_t tym)
+unsigned xmmstore(tym_t tym, bool aligned)
 {   unsigned op;
     switch (tybasic(tym))
     {
         case TYuint:
         case TYint:
         case TYlong:
-        case TYulong:
+        case TYulong:   op = STOD;  break;       // MOVD
         case TYfloat:
         case TYifloat:  op = STOSS; break;       // MOVSS
+        case TYllong:
+        case TYullong:  op = STOQ;  break;       // MOVQ
         case TYdouble:
         case TYidouble:
-        case TYllong:
-        case TYullong:
         case TYcdouble:
         case TYcfloat:  op = STOSD; break;       // MOVSD
 
-        case TYfloat4:  op = STOAPS; break;      // MOVAPS
-        case TYdouble2: op = STOAPD; break;      // MOVAPD
+        case TYfloat4:  op = aligned ? STOAPS : STOUPS; break;      // MOVAPS / MOVUPS
+        case TYdouble2: op = aligned ? STOAPD : STOUPD; break;      // MOVAPD / MOVUPD
         case TYschar16:
         case TYuchar16:
         case TYshort8:
@@ -586,7 +707,7 @@ unsigned xmmstore(tym_t tym)
         case TYlong4:
         case TYulong4:
         case TYllong2:
-        case TYullong2: op = STODQA; break;      // MOVDQA
+        case TYullong2: op = aligned ? STODQA : STODQU; break;      // MOVDQA / MOVDQU
 
         default:
             printf("tym = x%x\n", tym);
@@ -594,6 +715,7 @@ unsigned xmmstore(tym_t tym)
     }
     return op;
 }
+
 
 /************************************
  * Get correct XMM operator based on type and operator.
@@ -607,6 +729,7 @@ unsigned xmmoperator(tym_t tym, unsigned oper)
     {
         case OPadd:
         case OPaddass:
+        case OPpostinc:
             switch (tym)
             {
                 case TYfloat:
@@ -634,6 +757,7 @@ unsigned xmmoperator(tym_t tym, unsigned oper)
 
         case OPmin:
         case OPminass:
+        case OPpostdec:
             switch (tym)
             {
                 case TYfloat:
@@ -1001,6 +1125,207 @@ code *cdvecsto(elem *e, regm_t *pretregs)
     assert(isXMMstore(op));
 #endif
     return xmmeq(e, op, op1, op2, pretregs);
+}
+
+/***************
+ * Generate code for OPvecfill.
+ * OPvecfill takes the single value in e1 and
+ * fills the vector type with it.
+ */
+code *cdvecfill(elem *e, regm_t *pretregs)
+{
+    //printf("cdvecfill(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
+
+    regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
+
+    CodeBuilder cdb;
+    code *c;
+    code cs;
+
+    elem *e1 = e->E1;
+#if 0
+    if ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar)
+    {
+        cr = getlvalue(&cs, e1, RMload | retregs);     // get addressing mode
+    }
+    else
+    {
+        unsigned rretregs = XMMREGS & ~retregs;
+        cr = scodelem(op2, &rretregs, retregs, TRUE);
+        unsigned rreg = findreg(rretregs) - XMM0;
+        cs.Irm = modregrm(3,0,rreg & 7);
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        if (rreg & 8)
+            cs.Irex |= REX_B;
+    }
+#endif
+
+    unsigned reg;
+    unsigned rreg;
+    switch (tybasic(e->Ety))
+    {
+        case TYfloat4:
+            // SHUFPS XMM0,XMM0,0    0F C6 /r ib
+            c = codelem(e1,&retregs,FALSE); // eval left leaf
+            cdb.append(c);
+            reg = findreg(retregs) - XMM0;
+            cdb.append(getregs(retregs));
+            cs.Iop = SHUFPS;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cs.IFL2 = FLconst;
+            cs.IEV2.Vsize_t = 0;
+            cdb.gen(&cs);
+            break;
+
+        case TYdouble2:
+            // UNPCKLPD XMM0,XMM0     66 0F 14 /r
+            c = codelem(e1,&retregs,FALSE); // eval left leaf
+            cdb.append(c);
+            reg = findreg(retregs) - XMM0;
+            cdb.append(getregs(retregs));
+            cs.Iop = UNPCKLPD;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cdb.gen(&cs);
+            break;
+
+        case TYschar16:
+        case TYuchar16:
+        {
+            /* MOVD      XMM0,r
+             * PUNPCKLBW XMM0,XMM0
+             * PUNPCKLWD XMM0,XMM0
+             * PSHUFD    XMM0,XMM0,0
+             */
+            regm_t regm = ALLREGS;
+            c = codelem(e1,&regm,FALSE); // eval left leaf
+            cdb.append(c);
+            unsigned r = findreg(regm);
+
+            c = allocreg(&retregs,&reg, e->Ety);
+            cdb.append(c);
+            reg -= XMM0;
+            cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
+
+            cs.Iop = PUNPCKLBW;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cdb.gen(&cs);
+            cs.Iop = PUNPCKLWD;
+            cdb.gen(&cs);
+
+            cs.Iop = PSHUFD;
+            cs.IFL2 = FLconst;
+            cs.IEV2.Vsize_t = 0;
+            cdb.gen(&cs);
+            break;
+        }
+
+        case TYshort8:
+        case TYushort8:
+        {
+            /* MOVD      XMM0,r
+             * PUNPCKLWD XMM0,XMM0
+             * PSHUFD    XMM0,XMM0,0
+             */
+            regm_t regm = ALLREGS;
+            c = codelem(e1,&regm,FALSE); // eval left leaf
+            cdb.append(c);
+            unsigned r = findreg(regm);
+
+            c = allocreg(&retregs,&reg, e->Ety);
+            cdb.append(c);
+            reg -= XMM0;
+            cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
+
+            cs.Iop = PUNPCKLWD;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cdb.gen(&cs);
+
+            cs.Iop = PSHUFD;
+            cs.IFL2 = FLconst;
+            cs.IEV2.Vsize_t = 0;
+            cdb.gen(&cs);
+            break;
+        }
+
+        case TYlong4:
+        case TYulong4:
+        {
+            /* MOVD      XMM1,r
+             * PSHUFD    XMM0,XMM1,0
+             */
+            regm_t regm = ALLREGS;
+            c = codelem(e1,&regm,FALSE); // eval left leaf
+            cdb.append(c);
+            unsigned r = findreg(regm);
+
+            c = allocreg(&retregs,&reg, e->Ety);
+            cdb.append(c);
+            reg -= XMM0;
+            cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
+
+            cs.Iop = PSHUFD;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cs.IFL2 = FLconst;
+            cs.IEV2.Vsize_t = 0;
+            cdb.gen(&cs);
+            break;
+        }
+
+        case TYllong2:
+        case TYullong2:
+        {
+            /* MOVQ XMM0,mem128
+             * PUNPCKLQDQ XMM0,XMM0
+             */
+            c = codelem(e1,&retregs,FALSE); // eval left leaf
+            cdb.append(c);
+            unsigned reg = findreg(retregs);
+            reg -= XMM0;
+            //cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVQ reg,r
+
+            cs.Iop = PUNPCKLQDQ;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cdb.gen(&cs);
+            break;
+        }
+
+        default:
+            assert(0);
+    }
+
+    c = fixresult(e,retregs,pretregs);
+    cdb.append(c);
+    return cdb.finish();
+}
+
+/*******************************************
+ * Determine if lvalue e is a vector aligned on a 16 byte boundary.
+ * Assume it to be aligned unless can prove it is not.
+ * Params:
+ *      e = lvalue
+ * Returns:
+ *      false if definitely not aligned
+ */
+
+bool xmmIsAligned(elem *e)
+{
+    if (tyvector(e->Ety) && e->Eoper == OPvar)
+    {
+        Symbol *s = e->EV.sp.Vsym;
+        if (s->Salignsize() < 16 ||
+            e->EV.sp.Voffset & (16 - 1))
+            return false;       // definitely not aligned
+    }
+    return true;        // assume aligned
 }
 
 #endif // !SPP
