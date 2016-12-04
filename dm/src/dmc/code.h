@@ -473,6 +473,8 @@ code *cdvector(elem *e, regm_t *pretregs);
 code *cdvecsto(elem *e, regm_t *pretregs);
 code *cdvecfill(elem *e, regm_t *pretregs);
 bool xmmIsAligned(elem *e);
+void checkSetVex3(code *c);
+void checkSetVex(code *c, tym_t ty);
 
 /* cg87.c */
 void note87(elem *e, unsigned offset, int i);

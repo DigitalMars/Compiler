@@ -905,6 +905,7 @@ struct Config
     windows_flags_t wflags;     // flags for Windows code generation
 
     bool fpxmmregs;             // use XMM registers for floating point
+    bool avx;                   // use AVX instruction set
     char inline8087;            /* 0:   emulator
                                    1:   IEEE 754 inline 8087 code
                                    2:   fast inline 8087 code
@@ -1034,6 +1035,18 @@ union eve
         targ_ulong      Vulong4[4];   // uint[4]
         targ_llong      Vllong2[2];   // long[2]
         targ_ullong     Vullong2[2];  // ulong[2]
+
+        // 32 byte vector types
+        targ_float      Vfloat8[8];    // float[8]
+        targ_double     Vdouble4[4];   // double[4]
+        targ_schar      Vschar32[32];  // byte[32]
+        targ_uchar      Vuchar32[32];  // ubyte[32]
+        targ_short      Vshort16[16];  // short[16]
+        targ_ushort     Vushort16[16]; // ushort[16]
+        targ_long       Vlong8[8];     // int[8]
+        targ_ulong      Vulong8[8];    // uint[8]
+        targ_llong      Vllong4[4];    // long[4]
+        targ_ullong     Vullong4[4];   // ulong[4]
 
         struct                  // 48 bit 386 far pointer
         {   targ_long   Voff;

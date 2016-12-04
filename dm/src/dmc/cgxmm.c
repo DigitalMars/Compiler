@@ -29,7 +29,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-unsigned xmmoperator(tym_t tym, unsigned oper);
+static unsigned xmmoperator(tym_t tym, unsigned oper);
 
 /*******************************************
  * Is operator a store operator?
@@ -61,6 +61,7 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
     assert(mask[xreg] & XMMREGS);
     assert(sz == 4 || sz == 8);
     code *c;
+    code *cd;
     if (I32 && sz == 8)
     {
         unsigned r;
@@ -76,17 +77,19 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
         c = genfltreg(c,0x89,r,4);            // MOV floatreg+4,r
 
         unsigned op = xmmload(TYdouble, true);
-        c = genfltreg(c,op,xreg - XMM0,0);     // MOVSD XMMreg,floatreg
+        cd = genfltreg(CNIL,op,xreg - XMM0,0);     // MOVSD XMMreg,floatreg
+        checkSetVex(cd, TYdouble);
     }
     else
     {
         unsigned reg;
         c = regwithvalue(CNIL,ALLREGS,value,&reg,(sz == 8) ? 64 : 0);
-        c = gen2(c,LODD,modregxrmx(3,xreg-XMM0,reg));     // MOVD xreg,reg
+        cd = gen2(CNIL,LODD,modregxrmx(3,xreg-XMM0,reg));     // MOVD xreg,reg
         if (sz == 8)
-            code_orrex(c, REX_W);
+            code_orrex(cd, REX_W);
+        checkSetVex(cd, TYulong);
     }
-    return c;
+    return cat(c, cd);
 }
 
 /***********************************************
@@ -172,12 +175,14 @@ code *orthxmm(elem *e, regm_t *pretregs)
         retregs = mPSW;
         cg = NULL;
         code *cc = gen2(CNIL,op,modregxrmx(3,rreg-XMM0,reg-XMM0));
+        checkSetVex(cc, e1->Ety);
         return cat4(c,cr,cg,cc);
     }
     else
         cg = getregs(retregs);
 
     code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    checkSetVex(co, e1->Ety);
     if (retregs != *pretregs)
         co = cat(co,fixresult(e,retregs,pretregs));
 
@@ -260,7 +265,12 @@ code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs)
 
     // Do not generate mov from register onto itself
     if (!(regvar && reg == XMM0 + ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0))))
-        c = gen(c,&cs);         // MOV EA+offset,reg
+    {
+        code *cd = gen(CNIL,&cs);         // MOV EA+offset,reg
+//        if (op == OPeq)
+//            checkSetVex(cd, tyml);
+        c = cat(c,cd);
+    }
 
     if (e1->Ecount ||                     // if lvalue is a CSE or
         regvar)                           // rvalue can't be a CSE
@@ -481,16 +491,21 @@ code *xmmopass(elem *e,regm_t *pretregs)
         cg = allocreg(&retregs,&reg,ty1);
         cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
         code_newreg(&cs,reg - XMM0);
-        cg = gen(cg,&cs);
+        code *cd = gen(CNIL, &cs);
+        checkSetVex(cd, ty1);
+        cg = cat(cg, cd);
     }
 
     unsigned op = xmmoperator(e1->Ety, e->Eoper);
     code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    checkSetVex(co, e1->Ety);
 
     if (!regvar)
     {
         cs.Iop = xmmstore(ty1,true);      // reverse operand order of MOVS[SD]
-        gen(co,&cs);
+        code *cd = gen(CNIL,&cs);
+        checkSetVex(cd, ty1);
+        co = cat(co, cd);
     }
 
     if (e1->Ecount ||                     // if lvalue is a CSE or
@@ -552,6 +567,7 @@ code *xmmpost(elem *e,regm_t *pretregs)
         cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
         code_newreg(&cs,reg - XMM0);
         cdb.gen(&cs);
+        checkSetVex(cdb.last(), ty1);
     }
 
     // Result register
@@ -563,6 +579,7 @@ code *xmmpost(elem *e,regm_t *pretregs)
     cdb.append(c);
 
     cdb.gen2(xmmload(ty1,true),modregxrmx(3,resultreg-XMM0,reg-XMM0));   // MOVSS/D resultreg,reg
+    checkSetVex(cdb.last(), ty1);
 
     regm_t rretregs = XMMREGS & ~(*pretregs | retregs | resultregs);
     if (!rretregs)
@@ -573,11 +590,13 @@ code *xmmpost(elem *e,regm_t *pretregs)
 
     unsigned op = xmmoperator(e1->Ety, e->Eoper);
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));  // ADD reg,rreg
+    checkSetVex(cdb.last(), e1->Ety);
 
     if (!regvar)
     {
         cs.Iop = xmmstore(ty1,true);      // reverse operand order of MOVS[SD]
         cdb.gen(&cs);
+        checkSetVex(cdb.last(), ty1);
     }
 
     if (e1->Ecount ||                     // if lvalue is a CSE or
@@ -721,7 +740,7 @@ unsigned xmmstore(tym_t tym, bool aligned)
  * Get correct XMM operator based on type and operator.
  */
 
-unsigned xmmoperator(tym_t tym, unsigned oper)
+static unsigned xmmoperator(tym_t tym, unsigned oper)
 {
     tym = tybasic(tym);
     unsigned op;
@@ -1326,6 +1345,98 @@ bool xmmIsAligned(elem *e)
             return false;       // definitely not aligned
     }
     return true;        // assume aligned
+}
+
+/**************************************
+ * VEX prefixes can be 2 or 3 bytes.
+ * If it must be 3 bytes, set the CFvex3 flag.
+ */
+
+void checkSetVex3(code *c)
+{
+    // See Intel Vol. 2A 2.3.5.6
+    if (c->Ivex.w || !c->Ivex.x || !c->Ivex.b || c->Ivex.mmmm > 0x1 ||
+        !I64 && (c->Ivex.r || !(c->Ivex.vvvv & 8))
+       )
+    {
+        c->Iflags |= CFvex3;
+    }
+}
+
+/*************************************
+ * Determine if operation should be rewritten as a VEX
+ * operation; and do so.
+ * Params:
+ *      c = code
+ *      ty = type of operand
+ */
+
+void checkSetVex(code *c, tym_t ty)
+{
+    if (1 || config.avx || tysize(ty) == 32)
+    {
+        unsigned vreg = (c->Irm >> 3) & 7;
+        if (c->Irex & REX_R)
+            vreg |= 8;
+        switch (c->Iop)
+        {
+            case LODSS:
+            case LODSD:
+            case STOSS:
+            case STOSD:
+                if ((c->Irm & 0xC0) == 0xC0)
+                    break;
+            case LODAPS:
+            case LODUPS:
+            case LODAPD:
+            case LODUPD:
+            case LODDQA:
+            case LODDQU:
+            case LODD:
+            case LODQ:
+            case STOAPS:
+            case STOUPS:
+            case STOAPD:
+            case STOUPD:
+            case STODQA:
+            case STODQU:
+            case STOD:
+            case STOQ:
+            case COMISS:
+            case COMISD:
+            case UCOMISS:
+            case UCOMISD:
+                vreg = 0;       // for 2 operand vex instructions
+                break;
+        }
+
+        unsigned op = 0xC4000000 | (c->Iop & 0xFF);
+        switch (c->Iop & 0xFFFFFF00)
+        {
+            #define MM_PP(mm, pp) ((mm << 16) | (pp << 8))
+            case 0x00000F00: op |= MM_PP(1,0); break;
+            case 0x00660F00: op |= MM_PP(1,1); break;
+            case 0x00F30F00: op |= MM_PP(1,2); break;
+            case 0x00F20F00: op |= MM_PP(1,3); break;
+            case 0x660F3800: op |= MM_PP(2,1); break;
+            case 0x660F3A00: op |= MM_PP(3,1); break;
+            default:
+                printf("Iop = %x\n", c->Iop);
+                assert(0);
+            #undef MM_PP
+        }
+        c->Iop = op;
+        c->Ivex.r = !(c->Irex & REX_R);
+        c->Ivex.x = !(c->Irex & REX_X);
+        c->Ivex.b = !(c->Irex & REX_B);
+        c->Ivex.w = (c->Irex & REX_W) != 0;
+        c->Ivex.l = (tysize(ty) == 32);
+
+        c->Ivex.vvvv = ~vreg;
+
+        c->Iflags |= CFvex;
+        checkSetVex3(c);
+    }
 }
 
 #endif // !SPP
