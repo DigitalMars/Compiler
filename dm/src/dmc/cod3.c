@@ -253,7 +253,7 @@ code *REGSAVE::restore(code *c, int reg, unsigned idx)
 
 unsigned char vex_inssize(code *c)
 {
-    assert(c->Iflags & CFvex);
+    assert(c->Iflags & CFvex && c->Ivex.pfx == 0xC4);
     unsigned char ins;
     if (c->Iflags & CFvex3)
     {
@@ -270,6 +270,7 @@ unsigned char vex_inssize(code *c)
             ins = inssize2[0x3A] + 1;
             break;
         default:
+            printf("Iop = %x mmmm = %x\n", c->Iop, c->Ivex.mmmm);
             assert(0);
         }
     }
@@ -2017,33 +2018,28 @@ L1:
 }
 
 /**********************************
- * Append code to *pc which validates pointer described by
+ * Append code to cdb which validates pointer described by
  * addressing mode in *pcs. Modify addressing mode in *pcs.
- * Input:
- *      keepmsk mask of registers we must not destroy or use
+ * Params:
+ *    cdb = append generated code to this
+ *    pcs = original addressing mode to be updated
+ *    keepmsk = mask of registers we must not destroy or use
  *              if (keepmsk & RMstore), this will be only a store operation
  *              into the lvalue
  */
 
-void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
-{   code *c;
-    code *cs2;
-    unsigned char rm,sib;
+void cod3_ptrchk(CodeBuilder& cdb,code *pcs,regm_t keepmsk)
+{
+    unsigned char sib;
     unsigned reg;
     unsigned flagsave;
     unsigned opsave;
-    regm_t idxregs;
-    regm_t tosave;
-    regm_t used;
-    int i;
 
     assert(!I64);
     if (!I16 && pcs->Iflags & (CFes | CFss | CFcs | CFds | CFfs | CFgs))
         return;         // not designed to deal with 48 bit far pointers
 
-    c = *pc;
-
-    rm = pcs->Irm;
+    unsigned char rm = pcs->Irm;
     assert(!(rm & 0x40));       // no disp8 or reg addressing modes
 
     // If the addressing mode is already a register
@@ -2053,7 +2049,7 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
 
         reg = imode[reg];               // convert [SI] to SI, etc.
     }
-    idxregs = mask[reg];
+    regm_t idxregs = mask[reg];
     if ((rm & 0x80 && (pcs->IFL1 != FLoffset || pcs->IEV1.Vuns)) ||
         !(idxregs & ALLREGS)
        )
@@ -2061,14 +2057,14 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
         // Load the offset into a register, so we can push the address
         idxregs = (I16 ? IDXREGS : ALLREGS) & ~keepmsk; // only these can be index regs
         assert(idxregs);
-        c = cat(c,allocreg(&idxregs,&reg,TYoffset));
+        cdb.append(allocreg(&idxregs,&reg,TYoffset));
 
         opsave = pcs->Iop;
         flagsave = pcs->Iflags;
         pcs->Iop = LEA;
         pcs->Irm |= modregrm(0,reg,0);
         pcs->Iflags &= ~(CFopsize | CFss | CFes | CFcs);        // no prefix bytes needed
-        c = gen(c,pcs);                 // LEA reg,EA
+        cdb.gen(pcs);                 // LEA reg,EA
 
         pcs->Iflags = flagsave;
         pcs->Iop = opsave;
@@ -2076,11 +2072,11 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
 
     // registers destroyed by the function call
     //used = (mBP | ALLREGS | mES) & ~fregsaved;
-    used = 0;                           // much less code generated this way
+    regm_t used = 0;                           // much less code generated this way
 
-    cs2 = CNIL;
-    tosave = used & (keepmsk | idxregs);
-    for (i = 0; tosave; i++)
+    code *cs2 = CNIL;
+    regm_t tosave = used & (keepmsk | idxregs);
+    for (int i = 0; tosave; i++)
     {   regm_t mi = mask[i];
 
         assert(i < REGMAX);
@@ -2097,7 +2093,7 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
             {   push = 0x50 + i;
                 pop = push | 8;
             }
-            c = gen1(c,push);                   // PUSH i
+            cdb.gen1(push);                     // PUSH i
             cs2 = cat(gen1(CNIL,pop),cs2);      // POP i
             tosave &= ~mi;
         }
@@ -2124,10 +2120,10 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
             if (config.wflags & WFssneds)
                 pcs->Iflags |= CFss;    // because BP won't be there anymore
         }
-        c = gen1(c,segreg);             // PUSH segreg
+        cdb.gen1(segreg);               // PUSH segreg
     }
 
-    c = gen1(c,0x50 + reg);             // PUSH reg
+    cdb.gen1(0x50 + reg);               // PUSH reg
 
     // Rewrite the addressing mode in *pcs so it is just 0[reg]
     setaddrmode(pcs, idxregs);
@@ -2139,12 +2135,12 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
         makeitextern(getRtlsym(RTLSYM_PTRCHK));
 
         used &= ~(keepmsk | idxregs);           // regs destroyed by this exercise
-        c = cat(c,getregs(used));
+        cdb.append(getregs(used));
                                                 // CALL __ptrchk
-        gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_PTRCHK));
+        cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_PTRCHK));
     }
 
-    *pc = cat(c,cs2);
+    cdb.append(cs2);
 }
 
 /***********************************
@@ -2293,21 +2289,23 @@ code* gen_loadcse(code *c, unsigned reg, targ_uns i)
 
 code *cdframeptr(elem *e, regm_t *pretregs)
 {
-    unsigned reg;
-    code cs;
+    CodeBuilder cdb;
 
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    code *cg = allocreg(&retregs, &reg, TYint);
+    unsigned reg;
+    cdb.append(allocreg(&retregs, &reg, TYint));
 
+    code cs;
     cs.Iop = ESCAPE | ESCframeptr;
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.Irm = reg;
-    cg = gen(cg,&cs);
+    cdb.gen(&cs);
+    cdb.append(fixresult(e,retregs,pretregs));
 
-    return cat(cg,fixresult(e,retregs,pretregs));
+    return cdb.finish();
 }
 
 /***************************************
@@ -2318,46 +2316,44 @@ code *cdframeptr(elem *e, regm_t *pretregs)
 code *cdgot(elem *e, regm_t *pretregs)
 {
 #if TARGET_OSX
-    regm_t retregs;
-    unsigned reg;
-    code *c;
-
-    retregs = *pretregs & allregs;
+    CodeBuilder cdb;
+    regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    c = allocreg(&retregs, &reg, TYnptr);
+    unsigned reg;
+    cdb.append(allocreg(&retregs, &reg, TYnptr));
 
-    c = genc(c,CALL,0,0,0,FLgot,0);     //     CALL L1
-    gen1(c, 0x58 + reg);                // L1: POP reg
+    cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
+    cdb.gen1(0x58 + reg);             // L1: POP reg
 
-    return cat(c,fixresult(e,retregs,pretregs));
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 #elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    regm_t retregs;
-    unsigned reg;
-    code *c;
-    code *cgot;
-
-    retregs = *pretregs & allregs;
+    CodeBuilder cdb;
+    regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    c = allocreg(&retregs, &reg, TYnptr);
+    unsigned reg;
+    cdb.append(allocreg(&retregs, &reg, TYnptr));
 
-    c = genc2(c,CALL,0,0);      //     CALL L1
-    gen1(c, 0x58 + reg);        // L1: POP reg
+    cdb.genc2(CALL,0,0);        //     CALL L1
+    cdb.gen1(0x58 + reg);       // L1: POP reg
 
                                 //     ADD reg,_GLOBAL_OFFSET_TABLE_+3
     symbol *gotsym = Obj::getGOTsym();
-    cgot = gencs(CNIL,0x81,modregrm(3,0,reg),FLextern,gotsym);
+    cdb.gencs(0x81,modregrm(3,0,reg),FLextern,gotsym);
     /* Because the 2:3 offset from L1: is hardcoded,
      * this sequence of instructions must not
      * have any instructions in between,
      * so set CFvolatile to prevent the scheduler from rearranging it.
      */
+    code *cgot = cdb.last();
     cgot->Iflags = CFoff | CFvolatile;
     cgot->IEVoffset2 = (reg == AX) ? 2 : 3;
 
     makeitextern(gotsym);
-    return cat3(c,cgot,fixresult(e,retregs,pretregs));
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 #else
     assert(0);
     return NULL;
@@ -2911,6 +2907,7 @@ code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds)
             c = gen1(c,0x1E);                   // PUSH DS
         spoff += intsize;
         c1 = genc(CNIL,0xC7,modregrm(3,0,AX),0,0,FLdatseg,(targ_uns) 0); /* MOV  AX,DGROUP      */
+        c1->IEVseg2 = DATA;
         c1->Iflags ^= CFseg | CFoff;            /* turn off CFoff, on CFseg */
         c = cat(c,c1);
         gen2(c,0x8E,modregrm(3,3,AX));            /* MOV  DS,AX         */
@@ -2940,6 +2937,7 @@ code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds)
             if (wflags & WFreduced)
                 *tyf &= ~mTYloadds;          // remove redundancy
             c = genc(c,0xC7,modregrm(3,0,AX),0,0,FLdatseg,(targ_uns) 0);
+            c->IEVseg2 = DATA;
             c->Iflags ^= CFseg | CFoff;     // turn off CFoff, on CFseg
             break;
         case WFss:
@@ -4640,7 +4638,7 @@ void assignaddrc(code *c)
         if (code_next(c) && code_next(code_next(c)) == c)
             assert(0);
 #endif
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
@@ -4753,7 +4751,7 @@ void assignaddrc(code *c)
                     c->IFL1 = FLextern;
                 goto do2;
             case FLdatseg:
-                c->IEVseg1 = DATA;
+                //c->IEVseg1 = DATA;
                 goto do2;
 
 #if TARGET_SEGMENTED
@@ -4920,7 +4918,7 @@ void assignaddrc(code *c)
                 goto done;
 
             case FLdatseg:
-                c->IEVseg2 = DATA;
+                //c->IEVseg2 = DATA;
                 goto done;
 #if TARGET_SEGMENTED
             case FLcsdata:
@@ -5057,7 +5055,7 @@ void pinholeopt(code *c,block *b)
   {
     L1:
         op = c->Iop;
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((op & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(op >> 8) & 0xFF];
@@ -5757,7 +5755,7 @@ unsigned calccodsize(code *c)
 #endif
     iflags = c->Iflags;
     op = c->Iop;
-    if (iflags & CFvex && op != NOP)
+    if (iflags & CFvex && c->Ivex.pfx == 0xC4)
     {
         ins = vex_inssize(c);
         size = ins & 7;
@@ -6868,7 +6866,7 @@ void code_hydrate(code **pc)
     while (*pc)
     {
         c = (code *) ph_hydrate(pc);
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
@@ -7038,7 +7036,7 @@ void code_dehydrate(code **pc)
     {
         ph_dehydrate(pc);
 
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
@@ -7213,7 +7211,7 @@ void code::print()
     }
 
     unsigned op = c->Iop;
-    if (c->Iflags & CFvex)
+    if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
         ins = vex_inssize(c);
     else if ((c->Iop & 0xFFFD00) == 0x0F3800)
         ins = inssize2[(op >> 8) & 0xFF];
