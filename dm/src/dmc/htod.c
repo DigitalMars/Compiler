@@ -123,6 +123,11 @@ void Obj::setcodeseg(int seg)
 {
 }
 
+int Obj::string_literal_segment(unsigned sz)
+{
+    return 0;
+}
+
 int Obj::codeseg(char *name,int suffix)
 {
     return 0;

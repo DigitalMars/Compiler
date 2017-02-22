@@ -1228,6 +1228,56 @@ STATIC void markinvar(elem *n,vec_t rd)
 #endif
 }
 
+/**************************************
+ * Fill in the DefNode.DNumambig vector.
+ * Set bits defnod[] indices for entries
+ * which are completely destroyed when e is
+ * unambiguously assigned to.
+ * Params:
+ *      v = vector to fill in
+ *      e = defnod[] entry that is an assignment to a variable
+ */
+
+void fillInDNunambig(vec_t v, elem *e)
+{
+    assert(OTassign(e->Eoper));
+    elem *t = e->E1;
+    assert(t->Eoper == OPvar);
+    Symbol *d = t->EV.sp.Vsym;
+
+    targ_size_t toff = t->EV.sp.Voffset;
+    targ_size_t tsize = (e->Eoper == OPstreq) ? type_size(e->ET) : tysize(t->Ety);
+    targ_size_t ttop = toff + tsize;
+
+    //printf("updaterd: "); WReqn(n); printf(" toff=%d, tsize=%d\n", toff, tsize);
+
+
+    // for all unambig defs in go.defnod[]
+    for (unsigned i = 0; i < go.deftop; i++)
+    {
+        elem *tn = go.defnod[i].DNelem;
+        elem *tn1;
+        targ_size_t tn1size;
+
+        if (!OTassign(tn->Eoper))
+            continue;
+
+        // If def of same variable, kill that def
+        tn1 = tn->E1;
+        if (tn1->Eoper != OPvar || d != tn1->EV.sp.Vsym)
+            continue;
+
+        // If t completely overlaps tn1
+        tn1size = (tn->Eoper == OPstreq)
+            ? type_size(tn->ET) : tysize(tn1->Ety);
+        if (toff <= tn1->EV.sp.Voffset &&
+            tn1->EV.sp.Voffset + tn1size <= ttop)
+        {
+            vec_setbit(i, v);
+        }
+    }
+}
+
 /********************
  * Update rd vector.
  * Input:
@@ -1239,18 +1289,28 @@ STATIC void markinvar(elem *n,vec_t rd)
  */
 
 void updaterd(elem *n,vec_t GEN,vec_t KILL)
-{   unsigned op = n->Eoper;
-    unsigned i;
-    unsigned ni;
+{
+    unsigned op = n->Eoper;
     elem *t;
 
     assert(OTdef(op));
     assert(GEN);
     elem_debug(n);
 
+    unsigned ni = n->Edef;
+    assert(ni != -1);
+
     // If unambiguous def
     if (OTassign(op) && (t = n->E1)->Eoper == OPvar)
-    {   symbol *d = t->EV.sp.Vsym;
+    {
+#if 1
+        vec_t v = go.defnod[ni].DNunambig;
+        assert(v);
+        if (KILL)
+            vec_orass(KILL, v);
+        vec_subass(GEN, v);
+#else
+        symbol *d = t->EV.sp.Vsym;
         targ_size_t toff = t->EV.sp.Voffset;
         targ_size_t tsize;
         targ_size_t ttop;
@@ -1260,24 +1320,20 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
 
         //printf("updaterd: "); WReqn(n); printf(" toff=%d, tsize=%d\n", toff, tsize);
 
-        ni = (unsigned)-1;
 
         /* for all unambig defs in go.defnod[] */
-        for (i = 0; i < go.deftop; i++)
+        for (unsigned i = 0; i < go.deftop; i++)
         {   elem *tn = go.defnod[i].DNelem;
             elem *tn1;
             targ_size_t tn1size;
 
-            if (tn == n)
-                ni = i;
-
             if (!OTassign(tn->Eoper))
-                continue;
+                goto Lcontinue;
 
             // If def of same variable, kill that def
             tn1 = tn->E1;
             if (tn1->Eoper != OPvar || d != tn1->EV.sp.Vsym)
-                continue;
+                goto Lcontinue;
 
             // If t completely overlaps tn1
             tn1size = (tn->Eoper == OPstreq)
@@ -1285,20 +1341,32 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
             if (toff <= tn1->EV.sp.Voffset &&
                 tn1->EV.sp.Voffset + tn1size <= ttop)
             {
+#ifdef DEBUG
+                vec_t v = go.defnod[ni].DNunambig;
+                assert(v);
+                assert(vec_testbit(i, v));
+#endif
                 if (KILL)
                     vec_setbit(i,KILL);
                 vec_clearbit(i,GEN);
             }
+            else
+            {
+              Lcontinue: ;
+#ifdef DEBUG
+                vec_t v = go.defnod[ni].DNunambig;
+                assert(v);
+                assert(!vec_testbit(i, v));
+#endif
+            }
         }
-        assert(ni != -1);
+#endif
     }
 #if 0
     else if (OTassign(op) && t->Eoper != OPvar && t->Ejty)
     {
-        ni = -1;
-
         // for all unambig defs in go.defnod[]
-        for (i = 0; i < go.deftop; i++)
+        for (unsigned i = 0; i < go.deftop; i++)
         {   elem *tn = go.defnod[i].DNelem;
             elem *tn1;
 
@@ -1317,20 +1385,8 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
                 vec_setbit(i,KILL);
             vec_clearbit(i,GEN);
         }
-        assert(ni != -1);
     }
 #endif
-    else
-    {
-        /* Set bit in GEN for this def */
-        for (i = 0; 1; i++)
-        {   assert(i < go.deftop);         // should find n in go.defnod[]
-            if (go.defnod[i].DNelem == n)
-            {   ni = i;
-                break;
-            }
-        }
-    }
 
     vec_setbit(ni,GEN);                 // set bit in GEN for this def
 }

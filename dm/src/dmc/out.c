@@ -515,6 +515,85 @@ void out_readonly(symbol *s)
     }
 }
 
+/*************************************
+ * Write out a readonly string literal in an implementation-defined
+ * manner.
+ * Params:
+ *      str = pointer to string data (need not have terminating 0)
+ *      len = number of characters in string
+ *      sz = size of each character (1, 2 or 4)
+ * Returns: a Symbol pointing to it.
+ */
+Symbol *out_string_literal(const char *str, unsigned len, unsigned sz)
+{
+    tym_t ty = TYchar;
+    if (sz == 2)
+        ty = TYchar16;
+    else if (sz == 4)
+        ty = TYdchar;
+    Symbol *s = symbol_generate(SCstatic,type_static_array(len, tstypes[ty]));
+    switch (config.objfmt)
+    {
+        case OBJ_ELF:
+        case OBJ_MACH:
+            s->Sseg = objmod->string_literal_segment(sz);
+            break;
+
+        case OBJ_MSCOFF:
+        case OBJ_OMF:   // goes into COMDATs, handled elsewhere
+        default:
+            assert(0);
+    }
+
+    /* If there are any embedded zeros, this can't go in the special string segments
+     * which assume that 0 is the end of the string.
+     */
+    switch (sz)
+    {
+        case 1:
+            if (memchr(str, 0, len))
+                s->Sseg = CDATA;
+            break;
+
+        case 2:
+            for (int i = 0; i < len; ++i)
+            {
+                const unsigned short *p = (const unsigned short *)str;
+                if (p[i] == 0)
+                {
+                    s->Sseg = CDATA;
+                    break;
+                }
+            }
+            break;
+
+        case 4:
+            for (int i = 0; i < len; ++i)
+            {
+                const unsigned *p = (const unsigned *)str;
+                if (p[i] == 0)
+                {
+                    s->Sseg = CDATA;
+                    break;
+                }
+            }
+            break;
+
+        default:
+            assert(0);
+    }
+
+    DtBuilder dtb;
+    dtb.nbytes((unsigned)(len * sz), str);
+    dtb.nzeros((unsigned)sz);       // include terminating 0
+    s->Sdt = dtb.finish();
+    s->Sfl = FLdata;
+    s->Salignment = sz;
+    outdata(s);
+    return s;
+}
+
+
 /******************************
  * Walk expression tree, converting it from a PARSER tree to
  * a code generator tree.
@@ -1448,6 +1527,21 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
         memcpy(r->p, p, len);
     }
     return s;
+}
+
+/*************************************
+ * Output Symbol as a readonly comdat.
+ * Params:
+ *      s = comdat symbol
+ *      p = pointer to the data to write
+ *      len = length of that data
+ *      nzeros = number of trailing zeros to append
+ */
+void out_readonly_comdat(Symbol *s, const void *p, unsigned len, unsigned nzeros)
+{
+    objmod->readonly_comdat(s);         // create comdat segment
+    objmod->write_bytes(SegData[s->Sseg], len, (void *)p);
+    objmod->lidata(s->Sseg, len, nzeros);
 }
 
 void Srcpos::print(const char *func)
