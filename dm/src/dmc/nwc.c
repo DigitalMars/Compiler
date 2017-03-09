@@ -270,8 +270,8 @@ int main(int argc,char *argv[])
         printf(
             "%s complete. Code: 0x%04lx (%lu) Data: 0x%04lx (%lu) Time: %ld.%02ld seconds\n",
             COMPILER,
-            (long)Coffset,(long)Coffset,
-            (long)Doffset,(long)Doffset,
+            (long)Offset(cseg),(long)Offset(cseg),
+            (long)Offset(DATA),(long)Offset(DATA),
             stime / 100,stime % 100);
 #endif
 #endif
