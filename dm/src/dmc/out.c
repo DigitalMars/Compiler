@@ -492,10 +492,10 @@ void outcommon(symbol *s,targ_size_t n)
 }
 
 /*************************************
- * Mark a symbol as going into a read-only segment.
+ * Mark a Symbol as going into a read-only segment.
  */
 
-void out_readonly(symbol *s)
+void out_readonly(Symbol *s)
 {
     // The default is DATA
     if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
@@ -1268,7 +1268,7 @@ STATIC void writefunc2(symbol *sfunc)
 #endif
                                         // generate new code segment
             }
-        cod3_align();                   // align start of function
+        cod3_align(cseg);               // align start of function
         objmod->func_start(sfunc);
         searchfixlist(sfunc);           // backpatch any refs to this function
     }
