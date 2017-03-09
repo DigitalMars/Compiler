@@ -33,7 +33,7 @@ class Obj
 
     VIRTUAL size_t mangle(Symbol *s,char *dest);
     VIRTUAL void _import(elem *e);
-    VIRTUAL void linnum(Srcpos srcpos, targ_size_t offset);
+    VIRTUAL void linnum(Srcpos srcpos, int seg, targ_size_t offset);
     VIRTUAL int codeseg(char *name,int suffix);
     VIRTUAL void dosseg(void);
     VIRTUAL void startaddress(Symbol *);
@@ -89,6 +89,7 @@ class Obj
     VIRTUAL symbol *sym_cdata(tym_t, char *, int);
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
+    VIRTUAL void write_pointerRef(Symbol* s, unsigned off);
 
     VIRTUAL symbol *tlv_bootstrap();
 
@@ -142,7 +143,7 @@ class MsCoffObj : public Obj
 
 //    VIRTUAL size_t mangle(Symbol *s,char *dest);
 //    VIRTUAL void _import(elem *e);
-    VIRTUAL void linnum(Srcpos srcpos, targ_size_t offset);
+    VIRTUAL void linnum(Srcpos srcpos, int seg, targ_size_t offset);
     VIRTUAL int codeseg(char *name,int suffix);
 //    VIRTUAL void dosseg(void);
     VIRTUAL void startaddress(Symbol *);
@@ -199,6 +200,7 @@ class MsCoffObj : public Obj
     static unsigned addstr(Outbuffer *strtab, const char *);
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
+    VIRTUAL void write_pointerRef(Symbol* s, unsigned off);
 
     static int getsegment(const char *sectname, unsigned long flags);
     static int getsegment2(unsigned shtidx);
