@@ -266,7 +266,7 @@ int main(int argc,char *argv[])
         printf("%s complete. Time: %ld.%02ld seconds\n",
                 COMPILER, stime/100, stime%100);
 #if 0
-        Doffset += UDoffset; // + TDoffset;
+        Offset(DATA) += UDoffset; // + TDoffset;
         printf(
             "%s complete. Code: 0x%04lx (%lu) Data: 0x%04lx (%lu) Time: %ld.%02ld seconds\n",
             COMPILER,
