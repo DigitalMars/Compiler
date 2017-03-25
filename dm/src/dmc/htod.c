@@ -45,7 +45,7 @@ void Obj::term(const char *objfilename)
 {
 }
 
-void Obj::linnum(Srcpos srcpos,targ_size_t offset)
+void Obj::linnum(Srcpos srcpos,int seg,targ_size_t offset)
 {
 }
 
@@ -240,6 +240,10 @@ void Obj::write_bytes(seg_data *pseg, unsigned nbytes, void *p)
 }
 
 void Obj::gotref(Symbol *s)
+{
+}
+
+int Obj::jmpTableSegment(Symbol* s)
 {
 }
 

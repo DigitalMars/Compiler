@@ -397,21 +397,21 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
     if (I64)
     {
         alignOffset(DATA, tysize(ty));
-        s = symboldata(Doffset, ty);
+        s = symboldata(Offset(DATA), ty);
         SegData[DATA]->SDbuf->write(p,len);
         s->Sseg = DATA;
-        s->Soffset = Doffset;   // Remember its offset into DATA section
-        Doffset += len;
+        s->Soffset = Offset(DATA);   // Remember its offset into DATA section
+        Offset(DATA) += len;
     }
     else
 #endif
     {
-        //printf("Obj::sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
+        //printf("Obj::sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
         alignOffset(CDATA, tysize(ty));
-        s = symboldata(CDoffset, ty);
+        s = symboldata(Offset(CDATA), ty);
         s->Sseg = CDATA;
-        //Obj::pubdef(CDATA, s, CDoffset);
-        Obj::bytes(CDATA, CDoffset, len, p);
+        //Obj::pubdef(CDATA, s, Offset(CDATA));
+        Obj::bytes(CDATA, Offset(CDATA), len, p);
     }
 
     s->Sfl = /*(config.flags3 & CFG3pic) ? FLgotoff :*/ FLextern;
@@ -425,10 +425,10 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
 
 int Obj::data_readonly(char *p, int len, int *pseg)
 {
-    int oldoff = CDoffset;
+    int oldoff = Offset(CDATA);
     SegData[CDATA]->SDbuf->reserve(len);
     SegData[CDATA]->SDbuf->writen(p,len);
-    CDoffset += len;
+    Offset(CDATA) += len;
     *pseg = CDATA;
     return oldoff;
 }
@@ -1490,18 +1490,20 @@ void Obj::term(const char *objfilename)
 /***************************
  * Record file and line number at segment and offset.
  * The actual .debug_line segment is put out by dwarf_termfile().
- * Input:
- *      cseg    current code segment
+ * Params:
+ *      srcpos = source file position
+ *      seg = segment it corresponds to
+ *      offset = offset within seg
  */
 
-void Obj::linnum(Srcpos srcpos, targ_size_t offset)
+void Obj::linnum(Srcpos srcpos, int seg, targ_size_t offset)
 {
     if (srcpos.Slinnum == 0)
         return;
 
 #if 0
 #if MARS || SCPP
-    printf("Obj::linnum(cseg=%d, offset=x%lx) ", cseg, offset);
+    printf("Obj::linnum(seg=%d, offset=x%lx) ", seg, offset);
 #endif
     srcpos.print("");
 #endif
@@ -1518,42 +1520,42 @@ void Obj::linnum(Srcpos srcpos, targ_size_t offset)
 #endif
 
     size_t i;
-    seg_data *seg = SegData[cseg];
+    seg_data *pseg = SegData[seg];
 
     // Find entry i in SDlinnum_data[] that corresponds to srcpos filename
     for (i = 0; 1; i++)
     {
-        if (i == seg->SDlinnum_count)
+        if (i == pseg->SDlinnum_count)
         {   // Create new entry
-            if (seg->SDlinnum_count == seg->SDlinnum_max)
+            if (pseg->SDlinnum_count == pseg->SDlinnum_max)
             {   // Enlarge array
-                unsigned newmax = seg->SDlinnum_max * 2 + 1;
+                unsigned newmax = pseg->SDlinnum_max * 2 + 1;
                 //printf("realloc %d\n", newmax * sizeof(linnum_data));
-                seg->SDlinnum_data = (linnum_data *)mem_realloc(
-                    seg->SDlinnum_data, newmax * sizeof(linnum_data));
-                memset(seg->SDlinnum_data + seg->SDlinnum_max, 0,
-                    (newmax - seg->SDlinnum_max) * sizeof(linnum_data));
-                seg->SDlinnum_max = newmax;
+                pseg->SDlinnum_data = (linnum_data *)mem_realloc(
+                    pseg->SDlinnum_data, newmax * sizeof(linnum_data));
+                memset(pseg->SDlinnum_data + pseg->SDlinnum_max, 0,
+                    (newmax - pseg->SDlinnum_max) * sizeof(linnum_data));
+                pseg->SDlinnum_max = newmax;
             }
-            seg->SDlinnum_count++;
+            pseg->SDlinnum_count++;
 #if MARS
-            seg->SDlinnum_data[i].filename = srcpos.Sfilename;
+            pseg->SDlinnum_data[i].filename = srcpos.Sfilename;
 #endif
 #if SCPP
-            seg->SDlinnum_data[i].filptr = sf;
+            pseg->SDlinnum_data[i].filptr = sf;
 #endif
             break;
         }
 #if MARS
-        if (seg->SDlinnum_data[i].filename == srcpos.Sfilename)
+        if (pseg->SDlinnum_data[i].filename == srcpos.Sfilename)
 #endif
 #if SCPP
-        if (seg->SDlinnum_data[i].filptr == sf)
+        if (pseg->SDlinnum_data[i].filptr == sf)
 #endif
             break;
     }
 
-    linnum_data *ld = &seg->SDlinnum_data[i];
+    linnum_data *ld = &pseg->SDlinnum_data[i];
 //    printf("i = %d, ld = x%x\n", i, ld);
     if (ld->linoff_count == ld->linoff_max)
     {
@@ -1764,7 +1766,7 @@ void Obj::ehsections()
  * Setup for Symbol s to go into a COMDAT segment.
  * Output (if s is a function):
  *      cseg            segment index of new current code segment
- *      Coffset         starting offset in cseg
+ *      Offset(cseg)         starting offset in cseg
  * Returns:
  *      "segment index" of COMDAT
  */
@@ -1828,6 +1830,15 @@ int Obj::readonly_comdat(Symbol *s)
 {
     assert(0);
     return 0;
+}
+
+/***********************************
+ * Returns:
+ *      jump table segment for function s
+ */
+int Obj::jmpTableSegment(Symbol *s)
+{
+    return (config.flags & CFGromable) ? cseg : CDATA;
 }
 
 /**********************************
@@ -1929,6 +1940,7 @@ int MachObj::getsegment(const char *sectname, const char *segname,
 
 void Obj::setcodeseg(int seg)
 {
+    cseg = seg;
 }
 
 /********************************
@@ -1939,7 +1951,7 @@ void Obj::setcodeseg(int seg)
  *              1       append "_TEXT" to name
  * Output:
  *      cseg            segment index of new current code segment
- *      Coffset         starting offset in cseg
+ *      Offset(cseg)         starting offset in cseg
  * Returns:
  *      segment index of newly created code segment
  */
@@ -1954,8 +1966,8 @@ int Obj::codeseg(char *name,int suffix)
     {
         if (cseg != CODE)               // not the current default
         {
-            SegData[cseg]->SDoffset = Coffset;
-            Coffset = SegData[CODE]->SDoffset;
+            SegData[cseg]->SDoffset = Offset(cseg);
+            Offset(cseg) = SegData[CODE]->SDoffset;
             cseg = CODE;
         }
         return cseg;
@@ -1965,7 +1977,7 @@ int Obj::codeseg(char *name,int suffix)
                                     // find or create code segment
 
     cseg = seg;                         // new code segment index
-    Coffset = 0;
+    Offset(cseg) = 0;
     return seg;
 #else
     return 0;
@@ -2201,11 +2213,11 @@ void Obj::func_start(Symbol *sfunc)
     assert(sfunc->Sseg);
     if (sfunc->Sseg == UNKNOWN)
         sfunc->Sseg = CODE;
-    //printf("sfunc->Sseg %d CODE %d cseg %d Coffset x%x\n",sfunc->Sseg,CODE,cseg,Coffset);
+    //printf("sfunc->Sseg %d CODE %d cseg %d Coffset x%x\n",sfunc->Sseg,CODE,cseg,Offset(cseg));
     cseg = sfunc->Sseg;
     assert(cseg == CODE || cseg > UDATA);
-    Obj::pubdef(cseg, sfunc, Coffset);
-    sfunc->Soffset = Coffset;
+    Obj::pubdef(cseg, sfunc, Offset(cseg));
+    sfunc->Soffset = Offset(cseg);
 
     dwarf_func_start(sfunc);
 }
@@ -2217,14 +2229,14 @@ void Obj::func_start(Symbol *sfunc)
 void Obj::func_term(Symbol *sfunc)
 {
     //dbg_printf("Obj::func_term(%s) offset %x, Coffset %x symidx %d\n",
-//          sfunc->Sident, sfunc->Soffset,Coffset,sfunc->Sxtrnnum);
+//          sfunc->Sident, sfunc->Soffset,Offset(cseg),sfunc->Sxtrnnum);
 
 #if 0
     // fill in the function size
     if (I64)
-        SymbolTable64[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
+        SymbolTable64[sfunc->Sxtrnnum].st_size = Offset(cseg) - sfunc->Soffset;
     else
-        SymbolTable[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
+        SymbolTable[sfunc->Sxtrnnum].st_size = Offset(cseg) - sfunc->Soffset;
 #endif
     dwarf_func_term(sfunc);
 }
@@ -2884,6 +2896,10 @@ symbol *Obj::tlv_bootstrap()
     return tlv_bootstrap_sym;
 }
 
+
+void Obj::write_pointerRef(Symbol* s, unsigned off)
+{
+}
 
 /*********************************
  * Define segments for Thread Local Storage variables.

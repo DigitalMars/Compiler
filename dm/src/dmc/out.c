@@ -63,18 +63,20 @@ void outcsegname(char *csegname)
     Obj::codeseg(csegname,0);
 }
 
+#endif
+
 /***********************************
  * Output function thunk.
  */
 void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2)
 {
+    sthunk->Sseg = cseg;
     cod3_thunk(sthunk,sfunc,p,thisty,d,i,d2);
     sthunk->Sfunc->Fflags &= ~Fpending;
     sthunk->Sfunc->Fflags |= Foutput;   /* mark it as having been output */
 }
 
-#endif
 
 /***************************
  * Write out statically allocated data.
@@ -87,11 +89,10 @@ void outdata(symbol *s)
 #if HTOD
     return;
 #endif
-    targ_size_t datasize,a;
     int seg;
     targ_size_t offset;
     int flags;
-    tym_t ty;
+    const int codeseg = cseg;
 
     symbol_debug(s);
 #ifdef DEBUG
@@ -105,6 +106,8 @@ void outdata(symbol *s)
 
     dt_t *dtstart = s->Sdt;
     s->Sdt = NULL;                      // it will be free'd
+    targ_size_t datasize = 0;
+    tym_t ty = s->ty();
 #if SCPP && TARGET_WINDOS
     if (eecontext.EEcompile)
     {   s->Sfl = (s->ty() & mTYfar) ? FLfardata : FLextern;
@@ -112,8 +115,6 @@ void outdata(symbol *s)
         goto Lret;                      // don't output any data
     }
 #endif
-    datasize = 0;
-    ty = s->ty();
     if (ty & mTYexport && config.wflags & WFexpdef && s->Sclass != SCstatic)
         objmod->export_symbol(s,0);        // export data definition
     for (dt_t *dt = dtstart; dt; dt = dt->DTnext)
@@ -126,8 +127,8 @@ void outdata(symbol *s)
                 datasize += size(dt->Dty);      // reserve spot for pointer to string
 #if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
-                {   dt->DTseg = cseg;
-                    dt->DTabytes += Offset(cseg);
+                {   dt->DTseg = codeseg;
+                    dt->DTabytes += Offset(codeseg);
                     goto L1;
                 }
                 else if (tybasic(dt->Dty) == TYfptr &&
@@ -174,10 +175,10 @@ void outdata(symbol *s)
                             break;
 
                         case mTYcs:
-                            s->Sseg = cseg;
-                            Offset(cseg) = _align(datasize,Offset(cseg));
-                            s->Soffset = Offset(cseg);
-                            Offset(cseg) += datasize;
+                            s->Sseg = codeseg;
+                            Offset(codeseg) = _align(datasize,Offset(codeseg));
+                            s->Soffset = Offset(codeseg);
+                            Offset(codeseg) += datasize;
                             s->Sfl = FLcsdata;
                             break;
 #endif
@@ -280,9 +281,9 @@ void outdata(symbol *s)
             break;
 
         case mTYcs:
-            seg = cseg;
-            Offset(cseg) = _align(datasize,Offset(cseg));
-            s->Soffset = Offset(cseg);
+            seg = codeseg;
+            Offset(codeseg) = _align(datasize,Offset(codeseg));
+            s->Soffset = Offset(codeseg);
             s->Sfl = FLcsdata;
             break;
 #endif
@@ -984,7 +985,8 @@ STATIC void writefunc2(symbol *sfunc)
     unsigned nsymbols;
     SYMIDX si;
     int anyasm;
-    int csegsave = -10000;                       // for OMF
+    const int CSEGSAVE_DEFAULT = -10000;        // some unlikely number
+    int csegsave = CSEGSAVE_DEFAULT;
     func_t *f = sfunc->Sfunc;
     tym_t tyf;
 
@@ -1266,6 +1268,7 @@ STATIC void writefunc2(symbol *sfunc)
         {
             csegsave = cseg;
             objmod->comdat(sfunc);
+            cseg = sfunc->Sseg;
         }
         else
             if (config.flags & CFGsegs) // if user set switch for this
@@ -1286,7 +1289,7 @@ STATIC void writefunc2(symbol *sfunc)
 #if SCPP
     if (!errcnt)
 #endif
-        codgen();                               // generate code
+        codgen(sfunc);                  // generate code
     //dbg_printf("after codgen for %s Coffset %x\n",sfunc->Sident,Offset(cseg));
     blocklist_free(&startblock);
 #if SCPP
@@ -1405,8 +1408,10 @@ STATIC void writefunc2(symbol *sfunc)
 
     if (symbol_iscomdat(sfunc))         // if generated a COMDAT
     {
-        assert(csegsave != -10000);
+        assert(csegsave != CSEGSAVE_DEFAULT);
         objmod->setcodeseg(csegsave);       // reset to real code seg
+        if (config.objfmt == OBJ_MACH)
+            assert(cseg == CODE);
     }
 
     /* Check if function is a constructor or destructor, by     */

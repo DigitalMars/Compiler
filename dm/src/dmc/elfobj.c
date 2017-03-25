@@ -8,8 +8,12 @@
  * For any other uses, please contact Digital Mars.
  */
 
+#define WORKS 0
 
-// Output to ELF object files
+/****
+ * Output to ELF object files
+ * http://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html
+ */
 
 #if SCPP || MARS
 #include        <stdio.h>
@@ -72,6 +76,8 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen);
 #define cpp_mangle(s) ((s)->Sident)
 #endif
 
+void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
+
 /**
  * If set the compiler requires full druntime support of the new
  * section registration.
@@ -124,6 +130,7 @@ STATIC void obj_tlssections();
 #if MARS
 static void obj_rtinit();
 #endif
+static void addSectionToComdat(IDXSEC secidx, segidx_t comdatseg);
 
 static IDXSYM elf_addsym(IDXSTR sym, targ_size_t val, unsigned sz,
                          unsigned typ,unsigned bind,IDXSEC sec,
@@ -148,6 +155,8 @@ static Outbuffer *section_names;
 
 // Hash table for section_names
 AArray *section_names_hashtable;
+
+int jmpseg;
 
 /* ====================== Cached Strings in section_names ================= */
 
@@ -623,19 +632,19 @@ symbol *Obj::sym_cdata(tym_t ty,char *p,int len)
     if (OPT_IS_SET(OPTfwritable_strings))
     {
         alignOffset(DATA, tysize(ty));
-        s = symboldata(Doffset, ty);
+        s = symboldata(Offset(DATA), ty);
         SegData[DATA]->SDbuf->write(p,len);
         s->Sseg = DATA;
-        s->Soffset = Doffset;   // Remember its offset into DATA section
-        Doffset += len;
+        s->Soffset = Offset(DATA);   // Remember its offset into DATA section
+        Offset(DATA) += len;
     }
     else
 #endif
     {
-        //printf("Obj::sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
+        //printf("Obj::sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
         alignOffset(CDATA, tysize(ty));
-        s = symboldata(CDoffset, ty);
-        Obj::bytes(CDATA, CDoffset, len, p);
+        s = symboldata(Offset(CDATA), ty);
+        Obj::bytes(CDATA, Offset(CDATA), len, p);
         s->Sseg = CDATA;
     }
 
@@ -653,10 +662,10 @@ symbol *Obj::sym_cdata(tym_t ty,char *p,int len)
 
 int Obj::data_readonly(char *p, int len, int *pseg)
 {
-    int oldoff = CDoffset;
+    int oldoff = Offset(CDATA);
     SegData[CDATA]->SDbuf->reserve(len);
     SegData[CDATA]->SDbuf->writen(p,len);
-    CDoffset += len;
+    Offset(CDATA) += len;
     *pseg = CDATA;
     return oldoff;
 }
@@ -668,7 +677,7 @@ int Obj::data_readonly(char *p, int len)
     return Obj::data_readonly(p, len, &pseg);
 }
 
-/*****************************
+/******************************
  * Get segment for readonly string literals.
  * The linker will pool strings in this section.
  * Params:
@@ -687,7 +696,7 @@ int Obj::string_literal_segment(unsigned sz)
     static const char name[3][4] = { "1.1", "2.2", "4.4" };
     const int i = (sz == 4) ? 2 : sz - 1;
     const IDXSEC seg =
-        ElfObj::getsegment(".rodata.str", name[i], SHT_PROGBITS, SHF_ALLOC, sz);
+        ElfObj::getsegment(".rodata.str", name[i], SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, sz);
     return seg;
 }
 
@@ -1406,18 +1415,20 @@ void Obj::term(const char *objfilename)
 /***************************
  * Record file and line number at segment and offset.
  * The actual .debug_line segment is put out by dwarf_termfile().
- * Input:
- *      cseg    current code segment
+ * Params:
+ *      srcpos = source file position
+ *      seg = segment it corresponds to
+ *      offset = offset within seg
  */
 
-void Obj::linnum(Srcpos srcpos, targ_size_t offset)
+void Obj::linnum(Srcpos srcpos, int seg, targ_size_t offset)
 {
     if (srcpos.Slinnum == 0)
         return;
 
 #if 0
 #if MARS || SCPP
-    printf("Obj::linnum(cseg=%d, offset=0x%lx) ", cseg, offset);
+    printf("Obj::linnum(seg=%d, offset=0x%lx) ", seg, offset);
 #endif
     srcpos.print("");
 #endif
@@ -1434,42 +1445,42 @@ void Obj::linnum(Srcpos srcpos, targ_size_t offset)
 #endif
 
     size_t i;
-    seg_data *seg = SegData[cseg];
+    seg_data *pseg = SegData[seg];
 
     // Find entry i in SDlinnum_data[] that corresponds to srcpos filename
     for (i = 0; 1; i++)
     {
-        if (i == seg->SDlinnum_count)
+        if (i == pseg->SDlinnum_count)
         {   // Create new entry
-            if (seg->SDlinnum_count == seg->SDlinnum_max)
+            if (pseg->SDlinnum_count == pseg->SDlinnum_max)
             {   // Enlarge array
-                unsigned newmax = seg->SDlinnum_max * 2 + 1;
+                unsigned newmax = pseg->SDlinnum_max * 2 + 1;
                 //printf("realloc %d\n", newmax * sizeof(linnum_data));
-                seg->SDlinnum_data = (linnum_data *)mem_realloc(
-                    seg->SDlinnum_data, newmax * sizeof(linnum_data));
-                memset(seg->SDlinnum_data + seg->SDlinnum_max, 0,
-                    (newmax - seg->SDlinnum_max) * sizeof(linnum_data));
-                seg->SDlinnum_max = newmax;
+                pseg->SDlinnum_data = (linnum_data *)mem_realloc(
+                    pseg->SDlinnum_data, newmax * sizeof(linnum_data));
+                memset(pseg->SDlinnum_data + pseg->SDlinnum_max, 0,
+                    (newmax - pseg->SDlinnum_max) * sizeof(linnum_data));
+                pseg->SDlinnum_max = newmax;
             }
-            seg->SDlinnum_count++;
+            pseg->SDlinnum_count++;
 #if MARS
-            seg->SDlinnum_data[i].filename = srcpos.Sfilename;
+            pseg->SDlinnum_data[i].filename = srcpos.Sfilename;
 #endif
 #if SCPP
-            seg->SDlinnum_data[i].filptr = sf;
+            pseg->SDlinnum_data[i].filptr = sf;
 #endif
             break;
         }
 #if MARS
-        if (seg->SDlinnum_data[i].filename == srcpos.Sfilename)
+        if (pseg->SDlinnum_data[i].filename == srcpos.Sfilename)
 #endif
 #if SCPP
-        if (seg->SDlinnum_data[i].filptr == sf)
+        if (pseg->SDlinnum_data[i].filptr == sf)
 #endif
             break;
     }
 
-    linnum_data *ld = &seg->SDlinnum_data[i];
+    linnum_data *ld = &pseg->SDlinnum_data[i];
 //    printf("i = %d, ld = x%x\n", i, ld);
     if (ld->linoff_count == ld->linoff_max)
     {
@@ -1669,9 +1680,11 @@ STATIC void obj_tlssections()
  * Setup for Symbol s to go into a COMDAT segment.
  * Output (if s is a function):
  *      cseg            segment index of new current code segment
- *      Coffset         starting offset in cseg
+ *      Offset(cseg)         starting offset in cseg
  * Returns:
  *      "segment index" of COMDAT
+ * References:
+ *      COMDAT sections https://www.airs.com/blog/archives/52
  */
 
 STATIC void setup_comdat(Symbol *s)
@@ -1686,11 +1699,73 @@ STATIC void setup_comdat(Symbol *s)
     symbol_debug(s);
     if (tyfunc(s->ty()))
     {
-        //s->Sfl = FLcode;      // was FLoncecode
-        //prefix = ".gnu.linkonce.t";   // doesn't work, despite documentation
+#if WORKS
         prefix = ".text.";              // undocumented, but works
         type = SHT_PROGBITS;
         flags = SHF_ALLOC|SHF_EXECINSTR;
+#else
+        reset_symbuf->write(&s, sizeof(s));
+
+        //s->Sfl = FLcode;      // was FLoncecode
+        /* ".gnu.linkonce.t" sections result in "Too many sections" errors from ld.
+         * prefix = ".gnu.linkonce.t";
+         */
+
+        /* Get section index of the comdat
+         */
+        IDXSEC comdatidx = section_cnt + 1;
+
+        /* create a weak symbol with the group signature in it.
+         *    4  .22 .weak _Z3barIiEiT_,@FUNCTION,VALUE=.text._Z3barIiEiT_+0x00,SIZE=14
+         */
+        const char *p = cpp_mangle(s);
+        IDXSTR namidx = Obj::addstr(symtab_strings, p);
+        IDXSYM info = elf_addsym(namidx, 0, 0, STT_FUNC, STB_WEAK, comdatidx);
+
+        s->Sxtrnnum = info;
+
+        /* Create a section with a type of SHT_GROUP and group flag GRP_COMDAT
+         *    Section 4  .group  GROUP,ENTRIES=2,OFFSET=0x00F0,ALIGN=4,LINK=10,INFO=4
+         *    dd GRP_COMDAT, 5
+         */
+        IDXSTR groupnamidx = section_names->size();
+        section_names->writeString(".group");
+        IDXSTR *pidx = (IDXSTR *)section_names_hashtable->get(&groupnamidx);
+        if (*pidx)
+        {
+            section_names->setsize(groupnamidx);
+            groupnamidx = *pidx;
+        }
+        else
+            *pidx = groupnamidx;
+        IDXSEC groupidx = elf_newsection2(groupnamidx, SHT_GROUP, 0, 0, 0, 0, SHN_SYMTAB, info, 4, 4);
+        int groupseg = elf_getsegment2(groupidx, info, 0);
+        seg_data *pseg = SegData[groupseg];
+        pseg->SDbuf->write32(GRP_COMDAT);
+        pseg->SDbuf->write32(comdatidx);
+
+        /* Create a section with the SHF_GROUP bit set
+         *    Section 5  .text._Z3barIiEiT_  PROGBITS,ALLOC,EXEC,GROUP,SIZE=0x000E(14),OFFSET=0x0060,ALIGN=16
+         */
+        s->Sseg = ElfObj::getsegment(".text.", p, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align);
+        IDXSEC comdatidx2 = MAP_SEG2SECIDX(s->Sseg);
+        if (comdatidx2 != comdatidx)
+        {
+            /* This can happen if there are two function definitions with the same signature.
+             * It really should be an error, but it's in the test suite as compile1.d, bug6720()
+             */
+            if (I64)
+                SymbolTable64[STI_FILE].st_shndx = comdatidx2;
+            else
+                SymbolTable[STI_FILE].st_shndx = comdatidx2;
+        }
+
+        if (s->Salignment > align)
+            SegData[s->Sseg]->SDalignment = s->Salignment;
+        SegData[s->Sseg]->SDsym = s;
+        SegData[s->Sseg]->SDassocseg = groupseg;
+        return;
+#endif
     }
     else if ((s->ty() & mTYLINK) == mTYthread)
     {
@@ -1751,6 +1826,73 @@ int Obj::readonly_comdat(Symbol *s)
 {
     assert(0);
     return 0;
+}
+
+int Obj::jmpTableSegment(Symbol *s)
+{
+    segidx_t seg = jmpseg;
+    if (seg)                            // memoize the jmpseg on a per-function basis
+        return seg;
+
+    if (config.flags & CFGromable)
+        seg = cseg;
+    else
+    {
+        seg_data *pseg = SegData[s->Sseg];
+        if (pseg->SDassocseg)
+        {
+            /* `s` is in a COMDAT, so the jmp table segment must also
+             * go into its own segment in the same group.
+             */
+            seg = ElfObj::getsegment(".rodata.", s->Sident, SHT_PROGBITS, SHF_ALLOC|SHF_GROUP, NPTRSIZE);
+            addSegmentToComdat(seg, s->Sseg);
+        }
+        else
+            seg = CDATA;
+    }
+    jmpseg = seg;
+    return seg;
+}
+
+/****************************************
+ * If `comdatseg` has a group, add `secidx` to the group.
+ * Params:
+ *      secidx = section to add to the group
+ *      comdatseg = comdat that started the group
+ */
+
+static void addSectionToComdat(IDXSEC secidx, segidx_t comdatseg)
+{
+    seg_data *pseg = SegData[comdatseg];
+    segidx_t groupseg = pseg->SDassocseg;
+    if (groupseg)
+    {
+        seg_data *pgroupseg = SegData[groupseg];
+
+        /* Don't write it if it is already there
+         */
+        Outbuffer *buf = pgroupseg->SDbuf;
+        assert(sizeof(int) == 4);               // loop depends on this
+        for (size_t i = buf->size(); i > 4;)
+        {
+            /* A linear search, but shouldn't be more than 4 items
+             * in it.
+             */
+            i -= 4;
+            if (*(int*)(buf->buf + i) == secidx)
+                return;
+        }
+        buf->write32(secidx);
+    }
+}
+
+/***********************************
+ * Returns:
+ *      jump table segment for function s
+ */
+void addSegmentToComdat(segidx_t seg, segidx_t comdatseg)
+{
+    addSectionToComdat(SegData[seg]->SDshtidx, comdatseg);
 }
 
 /********************************
@@ -1851,6 +1993,7 @@ int ElfObj::getsegment(const char *name, const char *suffix, int type, int flags
 
 void Obj::setcodeseg(int seg)
 {
+    cseg = seg;
 }
 
 /********************************
@@ -1861,7 +2004,7 @@ void Obj::setcodeseg(int seg)
  *              1       append "_TEXT" to name
  * Output:
  *      cseg            segment index of new current code segment
- *      Coffset         starting offset in cseg
+ *      Offset(cseg)         starting offset in cseg
  * Returns:
  *      segment index of newly created code segment
  */
@@ -1879,8 +2022,8 @@ int Obj::codeseg(char *name,int suffix)
     {
         if (cseg != CODE)               // not the current default
         {
-            SegData[cseg]->SDoffset = Coffset;
-            Coffset = SegData[CODE]->SDoffset;
+            SegData[cseg]->SDoffset = Offset(cseg);
+            Offset(cseg) = SegData[CODE]->SDoffset;
             cseg = CODE;
         }
         return cseg;
@@ -1890,7 +2033,7 @@ int Obj::codeseg(char *name,int suffix)
                                     // find or create code segment
 
     cseg = seg;                         // new code segment index
-    Coffset = 0;
+    Offset(cseg) = 0;
 
     return seg;
 }
@@ -2147,11 +2290,15 @@ void Obj::func_start(Symbol *sfunc)
     }
     else if (sfunc->Sseg == UNKNOWN)
         sfunc->Sseg = CODE;
-    //dbg_printf("sfunc->Sseg %d CODE %d cseg %d Coffset %d\n",sfunc->Sseg,CODE,cseg,Coffset);
+    //dbg_printf("sfunc->Sseg %d CODE %d cseg %d Coffset %d\n",sfunc->Sseg,CODE,cseg,Offset(cseg));
     cseg = sfunc->Sseg;
+    jmpseg = 0;                         // only 1 jmp seg per function
     assert(cseg == CODE || cseg > COMD);
-    Obj::pubdef(cseg, sfunc, Coffset);
-    sfunc->Soffset = Coffset;
+#if !WORKS
+    if (!symbol_iscomdat(sfunc))
+#endif
+        Obj::pubdef(cseg, sfunc, Offset(cseg));
+    sfunc->Soffset = Offset(cseg);
 
     dwarf_func_start(sfunc);
 }
@@ -2163,13 +2310,13 @@ void Obj::func_start(Symbol *sfunc)
 void Obj::func_term(Symbol *sfunc)
 {
     //dbg_printf("Obj::func_term(%s) offset %x, Coffset %x symidx %d\n",
-//          sfunc->Sident, sfunc->Soffset,Coffset,sfunc->Sxtrnnum);
+//          sfunc->Sident, sfunc->Soffset,Offset(cseg),sfunc->Sxtrnnum);
 
     // fill in the function size
     if (I64)
-        SymbolTable64[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
+        SymbolTable64[sfunc->Sxtrnnum].st_size = Offset(cseg) - sfunc->Soffset;
     else
-        SymbolTable[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
+        SymbolTable[sfunc->Sxtrnnum].st_size = Offset(cseg) - sfunc->Soffset;
     dwarf_func_term(sfunc);
 }
 
@@ -2520,6 +2667,7 @@ void ElfObj::addrel(int seg, targ_size_t offset, unsigned type,
 
             relidx = elf_newsection(I64 ? ".rela" : ".rel", p, I64 ? SHT_RELA : SHT_REL, 0);
             segdata->SDrelidx = relidx;
+            addSectionToComdat(relidx,seg);
         }
 
         if (I64)
@@ -2776,11 +2924,15 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         {
             relinfo = R_X86_64_PC32;
             val -= 4;
+            targetsymidx = MAP_SEG2SYMIDX(targetdatum);
         }
         else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
             relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
         else
-            relinfo = (flags & CFswitch) ? R_X86_64_32S : R_X86_64_32;
+        {
+            relinfo = targetdatum == CDATA ? R_X86_64_32 : R_X86_64_32S;
+            targetsymidx = MAP_SEG2SYMIDX(targetdatum);
+        }
     }
     else
     {
@@ -2790,6 +2942,7 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
             relinfo = config.flags3 & CFG3pic ? R_386_TLS_GD : R_386_TLS_LE;
         else
             relinfo = R_386_32;
+        targetsymidx = MAP_SEG2SYMIDX(targetdatum);
     }
     ElfObj::writerel(seg, offset, relinfo, targetsymidx, val);
 }
@@ -3518,6 +3671,10 @@ symbol *Obj::tlv_bootstrap()
     // specific for Mach-O
     assert(0);
     return NULL;
+}
+
+void Obj::write_pointerRef(Symbol* s, unsigned off)
+{
 }
 
 /******************************************
