@@ -10,18 +10,6 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/iasm.h
  */
 
-/*
- * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2016 by Digital Mars
- * All Rights Reserved
- * http://www.digitalmars.com
- * Written by Mike Cote, John Micco and Walter Bright
- *
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
- */
-
 #include <setjmp.h>
 
 /////////////////////////////////////////////////
