@@ -1,12 +1,13 @@
-// Copyright (C) 1986-1998 by Symantec
-// Copyright (C) 2000-2015 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Walter Bright
-/*
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 1986-1998 by Symantec
+ *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gother.c
  */
 
 #if (SCPP || MARS) && !HTOD
@@ -1070,8 +1071,8 @@ STATIC void cpwalk(elem *n,vec_t IN)
                         if (debugc)
                         {
                             printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
-                                (v->Sident) ? (char *)v->Sident : "temp", v->Ssymnum,
-                                (f->Sident) ? (char *)f->Sident : "temp", f->Ssymnum);
+                                (v->Sident[0]) ? (char *)v->Sident : "temp", v->Ssymnum,
+                                (f->Sident[0]) ? (char *)f->Sident : "temp", f->Ssymnum);
                         }
 #endif
                         type *nt = n->ET;

@@ -1,14 +1,15 @@
-// Copyright (C) ?-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-/*
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) ?-1998 by Symantec
+ *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/elfobj.c
  */
 
-#define WORKS 0
 
 /****
  * Output to ELF object files
@@ -83,6 +84,16 @@ void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
  * section registration.
  */
 #define REQUIRE_DSO_REGISTRY (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD))
+
+/******
+ * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
+ *  /usr/bin/ld: BFD 2.15 [FreeBSD] 2004-05-23 internal error, aborting at
+ *  /usr/src/gnu/usr.bin/binutils/libbfd/../../../../contrib/binutils/bfd/elfcode.h
+ *  line 213 in bfd_elf32_swap_symbol_out
+ * For the time being, just stick with Linux.
+ */
+
+#define ELF_COMDAT      TARGET_LINUX
 
 /***************************************************
  * Correspondence of relocation types
@@ -1699,7 +1710,7 @@ STATIC void setup_comdat(Symbol *s)
     symbol_debug(s);
     if (tyfunc(s->ty()))
     {
-#if WORKS
+#if !ELF_COMDAT
         prefix = ".text.";              // undocumented, but works
         type = SHT_PROGBITS;
         flags = SHF_ALLOC|SHF_EXECINSTR;
@@ -2294,7 +2305,7 @@ void Obj::func_start(Symbol *sfunc)
     cseg = sfunc->Sseg;
     jmpseg = 0;                         // only 1 jmp seg per function
     assert(cseg == CODE || cseg > COMD);
-#if !WORKS
+#if ELF_COMDAT
     if (!symbol_iscomdat(sfunc))
 #endif
         Obj::pubdef(cseg, sfunc, Offset(cseg));
@@ -2782,8 +2793,10 @@ static size_t relsize64(unsigned type)
     case R_X86_64_GOTOFF64: return 8;
     case R_X86_64_GOTPC32: return 4;
     default:
-        assert(0);
+        break;
     }
+    assert(0);
+    return 0;
 }
 
 static size_t relsize32(unsigned type)
@@ -2823,8 +2836,10 @@ static size_t relsize32(unsigned type)
     case R_386_TLS_DTPOFF32: return 4;
     case R_386_TLS_TPOFF32: return 4;
     default:
-        assert(0);
+        break;
     }
+    assert(0);
+    return 0;
 }
 
 /*******************************

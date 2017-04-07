@@ -1,13 +1,12 @@
-// Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Walter Bright
-/*
- * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/tk.c
  */
 
 #include        <stdio.h>

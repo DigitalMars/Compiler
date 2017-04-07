@@ -1,13 +1,13 @@
-// Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2016 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Walter Bright
-// https://github.com/dlang/dmd/blob/master/src/backend/cdef.h
-/*
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 1985-1998 by Symantec
+ *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cdef.h
  */
 
 
@@ -905,7 +905,7 @@ struct Config
     windows_flags_t wflags;     // flags for Windows code generation
 
     bool fpxmmregs;             // use XMM registers for floating point
-    bool avx;                   // use AVX instruction set
+    unsigned char avx;          // use AVX instruction set (0, 1, 2)
     char inline8087;            /* 0:   emulator
                                    1:   IEEE 754 inline 8087 code
                                    2:   fast inline 8087 code

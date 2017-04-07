@@ -1,12 +1,13 @@
-// Copyright (C) 1985-1996 by Symantec
-// Copyright (C) 2000-2015 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Walter Bright
-/*
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 1985-1998 by Symantec
+ *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/code.h
  */
 
 #include <stddef.h>
@@ -626,8 +627,7 @@ struct seg_data
     int                  SDrelcnt;      // number of relocations added
     IDXSEC               SDshtidxout;   // final section header table index
     Symbol              *SDsym;         // if !=NULL, comdat symbol
-    segidx_t             SDassocseg;    // MSCOFFOBJ COMDATs: if !=0, this is the "associated" segment
-                                        // ELFOBJ COMDATs: if !=0, this is the group segment
+    segidx_t             SDassocseg;    // for COMDATs, if !=0, this is the "associated" segment
 
     unsigned            SDaranges_offset;       // if !=0, offset in .debug_aranges
 
@@ -656,7 +656,6 @@ extern seg_data **SegData;
 #define Offset(seg) SegData[seg]->SDoffset
 #define Doffset Offset(DATA)
 #define CDoffset Offset(CDATA)
-//#define Coffset Offset(cseg)
 
 /**************************************************/
 

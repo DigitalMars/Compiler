@@ -1,12 +1,13 @@
-// Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Walter Bright
-/*
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 1985-1998 by Symantec
+ *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gloop.c
  */
 
 
@@ -1303,64 +1304,11 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
     // If unambiguous def
     if (OTassign(op) && (t = n->E1)->Eoper == OPvar)
     {
-#if 1
         vec_t v = go.defnod[ni].DNunambig;
         assert(v);
         if (KILL)
             vec_orass(KILL, v);
         vec_subass(GEN, v);
-#else
-        symbol *d = t->EV.sp.Vsym;
-        targ_size_t toff = t->EV.sp.Voffset;
-        targ_size_t tsize;
-        targ_size_t ttop;
-
-        tsize = (op == OPstreq) ? type_size(n->ET) : tysize(t->Ety);
-        ttop = toff + tsize;
-
-        //printf("updaterd: "); WReqn(n); printf(" toff=%d, tsize=%d\n", toff, tsize);
-
-
-        /* for all unambig defs in go.defnod[] */
-        for (unsigned i = 0; i < go.deftop; i++)
-        {   elem *tn = go.defnod[i].DNelem;
-            elem *tn1;
-            targ_size_t tn1size;
-
-            if (!OTassign(tn->Eoper))
-                goto Lcontinue;
-
-            // If def of same variable, kill that def
-            tn1 = tn->E1;
-            if (tn1->Eoper != OPvar || d != tn1->EV.sp.Vsym)
-                goto Lcontinue;
-
-            // If t completely overlaps tn1
-            tn1size = (tn->Eoper == OPstreq)
-                ? type_size(tn->ET) : tysize(tn1->Ety);
-            if (toff <= tn1->EV.sp.Voffset &&
-                tn1->EV.sp.Voffset + tn1size <= ttop)
-            {
-#ifdef DEBUG
-                vec_t v = go.defnod[ni].DNunambig;
-                assert(v);
-                assert(vec_testbit(i, v));
-#endif
-                if (KILL)
-                    vec_setbit(i,KILL);
-                vec_clearbit(i,GEN);
-            }
-            else
-            {
-              Lcontinue: ;
-#ifdef DEBUG
-                vec_t v = go.defnod[ni].DNunambig;
-                assert(v);
-                assert(!vec_testbit(i, v));
-#endif
-            }
-        }
-#endif
     }
 #if 0
     else if (OTassign(op) && t->Eoper != OPvar && t->Ejty)
@@ -2157,8 +2105,7 @@ STATIC void findbasivs(loop *l)
 
         biv->IVbasic = s;               // symbol of basic IV
 
-        cmes3("Symbol '%s' (%d) is a basic IV, ",s->Sident
-                ? (char *)s->Sident : "",i);
+        cmes3("Symbol '%s' (%d) is a basic IV, ", s->Sident, i);
 
         /* We have the sym idx of the basic IV. We need to find         */
         /* the parent of the increment elem for it.                     */
@@ -2284,8 +2231,7 @@ STATIC void findopeqs(loop *l)
 
         biv->IVbasic = s;               // symbol of basic IV
 
-        cmes3("Symbol '%s' (%d) is an opeq IV, ",s->Sident
-                ? (char *)s->Sident : "",i);
+        cmes3("Symbol '%s' (%d) is an opeq IV, ",s->Sident,i);
 
         // We have the sym idx of the basic IV. We need to find
         // the parent of the increment elem for it.
@@ -3096,8 +3042,7 @@ STATIC void elimbasivs(loop *l)
                         }
                 }
 
-                cmes3("No uses, eliminating basic IV '%s' (%p)\n",(X->Sident)
-                        ? (char *)X->Sident : "",X);
+                cmes3("No uses, eliminating basic IV '%s' (%p)\n",X->Sident,X);
 
                 /* Dump the increment elem                              */
                 /* (Replace it with an OPconst that only serves as a    */
@@ -3157,8 +3102,7 @@ STATIC void elimopeqs(loop *l)
                 }
             }
 
-            cmes3("No uses, eliminating opeq IV '%s' (%p)\n",(X->Sident)
-                    ? (char *)X->Sident : "",X);
+            cmes3("No uses, eliminating opeq IV '%s' (%p)\n",X->Sident,X);
 
             // Dump the increment elem
             // (Replace it with an OPconst that only serves as a
