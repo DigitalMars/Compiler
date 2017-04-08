@@ -602,7 +602,7 @@ targ_size_t alignmember(type *t,targ_size_t size,targ_size_t offset)
  * Do byte or word alignment as necessary.
  */
 
-targ_size_t align(targ_size_t size,targ_size_t offset)
+targ_size_t _align(targ_size_t size,targ_size_t offset)
 {
     switch (size)
     {
