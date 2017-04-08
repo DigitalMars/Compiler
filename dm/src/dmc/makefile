@@ -296,7 +296,7 @@ LIBSRC= $(NTDLLSHELL)\lib\spwnlnd.lib $(NTDLLSHELL)\lib\netsploc.obj
 
 BUILDSRC= sppn.tra sccn.tra htodn.tra scppn.tra makefile posix.mak
 
-LICENSE= backendlicense.txt artistic.txt gpl.txt
+LICENSE= gpl.txt
 
 # D back end
 BACKSRC= cdef.h cc.h oper.h ty.h optabgen.c \

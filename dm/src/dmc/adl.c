@@ -1,12 +1,12 @@
-// Copyright (C) 2001-2006 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Walter Bright
-/*
- * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Implementation of the
+ * $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ Compiler).
+ *
+ * Copyright:   Copyright (c) 2001-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/adl.c
  */
 
 // CPP98 3.4.2 Argument-dependent name lookup

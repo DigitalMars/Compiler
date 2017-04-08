@@ -1,3 +1,15 @@
+/**
+ * Implementation of the
+ * $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ Compiler).
+ *
+ * Copyright:   Copyright (c) 1985-1998 by Symantec, All Rights Reserved
+ *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/castab.c
+ */
+
 static const unsigned char casttab[CASTTABMAX][CASTTABMAX] = {
 /* Vertical is from, horizontal is to   */
 //              bool    char    schar   uchar   char8   char16  short   wchar_t ushort  enum    int     uint    long    ulong   dchar   llong   ullong  float   double  real64  real80  ifloat  idouble ildbl   cfloat  cdouble cldbl   jhandle nullptr nptr    sptr    cptr    f16ptr  fptr    hptr    vptr    ref     void
