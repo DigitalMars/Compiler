@@ -1,12 +1,12 @@
-// Copyright (C) 1995-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-/*
- * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Implementation of the
+ * $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ Compiler).
+ *
+ * Copyright:   Copyright (c) 1995-1998 by Symantec, All Rights Reserved
+ *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/ntllshell/include/nsidde.h
  */
 
 #ifndef _NSIDDE_H_

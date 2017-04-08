@@ -196,7 +196,7 @@ LIBSRC= $(NTDLLSHELL)\lib\spwnlnd.lib $(NTDLLSHELL)\lib\netsploc.o
 
 BUILDSRC= sppn.tra sccn.tra htodn.tra scppn.tra makefile
 
-LICENSE= backendlicense.txt artistic.txt gpl.txt
+LICENSE= gpl.txt
 
 VERSION=857
 
