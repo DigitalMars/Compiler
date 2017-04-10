@@ -296,7 +296,7 @@ LIBSRC= $(NTDLLSHELL)\lib\spwnlnd.lib $(NTDLLSHELL)\lib\netsploc.obj
 
 BUILDSRC= sppn.tra sccn.tra htodn.tra scppn.tra makefile posix.mak
 
-LICENSE= gpl.txt
+LICENSE= license.txt gpl.txt
 
 # D back end
 BACKSRC= cdef.h cc.h oper.h ty.h optabgen.c \
@@ -339,7 +339,7 @@ detab:
         detab $(SRC) $(TKSRC) $(SHELLSRC)
 
 tolf:
-        tolf $(SRC) $(TKSRC) $(SHELLSRC) $(BUILDSRC)
+        tolf $(SRC) $(TKSRC) $(SHELLSRC) $(BUILDSRC) $(LICENSE)
 
 install:
         cp $(SRC) $(BUILDSRC) tdb.lib $(LICENSE) \dm\src\dmc
