@@ -270,7 +270,7 @@ bool cssave (elem *e , regm_t regm , unsigned opsflag );
 bool evalinregister (elem *e );
 regm_t getscratch();
 code *codelem (elem *e , regm_t *pretregs , bool constflag );
-code *scodelem (elem *e , regm_t *pretregs , regm_t keepmsk , bool constflag );
+void scodelem(CodeBuilder& cdb, elem *e, regm_t *pretregs, regm_t keepmsk, bool constflag);
 const char *regm_str(regm_t rm);
 int numbitsset(regm_t);
 
