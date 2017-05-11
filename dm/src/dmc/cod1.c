@@ -531,7 +531,7 @@ code *logexp(elem *e,int jcond,unsigned fltarg,code *targ)
     unsigned op = jmpopcode(e);           // get jump opcode
     if (!(jcond & 1))
         op ^= 0x101;                      // toggle jump condition(s)
-    cdb.append(codelem(e,&retregs,TRUE)); // evaluate elem
+    codelem(cdb,e,&retregs,TRUE); // evaluate elem
     if (no87)
         cdb.append(cse_flush(no87));      // flush CSE's to memory
     cdb.append(genjmp(CNIL,op,fltarg,(block *) targ)); // generate jmp instruction
@@ -2836,7 +2836,8 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
  * Generate code sequence for function call.
  */
 
-code *cdfunc(elem *e,regm_t *pretregs)
+CDXXX(cdfunc)
+code *cdfuncx(elem *e,regm_t *pretregs)
 {
     //printf("cdfunc()\n"); elem_print(e);
     assert(e);
@@ -3263,7 +3264,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
 /***********************************
  */
 
-code *cdstrthis(elem *e,regm_t *pretregs)
+CDXXX(cdstrthis)
+code *cdstrthisx(elem *e,regm_t *pretregs)
 {
     CodeBuilder cdb;
 
@@ -3359,7 +3361,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
             retregs = allregs & ~keepmsk;
             s->Sflags &= ~GTregcand;
             s->Sflags |= SFLread;
-            cdbe.append(cdrelconst(e1,&retregs));
+            cdrelconst(cdbe,e1,&retregs);
             if (farfunc)
             {
                 unsigned reg = findregmsw(retregs);
@@ -3749,7 +3751,7 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
     {
         CodeBuilder cdb;
         retregs = XMMREGS;
-        cdb.append(codelem(e,&retregs,FALSE));
+        codelem(cdb,e,&retregs,FALSE);
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
         cdb.genc1(op,modregxrm(2,r - XMM0,BPRM),FLfuncarg,funcargtos - 16);   // MOV funcarg[EBP],r
@@ -3762,7 +3764,7 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
         {
             CodeBuilder cdb;
             retregs = tycomplex(tym) ? mST01 : mST0;
-            cdb.append(codelem(e,&retregs,FALSE));
+            codelem(cdb,e,&retregs,FALSE);
 
             unsigned op;
             unsigned r;
@@ -3866,7 +3868,7 @@ code *pushParams(elem *e,unsigned stackalign)
         exp2_setstrthis(e1,NULL,stackpush,NULL);
 
         regm_t retregs = 0;
-        cdb.append(codelem(e1,&retregs,TRUE));
+        codelem(cdb,e1,&retregs,TRUE);
         freenode(e);
         return cdb.finish();
     }
@@ -3950,7 +3952,7 @@ code *pushParams(elem *e,unsigned stackalign)
                                     break;
                             }
                         }
-                        cdb.append(codelem(e1->E1,&retregs,FALSE));
+                        codelem(cdb,e1->E1,&retregs,FALSE);
                         freenode(e1);
                         break;
                     case OPvar:
@@ -3984,7 +3986,7 @@ code *pushParams(elem *e,unsigned stackalign)
                         {   seg = CFes;
                             retregs |= mES;
                         }
-                        cdb.append(cdrelconst(e1,&retregs));
+                        cdrelconst(cdb,e1,&retregs);
                         // Reverse the effect of the previous add
                         if (doneoff)
                             e1->EV.sp.Voffset -= sz - pushsize;
@@ -3996,7 +3998,7 @@ code *pushParams(elem *e,unsigned stackalign)
                         {   seg = CFes;
                             retregs |= mES;
                         }
-                        cdb.append(codelem(e1,&retregs,FALSE));
+                        codelem(cdb,e1,&retregs,FALSE);
                         break;
                     default:
                         elem_print(e1);
@@ -4353,7 +4355,7 @@ code *pushParams(elem *e,unsigned stackalign)
     {
         CodeBuilder cdb;
         regm_t retregs = XMMREGS;
-        cdb.append(codelem(e,&retregs,FALSE));
+        codelem(cdb,e,&retregs,FALSE);
         stackpush += sz;
         cdb.append(genadjesp(CNIL,sz));
         cdb.append(cod3_stackadj(CNIL, sz));
@@ -4369,7 +4371,7 @@ code *pushParams(elem *e,unsigned stackalign)
         {
             CodeBuilder cdb;
             retregs = tycomplex(tym) ? mST01 : mST0;
-            cdb.append(codelem(e,&retregs,FALSE));
+            codelem(cdb,e,&retregs,FALSE);
             stackpush += sz;
             cdb.append(genadjesp(CNIL,sz));
             cdb.append(cod3_stackadj(CNIL, sz));
@@ -4491,7 +4493,8 @@ L3:
  * Generate code to load data into registers.
  */
 
-code *loaddata(elem *e,regm_t *pretregs)
+CDXXX(loaddata);
+code *loaddatax(elem *e,regm_t *pretregs)
 { unsigned reg,nreg,op,sreg;
   tym_t tym;
   code cs;
@@ -4508,7 +4511,11 @@ code *loaddata(elem *e,regm_t *pretregs)
         return CNIL;
   tym = tybasic(e->Ety);
   if (tym == TYstruct)
-        return cdrelconst(e,pretregs);
+  {
+        CodeBuilder cdb;
+        cdrelconst(cdb,e,pretregs);
+        return cdb.finish();
+  }
   if (tyfloating(tym))
   {     objmod->fltused();
         if (config.inline8087)
