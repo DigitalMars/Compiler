@@ -1000,8 +1000,7 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
     return op;
 }
 
-CDXXX(cdvector)
-code *cdvectorx(elem *e, regm_t *pretregs)
+void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
     /* e should look like one of:
      *    vector
@@ -1036,13 +1035,12 @@ code *cdvectorx(elem *e, regm_t *pretregs)
     if (*pretregs == 0)
     {   /* Evaluate for side effects only
          */
-        CodeBuilder cdb;
         for (int i = 0; i < n; i++)
         {
             codelem(cdb,params[i], pretregs, FALSE);
             *pretregs = 0;      // in case they got set
         }
-        return cdb.finish();
+        return;
     }
 
     assert(n >= 2 && n <= 4);
@@ -1065,7 +1063,6 @@ code *cdvectorx(elem *e, regm_t *pretregs)
 //    assert(sz1 == 16);       // float or double
 
     regm_t retregs;
-    CodeBuilder cdb;
     if (n == 3 && ty2 == TYuchar && op2->Eoper == OPconst)
     {   // Handle: op xmm,imm8
 
@@ -1188,7 +1185,6 @@ code *cdvectorx(elem *e, regm_t *pretregs)
     cdb.append(fixresult(e,retregs,pretregs));
     free(params);
     freenode(e);
-    return cdb.finish();
 }
 
 /***************
@@ -1197,8 +1193,7 @@ code *cdvectorx(elem *e, regm_t *pretregs)
  *  (op1 OPvecsto (op OPparam op2))
  * where op is the store instruction STOxxxx.
  */
-CDXXX(cdvecsto)
-code *cdvecstox(elem *e, regm_t *pretregs)
+void cdvecsto(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdvecsto()\n");
     //elem_print(e);
@@ -1209,7 +1204,7 @@ code *cdvecstox(elem *e, regm_t *pretregs)
 #ifdef DEBUG
     assert(isXMMstore(op));
 #endif
-    return xmmeq(e, op, op1, op2, pretregs);
+    cdb.append(xmmeq(e, op, op1, op2, pretregs));
 }
 
 /***************
@@ -1217,8 +1212,7 @@ code *cdvecstox(elem *e, regm_t *pretregs)
  * OPvecfill takes the single value in e1 and
  * fills the vector type with it.
  */
-CDXXX(cdvecfill)
-code *cdvecfillx(elem *e, regm_t *pretregs)
+void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdvecfill(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
 
@@ -1226,7 +1220,6 @@ code *cdvecfillx(elem *e, regm_t *pretregs)
     if (!retregs)
         retregs = XMMREGS;
 
-    CodeBuilder cdb;
     code *c;
     code cs;
 
@@ -1553,7 +1546,6 @@ code *cdvecfillx(elem *e, regm_t *pretregs)
 
     c = fixresult(e,retregs,pretregs);
     cdb.append(c);
-    return cdb.finish();
 }
 
 /*******************************************
