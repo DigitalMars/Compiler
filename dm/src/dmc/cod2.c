@@ -4688,6 +4688,11 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         return;
 #endif
   }
+  if (tyxmmreg(tyml))
+  {
+        cdb.append(xmmpost(e,pretregs));
+        return;
+  }
 
   assert(e2->Eoper == OPconst);
   unsigned byte = (sz == 1);

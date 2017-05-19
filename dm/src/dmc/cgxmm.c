@@ -855,6 +855,10 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYushort16:
                 case TYshort8:
                 case TYushort8: op = PMULLW; break;
+                case TYlong8:
+                case TYulong8:
+                case TYlong4:
+                case TYulong4:  op = PMULLD; break;
 
                 default:        assert(0);
             }
@@ -1603,6 +1607,11 @@ void checkSetVex(code *c, tym_t ty)
         if (c->Irex & REX_R)
             vreg |= 8;
         int VEX_L = 0;
+
+        // TODO: This is too simplistic, depending on the instruction, vex.vvvv
+        // encodes NDS, NDD, DDS, or no operand (NOO). The code below assumes
+        // NDS (non-destructive source), except for the incomplete list of 2
+        // operand instructions (NOO) handled by the switch.
         switch (c->Iop)
         {
             case LODSS:
@@ -1632,7 +1641,12 @@ void checkSetVex(code *c, tym_t ty)
             case UCOMISS:
             case UCOMISD:
             case MOVDDUP:
+            case MOVSHDUP:
+            case MOVSLDUP:
             case VBROADCASTSS:
+            case PSHUFD:
+            case PSHUFHW:
+            case PSHUFLW:
                 vreg = 0;       // for 2 operand vex instructions
                 break;
 
