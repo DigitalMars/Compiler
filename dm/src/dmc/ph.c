@@ -628,7 +628,7 @@ STATIC void ph_setadjust(Root *r)
 #if H_STYLE & H_COMPLEX
 
 #if TX86 && !defined(_MSC_VER)
-__declspec(naked) void *ph_dehydrate(void *pp)
+__declspec(naked) void * __pascal ph_dehydrate(void *pp)
 {
     _asm
     {
@@ -665,7 +665,7 @@ L13C:           ret     4
     }
 }
 #else
-void *ph_dehydrate(void *pp)
+void * __pascal ph_dehydrate(void *pp)
 {
     int i;
     char *p;
@@ -727,7 +727,7 @@ void *ph_dehydrate(void *pp)
  */
 
 #if TX86 && !defined(_MSC_VER)
-__declspec(naked) void *ph_hydrate(void *pp)
+__declspec(naked) void * __pascal ph_hydrate(void *pp)
 {
     _asm
     {
@@ -747,7 +747,7 @@ L169:   ret     4
     }
 }
 #else
-void *ph_hydrate(void *pp)
+void * __pascal ph_hydrate(void *pp)
 {
     unsigned long off;
     unsigned i;

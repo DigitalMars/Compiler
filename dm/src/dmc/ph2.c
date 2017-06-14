@@ -108,7 +108,7 @@ void *ph_malloc(size_t nbytes)
 }
 
 #if ASM86
-__declspec(naked) void *ph_calloc(size_t nbytes)
+__declspec(naked) void * __pascal ph_calloc(size_t nbytes)
 {
     _asm
     {
@@ -125,7 +125,7 @@ L25:    ret     4
     }
 }
 #else
-void *ph_calloc(size_t nbytes)
+void * __pascal ph_calloc(size_t nbytes)
 {   void *p;
 
     p = ph_malloc(nbytes);

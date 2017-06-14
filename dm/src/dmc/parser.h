@@ -540,7 +540,7 @@ void ph_auto(void);
 int ph_read(char *filename);
 int ph_autoread(char *filename);
 void *ph_malloc(size_t nbytes);
-void *ph_calloc(size_t nbytes);
+void * __pascal ph_calloc(size_t nbytes);
 void ph_free(void *p);
 #if TX86
 void *ph_realloc(void *p , size_t nbytes);
@@ -566,8 +566,8 @@ extern int ph_hdradjust;
 #elif H_STYLE & H_COMPLEX
 #define dohydrate       1
 #define isdehydrated(p) ((int)(p) & 1)
-void *ph_hydrate(void *pp);
-void *ph_dehydrate(void *pp);
+void * __pascal ph_hydrate(void *pp);
+void * __pascal ph_dehydrate(void *pp);
 #elif H_STYLE & H_NONE
 #define dohydrate       0
 #define isdehydrated(p) 0

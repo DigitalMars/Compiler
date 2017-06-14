@@ -605,7 +605,7 @@ symbol * lookupsym(const char *p)
 
 #if SCPP
 
-symbol * findsy(const char *p,symbol *rover)
+symbol *findsy(const char *p,symbol *rover)
 {
 #if TX86 && __DMC__
     volatile int len;

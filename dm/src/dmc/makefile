@@ -73,7 +73,7 @@ PVS="c:\Program Files (x86)\PVS-Studio\x64\PVS-Studio"
 
 LINKN=$(DMC)\bin\link /de
 
-CFLAGS=$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -6 -D$(TARGET) -r -P -cpp
+CFLAGS=$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -6 -D$(TARGET) -r -cpp
 
 # Makerules:
 .c.obj:
@@ -372,7 +372,7 @@ strtold.obj : strtold.c
         $(CC) -c -o strtold.c
 
 divcoeff.obj : divcoeff.c
-        $(CC) -c -cpp -P divcoeff.c
+        $(CC) -c -cpp divcoeff.c
 
 ################# Source file dependencies ###############
 
