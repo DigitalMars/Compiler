@@ -628,7 +628,7 @@ STATIC void ph_setadjust(Root *r)
 #if H_STYLE & H_COMPLEX
 
 #if TX86 && !defined(_MSC_VER)
-__declspec(naked) void * __pascal ph_dehydrate(void *pp)
+__declspec(naked) void *ph_dehydrate(void *pp)
 {
     _asm
     {
@@ -661,11 +661,11 @@ LFE:            sub     EDX,ph_buf
                 shl     EDX,0Eh-2
                 lea     EAX,PHBUFSIZE+1[EAX][EDX]
                 mov     [ECX],EAX
-L13C:           ret     4
+L13C:           ret
     }
 }
 #else
-void * __pascal ph_dehydrate(void *pp)
+void *ph_dehydrate(void *pp)
 {
     int i;
     char *p;
@@ -727,7 +727,7 @@ void * __pascal ph_dehydrate(void *pp)
  */
 
 #if TX86 && !defined(_MSC_VER)
-__declspec(naked) void * __pascal ph_hydrate(void *pp)
+__declspec(naked) void *ph_hydrate(void *pp)
 {
     _asm
     {
@@ -743,11 +743,11 @@ __declspec(naked) void * __pascal ph_hydrate(void *pp)
         add     EAX,[ECX*4][EDX]
         mov     ECX,4[ESP]
         mov     [ECX],EAX
-L169:   ret     4
+L169:   ret
     }
 }
 #else
-void * __pascal ph_hydrate(void *pp)
+void *ph_hydrate(void *pp)
 {
     unsigned long off;
     unsigned i;

@@ -566,8 +566,8 @@ extern int ph_hdradjust;
 #elif H_STYLE & H_COMPLEX
 #define dohydrate       1
 #define isdehydrated(p) ((int)(p) & 1)
-void * __pascal ph_hydrate(void *pp);
-void * __pascal ph_dehydrate(void *pp);
+void *ph_hydrate(void *pp);
+void *ph_dehydrate(void *pp);
 #elif H_STYLE & H_NONE
 #define dohydrate       0
 #define isdehydrated(p) 0
