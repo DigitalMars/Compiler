@@ -114,6 +114,7 @@ L6:     push    EAX
         push    ECX
         push    EAX
         call    explist
+        add     ESP,4
         pop     ECX
         pop     EAX
         jmp     L9
@@ -143,6 +144,7 @@ Lspecial:
         mov     btextp,ECX
         push    EDI
         call    inidentX
+        add     ESP,4
         pop     EDI
         pop     EBX
         ret

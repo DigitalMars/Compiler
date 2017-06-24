@@ -302,7 +302,7 @@ unsigned char *macro_replacement_text(macro_t *m, phstring_t args);
 unsigned char *macro_rescan(macro_t *m, unsigned char *text);
 unsigned char *macro_expand(unsigned char *text);
 
-extern void __pascal explist(int);
+extern void explist(int);
 void expstring(const char *);
 void expinsert(int);
 void expbackup(void);

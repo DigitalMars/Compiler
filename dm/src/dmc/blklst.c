@@ -162,7 +162,7 @@ void exp_linemarker(Srcpos *s, unsigned flag)
  *      elinnum =       line number of expanded output
  */
 
-void __pascal explist(int c)
+void explist(int c)
 {
     if (expflag)
         return;
