@@ -108,7 +108,7 @@ void *ph_malloc(size_t nbytes)
 }
 
 #if ASM86
-__declspec(naked) void * __pascal ph_calloc(size_t nbytes)
+__declspec(naked) void *ph_calloc(size_t nbytes)
 {
     _asm
     {
@@ -121,11 +121,11 @@ __declspec(naked) void * __pascal ph_calloc(size_t nbytes)
         push    EAX
         call    memset
         add     ESP,0Ch
-L25:    ret     4
+L25:    ret
     }
 }
 #else
-void * __pascal ph_calloc(size_t nbytes)
+void *ph_calloc(size_t nbytes)
 {   void *p;
 
     p = ph_malloc(nbytes);
