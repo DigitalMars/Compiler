@@ -45,6 +45,8 @@ BASE=
 
 ##### Tools
 
+# D compiler
+DMD=e:\dmd2.074\windows\bin\dmd
 # C++ compiler
 CC=dmc
 # Make program
@@ -267,7 +269,7 @@ msgsx.exe : msgsx.c
 RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 
 SRC=    tassert.h html.h html.c \
-        ini.c cgcv.h cv4.h tdb.h loadline.c ppexp.c errmsgs2.c tdbx.c \
+        ini.c cgcv.h cv4.h tdb.h loadline.d ppexp.c errmsgs2.c tdbx.c \
         allocast.h go.h iasm.h cg.c scdll.h objrecor.c rtlsym.c util.c \
         total.h exh.h cpp.h iasm.c type.c enum.c nspace.c err.c \
         filename.c blklst.c tytostr.c ee.c symbol.c \
@@ -283,7 +285,7 @@ SRC=    tassert.h html.h html.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
         ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
-	backconfig.c ph2.c util2.c divcoeff.c dwarf.h dwarf.c dwarfeh.c \
+	backconfig.c ph2.c util2.c divcoeff.d dwarf.h dwarf.c dwarfeh.c \
 	elfobj.c elfobj1.c machobj.c compress.c varstats.h varstats.c gsroa.c
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
@@ -318,7 +320,7 @@ BACKSRC= cdef.h cc.h oper.h ty.h optabgen.c \
 	strtold.c aa.h aa.c tinfo.h ti_achar.c \
 	md5.h md5.c ti_pvoid.c xmm.h ph2.c util2.c \
 	mscoffobj.c obj.h pdata.c cv8.c backconfig.c \
-	divcoeff.c dwarfeh.c varstats.h varstats.c compress.c \
+	divcoeff.d dwarfeh.c varstats.h varstats.c compress.c \
 	backend.txt
 
 VERSION=857
@@ -371,8 +373,11 @@ os.obj : os.c
 strtold.obj : strtold.c
         $(CC) -c -o strtold.c
 
-divcoeff.obj : divcoeff.c
-        $(CC) -c -cpp divcoeff.c
+divcoeff.obj : divcoeff.d
+        $(DMD) -c -O -release -betterC divcoeff.d
+
+loadline.obj : loadline.d
+        $(DMD) -c -O -release -betterC loadline.d
 
 ################# Source file dependencies ###############
 
@@ -412,7 +417,6 @@ htod.obj : $(DEP) $(htod.dep) htod.c
 html.obj : $(DEP) $(html.dep) html.c
 init.obj : $(DEP) $(init.dep) init.c
 inline.obj : $(DEP) $(inline.dep) inline.c
-loadline.obj : $(DEP) $(loadline.dep) loadline.c
 msc.obj : $(DEP) $(msc.dep) msc.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 objrecor.obj : $(DEP) $(objrecor.dep) objrecor.c

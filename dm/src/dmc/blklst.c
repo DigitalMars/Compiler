@@ -1133,6 +1133,7 @@ L4:
 
 L3:     push    EAX
         call    explist
+        add     ESP,4
         mov     EAX,xc
         ret
     }
