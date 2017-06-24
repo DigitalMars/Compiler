@@ -10,7 +10,7 @@
  * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/msgsx.c
  */
 
-// Generate msgs2.h and msgs2.c
+// Generate msgs2.d, msgs2.h and msgs2.c
 // This file pulls together all the various message files into one, which
 // when compiled and run, generates the tables used by the compiler.
 // Currently it puts all languages into one table, but it can be changed
@@ -3074,6 +3074,23 @@ int main()
         fprintf(fp,"\tEM_%s=%d,\n",msgtable[i].name,i);
     }
     fprintf(fp,"};\n");
+
+    fclose(fp);
+
+    /////////////////////////////////////
+
+    fp = fopen("msgs2.d","w");
+    if (!fp)
+    {   printf("can't open msgs2.d\n");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(fp,"enum\n{");
+    for (i = 0; i < sizeof(msgtable) / sizeof(msgtable[0]); i++)
+    {
+        fprintf(fp,"\tEM_%s=%d,\n",msgtable[i].name,i);
+    }
+    fprintf(fp,"}\n");
 
     fclose(fp);
 

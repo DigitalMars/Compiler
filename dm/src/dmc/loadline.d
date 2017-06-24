@@ -10,14 +10,17 @@
  * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/loadline.d
  */
 
+module loadline;
+
 //#include        "cc.h"
 //#include        "token.h"
 //#include        "global.h"
 //#include        "parser.h"
 
+import msgs2;
+
 extern (C++):
 enum IDMAX = 900;
-enum EM_ident2big = 5; // msgs2.h
 
 extern __gshared char switch_E;
 extern __gshared char[2*IDMAX+1] tok_ident;

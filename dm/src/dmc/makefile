@@ -258,7 +258,7 @@ elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
         $(CC) -cpp optabgen -I$(TK)
         optabgen
 
-msgs2.h msgs2.c : msgsx.exe
+msgs2.d msgs2.h msgs2.c : msgsx.exe
         msgsx
 
 msgsx.exe : msgsx.c
@@ -376,7 +376,7 @@ strtold.obj : strtold.c
 divcoeff.obj : divcoeff.d
         $(DMD) -c -O -release -betterC divcoeff.d
 
-loadline.obj : loadline.d
+loadline.obj : loadline.d msgs2.d
         $(DMD) -c -O -release -betterC loadline.d
 
 ################# Source file dependencies ###############
@@ -487,6 +487,6 @@ clean:
         del *.exp
         del *.dbg
         del *.res
-        del msgs.c msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
+        del msgs.c msgs2.d msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 
 ###################################
