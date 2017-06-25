@@ -1900,20 +1900,65 @@ STATIC elem * elcond(elem *e, goal_t goal)
             elem *ec2 = e->E2->E2;
 
             if (tyintegral(ty) && ec1->Eoper == OPconst && ec2->Eoper == OPconst)
-            {   targ_llong i1,i2;
-                targ_llong b;
+            {
+                targ_llong i1 = el_tolong(ec1);
+                targ_llong i2 = el_tolong(ec2);
+                tym_t ty1 = tybasic(e1->Ety);
 
-                i1 = el_tolong(ec1);
-                i2 = el_tolong(ec2);
-
-                /* If b is an integer with only 1 bit set then          */
-                /*   replace ((a & b) ? b : 0) with (a & b)             */
-                /*   replace ((a & b) ? 0 : b) with ((a & b) ^ b)       */
-                if (e1->Eoper == OPand && e1->E2->Eoper == OPconst &&
+                if ((ty1 == TYbool && !OTlogical(e1->Eoper) || e1->Eoper == OPand && e1->E2->Eoper == OPconst) &&
                     tysize(ty) == tysize(ec1->Ety))
                 {
-                    b = el_tolong(e1->E2);
-                    if (ispow2(b) != -1)        /* if only 1 bit is set */
+                    targ_llong b = ty1 == TYbool ? 1 : el_tolong(e1->E2);
+
+                    if (b == 1 && ispow2(i1 - i2))
+                    {
+                        // replace (e1 ? i1 : i2) with (i1 + e1 * (i2 - i1))
+                        int sz = tysize(e1->Ety);
+                        while (sz < tysize(ec1->Ety))
+                        {
+                            // Increase the size of e1 until it matches the size of ec1
+                            switch (sz)
+                            {
+                                case 1:
+                                    e1 = el_una(OPu8_16, TYushort, e1);
+                                    sz = 2;
+                                    continue;
+                                case 2:
+                                    e1 = el_una(OPu16_32, TYulong, e1);
+                                    sz = 4;
+                                    continue;
+                                case 4:
+                                    e1 = el_una(OPu32_64, TYullong, e1);
+                                    sz = 8;
+                                    continue;
+                                default:
+                                    assert(0);
+                            }
+                            break;
+                        }
+                        if (i1 < i2)
+                        {
+                            ec2->EV.Vllong = i2 - i1;
+                            e1 = el_bin(OPxor,e1->Ety,e1,el_long(e1->Ety,1));
+                        }
+                        else
+                        {
+                            ec1->EV.Vllong = i2;
+                            ec2->EV.Vllong = i1 - i2;
+                        }
+                        e->E1 = ec1;
+                        e->E2->Eoper = OPmul;
+                        e->E2->Ety = ty;
+                        e->E2->E1 = e1;
+                        e->Eoper = OPadd;
+                        return optelem(e,GOALvalue);
+                    }
+
+                    /* If b is an integer with only 1 bit set then
+                     *   replace ((a & b) ? b : 0) with (a & b)
+                     *   replace ((a & b) ? 0 : b) with ((a & b) ^ b)
+                     */
+                    if (e1->Eoper == OPand && e1->E2->Eoper == OPconst && ispow2(b) != -1) // if only 1 bit is set
                     {
                         if (b == i1 && i2 == 0)
                         {   e = el_selecte1(e);
@@ -1953,14 +1998,14 @@ STATIC elem * elcond(elem *e, goal_t goal)
                 // code for without using jumps.
 
                 // Try to replace (!e1) with (e1 < 1)
-                else if (e1->Eoper == OPnot && !OTrel(e1->E1->Eoper))
+                else if (e1->Eoper == OPnot && !OTrel(e1->E1->Eoper) && e1->E1->Eoper != OPand)
                 {
                     e->E1 = el_bin(OPlt,TYint,e1->E1,el_long(touns(e1->E1->Ety),1));
                     e1->E1 = NULL;
                     el_free(e1);
                 }
                 // Try to replace (e1) with (e1 >= 1)
-                else if (!OTrel(e1->Eoper))
+                else if (!OTrel(e1->Eoper) && e1->Eoper != OPand)
                 {
                     if (tyfv(e1->Ety))
                     {
@@ -2227,13 +2272,11 @@ STATIC elem * elmod(elem *e, goal_t goal)
  */
 
 STATIC elem * eldiv(elem *e, goal_t goal)
-{   elem *e2;
-    tym_t tym;
-    int uns;
-
-    e2 = e->E2;
-    tym = e->E1->Ety;
-    uns = tyuns(tym) | tyuns(e2->Ety);
+{
+    //printf("eldiv()\n");
+    elem *e2 = e->E2;
+    tym_t tym = e->E1->Ety;
+    int uns = tyuns(tym) | tyuns(e2->Ety);
     if (cnst(e2))
     {
 #if 0 && MARS
@@ -2280,6 +2323,70 @@ STATIC elem * eldiv(elem *e, goal_t goal)
 
     if (OPTIMIZER)
     {
+        elem *e1 = e->E1;
+        if (tyintegral(tym) && e->Eoper == OPdiv && e2->Eoper == OPconst &&
+            e1->Eoper == OPdiv && e1->E2->Eoper == OPconst)
+        {
+            /* Replace:
+             *   (e / c1) / c2
+             * With:
+             *   e / (c1 * c2)
+             */
+            targ_llong c1 = el_tolong(e1->E2);
+            targ_llong c2 = el_tolong(e2);
+            int uns1 = tyuns(e1->E1->Ety) || tyuns(e1->E2->Ety);
+            int uns2 = tyuns(e1->Ety) || tyuns(e2->Ety);
+            if (uns1 == uns2)   // identity doesn't hold for mixed sign case
+            {
+                // The transformation will fail if c1*c2 overflows. This substitutes
+                // for a proper overflow check.
+                if (uns1 ? (c1 < 0x10000000 && c2 < 0x10000000)
+                         : (-0x1000000 < c1 && c1 < 0x1000000 && -0x1000000 < c2 && c2 < 0x1000000))
+                {
+                    e->E1 = e1->E1;
+                    e1->E1 = e1->E2;
+                    e1->E2 = e2;
+                    e->E2 = e1;
+                    e1->Eoper = OPmul;
+                    return optelem(e, GOALvalue);
+                }
+            }
+        }
+
+        if (tyintegral(tym) && e->Eoper == OPdiv && e2->Eoper == OPconst &&
+            e1->Eoper == OP64_32 &&
+            e1->E1->Eoper == OPremquo && e1->E1->E2->Eoper == OPconst)
+        {
+            /* Replace:
+             *   (64_32 (e /% c1)) / c2
+             * With:
+             *   e / (c1 * c2)
+             */
+            elem *erq = e1->E1;
+            targ_llong c1 = el_tolong(erq->E2);
+            targ_llong c2 = el_tolong(e2);
+            int uns1 = tyuns(erq->E1->Ety) || tyuns(erq->E2->Ety);
+            int uns2 = tyuns(e1->Ety) || tyuns(e2->Ety);
+            if (uns1 == uns2)   // identity doesn't hold for mixed sign case
+            {
+                // The transformation will fail if c1*c2 overflows. This substitutes
+                // for a proper overflow check.
+                if (uns1 ? (c1 < 0x10000000 && c2 < 0x10000000)
+                         : (-0x1000000 < c1 && c1 < 0x1000000 && -0x1000000 < c2 && c2 < 0x1000000))
+                {
+                    e->E1 = erq->E1;
+                    erq->E1 = erq->E2;
+                    erq->E2 = e2;
+                    e->E2 = erq;
+                    erq->Eoper = OPmul;
+                    erq->Ety = e1->Ety;
+                    e1->E1 = NULL;
+                    el_free(e1);
+                    return optelem(e, GOALvalue);
+                }
+            }
+        }
+
         if (tyintegral(tym) && (e->Eoper == OPdiv || e->Eoper == OPmod))
         {   int sz = tysize(tym);
 
@@ -2292,9 +2399,9 @@ STATIC elem * eldiv(elem *e, goal_t goal)
                 // Don't do it if there are special code sequences in the
                 // code generator (see cdmul())
                 int pow2;
-                if (e->E2->Eoper == OPconst &&
+                if (e2->Eoper == OPconst &&
                     !uns &&
-                    (pow2 = ispow2(el_tolong(e->E2))) != -1 &&
+                    (pow2 = ispow2(el_tolong(e2))) != -1 &&
                     !(config.target_cpu < TARGET_80286 && pow2 != 1 && e->Eoper == OPdiv)
                    )
                     ;
