@@ -1910,9 +1910,10 @@ STATIC elem * elcond(elem *e, goal_t goal)
                 {
                     targ_llong b = ty1 == TYbool ? 1 : el_tolong(e1->E2);
 
-                    if (b == 1 && ispow2(i1 - i2))
+                    if (b == 1 && ispow2(i1 - i2) != -1)
                     {
-                        // replace (e1 ? i1 : i2) with (i1 + e1 * (i2 - i1))
+                        // replace (e1 ? i1 : i2) with (i1 + (e1 ^ 1) * (i2 - i1))
+                        // replace (e1 ? i2 : i1) with (i1 + e1 * (i2 - i1))
                         int sz = tysize(e1->Ety);
                         while (sz < tysize(ec1->Ety))
                         {
@@ -1922,19 +1923,18 @@ STATIC elem * elcond(elem *e, goal_t goal)
                                 case 1:
                                     e1 = el_una(OPu8_16, TYushort, e1);
                                     sz = 2;
-                                    continue;
+                                    break;
                                 case 2:
                                     e1 = el_una(OPu16_32, TYulong, e1);
                                     sz = 4;
-                                    continue;
+                                    break;
                                 case 4:
                                     e1 = el_una(OPu32_64, TYullong, e1);
                                     sz = 8;
-                                    continue;
+                                    break;
                                 default:
                                     assert(0);
                             }
-                            break;
                         }
                         if (i1 < i2)
                         {
@@ -2386,6 +2386,10 @@ STATIC elem * eldiv(elem *e, goal_t goal)
                 }
             }
         }
+
+        /* TODO: (i*c1)/c2 => i*(c1/c2) if (c1%c2)==0
+         * TODO: i/(x?c1:c2) => i>>(x?log2(c1):log2(c2)) if c1 and c2 are powers of 2
+         */
 
         if (tyintegral(tym) && (e->Eoper == OPdiv || e->Eoper == OPmod))
         {   int sz = tysize(tym);
