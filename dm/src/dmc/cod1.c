@@ -41,7 +41,6 @@ enum MF
         MFdouble        = 2,
         MFword          = 3
 };
-code * genf2(code *c,unsigned op,unsigned rm);
 
 targ_size_t paramsize(elem *e);
 static void funccall(CodeBuilder& cdb,elem *,unsigned,unsigned,regm_t *,regm_t,bool);
@@ -4285,7 +4284,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             {
                 if (I64 && regsize == 8 && value != (int)value)
                 {
-                    cdb.append(regwithvalue(CNIL,allregs,value,&reg,64));
+                    regwithvalue(cdb,allregs,value,&reg,64);
                     goto Preg;          // cannot push imm64 unless it is sign extended 32 bit value
                 }
                 if (regsize == REGSIZE && reghasvalue(allregs,value,&reg))
@@ -4294,7 +4293,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             }
             else
             {
-                cdb.append(regwithvalue(CNIL,allregs,value,&reg,0));
+                regwithvalue(cdb,allregs,value,&reg,0);
             Preg:
                 cdb.append(genpush(CNIL,reg));         // PUSH reg
             }
@@ -4381,7 +4380,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             }
             if (LARGEDATA)
                 cdb.last()->Iflags |= CFss;     // want to store into stack
-            cdb.append(genfwait(CNIL));         // FWAIT
+            genfwait(cdb);         // FWAIT
             return;
         }
         else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
@@ -4621,7 +4620,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 targ_size_t value = e->EV.Vuns;
                 if (sz == 8)
                     value = e->EV.Vullong;
-                cdb.append(regwithvalue(CNIL,ALLREGS, value,&r,flags));
+                regwithvalue(cdb,ALLREGS, value,&r,flags);
                 flags = 0;                          // flags are already set
                 cdb.genfltreg(0x89,r,0);            // MOV floatreg,r
                 if (sz == 8)

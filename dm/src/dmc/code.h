@@ -449,7 +449,6 @@ void prolog_frameadj(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool ente
 void prolog_frameadj2(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool* pushalloc);
 void prolog_setupalloca(CodeBuilder& cdb);
 void prolog_saveregs(CodeBuilder& cdb, regm_t topush, int cfa_offset);
-code* epilog_restoreregs(code *c, regm_t topop);
 void prolog_trace(CodeBuilder& cdb, bool farfunc, unsigned* regsaved);
 void prolog_gen_win64_varargs(CodeBuilder& cdb);
 void prolog_genvarargs(CodeBuilder& cdb, symbol* sv, regm_t* namedargs);
@@ -494,7 +493,7 @@ void save87regs(CodeBuilder& cdb, unsigned n);
 void gensaverestore87(regm_t, code **, code **);
 code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
 code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym);
-code *genfwait(code *c);
+void genfwait(CodeBuilder& cdb);
 void comsub87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 void fixresult87(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);
 void fixresult_complex87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs);
@@ -548,9 +547,6 @@ void code_orflag(code *c,unsigned flag);
 void code_orrex(code *c,unsigned rex);
 code *setOpcode(code *c, code *cs, unsigned op);
 code *cat(code *c1, code *c2);
-code * cat3 (code *c1 , code *c2 , code *c3 );
-code * cat4 (code *c1 , code *c2 , code *c3 , code *c4 );
-code * cat6 (code *c1 , code *c2 , code *c3 , code *c4 , code *c5 , code *c6 );
 code *gen (code *c , code *cs );
 code *gen1 (code *c , unsigned op );
 code *gen2 (code *c , unsigned op , unsigned rm );
@@ -568,7 +564,7 @@ code *genadjfpu(code *c, int offset);
 code *gennop(code *);
 void gencodelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag);
 bool reghasvalue (regm_t regm , targ_size_t value , unsigned *preg );
-code *regwithvalue (code *c , regm_t regm , targ_size_t value , unsigned *preg , regm_t flags );
+void regwithvalue(CodeBuilder& cdb, regm_t regm, targ_size_t value, unsigned *preg, regm_t flags);
 
 // cgreg.c
 void cgreg_init();
