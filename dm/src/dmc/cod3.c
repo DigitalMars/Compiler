@@ -807,7 +807,7 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             if (nextb != bl->Bnext)
             {
                 assert(!(bl->Bflags & BFLepilog));
-                cdb.append(genjmp(CNIL,JMP,FLblock,nextb));
+                genjmp(cdb,JMP,FLblock,nextb);
             }
             break;
 
@@ -1222,7 +1222,7 @@ static void cmpval(CodeBuilder& cdb, targ_llong val, unsigned sz, unsigned reg, 
     {
         cdb.genc2(0x81,modregrm(3,7,reg2),MSREG(val));  // CMP reg2,MSREG(casevalue)
         code *cnext = gennop(CNIL);
-        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnext));  // JNE cnext
+        genjmp(cdb,JNE,FLcode,(block *) cnext);  // JNE cnext
         cdb.genc2(0x81,modregrm(3,7,reg),val);          // CMP reg,casevalue
         cdb.append(cnext);
     }
@@ -1246,9 +1246,9 @@ static void ifthen(CodeBuilder& cdb, CaseVal *casevals, size_t ncases,
 
         // Compare for caseval[pivot]
         cmpval(cdb, casevals[pivot].val, sz, reg, reg2, sreg);
-        cdb.append(genjmp(CNIL,JE,FLblock,casevals[pivot].target)); // JE target
+        genjmp(cdb,JE,FLblock,casevals[pivot].target); // JE target
         // Note unsigned jump here, as cases were sorted using unsigned comparisons
-        cdb.append(genjmp(CNIL,JA,FLcode,(block *) c2));           // JG c2
+        genjmp(cdb,JA,FLcode,(block *) c2);           // JG c2
 
         cdb.append(cdb1);
         cdb.append(c2);
@@ -1264,15 +1264,15 @@ static void ifthen(CodeBuilder& cdb, CaseVal *casevals, size_t ncases,
             if (reg2 != NOREG)
             {
                 cnext = gennop(CNIL);
-                cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnext));  // JNE cnext
+                genjmp(cdb,JNE,FLcode,(block *) cnext);  // JNE cnext
                 cdb.genc2(0x81,modregrm(3,7,reg2),MSREG(val));   // CMP reg2,MSREG(casevalue)
             }
-            cdb.append(genjmp(CNIL,JE,FLblock,casevals[n].target));   // JE caseaddr
+            genjmp(cdb,JE,FLblock,casevals[n].target);   // JE caseaddr
             cdb.append(cnext);
         }
 
         if (last)       // if default is not next block
-            cdb.append(genjmp(CNIL,JMP,FLblock,bdefault));
+            genjmp(cdb,JMP,FLblock,bdefault);
     }
 }
 
@@ -1368,7 +1368,7 @@ void doswitch(CodeBuilder& cdb, block *b)
         if (dword && mswsame)
         {
             cdb.genc2(0x81,modregrm(3,7,reg2),msw);   // CMP reg2,MSW
-            cdb.append(genjmp(CNIL,JNE,FLblock,bdefault));  // JNE default
+            genjmp(cdb,JNE,FLblock,bdefault);  // JNE default
             reg2 = NOREG;
         }
 
@@ -1445,19 +1445,19 @@ void doswitch(CodeBuilder& cdb, block *b)
             cdb.genc2(0x81,modregrm(3,5,reg),vmin); // SUB reg,vmin
             if (dword)
             {   cdb.genc2(0x81,modregrm(3,3,reg2),MSREG(vmin)); // SBB reg2,vmin
-                cdb.append(genjmp(CNIL,JNE,FLblock,b->nthSucc(0))); // JNE default
+                genjmp(cdb,JNE,FLblock,b->nthSucc(0)); // JNE default
             }
         }
         else if (dword)
         {   cdb.append(gentstreg(CNIL,reg2));              // TEST reg2,reg2
-            cdb.append(genjmp(CNIL,JNE,FLblock,b->nthSucc(0))); // JNE default
+            genjmp(cdb,JNE,FLblock,b->nthSucc(0)); // JNE default
         }
         if (vmax - vmin != REGMASK)     // if there is a maximum
         {                               // CMP reg,vmax-vmin
             cdb.genc2(0x81,modregrm(3,7,reg),vmax-vmin);
             if (I64)
                 code_orrex(cdb.last(), REX_W);
-            cdb.append(genjmp(CNIL,JA,FLblock,b->nthSucc(0)));  // JA default
+            genjmp(cdb,JA,FLblock,b->nthSucc(0));  // JA default
         }
         if (I64)
         {
@@ -1523,7 +1523,7 @@ void doswitch(CodeBuilder& cdb, block *b)
                         break;
                     }
                 }
-                ctable.append(genjmp(CNIL,JMP,FLblock,targ));
+                genjmp(ctable,JMP,FLblock,targ);
                 ctable.last()->Iflags |= CFjmp5;           // don't shrink these
                 if (u == vmax)
                     break;
@@ -1620,7 +1620,7 @@ void doswitch(CodeBuilder& cdb, block *b)
         if (dword && mswsame)
         {   /* CMP DX,MSW       */
             cdb.genc2(0x81,modregrm(3,7,DX),msw);
-            cdb.append(genjmp(CNIL,JNE,FLblock,b->nthSucc(0))); // JNE default
+            genjmp(cdb,JNE,FLblock,b->nthSucc(0)); // JNE default
         }
         getregs(cdb,mCX|mDI);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -1682,7 +1682,7 @@ void doswitch(CodeBuilder& cdb, block *b)
             code *cloop = genc2(CNIL,0xE0,0,-7 - mod - csseg);   // LOOPNE scasw
             cdb.gen1(0xAF);                                      // SCASW
             code_orflag(cdb.last(),CFtarg2);                     // target of jump
-            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cloop)); // JNE loop
+            genjmp(cdb,JNE,FLcode,(block *) cloop); // JNE loop
                                                                  // CMP DX,[CS:]disp[DI]
             cdb.genc1(0x39,modregrm(mod,DX,5),FLconst,disp);
             cdb.last()->Iflags |= csseg ? CFcs : 0;              // possible seg override
@@ -1694,7 +1694,7 @@ void doswitch(CodeBuilder& cdb, block *b)
             cdb.gen1(0xF2);              // REPNE
             cdb.gen1(0xAF);              // SCASW
         }
-        cdb.append(genjmp(CNIL,JNE,FLblock,b->nthSucc(0))); // JNE default
+        genjmp(cdb,JNE,FLblock,b->nthSucc(0)); // JNE default
         const int mod = (disp > 127) ? 2 : 1;     // 1 or 2 byte displacement
         if (csseg)
             cdb.gen1(SEGCS);            // table is in code segment
@@ -2816,40 +2816,45 @@ L1:
  * Generate a jump instruction.
  */
 
-code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
-{   code cs;
-    code *cj;
-    code *cnop;
-
+void genjmp(CodeBuilder& cdb,unsigned op,unsigned fltarg,block *targ)
+{
+    code cs;
     cs.Iop = op & 0xFF;
     cs.Iflags = 0;
     cs.Irex = 0;
     if (op != JMP && op != 0xE8)        // if not already long branch
-          cs.Iflags = CFjmp16;          /* assume long branch for op = 0x7x */
-    cs.IFL2 = fltarg;                   /* FLblock (or FLcode)          */
-    cs.IEV2.Vblock = targ;              /* target block (or code)       */
+          cs.Iflags = CFjmp16;          // assume long branch for op = 0x7x
+    cs.IFL2 = fltarg;                   // FLblock (or FLcode)
+    cs.IEV2.Vblock = targ;              // target block (or code)
     if (fltarg == FLcode)
         ((code *)targ)->Iflags |= CFtarg;
 
     if (config.flags4 & CFG4fastfloat)  // if fast floating point
-        return gen(c,&cs);
-
-    cj = gen(CNIL,&cs);
-    switch (op & 0xFF00)                /* look at second jump opcode   */
     {
-        /* The JP and JNP come from floating point comparisons          */
+        cdb.gen(&cs);
+        return;
+    }
+
+    switch (op & 0xFF00)                // look at second jump opcode
+    {
+        // The JP and JNP come from floating point comparisons
         case JP << 8:
+            cdb.gen(&cs);
             cs.Iop = JP;
-            gen(cj,&cs);
+            cdb.gen(&cs);
             break;
         case JNP << 8:
-            /* Do a JP around the jump instruction      */
-            cnop = gennop(CNIL);
-            c = genjmp(c,JP,FLcode,(block *) cnop);
-            cat(cj,cnop);
+        {
+            // Do a JP around the jump instruction
+            code *cnop = gennop(CNIL);
+            genjmp(cdb,JP,FLcode,(block *) cnop);
+            cdb.gen(&cs);
+            cdb.append(cnop);
             break;
-        case 1 << 8:                    /* toggled no jump              */
+        }
+        case 1 << 8:                    // toggled no jump
         case 0 << 8:
+            cdb.gen(&cs);
             break;
         default:
 #ifdef DEBUG
@@ -2857,7 +2862,6 @@ code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
 #endif
             assert(0);
     }
-    return cat(c,cj);
 }
 
 /*********************************************
@@ -3237,7 +3241,7 @@ void prolog_saveregs(CodeBuilder& cdb, regm_t topush, int cfa_offset)
  * Undo prolog_saveregs()
  */
 
-code* epilog_restoreregs(code *c, regm_t topop)
+static void epilog_restoreregs(CodeBuilder& cdb, regm_t topop)
 {
 #ifdef DEBUG
     if (topop & ~(XMMREGS | 0xFFFF))
@@ -3262,12 +3266,12 @@ code* epilog_restoreregs(code *c, regm_t topop)
                 if (hasframe)
                 {
                     // MOVUPD xmm,xmmoffset[EBP]
-                    c = genc1(c,LODUPD,modregxrm(2,reg-XMM0,BPRM),FLconst,xmmoffset);
+                    cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,BPRM),FLconst,xmmoffset);
                 }
                 else
                 {
                     // MOVUPD xmm,xmmoffset[ESP]
-                    c = genc1(c,LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,xmmoffset);
+                    cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,xmmoffset);
                 }
                 xmmoffset += 16;
             }
@@ -3276,15 +3280,15 @@ code* epilog_restoreregs(code *c, regm_t topop)
                 if (hasframe)
                 {
                     // MOV reg,gpoffset[EBP]
-                    c = genc1(c,0x8B,modregxrm(2,reg,BPRM),FLconst,gpoffset);
+                    cdb.genc1(0x8B,modregxrm(2,reg,BPRM),FLconst,gpoffset);
                 }
                 else
                 {
                     // MOV reg,gpoffset[ESP]
-                    c = genc1(c,0x8B,modregxrm(2,reg,4) + 256*modregrm(0,4,SP),FLconst,gpoffset);
+                    cdb.genc1(0x8B,modregxrm(2,reg,4) + 256*modregrm(0,4,SP),FLconst,gpoffset);
                 }
                 if (I64)
-                    code_orrex(c, REX_W);
+                    code_orrex(cdb.last(), REX_W);
                 gpoffset += REGSIZE;
             }
         }
@@ -3302,15 +3306,15 @@ code* epilog_restoreregs(code *c, regm_t topop)
                 if (reg >= XMM0)
                 {
                     // MOVUPD xmm,0[RSP]
-                    c = genc1(c,LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
+                    cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
                     // ADD RSP,16
-                    c = cod3_stackadj(c, -16);
+                    cdb.append(cod3_stackadj(CNIL, -16));
                 }
                 else
                 {
-                    c = gen1(c,0x58 + (reg & 7));         // POP reg
+                    cdb.gen1(0x58 + (reg & 7));         // POP reg
                     if (reg & 8)
-                        code_orrex(c, REX_B);
+                        code_orrex(cdb.last(), REX_B);
                 }
                 topop &= ~regm;
             }
@@ -3318,7 +3322,6 @@ code* epilog_restoreregs(code *c, regm_t topop)
             reg--;
         }
     }
-    return c;
 }
 
 #if SCPP
@@ -3846,7 +3849,7 @@ void epilog(block *b)
      * order they were pushed.
      */
     topop = fregsaved & ~mfuncreg;
-    cdbx.append(epilog_restoreregs(CNIL, topop));
+    epilog_restoreregs(cdbx, topop);
 
 #if MARS
     if (usednteh & NTEHjmonitor)
@@ -3918,7 +3921,7 @@ void epilog(block *b)
                     cdbx.append(genregs(CNIL,0x39,SP,BP));                // CMP EBP,ESP
                     if (I64)
                         code_orrex(cdbx.last(),REX_W);
-                    cdbx.append(genjmp(CNIL,JNE,FLcode,(block *)c1));     // JNE L1
+                    genjmp(cdbx,JNE,FLcode,(block *)c1);                  // JNE L1
                     // explicitly mark as short jump, needed for correct retsize calculation (Bugzilla 15779)
                     cdbx.last()->Iflags &= ~CFjmp16;
                     cdbx.gen1(0x58 + BP);                                 // POP BP
@@ -4110,22 +4113,22 @@ code* gen_spill_reg(Symbol* s, bool toreg)
 
 void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
         unsigned d,int i,unsigned d2)
-{   code *c,*c1;
+{
     targ_size_t thunkoffset;
-    tym_t thunkty;
 
     int seg = sthunk->Sseg;
     cod3_align(seg);
 
-    /* Skip over return address */
-    thunkty = tybasic(sthunk->ty());
+    // Skip over return address
+    tym_t thunkty = tybasic(sthunk->ty());
 #if TARGET_SEGMENTED
     if (tyfarfunc(thunkty))
-        p += I32 ? 8 : tysize(TYfptr);          /* far function */
+        p += I32 ? 8 : tysize(TYfptr);          // far function
     else
 #endif
         p += tysize(TYnptr);
 
+    CodeBuilder cdb;
     if (!I16)
     {
         /*
@@ -4146,30 +4149,28 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
         }
         if (thunkty == TYmfunc)
         {                                       // ADD ECX,d
-            c = CNIL;
             if (d)
-                c = genc2(c,0x81,modregrm(3,reg,CX),d);
+                cdb.genc2(0x81,modregrm(3,reg,CX),d);
         }
         else if (thunkty == TYjfunc || (I64 && thunkty == TYnfunc))
         {                                       // ADD EAX,d
-            c = CNIL;
             int rm = AX;
             if (config.exe == EX_WIN64)
                 rm = CX;
             else if (I64)
                 rm = DI;
             if (d)
-                c = genc2(c,0x81,modregrm(3,reg,rm),d);
+                cdb.genc2(0x81,modregrm(3,reg,rm),d);
         }
         else
         {
-            c = genc(CNIL,0x81,modregrm(2,reg,4),
+            cdb.genc(0x81,modregrm(2,reg,4),
                 FLconst,p,                      // to this
                 FLconst,d);                     // ADD p[ESP],d
-            c->Isib = modregrm(0,4,SP);
+            cdb.last()->Isib = modregrm(0,4,SP);
         }
-        if (I64 && c)
-            c->Irex |= REX_W;
+        if (I64 && cdb.peek())
+            cdb.last()->Irex |= REX_W;
     }
     else
     {
@@ -4185,79 +4186,75 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
             JMP i[BX]                           jump to virtual function
          */
 
-        c = genregs(CNIL,0x89,SP,BX);                   /* MOV BX,SP    */
-        c1 = genc(CNIL,0x81,modregrm(2,0,7),
-            FLconst,p,                                  /* to this      */
-            FLconst,d);                                 /* ADD p[BX],d  */
+        cdb.append(genregs(CNIL,0x89,SP,BX));           // MOV BX,SP
+        cdb.genc(0x81,modregrm(2,0,7),
+            FLconst,p,                                  // to this
+            FLconst,d);                                 // ADD p[BX],d
         if (config.wflags & WFssneds ||
             // If DS needs reloading from SS,
             // then assume SS != DS on thunk entry
             (LARGEDATA && config.wflags & WFss))
-            c1->Iflags |= CFss;                         /* SS:          */
-        c = cat(c,c1);
+            cdb.last()->Iflags |= CFss;                 // SS:
     }
 
-    if ((i & 0xFFFF) != 0xFFFF)                 /* if virtual call      */
-    {   code *c2,*c3;
+    if ((i & 0xFFFF) != 0xFFFF)                 // if virtual call
+    {
 
 #define FARTHIS (tysize(thisty) > REGSIZE)
 #define FARVPTR FARTHIS
 
 #if TARGET_SEGMENTED
-        assert(thisty != TYvptr);               /* can't handle this case */
+        assert(thisty != TYvptr);               // can't handle this case
 #endif
 
         if (!I16)
         {
             assert(!FARTHIS && !LARGECODE);
             if (thunkty == TYmfunc)     // if 'this' is in ECX
-            {   c1 = CNIL;
-
+            {
                 // MOV EAX,d2[ECX]
-                c2 = genc1(CNIL,0x8B,modregrm(2,AX,CX),FLconst,d2);
+                cdb.genc1(0x8B,modregrm(2,AX,CX),FLconst,d2);
             }
             else if (thunkty == TYjfunc)        // if 'this' is in EAX
-            {   c1 = CNIL;
-
+            {
                 // MOV EAX,d2[EAX]
-                c2 = genc1(CNIL,0x8B,modregrm(2,AX,AX),FLconst,d2);
+                cdb.genc1(0x8B,modregrm(2,AX,AX),FLconst,d2);
             }
             else
             {
                 // MOV EAX,p[ESP]
-                c1 = genc1(CNIL,0x8B,(modregrm(0,4,SP) << 8) | modregrm(2,AX,4),FLconst,(targ_uns) p);
+                cdb.genc1(0x8B,(modregrm(0,4,SP) << 8) | modregrm(2,AX,4),FLconst,(targ_uns) p);
                 if (I64)
-                    c1->Irex |= REX_W;
+                    cdb.last()->Irex |= REX_W;
 
                 // MOV EAX,d2[EAX]
-                c2 = genc1(CNIL,0x8B,modregrm(2,AX,AX),FLconst,d2);
+                cdb.genc1(0x8B,modregrm(2,AX,AX),FLconst,d2);
             }
             if (I64)
-                code_orrex(c2, REX_W);
-                                                        /* JMP i[EAX]   */
-            c3 = genc1(CNIL,0xFF,modregrm(2,4,0),FLconst,(targ_uns) i);
+                code_orrex(cdb.last(), REX_W);
+                                                        // JMP i[EAX]
+            cdb.genc1(0xFF,modregrm(2,4,0),FLconst,(targ_uns) i);
         }
         else
         {
-            /* MOV/LES BX,[SS:] p[BX]   */
-            c1 = genc1(CNIL,(FARTHIS ? 0xC4 : 0x8B),modregrm(2,BX,7),FLconst,(targ_uns) p);
+            // MOV/LES BX,[SS:] p[BX]
+            cdb.genc1((FARTHIS ? 0xC4 : 0x8B),modregrm(2,BX,7),FLconst,(targ_uns) p);
             if (config.wflags & WFssneds ||
                 // If DS needs reloading from SS,
                 // then assume SS != DS on thunk entry
                 (LARGEDATA && config.wflags & WFss))
-                c1->Iflags |= CFss;                     /* SS:          */
+                cdb.last()->Iflags |= CFss;             // SS:
 
-            /* MOV/LES BX,[ES:]d2[BX] */
-            c2 = genc1(CNIL,(FARVPTR ? 0xC4 : 0x8B),modregrm(2,BX,7),FLconst,d2);
+            // MOV/LES BX,[ES:]d2[BX]
+            cdb.genc1((FARVPTR ? 0xC4 : 0x8B),modregrm(2,BX,7),FLconst,d2);
             if (FARTHIS)
-                c2->Iflags |= CFes;                     /* ES:          */
+                cdb.last()->Iflags |= CFes;             // ES:
 
-                                                        /* JMP i[BX]    */
-            c3 = genc1(CNIL,0xFF,modregrm(2,(LARGECODE ? 5 : 4),7),FLconst,(targ_uns) i);
+                                                        // JMP i[BX]
+            cdb.genc1(0xFF,modregrm(2,(LARGECODE ? 5 : 4),7),FLconst,(targ_uns) i);
             if (FARVPTR)
-                c3->Iflags |= CFes;                     /* ES:          */
+                cdb.last()->Iflags |= CFes;             // ES:
         }
-        c = cat4(c,c1,c2,c3);
     }
     else
     {
@@ -4266,21 +4263,21 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
         code *c1 = load_localgot();
         if (c1)
         {   assignaddrc(c1);
-            c = cat(c, c1);
+            cdb.append(c1);
         }
 #endif
-        code *c1 = gencs(CNIL,(LARGECODE ? 0xEA : 0xE9),0,FLfunc,sfunc); /* JMP sfunc */
-        c1->Iflags |= LARGECODE ? (CFseg | CFoff) : (CFselfrel | CFoff);
-        c = cat(c,c1);
+        cdb.gencs((LARGECODE ? 0xEA : 0xE9),0,FLfunc,sfunc); // JMP sfunc
+        cdb.last()->Iflags |= LARGECODE ? (CFseg | CFoff) : (CFselfrel | CFoff);
     }
 
     thunkoffset = Offset(seg);
+    code *c = cdb.finish();
     pinholeopt(c,NULL);
     codout(seg,c);
     code_free(c);
 
     sthunk->Soffset = thunkoffset;
-    sthunk->Ssize = Offset(seg) - thunkoffset; /* size of thunk */
+    sthunk->Ssize = Offset(seg) - thunkoffset; // size of thunk
     sthunk->Sseg = seg;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     objmod->pubdef(seg,sthunk,sthunk->Soffset);
@@ -4289,7 +4286,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
     if (config.objfmt == OBJ_MSCOFF)
         objmod->pubdef(seg,sthunk,sthunk->Soffset);
 #endif
-    searchfixlist(sthunk);              /* resolve forward refs */
+    searchfixlist(sthunk);              // resolve forward refs
 }
 
 /*****************************
