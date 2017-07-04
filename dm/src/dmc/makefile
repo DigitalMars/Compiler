@@ -15,7 +15,7 @@ CBX=.
 DMC=\dm
 NTDLLSHELL=ntdllshell
 TK=tk
-INCLUDE=-I$(TK);$(NTDLLSHELL)\include;\dm\include
+INCLUDE=-I$(TK);$(NTDLLSHELL)\include;$(DMC)\include
 CC=dmc
 LIBNT=$(DMC)\lib
 SNN=$(LIBNT)\snn
@@ -150,11 +150,11 @@ debppnd:
 
 OBJ1a=blklst.obj blockopt.obj cpp.obj debug.obj ee.obj el.obj enum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
-OBJ1c=getcmd.obj ini.obj init.obj inline.obj loadline.obj msc.obj
+OBJ1c=getcmd.obj ini.obj init.obj loadline.obj msc.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=struct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj
-OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj
+OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj code.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj
@@ -268,6 +268,12 @@ msgsx.exe : msgsx.c
 
 RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 
+DSRC=   \
+        bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d \
+        dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
+        mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
+	dinline.d divcoeff.d loadline.d
+
 SRC=    tassert.h html.h html.c \
         ini.c cgcv.h cv4.h tdb.h loadline.d ppexp.c errmsgs2.c tdbx.c \
         allocast.h go.h iasm.h cg.c scdll.h objrecor.c rtlsym.c util.c \
@@ -279,17 +285,19 @@ SRC=    tassert.h html.h html.c \
         code.c el.c el.h ptrntab.c cpp.c func.c debug.c struct.c evalu8.c os.c \
         exp2.c blockopt.c exp.c gdag.c gflow.c gother.c global.h oper.h \
         optabgen.c cgcs.c cgcv.c go.c var.c cod2.c cc.h gloop.c msc.c cod3.c \
-        code.h cgsched.c cgen.c ph.c cgreg.c inline.c cgcod.c token.c \
+        code.h cgsched.c cgen.c ph.c cgreg.c cgcod.c token.c \
         pragma.c cod1.c cg87.c cgxmm.c cod4.c cgobj.c nwc.c getcmd.c tk.c cdef.h \
         cgelem.c rtlsym.h dt.c strtold.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
         ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
-	backconfig.c ph2.c util2.c divcoeff.d dwarf.h dwarf.c dwarfeh.c \
-	elfobj.c elfobj1.c machobj.c compress.c varstats.h varstats.c gsroa.c
+        backconfig.c ph2.c util2.c dwarf.h dwarf.c dwarfeh.c \
+        elfobj.c elfobj1.c machobj.c compress.c varstats.h varstats.c gsroa.c \
+	$(DSRC)
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
-        $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c
+        $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c \
+        $(TK)\dlist.d
 
 SHELLSRC= $(NTDLLSHELL)\include\dllrun.h $(NTDLLSHELL)\include\network.h \
         $(NTDLLSHELL)\include\nsidde.h $(NTDLLSHELL)\include\netspawn.h
@@ -379,6 +387,12 @@ divcoeff.obj : divcoeff.d
 loadline.obj : loadline.d msgs2.d
         $(DMD) -c -O -release -betterC loadline.d
 
+dinline.obj : dinline.d
+        $(DMD) -c -O -release -inline -betterC -d -mv=ddmd.backend=. -mv=tk=tk -version=$(TARGET) dinline.d
+
+oper.obj : oper.d
+        $(DMD) -c -O -release -betterC -d -mv=ddmd.backend=. -mv=tk=tk -version=$(TARGET) oper.d
+
 ################# Source file dependencies ###############
 
 DEP=total.sym msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
@@ -416,7 +430,6 @@ gloop.obj : $(DEP) $(gloop.dep) gloop.c
 htod.obj : $(DEP) $(htod.dep) htod.c
 html.obj : $(DEP) $(html.dep) html.c
 init.obj : $(DEP) $(init.dep) init.c
-inline.obj : $(DEP) $(inline.dep) inline.c
 msc.obj : $(DEP) $(msc.dep) msc.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 objrecor.obj : $(DEP) $(objrecor.dep) objrecor.c

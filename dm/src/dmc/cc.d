@@ -166,12 +166,20 @@ struct Srcpos
 {
     uint Slinnum;           // 0 means no info available
     uint Scharnum;
-//#if SPP || SCPP
-//    struct Sfile **Sfilptr;     // file
-//    #define srcpos_sfile(p)     (**(p).Sfilptr)
-//    #define srcpos_name(p)      (srcpos_sfile(p).SFname)
-//    short Sfilnum;              // file number
-//#endif
+    version (SCPP)
+    {
+        Sfile **Sfilptr;            // file
+//      #define srcpos_sfile(p)     (**(p).Sfilptr)
+//      #define srcpos_name(p)      (srcpos_sfile(p).SFname)
+        short Sfilnum;              // file number
+    }
+    version (SPP)
+    {
+        Sfile **Sfilptr;            // file
+//      #define srcpos_sfile(p)     (**(p).Sfilptr)
+//      #define srcpos_name(p)      (srcpos_sfile(p).SFname)
+        short Sfilnum;              // file number
+    }
 
     version (MARS)
     {
@@ -471,7 +479,10 @@ struct block
 
         struct
         {
-            Symbol *jcatchvar;          // __d_throw() fills in this
+            version (MARS)
+            {
+                Symbol *jcatchvar;      // __d_throw() fills in this
+            }
             int Bscope_index;           // index into scope table
             int Blast_index;            // enclosing index into scope table
         }                               // BC_try
@@ -1174,7 +1185,7 @@ struct Symbol
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
     int Salignsize();           // variables: return alignment
     type* Stype;                // type of Symbol
-    //#define ty() Stype->Tty
+    tym_t ty() { return Stype.Tty; }
 
     union                       // variants for different Symbol types
     {

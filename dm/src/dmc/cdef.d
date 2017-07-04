@@ -942,5 +942,5 @@ enum
 }
 
 int ClassInline(int c) { return c == SCinline || c == SCsinline || c == SCeinline; }
-//#define SymInline(s)   ClassInline((s).Sclass)
+int SymInline(Symbol* s) { return ClassInline(s.Sclass); }
 
