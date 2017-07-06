@@ -103,7 +103,7 @@ void constprop()
 {
     rd_compute();
     intranges();                // compute integer ranges
-    //eqeqranges();               // see if we can eliminate some relationals
+    eqeqranges();               // see if we can eliminate some relationals
     elemdatafree(&eqeqlist);
     elemdatafree(&rellist);
     elemdatafree(&inclist);
@@ -1716,7 +1716,7 @@ void verybusyexp()
 
                         /* Mark all the vbe elems found but one (the    */
                         /* go.expnod[j] one) so that the expression will   */
-                        /* only be hoisted again if other occurrances   */
+                        /* only be hoisted again if other occurrences   */
                         /* of the expression are found later. This      */
                         /* will substitute for the fact that the        */
                         /* el_copytree() expression does not appear in go.expnod[]. */
