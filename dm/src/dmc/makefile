@@ -272,7 +272,7 @@ DSRC=   \
         bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
-	dinline.d divcoeff.d loadline.d
+	dinline.d divcoeff.d loadline.d scopeh.d
 
 SRC=    tassert.h html.h html.c \
         ini.c cgcv.h cv4.h tdb.h loadline.d ppexp.c errmsgs2.c tdbx.c \
