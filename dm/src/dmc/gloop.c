@@ -629,6 +629,7 @@ STATIC int looprotate(loop *l)
             list_append(&(head2->Bsucc),list_block(bl));
             list_append(&(list_block(bl)->Bpred),head2);
         }
+        cmes2("1Rotated loop %p\n", l);
         go.changes++;
         return TRUE;
     }
@@ -661,7 +662,7 @@ STATIC int looprotate(loop *l)
         b->Bnext = head->Bnext;
         head->Bnext = tail->Bnext;
         tail->Bnext = head;
-        cmes2( "Rotated loop %p\n", l);
+        cmes2("2Rotated loop %p\n", l);
         go.changes++;
     }
 Lret:
@@ -1005,15 +1006,34 @@ STATIC void markinvar(elem *n,vec_t rd)
                 markinvar(n->E1,rd);
                 tmp = vec_clone(rd);
                 markinvar(n->E2,tmp);
-                vec_orass(rd,tmp);              /* rd |= tmp            */
+                if (!el_noreturn(n->E2))
+                    vec_orass(rd,tmp);              // rd |= tmp
                 vec_free(tmp);
                 break;
         case OPcolon:
         case OPcolon2:
                 tmp = vec_clone(rd);
-                markinvar(n->E1,rd);
-                markinvar(n->E2,tmp);
-                vec_orass(rd,tmp);              /* rd |= tmp            */
+                switch (el_noreturn(n->E1) * 2 | el_noreturn(n->E2))
+                {
+                    case 0:
+                        markinvar(n->E1,rd);
+                        markinvar(n->E2,tmp);
+                        vec_orass(rd,tmp);              // rd |= tmp
+                        break;
+                    case 1:
+                        markinvar(n->E1,rd);
+                        markinvar(n->E2,tmp);
+                        break;
+                    case 2:
+                        markinvar(n->E1,tmp);
+                        markinvar(n->E2,rd);
+                        break;
+                    case 3:
+                        markinvar(n->E1,tmp);
+                        vec_copy(tmp,rd);
+                        markinvar(n->E2,tmp);
+                        break;
+                }
                 vec_free(tmp);
                 break;
         case OPaddr:            // mark addresses of OPvars as LI
