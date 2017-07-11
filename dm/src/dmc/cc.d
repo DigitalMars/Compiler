@@ -15,9 +15,9 @@ module ddmd.backend.cc;
 import tk.dlist;
 import ddmd.backend.cdef;        // host and target compiler definition
 import ddmd.backend.code_x86;
-import ddmd.backend.type;
-import ddmd.backend.el;
 import ddmd.backend.dt;
+import ddmd.backend.el;
+import ddmd.backend.type;
 
 extern (C++):
 @nogc:
@@ -160,6 +160,9 @@ alias enum_TK = ubyte;
 
 __gshared Config config;
 
+uint CPP() { return config.flags3 & CFG3cpp; }
+
+
 /////////// Position in source file
 
 struct Srcpos
@@ -169,15 +172,11 @@ struct Srcpos
     version (SCPP)
     {
         Sfile **Sfilptr;            // file
-//      #define srcpos_sfile(p)     (**(p).Sfilptr)
-//      #define srcpos_name(p)      (srcpos_sfile(p).SFname)
         short Sfilnum;              // file number
     }
     version (SPP)
     {
         Sfile **Sfilptr;            // file
-//      #define srcpos_sfile(p)     (**(p).Sfilptr)
-//      #define srcpos_name(p)      (srcpos_sfile(p).SFname)
         short Sfilnum;              // file number
     }
 
@@ -203,6 +202,18 @@ struct Srcpos
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Srcpos.sizeof); }
 }
+
+version (SCPP)
+{
+    static Sfile srcpos_sfile(Srcpos p) { return **(p).Sfilptr; }
+    static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
+}
+version (SPP)
+{
+    static Sfile srcpos_sfile(Srcpos p) { return **(p).Sfilptr; }
+    static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
+}
+
 
 //#include "token.h"
 
@@ -426,6 +437,7 @@ enum
     BFLoutsideprolog = 0x800,   // outside function prolog/epilog
     BFLlabel         = 0x2000,  // block preceded by label
     BFLvolatile      = 0x4000,  // block is volatile
+    BFLnounroll      = 0x8000,  // do not unroll loop
 }
 
 struct block
@@ -1269,6 +1281,16 @@ struct Symbol
 //#endif
 
     version (SCPP)
+    {
+        Symbol *Scover;             // if there is a tag name and a regular name
+                                    // of the same identifier, Scover is the tag
+                                    // Scover can be SCstruct, SCenum, SCtemplate
+                                    // or an SCalias to them.
+        //#define isscover(s)             ((s)->Sclass == SCstruct || (s)->Sclass == SCenum || (s)->Sclass == SCtemplate)
+        uint Ssequence;             // sequence number (used for 2 level lookup)
+                                    // also used as 'parameter number' for SCTtemparg
+    }
+    version (HTOD)
     {
         Symbol *Scover;             // if there is a tag name and a regular name
                                     // of the same identifier, Scover is the tag

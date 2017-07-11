@@ -167,13 +167,14 @@ struct Thunk;
 struct token_t;
 struct param_t;
 struct block;
-struct Classsym;
+//struct Classsym;
 struct Nspacesym;
 struct Outbuffer;
 struct Aliassym;
 struct dt_t;
 typedef struct TYPE type;
 typedef struct Symbol symbol;
+typedef struct Symbol Classsym;
 typedef Symbol Funcsym;
 struct elem;
 #if !MARS
@@ -430,6 +431,7 @@ enum
     BFLoutsideprolog = 0x800,   // outside function prolog/epilog
     BFLlabel         = 0x2000,  // block preceded by label
     BFLvolatile      = 0x4000,  // block is volatile
+    BFLnounroll      = 0x8000,  // do not unroll loop
 };
 
 struct block
@@ -1320,7 +1322,7 @@ struct Symbol
     unsigned Ssequence;         // sequence number (used for 2 level lookup)
                                 // also used as 'parameter number' for SCTtemparg
 #elif MARS
-    const char *prettyIdent;    // the symbol identifer as the user sees it
+    const char *prettyIdent;    // the symbol identifier as the user sees it
 #endif
 
 //#if TARGET_OSX
@@ -1382,7 +1384,7 @@ struct Symbol
 
 // Class, struct or union
 
-struct Classsym : Symbol { };
+//struct Classsym : Symbol { };
 
 // Namespace Symbol
 struct Nspacesym : Symbol { };
