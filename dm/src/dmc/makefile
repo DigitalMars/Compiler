@@ -153,7 +153,7 @@ debppnd:
 
 #########################################
 
-OBJ1a=blklst.obj blockopt.obj cpp.obj debug.obj ee.obj el.obj enum.obj denum.obj err.obj
+OBJ1a=blklst.obj blockopt.obj cpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=getcmd.obj ini.obj init.obj loadline.obj msc.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
@@ -282,7 +282,7 @@ DSRC=   \
 SRC=    tassert.h html.h html.c \
         ini.c cgcv.h cv4.h tdb.h loadline.d ppexp.c errmsgs2.c tdbx.c \
         allocast.h go.h iasm.h cg.c scdll.h objrecor.c rtlsym.c util.c \
-        total.h exh.h cpp.h iasm.c type.c enum.c nspace.c err.c \
+        total.h exh.h cpp.h iasm.c type.c nspace.c err.c \
         filename.c blklst.c tytostr.c ee.c symbol.c \
         msgsx.c eh.c template.c rtti.c scope.h scope.c token.h outbuf.h \
         outbuf.c trace.c dt.h file.c parser.h cod5.c type.h newman.c out.c \
@@ -435,7 +435,6 @@ dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
 ee.obj : $(DEP) $(ee.dep) ee.c
 eh.obj : $(DEP) $(eh.dep) eh.c
 el.obj : $(DEP) $(el.dep) el.c
-enum.obj : $(DEP) $(enum.dep) enum.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 evalu8.obj : $(DEP) $(evalu8.dep) evalu8.c
 filename.obj : $(DEP) $(filename.dep) filename.c

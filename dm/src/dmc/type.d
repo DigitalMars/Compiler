@@ -130,6 +130,19 @@ extern __gshared
     type* tstrace;
 }
 
+/* Functions    */
+void type_print(type *t);
+void type_free(type *);
+void type_init();
+void type_term();
+type *type_copy(type *);
+elem *type_vla_fix(type **pt);
+type *type_setdim(type **,targ_size_t);
+type *type_setdependent(type *t);
+int type_isdependent(type *t);
+void type_hydrate(type **);
+void type_dehydrate(type **);
+
 targ_size_t type_size(type *);
 uint type_alignsize(type *);
 uint type_paramsize(type *t);

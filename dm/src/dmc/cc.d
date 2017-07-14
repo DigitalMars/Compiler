@@ -179,6 +179,11 @@ struct Srcpos
         Sfile **Sfilptr;            // file
         short Sfilnum;              // file number
     }
+    version (HTOD)
+    {
+        Sfile **Sfilptr;            // file
+        short Sfilnum;              // file number
+    }
 
     version (MARS)
     {
@@ -209,6 +214,11 @@ version (SCPP)
     static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
 }
 version (SPP)
+{
+    static Sfile srcpos_sfile(Srcpos p) { return **(p).Sfilptr; }
+    static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
+}
+version (HTOD)
 {
     static Sfile srcpos_sfile(Srcpos p) { return **(p).Sfilptr; }
     static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }

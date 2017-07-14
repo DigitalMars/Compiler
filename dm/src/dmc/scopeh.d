@@ -22,6 +22,8 @@ import ddmd.backend.cc;
 
 import tk.dlist;
 
+extern (C++):
+
 alias scope_fp = Symbol *function(const(char)* id,void *root);
 
 enum

@@ -47,6 +47,7 @@ void n2_chkexist(Classsym* stag, char* name);
 void n2_addmember(Classsym* stag, Symbol* smember);
 Symbol* scope_define(const(char)* id, uint sct, enum_SC sclass);
 void *mem_calloc(size_t);
+Symbol* cpp_findmember(Classsym* sclass, const(char)* sident, uint flag);
 
 
 /+
@@ -78,21 +79,20 @@ STATIC int n2_isenum(Symbol **ps);
  *                              enum identifier { enum_decl_list }
  */
 
++/
+
 type * enumspec()
 {   char *enum_tag;
     Symbol *s;
     type *t;
     type *tenum;
-    unsigned flags = 0;
+    uint flags = 0;
+    auto tserr = tstypes[TYint];
 
     stoken();                           /* skip over "enum"             */
     if (tok.TKval == TKident)           /* if we found an identifier    */
     {
-#if TX86
         enum_tag = parc_strdup(tok.TKid);       // save tag name
-#else
-        enum_tag = MEM_PARC_STRDUP(tok.TKid);   // save tag name
-#endif
         stoken();
     }
     else if (tok.TKval != TKlcur)
@@ -118,7 +118,7 @@ type * enumspec()
             if (tok.TKval == TKlcur)
                 s = n2_searchmember(pstate.STclasssym,enum_tag);
             else
-            {   s = cpp_findmember(pstate.STclasssym,enum_tag,FALSE);
+            {   s = cpp_findmember(pstate.STclasssym,enum_tag,false);
                 if (!s && tok.TKval == TKcolcol)
                     s = scope_search(enum_tag,SCTglobal | SCTcover);
             }
@@ -127,28 +127,31 @@ type * enumspec()
         }
         else if (tok.TKval == TKcolcol)
         {
-#if 1
-            token_unget();
-            token_setident(enum_tag);
-            s = nspace_getqual(2);
-            if (!s)
-                return tserr;
-            if (s.Scover)
-                s = s.Scover;
-            if (s.Sclass != SCenum || tok.TKval == TKsemi)
-            {   token_unget();
-                token_setident(s.Sident);
+            version (all)
+            {
                 token_unget();
-                tok.TKval = TKcolcol;
-                assert(s.Sscope);
-                return s.Sscope.Stype;
+                token_setident(enum_tag);
+                s = nspace_getqual(2);
+                if (!s)
+                    return tserr;
+                if (s.Scover)
+                    s = s.Scover;
+                if (s.Sclass != SCenum || tok.TKval == TKsemi)
+                {   token_unget();
+                    token_setident(s.Sident.ptr);
+                    token_unget();
+                    tok.TKval = TKcolcol;
+                    assert(s.Sscope);
+                    return s.Sscope.Stype;
+                }
             }
-#else
-            s = scope_search(enum_tag,SCTglobal | SCTnspace | SCTlocal | SCTcover); // find the struct tag
-            // BUG: What if namespace?
-            if (s && !n2_isstruct(&s))
-                s = null;
-#endif
+            else
+            {
+                s = scope_search(enum_tag,SCTglobal | SCTnspace | SCTlocal | SCTcover); // find the struct tag
+                // BUG: What if namespace?
+                if (s && !n2_isstruct(&s))
+                    s = null;
+            }
         }
         else
         {
@@ -172,14 +175,9 @@ type * enumspec()
             {   synerr(EM_ident_exp);                   // identifier expected
                 break;
             }
-    #if TX86
             parc_free(enum_tag);
             enum_tag = parc_strdup(tok.TKid);
-    #else
-            MEM_PARC_FREE(enum_tag);
-            enum_tag = MEM_PARC_STRDUP(tok.TKid);
-    #endif
-            s = cpp_findmember((Classsym *)s,enum_tag,FALSE);
+            s = cpp_findmember(cast(Classsym *)s,enum_tag,false);
             if (s && s.Scover)
                 s = s.Scover;
             if (s && !n2_isenum(&s))
@@ -246,7 +244,7 @@ type * enumspec()
     }
 
 Ldone:
-    debug(assert(s == s.Stype.Ttag));
+    debug assert(s == s.Stype.Ttag);
     if (CPP)
         tenum = s.Stype;
     else
@@ -259,14 +257,9 @@ Ldone:
         }
     }
 Lret:
-#if TX86
     parc_free(enum_tag);
-#else
-    MEM_PARC_FREE(enum_tag);
-#endif
     return tenum;
 }
-+/
 
 /**************************
  * Define the enumerator_list.
