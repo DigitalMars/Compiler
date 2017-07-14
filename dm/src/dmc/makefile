@@ -155,7 +155,7 @@ debppnd:
 
 OBJ1a=blklst.obj blockopt.obj cpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
-OBJ1c=getcmd.obj ini.obj init.obj loadline.obj msc.obj
+OBJ1c=getcmd.obj ini.obj init.obj dinit.obj loadline.obj msc.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=struct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj
@@ -277,7 +277,8 @@ DSRC=   \
         bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d denum.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
-	dinline.d divcoeff.d loadline.d parser.d scopeh.d dtoken.d
+	dinline.d divcoeff.d loadline.d parser.d scopeh.d dtoken.d \
+	dinit.d
 
 SRC=    tassert.h html.h html.c \
         ini.c cgcv.h cv4.h tdb.h loadline.d ppexp.c errmsgs2.c tdbx.c \
@@ -388,6 +389,9 @@ strtold.obj : strtold.c
 
 denum.obj : denum.d
         $(DMD) -c $(DFLAGS) denum.d
+
+dinit.obj : dinit.d
+        $(DMD) -c $(DFLAGS) dinit.d
 
 divcoeff.obj : divcoeff.d
         $(DMD) -c -O -release -betterC divcoeff.d
