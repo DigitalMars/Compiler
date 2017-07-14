@@ -17,7 +17,7 @@
 //#pragma once
 
 struct Symbol;
-struct Classsym;
+typedef struct Symbol Classsym;
 
 extern char *ftdbname;
 

@@ -12,7 +12,7 @@
 
 module ddmd.backend.cdef;
 
-import ddmd.backend.cc: Classsym, Symbol;
+import ddmd.backend.cc: Classsym, Symbol, param_t;
 import ddmd.backend.el;
 
 import tk.dlist;
@@ -24,7 +24,7 @@ nothrow:
 //struct Classsym;
 //struct Symbol;
 //struct LIST;
-struct param_t;
+//struct param_t;
 
 
 //
@@ -83,9 +83,22 @@ enum bool HEADER_LIST = true;
 
 
 // Precompiled header variations
-//#define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
-//#define MMFIO           (_WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)  // if memory mapped files
-//#define LINEARALLOC     _WIN32  // if we can reserve address ranges
+version (_WINDLL)
+    enum MEMORYHX = 1;     // HX and SYM files are cached in memory
+else
+    enum MEMORYHX = 0;
+
+version (Windows)
+    enum MMFIO = 1;        // if memory mapped files
+else version (Posix)
+    enum MMFIO = 1;
+else
+    static assert(0);
+
+version (Windows)
+    enum LINEARALLOC = 1;  // can reserve address ranges
+else
+    enum LINEARALLOC = 0;  // can not reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
 enum
@@ -101,31 +114,34 @@ enum
                          // pointers are in non-contiguous buffers
 }
 
-// Do we need hydration code
-//#define HYDRATE         (H_STYLE & (H_BIT0 | H_OFFSET | H_COMPLEX))
-
-// Do we need dehydration code
-//#define DEHYDRATE       (H_STYLE & (H_BIT0 | H_COMPLEX))
-
 // Determine hydration style
 //      NT console:     H_NONE
 //      NT DLL:         H_OFFSET
 //      DOSX:           H_COMPLEX
-//#if MARS
-//#define H_STYLE         H_NONE                  // precompiled headers only used for C/C++ compiler
-//#else
-//#if MMFIO
-//#if _WINDLL
-//#define H_STYLE         H_OFFSET
-//#else
-//#define H_STYLE         H_OFFSET //H_NONE
-//#endif
-//#elif LINEARALLOC
-//#define H_STYLE         H_BIT0
-//#else
-//#define H_STYLE         H_COMPLEX
-//#endif
-//#endif
+version (MARS)
+{
+    enum H_STYLE = H_NONE;         // DMD doesn't use precompiled headers
+}
+else
+{
+    static if (MMFIO)
+    {
+        version (_WINDLL)
+            enum H_STYLE = H_OFFSET;
+        else
+            enum H_STYLE = H_OFFSET; //H_NONE
+    }
+    else static if (LINEARALLOC)
+        enum H_STYLE = H_BIT0;
+    else
+        enum H_STYLE = H_COMPLEX;
+}
+
+// Do we need hydration code
+enum HYDRATE = H_STYLE & (H_BIT0 | H_OFFSET | H_COMPLEX);
+
+// Do we need dehydration code
+enum DEHYDRATE = H_STYLE & (H_BIT0 | H_COMPLEX);
 
 // NT structured exception handling
 //      0: no support
@@ -336,18 +352,22 @@ else
 
 //#define TOOLKIT_H
 
-enum Smodel = 0;        // 64k code, 64k data, or flat model
+enum
+{
+    Smodel = 0,        // 64k code, 64k data, or flat model
+    Mmodel = 1,        // large code, 64k data
+    Cmodel = 2,        // 64k code, large data
+    Lmodel = 3,        // large code, large data
+    Vmodel = 4,        // large code, large data, vcm
+}
 
-//#ifndef MEMMODELS
+version (MARS)
+    enum MEMMODELS = 1; // number of memory models
+else
+    enum MEMMODELS = 5;
+
 //#define LARGEDATA       (config.memmodel & 6)
 //#define LARGECODE       (config.memmodel & 5)
-//
-//#define Mmodel 1        /* large code, 64k data         */
-//#define Cmodel 2        /* 64k code, large data         */
-//#define Lmodel 3        /* large code, large data       */
-//#define Vmodel 4        /* large code, large data, vcm  */
-//#define MEMMODELS 5     /* number of memory models      */
-//#endif
 
 /* Segments     */
 enum
@@ -398,7 +418,8 @@ alias SYMIDX = int;    // symbol table index
  */
 
 /* Linkage type         */
-enum linkage_t
+alias linkage_t = int;
+enum
 {
     LINK_C,                     /* C style                              */
     LINK_CPP,                   /* C++ style                            */
@@ -649,6 +670,7 @@ enum config_flags4_t CFGX4 = CFG4optimized | CFG4fastfloat | CFG4fdivcall |
 enum config_flags4_t CFGY4 = CFG4nowchar_t | CFG4noemptybaseopt | CFG4adl |
                              CFG4enumoverload | CFG4implicitfromvoid |
                              CFG4wchar_is_long | CFG4underscore;
+
 
 // Configuration flags for HTOD executable
 alias htod_flags_t = uint;

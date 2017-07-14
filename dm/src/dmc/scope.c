@@ -392,7 +392,7 @@ symbol *scope_searchouter(const char *id,unsigned sct,Scope **psc)
 // Define symbol in innermost scope.
 // Error if it is already there.
 
-symbol *scope_define(const char *id,unsigned sct,enum SC sclass)
+symbol *scope_define(const char *id,unsigned sct,enum_SC sclass)
 {   symbol *s;
 
     //printf("scope_define('%s',x%x)\n",id,sct);

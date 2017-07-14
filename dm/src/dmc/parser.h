@@ -345,7 +345,7 @@ extern elem *exp_sizeof(int);
 /* exp2.c */
 extern elem *typechk(elem *,type *),
         *exp2_cast(elem *,type *),
-        *cast(elem *,type *),
+        *_cast(elem *,type *),
         *doarray(elem *),
         *doarrow(elem *),
         *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist),
@@ -361,6 +361,7 @@ extern elem *typechk(elem *,type *),
         *lptrtooffset(elem *),
         *dodot(elem *,type *,bool bColcol),
         *minscale(elem *);
+#define cast(e,t) _cast((e),(t))
 elem *exp2_addr(elem *);
 void getarglist(list_t *);
 elem *exp2_ptrvbaseclass(elem *ethis,Classsym *stag,Classsym *sbase);
@@ -393,10 +394,10 @@ extern char ext_c[];
 extern char ext_cpp[];
 extern char ext_sym[];
 extern char ext_tdb[];
-#if HTOD
+
+// htod
 extern char ext_dmodule[];
 extern int includenest;
-#endif
 
 int file_qualify(char **pfilename,int flag,phstring_t pathlist, int *next_path);
 void afopen(char *,blklst *,int);
@@ -687,15 +688,14 @@ extern short template_expansion;
 #endif
 
 // from htod.c
-#if HTOD
 void htod_init(const char *name);
 void htod_term();
+bool htod_running();
 void htod_include(const char *p, int flag);
 void htod_include_pop();
 void htod_writeline();
 void htod_define(macro_t *m);
 void htod_decl(symbol *s);
-#endif
 
 // from token.c
 extern char *Arg;
@@ -720,10 +720,11 @@ extern char *fdepname;
 extern FILE *fdep;
 extern char *flstname,*fsymname,*fphreadname,*ftdbname;
 extern FILE *flst;
-#if HTOD
+
+// htod
 extern char *fdmodulename;
 extern FILE *fdmodule;
-#endif
+
 #if SPP
 extern FILE *fout;
 #endif

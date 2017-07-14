@@ -22,6 +22,8 @@ import core.stdc.ctype;
 import core.stdc.string;
 import core.stdc.stdlib;
 
+import scopeh;
+
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
 import ddmd.backend.el;
@@ -36,8 +38,6 @@ void n2_instantiate_memfunc(Symbol* s);
 void nwc_mustwrite(Symbol*);
 void queue_func(Symbol*);
 elem* cpp_destructor(type* tclass, elem* eptr, elem* enelems, int dtorflag);
-
-uint CPP() { return config.flags3 & CFG3cpp; }
 
 extern __gshared list_t cpp_stidtors;
 

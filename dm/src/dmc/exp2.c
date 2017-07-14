@@ -4573,7 +4573,7 @@ elem *exp2_cast(elem *e,type *newt)
     return exp2_castx(e,newt,NULL,1);
 }
 
-elem *cast(elem *e,type *newt)
+elem *_cast(elem *e,type *newt)
 {
     return exp2_castx(e,newt,NULL,0);
 }

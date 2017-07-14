@@ -1604,9 +1604,8 @@ void getcmd(int argc,char **argv)
     if (ANSI)                           // if strict ANSI C/C++
         fixeddefmac("__STDC__",one);
 
-#if HTOD
-    fixeddefmac("__HTOD__", one);
-#endif
+    if (htod_running())
+        fixeddefmac("__HTOD__", one);
 
     linkage = config.linkage;
 }
@@ -1948,9 +1947,7 @@ void getcmd_term()
     mem_free(fsymname); fsymname = NULL;
     mem_free(ftdbname); ftdbname = NULL;
 #endif
-#if HTOD
     mem_free(fdmodulename);
-#endif
     mem_free(finname);
     list_free(&pathlist,mem_freefp);
     list_free(&pathsyslist,mem_freefp);

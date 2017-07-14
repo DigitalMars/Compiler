@@ -76,7 +76,7 @@ symbol *scope_search2(const char *id,unsigned sct);
 symbol *scope_searchx(const char *id,unsigned sct,Scope **psc);
 symbol *scope_searchinner(const char *id,unsigned sct);
 symbol *scope_searchouter(const char *id,unsigned sct,Scope **psc);
-symbol *scope_define(const char *id,unsigned sct, enum SC sclass);
+symbol *scope_define(const char *id,unsigned sct, enum_SC sclass);
 symbol *scope_add( symbol *s, unsigned sct );
 symbol *scope_addx(symbol *s,Scope *sc);
 void scope_pushclass(Classsym *stag);

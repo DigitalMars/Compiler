@@ -109,10 +109,11 @@ FILE *fin = NULL;               // input file
 #if SPP
 FILE *fout;
 #endif
-#if HTOD
+
+// htod
 char *fdmodulename = NULL;
 FILE *fdmodule = NULL;
-#endif
+
 char     *foutdir = NULL,       // directory to place output files in
          *finname = NULL,
         *foutname = NULL,

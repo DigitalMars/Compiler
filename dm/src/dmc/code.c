@@ -30,6 +30,7 @@ code *code_list = NULL;
 code *code_chunk_alloc()
 {
     const size_t n = 4096 / sizeof(code);
+    //printf("code_chunk_alloc() n = %d\n", n);
     code *chunk = (code *)mem_fmalloc(n * sizeof(code));
     for (size_t i = 0; i < n - 1; ++i)
     {

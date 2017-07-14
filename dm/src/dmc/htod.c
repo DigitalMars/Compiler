@@ -101,7 +101,7 @@ void Obj::staticctor(Symbol *s,int dtor,int seg)
 {
 }
 
-void Obj::funcptr(Symbol *s)
+void Obj::setModuleCtorDtor(Symbol *s, bool isCtor)
 {
 }
 
@@ -329,6 +329,11 @@ void htod_init(const char *name)
 
 void htod_term()
 {
+}
+
+bool htod_running()
+{
+    return true;
 }
 
 /*********************
@@ -1194,5 +1199,23 @@ const char *htod_typestring(tym_t ty)
 
     return p;
 }
+
+#else
+
+void htod_init(const char *name) { }
+
+void htod_term() { }
+
+bool htod_running()
+{
+    return false;
+}
+
+/* Stub them out
+ */
+
+void htod_decl(symbol *s) { }
+
+void htod_define(macro_t *m) { }
 
 #endif

@@ -1246,9 +1246,7 @@ STATIC void prdefine()
     m->Mtext = text;
     m->Mflags |= Mdefined;              // the macro is now defined
 
-#if HTOD
     htod_define(m);
-#endif
     //printf("define %s '%s'\n", m->Mid, m->Mtext);
 
     // Thread definition onto list of #define's for this file

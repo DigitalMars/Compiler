@@ -398,9 +398,7 @@ type *stunspec(enum_TK tk, Symbol *s, Symbol *stempsym, param_t *template_argume
             if (config.fulltypes == CV4 && !eecontext.EEcompile)
                 cv4_struct((Classsym *)s,1);
 #endif
-#if HTOD
             htod_decl(s);
-#endif
 
             /* Put out static member data defs (after class is done, so */
             /* debug records don't point to fwd ref'd class)            */
@@ -436,9 +434,7 @@ type *stunspec(enum_TK tk, Symbol *s, Symbol *stempsym, param_t *template_argume
             if (config.fulltypes == CV4 && !eecontext.EEcompile)
                 cv4_struct((Classsym *)s,1);
 #endif
-#if HTOD
             htod_decl(s);
-#endif
           }
          }
         else                            /* else struct reference        */
@@ -6012,11 +6008,10 @@ char *n2_genident()
 #else
     p = (char *) MEM_PARF_MALLOC(7 + strlen(fn));
 #endif
-#if HTOD
-    sprintf(p,"_N%d",++num);            // p is free'd right after call to n2_genident
-#else
-    sprintf(p,"_N%d%s",++num,fn);       // p is free'd right after call to n2_genident
-#endif
+    if (htod_running())
+        sprintf(p,"_N%d",++num);            // p is free'd right after call to n2_genident
+    else
+        sprintf(p,"_N%d%s",++num,fn);       // p is free'd right after call to n2_genident
     if (strlen(p) > IDMAX)
         p[IDMAX] = 0;
     return p;

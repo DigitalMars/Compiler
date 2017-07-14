@@ -2068,7 +2068,7 @@ STATIC elem * elcond(elem *e, goal_t goal)
              *    (a && noreturn), c
              * because that means fewer noreturn cases for the data flow analysis to deal with
              */
-            else if (el_noreturn(ec1))
+            else if (!el_returns(ec1))
             {
                 e->Eoper = OPcomma;
                 e->E1 = e->E2;
@@ -2084,7 +2084,7 @@ STATIC elem * elcond(elem *e, goal_t goal)
              * with:
              *    (a || noreturn), b
              */
-            else if (el_noreturn(ec2))
+            else if (!el_returns(ec2))
             {
                 e->Eoper = OPcomma;
                 e->E1 = e->E2;
@@ -2323,6 +2323,8 @@ STATIC elem * eldiv(elem *e, goal_t goal)
 
     if (OPTIMIZER)
     {
+        const int SQRT_INT_MAX = 0xB504;
+        const unsigned SQRT_UINT_MAX = 0x10000;
         elem *e1 = e->E1;
         if (tyintegral(tym) && e->Eoper == OPdiv && e2->Eoper == OPconst &&
             e1->Eoper == OPdiv && e1->E2->Eoper == OPconst)
@@ -2334,14 +2336,14 @@ STATIC elem * eldiv(elem *e, goal_t goal)
              */
             targ_llong c1 = el_tolong(e1->E2);
             targ_llong c2 = el_tolong(e2);
-            int uns1 = tyuns(e1->E1->Ety) || tyuns(e1->E2->Ety);
-            int uns2 = tyuns(e1->Ety) || tyuns(e2->Ety);
+            bool uns1 = tyuns(e1->E1->Ety) || tyuns(e1->E2->Ety);
+            bool uns2 = tyuns(e1->Ety) || tyuns(e2->Ety);
             if (uns1 == uns2)   // identity doesn't hold for mixed sign case
             {
                 // The transformation will fail if c1*c2 overflows. This substitutes
                 // for a proper overflow check.
-                if (uns1 ? (c1 < 0x10000000 && c2 < 0x10000000)
-                         : (-0x1000000 < c1 && c1 < 0x1000000 && -0x1000000 < c2 && c2 < 0x1000000))
+                if (uns1 ? (c1 < SQRT_UINT_MAX && c2 < SQRT_UINT_MAX)
+                         : (-SQRT_INT_MAX < c1 && c1 < SQRT_INT_MAX && -SQRT_INT_MAX < c2 && c2 < SQRT_INT_MAX))
                 {
                     e->E1 = e1->E1;
                     e1->E1 = e1->E2;
@@ -2365,14 +2367,14 @@ STATIC elem * eldiv(elem *e, goal_t goal)
             elem *erq = e1->E1;
             targ_llong c1 = el_tolong(erq->E2);
             targ_llong c2 = el_tolong(e2);
-            int uns1 = tyuns(erq->E1->Ety) || tyuns(erq->E2->Ety);
-            int uns2 = tyuns(e1->Ety) || tyuns(e2->Ety);
+            bool uns1 = tyuns(erq->E1->Ety) || tyuns(erq->E2->Ety);
+            bool uns2 = tyuns(e1->Ety) || tyuns(e2->Ety);
             if (uns1 == uns2)   // identity doesn't hold for mixed sign case
             {
                 // The transformation will fail if c1*c2 overflows. This substitutes
                 // for a proper overflow check.
-                if (uns1 ? (c1 < 0x10000000 && c2 < 0x10000000)
-                         : (-0x1000000 < c1 && c1 < 0x1000000 && -0x1000000 < c2 && c2 < 0x1000000))
+                if (uns1 ? (c1 < SQRT_UINT_MAX && c2 < SQRT_UINT_MAX)
+                         : (-SQRT_INT_MAX < c1 && c1 < SQRT_INT_MAX && -SQRT_INT_MAX < c2 && c2 < SQRT_INT_MAX))
                 {
                     e->E1 = erq->E1;
                     erq->E1 = erq->E2;

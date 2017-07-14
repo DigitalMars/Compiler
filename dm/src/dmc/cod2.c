@@ -2242,7 +2242,7 @@ void cdloglog(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     unsigned stackpushsave = stackpush;
     if (*pretregs == 0)                 // if don't want result
     {
-        int noreturn = el_noreturn(e2);
+        int noreturn = !el_returns(e2);
         codelem(cdb,e2,pretregs,FALSE);
         if (noreturn)
         {
@@ -4717,7 +4717,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cdb.gen(&cs);             // TEST reg,reg
 
         // If lvalue is a register variable, we must mark it as modified
-        cdb.append(modEA(&cs));
+        modEA(cdb,&cs);
 
         targ_int n = e2->EV.Vint;
         if (op == OPpostdec)
@@ -4755,7 +4755,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cs2 = cs;
 
         /* If lvalue is a register variable, we must mark it as modified */
-        cdb.append(modEA(&cs));
+        modEA(cdb,&cs);
 
         cs.Iop = 0x81 ^ byte;
         cs.Irm &= ~modregrm(0,7,0);             /* reg field = 0        */

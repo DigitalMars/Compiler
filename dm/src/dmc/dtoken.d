@@ -41,6 +41,8 @@ module token;
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
 
+extern (C++):
+
 // Keyword tokens. Needn't be ascii sorted
 alias enum_TK = ubyte;
 enum {
