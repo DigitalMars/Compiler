@@ -30,6 +30,7 @@ import scopeh;
 
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
+import ddmd.backend.dt;
 import ddmd.backend.el;
 import ddmd.backend.global;
 import ddmd.backend.oper;
@@ -2619,6 +2620,8 @@ STATIC Symbol * init_localstatic(elem **peinit,symbol *s)
     }
     return sinit;
 }
++/
+
 
 /********************************
  * Initialize auto Symbol sauto with static Symbol s.
@@ -2626,7 +2629,8 @@ STATIC Symbol * init_localstatic(elem **peinit,symbol *s)
  *      initialization expression
  */
 
-STATIC elem * init_sets(Symbol *sauto, Symbol *s)
+//private
+ elem* init_sets(Symbol *sauto, Symbol *s)
 {
     elem *e;
     if (s.Sdt && dtallzeros(s.Sdt))
@@ -2644,7 +2648,7 @@ STATIC elem * init_sets(Symbol *sauto, Symbol *s)
     e = addlinnum(e);
     return e;
 }
-+/
+
 
 /*******************************************
  */

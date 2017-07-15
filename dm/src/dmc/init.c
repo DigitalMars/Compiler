@@ -44,7 +44,7 @@ STATIC elem * initarray(type *, DtBuilder&, symbol *,targ_size_t);
 STATIC elem * elemtodt(symbol *, DtBuilder&, elem *, targ_size_t);
 STATIC int init_arraywithctor(symbol *);
 STATIC symbol * init_localstatic(elem **peinit,symbol *s);
-STATIC elem * init_sets(symbol *sauto,symbol *s);
+/*STATIC*/ elem * init_sets(symbol *sauto,symbol *s);
 STATIC symbol * init_staticflag(symbol *s);
 
 STATIC int endofarray(void);
@@ -2600,6 +2600,7 @@ STATIC symbol * init_localstatic(elem **peinit,symbol *s)
  *      initialization expression
  */
 
+#if 0
 STATIC elem * init_sets(symbol *sauto,symbol *s)
 {
     elem *e;
@@ -2618,6 +2619,7 @@ STATIC elem * init_sets(symbol *sauto,symbol *s)
     e = addlinnum(e);
     return e;
 }
+#endif
 
 /*******************************************
  */
