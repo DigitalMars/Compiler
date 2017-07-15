@@ -94,7 +94,7 @@ struct TYPE
     {
         targ_size_t Tdim;   // TYarray: # of elements in array
         elem* Tel;          // TFvla: gives dimension (NULL if '*')
-        PARAM* Tparamtypes; // TYfunc, TYtemplate: types of function parameters
+        param_t* Tparamtypes; // TYfunc, TYtemplate: types of function parameters
         Classsym* Ttag;     // TYstruct,TYmemptr: tag symbol
                             // TYenum,TYvtshape: tag symbol
         char* Tident;       // TYident: identifier
@@ -157,4 +157,23 @@ type *type_setmangle(type **pt,mangle_t mangle);
 type *type_setcv(type **pt,tym_t cv);
 int type_embed(type *t,type *u);
 int type_isvla(type *t);
+
+param_t *param_calloc();
+param_t *param_append_type(param_t **,type *);
+void param_free_l(param_t *);
+void param_free(param_t **);
+Symbol *param_search(const(char)* name, param_t **pp);
+void param_hydrate(param_t **);
+void param_dehydrate(param_t **);
+int typematch(type *t1, type *t2, int relax);
+
+type *type_pointer(type *tnext);
+type *type_dyn_array(type *tnext);
+extern (C) type *type_static_array(targ_size_t dim, type *tnext);
+type *type_assoc_array(type *tkey, type *tvalue);
+type *type_delegate(type *tnext);
+extern (C) type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
+type *type_enum(const char *name, type *tbase);
+type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD);
 

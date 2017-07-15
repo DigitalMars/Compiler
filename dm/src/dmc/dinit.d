@@ -801,7 +801,7 @@ symbol *init_typeinfo_data(type *ptype)
 
         s = scope_define(id, SCTglobal,SCcomdat);       // create the symbol
         s.Ssequence = 0;
-        s.Stype = tschar;
+        s.Stype = tstypes[TYchar];
         s.Stype.Tcount++;
         if (CSTABLES)
             type_setty(&s.Stype,s.Stype.Tty | CSMTY);
@@ -1423,7 +1423,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
                 if (CPP)
                 {
                     e1 = el_bint(OPand,e1.ET,e1,el_longt(e1.ET,fieldmask));
-                    e1 = el_bint(OPshl,e1.ET,e1,el_longt(tsint,s.Sbit));
+                    e1 = el_bint(OPshl,e1.ET,e1,el_longt(tstypes[TYint],s.Sbit));
                     if (e)
                     {
                         e = el_bint(OPand,e.ET,e,el_longt(e1.ET,~(fieldmask << s.Sbit)));
@@ -2265,10 +2265,10 @@ assert(0); // can't find any cases of this, must be an anachronism
                     sinit = init_staticflag(s);
 
                     // Generate (sinit += 1)
-                    einit = el_bint(OPaddass,tschar,el_var(sinit),el_longt(tschar,1));
+                    einit = el_bint(OPaddass,tstypes[TYchar],el_var(sinit),el_longt(tstypes[TYchar],1));
 
                     // Generate (sinit || ((sinit += 1),e))
-                    e = el_bint(OPoror,tsint,el_var(sinit),
+                    e = el_bint(OPoror,tstypes[TYint],el_var(sinit),
                                              el_combine(einit,e));
 
                     list_append(&constructor_list,e);
@@ -2334,10 +2334,10 @@ Ldtor:
                 if (temp)
                 {
                     // Rewrite e as (sinit -= 1, e)
-                    ex = el_bint(OPminass,tschar,el_var(sinit),el_longt(tschar,1));
+                    ex = el_bint(OPminass,tstypes[TYchar],el_var(sinit),el_longt(tstypes[TYchar],1));
                     e = el_combine(ex, e);
                 }
-                e = el_bint(OPandand,tsint,el_var(sinit),e);
+                e = el_bint(OPandand,tstypes[TYint],el_var(sinit),e);
                 if (temp == 2)
                 {   // (sinit || (sinit += 1, e))
                     ex.Eoper = OPaddass;
@@ -2365,7 +2365,7 @@ STATIC Symbol * init_staticflag(symbol *s)
     memcpy(name, "_flag_", 6);
     strcpy(name + 6, sid);
 
-    sinit = symbol_name(name, SCglobal, tschar);
+    sinit = symbol_name(name, SCglobal, tstypes[TYchar]);
     init_common(sinit);
     outdata(sinit);
     symbol_keep(sinit);
@@ -2537,7 +2537,7 @@ STATIC int init_arraywithctor(symbol *s)
                 e = cpp_destructor(tclass,e,enelems,DTORmostderived | DTORnoeh);
                 if (e && sinit)
                 {   /* Rewrite e as (sinit && e)        */
-                    e = el_bint(OPandand,tsint,el_var(sinit),e);
+                    e = el_bint(OPandand,tstypes[TYint],el_var(sinit),e);
                 }
                 list_prepend(&destructor_list,e);
             }
@@ -2586,7 +2586,7 @@ STATIC Symbol * init_localstatic(elem **peinit,symbol *s)
                 s.Sclass = SCcomdat;
             s.Sscope = funcsym_p;
 
-            type *t = tschar;
+            type *t = tstypes[TYchar];
             t.Tcount++;
             type_setmangle(&t, mTYman_cpp);
             t.Tcount--;
@@ -2596,7 +2596,7 @@ STATIC Symbol * init_localstatic(elem **peinit,symbol *s)
         }
         else
         {
-            sinit = symbol_generate(SCstatic,tschar);
+            sinit = symbol_generate(SCstatic,tstypes[TYchar]);
             DtBuilder dtb;
             dtb.nzeros(tysize(TYchar));
             dsout += tysize(TYchar);
@@ -2606,11 +2606,11 @@ STATIC Symbol * init_localstatic(elem **peinit,symbol *s)
         symbol_keep(sinit);
 
         // Generate (sinit = 1)
-        e = el_bint(OPeq,tschar,el_var(sinit),el_longt(tschar,1));
+        e = el_bint(OPeq,tstypes[TYchar],el_var(sinit),el_longt(tstypes[TYchar],1));
         if (einit)
         {   /* Generate (sinit || ((sinit += 1),einit)) */
             e.Eoper = OPaddass;
-            einit = el_bint(OPoror,tsint,el_var(sinit),
+            einit = el_bint(OPoror,tstypes[TYint],el_var(sinit),
                                          el_combine(e,einit));
         }
         else
@@ -2626,7 +2626,7 @@ STATIC Symbol * init_localstatic(elem **peinit,symbol *s)
  *      initialization expression
  */
 
-STATIC elem * init_sets(symbol *sauto,symbol *s)
+STATIC elem * init_sets(Symbol *sauto, Symbol *s)
 {
     elem *e;
     if (s.Sdt && dtallzeros(s.Sdt))
@@ -2635,24 +2635,24 @@ STATIC elem * init_sets(symbol *sauto,symbol *s)
         elem *ea = el_ptr(sauto);
         e = el_bint(OPmemset,ea.ET,
                 ea,
-                el_bint(OPparam,tsint,
-                    el_longt(tsint,s.Sdt.DTazeros),
-                    el_longt(tschar,0)));
+                el_bint(OPparam,tstypes[TYint],
+                    el_longt(tstypes[TYint],s.Sdt.DTazeros),
+                    el_longt(tstypes[TYchar],0)));
     }
     else
         e = el_bint(OPstreq,sauto.Stype,el_var(sauto),el_var(s));      // tmp = str;
     e = addlinnum(e);
     return e;
 }
++/
 
 /*******************************************
  */
 
-STATIC Symbol * init_alloca()
+//private
+ Symbol * init_alloca()
 {
-    Symbol *s;
-
-    s = scope_search("alloca", SCTglobal);
+    Symbol* s = scope_search("alloca", SCTglobal);
     if (!s)
     {
         /* Define alloca() according to the stdlib.h definition:
@@ -2677,19 +2677,19 @@ STATIC Symbol * init_alloca()
         if (config.exe & EX_OS2 && tysize(TYint) == 4)
             linkage = LINK_STDCALL;
 
-        tfunc = type_alloc(FUNC_TYPE((int) linkage, config.memmodel));
-        type_setmangle(&tfunc, funcmangletab[(int) linkage]);
+        tfunc = type_alloc(FUNC_TYPE(cast(int) linkage, config.memmodel));
+        type_setmangle(&tfunc, funcmangletab[cast(int) linkage]);
         tfunc.Tflags |= TFprototype;
 
         p = param_calloc();
-        p.Ptype = tsuns;
-        tsuns.Tcount++;
+        p.Ptype = tstypes[TYuint];
+        tstypes[TYuint].Tcount++;
         tfunc.Tparamtypes = p;
 
         tret = tspvoid;
         if (config.exe & (EX_DOSX | EX_PHARLAP | EX_ZPM | EX_RATIONAL | EX_COM | EX_MZ))
         {
-            tret = newpointer(tsvoid);
+            tret = newpointer(tstypes[TYvoid]);
             tret.Tty = TYsptr;
         }
         tfunc.Tnext = tret;
@@ -2699,5 +2699,5 @@ STATIC Symbol * init_alloca()
     }
     return s;
 }
-+/
+
 }

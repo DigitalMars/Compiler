@@ -51,7 +51,7 @@ STATIC int endofarray(void);
 STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown);
 STATIC void initializer(symbol *);
 STATIC elem * dyn_init(symbol *);
-STATIC symbol *init_alloca();
+/*STATIC*/ symbol *init_alloca();
 
 
 // Decide to put typeinfo symbols in code segment
@@ -2622,6 +2622,7 @@ STATIC elem * init_sets(symbol *sauto,symbol *s)
 /*******************************************
  */
 
+#if 0
 STATIC symbol * init_alloca()
 {
     symbol *s;
@@ -2673,5 +2674,6 @@ STATIC symbol * init_alloca()
     }
     return s;
 }
+#endif
 
 #endif /* !SPP */
