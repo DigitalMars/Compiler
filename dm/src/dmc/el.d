@@ -18,6 +18,8 @@ import ddmd.backend.type;
 
 import ddmd.backend.cc : Symbol;
 
+import tk.dlist;
+
 extern (C++):
 @nogc:
 nothrow:
@@ -127,8 +129,10 @@ else
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum
 
-//#define list_elem(list) ((elem *) list_ptr(list))
-//#define list_setelem(list,ptr) list_ptr(list) = (elem *)(ptr)
+elem* list_elem(list_t list) { return cast(elem*)list_ptr(list); }
+
+void list_setelem(list_t list, void* ptr) { list.ptr = cast(elem *)ptr; }
+
 //#define cnst(e) ((e)->Eoper == OPconst) /* Determine if elem is a constant */
 //#define E1        EV.eop.Eleft          /* left child                   */
 //#define E2        EV.eop.Eright         /* right child                  */

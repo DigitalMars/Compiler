@@ -1273,6 +1273,11 @@ struct Symbol
             Symbol* Simport ;       // SCextern: if dllimport Symbol, this is the
                                     // Symbol it was imported from
         }
+        version (HTOD)
+        {
+            Symbol* Simport ;       // SCextern: if dllimport Symbol, this is the
+                                    // Symbol it was imported from
+        }
 
         struct                  // SCfastpar, SCshadowreg
         {

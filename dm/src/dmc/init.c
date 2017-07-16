@@ -1929,6 +1929,7 @@ void init_vbtbl(
  *                      destruction of the static.
  */
 
+#if 0
 elem *init_constructor(symbol *s,type *t,list_t arglist,
         targ_size_t offset,int dtorflag,symbol *sinit)
 {
@@ -2322,6 +2323,7 @@ Ldtor:
     }
     return e;
 }
+#endif
 
 /*******************************************
  * Generate symbol to be used as a global flag to indicate if

@@ -47,6 +47,19 @@ int endofarray();
 elem * initarrayelem(Symbol *s,type *t,targ_size_t offset);
 void init_closebrack(int brack);
 
+enum
+{
+    DT_abytes = 0,
+    DT_azeros = 1,
+    DT_xoff   = 2,
+    DT_nbytes = 3,
+    DT_common = 4,
+    DT_coff   = 5,
+    DT_ibytes = 6,
+}
+
+bool I32() { return _tysize[TYnptr] == 4; }
+
 /+
 #include        <stdio.h>
 #include        <string.h>
@@ -1942,6 +1955,7 @@ void init_vbtbl(
     s_vbtbl.Sdt = dtb.finish();
     MEM_PARF_FREE(pdata);
 }
++/
 
 
 /******************************
@@ -1964,8 +1978,8 @@ void init_vbtbl(
  *                      destruction of the static.
  */
 
-elem *init_constructor(symbol *s,type *t,list_t arglist,
-        targ_size_t offset,int dtorflag,symbol *sinit)
+elem *init_constructor(Symbol *s,type *t,list_t arglist,
+        targ_size_t offset,int dtorflag,Symbol *sinit)
 {
     elem *e;
     elem *eptr;
@@ -1973,23 +1987,26 @@ elem *init_constructor(symbol *s,type *t,list_t arglist,
     type *tclass;
     Classsym *stag;
 
-#define DTRdtor 1       /* add in destructor            */
-#define DTRrete 2       /* return elem created          */
-#define DTRptre 4       /* s is a pointer to a struct   */
-#define DTRsnull        8       /* s is null, (constructing on stack)   */
-#define DTRnoeh 0x10    // do not generate eh information
-    static char translate[5] =
-    { 0, DTRdtor, DTRrete|DTRptre|DTRnoeh, DTRrete|DTRsnull, DTRrete };
-    char dflag = translate[dtorflag & 0x1F];
+    enum : ubyte
+    {
+        DTRdtor  = 1,       // add in destructor
+        DTRrete  = 2,       // return elem created
+        DTRptre  = 4,       // s is a pointer to a struct
+        DTRsnull = 8,       // s is null, (constructing on stack)
+        DTRnoeh  = 0x10,    // do not generate eh information
+    }
+    __gshared immutable ubyte[5] translate =
+    [ 0, DTRdtor, DTRrete|DTRptre|DTRnoeh, DTRrete|DTRsnull, DTRrete ];
+    ubyte dflag = translate[dtorflag & 0x1F];
 
     //printf("init_constructor(s = '%s', level = %d)\n", s.Sident, level);
-    if (!(dflag & DTRsnull))
-        symbol_debug(s);
+//    if (!(dflag & DTRsnull))
+//        symbol_debug(s);
     tclass = type_arrayroot(t);
     if (tybasic(tclass.Tty) != TYstruct)
         return null;
     stag = tclass.Ttag;
-    symbol_debug(stag);
+//    symbol_debug(stag);
 
     if (dtorflag & 0x40)
         goto Ldtor;
@@ -2000,39 +2017,40 @@ elem *init_constructor(symbol *s,type *t,list_t arglist,
     if (list_nitems(arglist) == 1 && !errcnt)
     {   Symbol *sa;
         Symbol *sctor;
-        elem *e1,*e2;
+        elem* e1,e2;
+        elem* ec;
+        elem *e1x;
 
-#if 0
-        printf("init_constructor(s = '%s', dtorflag = x%x)\n", s.Sident, dtorflag);
-        elem_print(list_elem(arglist));
-#endif
+        //printf("init_constructor(s = '%s', dtorflag = x%x)\n", s.Sident, dtorflag);
+        //elem_print(list_elem(arglist));
+
         e = poptelem(list_elem(arglist));
-        list_ptr(arglist) = e;
+        list_setelem(arglist, e);
 
         /* Look for (tmp = xxx),tmp                             */
         if (e.Eoper == OPcomma &&
-            (e2 = e.E2).Eoper == OPvar &&
+            (e2 = e.EV.E2).Eoper == OPvar &&
             /* BUG: what if mTYconst? */
             type_struct(e2.ET) && e2.ET.Ttag == stag &&
-            (sa = e2.EV.sp.Vsym).Sclass == SCauto &&
-            (e1 = e.E1).Eoper == OPstreq &&
-            el_match(e1.E1,e2) &&
+            (sa = e2.EV.Vsym).Sclass == SCauto &&
+            (e1 = e.EV.E1).Eoper == OPstreq &&
+            el_match(e1.EV.E1,e2) &&
             !(dflag & DTRsnull))
         {
 assert(0); // can't find any cases of this, must be an anachronism
             if (dflag & DTRptre)
             {
-                el_free(e.E2);
-                el_free(e1.E1);
-                e.E2 = el_unat(OPind,tclass,el_var(s));
-                e1.E1 = el_copytree(e.E2);
+                el_free(e.EV.E2);
+                el_free(e1.EV.E1);
+                e.EV.E2 = el_unat(OPind,tclass,el_var(s));
+                e1.EV.E1 = el_copytree(e.EV.E2);
             }
             else
             {
-                e2.EV.sp.Vsym = s;
-                e2.EV.sp.Voffset = offset;
-                e1.E1.EV.sp.Vsym = s;
-                e1.E1.EV.sp.Voffset = offset;
+                e2.EV.Vsym = s;
+                e2.EV.Voffset = offset;
+                e1.EV.E1.EV.Vsym = s;
+                e1.EV.E1.EV.Voffset = offset;
             }
         L3: // Discard the temporary sa
             sa.Sflags |= SFLnodtor;
@@ -2046,59 +2064,55 @@ assert(0); // can't find any cases of this, must be an anachronism
         if (e.Eoper == OPcond && (dflag & (DTRdtor | DTRrete)) == DTRrete)
         {   type *t2;
 
-            list_free(&arglist,FPnull);
-            list_append(&arglist,e.E2.E1);
-            e.E2.E1 = init_constructor(s,t,arglist,offset,dtorflag & 0x1F,sinit);
+            list_free(&arglist,FPNULL);
+            list_append(&arglist,e.EV.E2.EV.E1);
+            e.EV.E2.EV.E1 = init_constructor(s,t,arglist,offset,dtorflag & 0x1F,sinit);
             arglist = null;
-            list_append(&arglist,e.E2.E2);
-            e.E2.E2 = init_constructor(s,t,arglist,offset,dtorflag & 0x1F,sinit);
-            assert(e.E2.E2);
-            t2 = e.E2.E2.ET;
-            el_settype(e.E2,t2);
+            list_append(&arglist,e.EV.E2.EV.E2);
+            e.EV.E2.EV.E2 = init_constructor(s,t,arglist,offset,dtorflag & 0x1F,sinit);
+            assert(e.EV.E2.EV.E2);
+            t2 = e.EV.E2.EV.E2.ET;
+            el_settype(e.EV.E2,t2);
             el_settype(e,t2);
-            e.E2.E1 = cast(e.E2.E1,t2);
+            e.EV.E2.EV.E1 = _cast(e.EV.E2.EV.E1,t2);
             return e;
         }
 
         if (e.Eoper == OPind)
-        {   elem *e1;
-            elem *ec;
-
-            e1 = e.E1;
-#if TX86
-            if (e1.Eoper == OPoffset)
-                e1 = e1.E1;
-#endif
+        {
+            e1x = e.EV.E1;
+            if (e1x.Eoper == OPoffset)
+                e1x = e1x.EV.E1;
             ec = null;
-            if (e1.Eoper == OPinfo)
-            {   if (e1.E1.Eoper == OPctor &&
-                    e1.E1.E1.Eoper == OPrelconst)
-                    ec = e1.E1.E1;
-                e1 = e1.E2;
+            if (e1x.Eoper == OPinfo)
+            {   if (e1x.EV.E1.Eoper == OPctor &&
+                    e1x.EV.E1.EV.E1.Eoper == OPrelconst)
+                    ec = e1x.EV.E1.EV.E1;
+                e1x = e1x.EV.E2;
             }
 
-            if (e1.Eoper == OPcall)
+            if (e1x.Eoper == OPcall)
             {
                 /* If argument is a call to a function that returns the
                  * struct as a hidden argument, replace the hidden argument
                  * with s, and let the function construct s.
                  */
                 if (type_struct(e.ET) && e.ET.Ttag == stag)
-                {   type *tf = e1.E1.ET;      /* function type        */
+                {   type *tf = e1x.EV.E1.ET;      /* function type        */
                     type *tret = tf.Tnext;     /* function return type */
 
-                    type_debug(tret);
+                    //type_debug(tret);
                     if (exp2_retmethod(tf) == RET_STACK &&
                         tret.Ttag == stag)
                     {   elem *eh;
 
-                        // Find hidden parameter, and set e1 to it
-                        eh = exp2_gethidden(e1);
+                        // Find hidden parameter, and set e1x to it
+                        eh = exp2_gethidden(e1x);
                         if (eh.Eoper == OPrelconst &&
                             /* BUG: what if mTYconst? */
                             type_struct(eh.ET.Tnext) &&
                             eh.ET.Tnext.Ttag == stag &&
-                            (sa = eh.EV.sp.Vsym).Sclass == SCauto)
+                            (sa = eh.EV.Vsym).Sclass == SCauto)
                         {
                             elem *es;
                             int result;
@@ -2108,10 +2122,8 @@ assert(0); // can't find any cases of this, must be an anachronism
                                 if (ec)
                                     ec.Eoper = OPstrthis;
                                 e = list_elem(arglist);
-#if TX86
-                                if (e.E1.Eoper == OPoffset)
-                                    list_setelem(arglist,selecte1(e,e.E1.ET));
-#endif
+                                if (e.EV.E1.Eoper == OPoffset)
+                                    list_setelem(arglist,selecte1(e,e.EV.E1.ET));
                                 goto L3;
                             }
 
@@ -2123,12 +2135,12 @@ assert(0); // can't find any cases of this, must be an anachronism
                             {
                                 if (dflag & DTRptre)
                                     eh.Eoper = OPvar;
-                                eh.EV.sp.Vsym = s;
-                                eh.EV.sp.Voffset = offset;
+                                eh.EV.Vsym = s;
+                                eh.EV.Voffset = offset;
                                 if (ec)
                                 {   ec.Eoper = eh.Eoper;
-                                    ec.EV.sp.Vsym = s;
-                                    ec.EV.sp.Voffset = offset;
+                                    ec.EV.Vsym = s;
+                                    ec.EV.Voffset = offset;
                                 }
                                 goto L3;
                             }
@@ -2137,17 +2149,17 @@ assert(0); // can't find any cases of this, must be an anachronism
                 }
             }
             /* If argument is a call to a constructor for tclass        */
-            if (e1.Eoper == OPcall &&
+            if (e1x.Eoper == OPcall &&
                 (
-                (e1.E1.Eoper == OPvar &&
-                 (sctor = e1.E1.EV.sp.Vsym).Sfunc.Fclass == stag &&
+                (e1x.EV.E1.Eoper == OPvar &&
+                 (sctor = e1x.EV.E1.EV.Vsym).Sfunc.Fclass == stag &&
                  sctor.Sfunc.Fflags & Fctor
                 )
                         ||
-                (e1.E1.Eoper == OPind &&
-                 e1.E1.E1.Eoper == OPvar &&
-                 e1.E1.E1.EV.sp.Vsym.Sclass == SCextern &&
-                 (sctor = e1.E1.E1.EV.sp.Vsym.Simport) != null &&
+                (e1x.EV.E1.Eoper == OPind &&
+                 e1x.EV.E1.EV.E1.Eoper == OPvar &&
+                 e1x.EV.E1.EV.E1.EV.Vsym.Sclass == SCextern &&
+                 (sctor = e1x.EV.E1.EV.E1.EV.Vsym.Simport) != null &&
                  tyfunc(sctor.Stype.Tty) &&
                  sctor.Sfunc.Fclass == stag &&
                  sctor.Sfunc.Fflags & Fctor
@@ -2157,61 +2169,57 @@ assert(0); // can't find any cases of this, must be an anachronism
             {
                 // Find ethis, which is the last parameter pushed
                 do
-                    e1 = e1.E2;
-                while (e1.Eoper == OPparam);
-                if (e1.Eoper == OPrelconst)
+                    e1x = e1x.EV.E2;
+                while (e1x.Eoper == OPparam);
+                if (e1x.Eoper == OPrelconst)
                 {
-                    elem_debug(e1);
-                    assert(e1.EV.sp.Vsym.Sclass == SCauto);
-#ifdef DEBUG
-                    assert(enelems == null);
-#endif
+                    //elem_debug(e1x);
+                    assert(e1x.EV.Vsym.Sclass == SCauto);
+                    debug assert(enelems == null);
                     /* This ctor is sufficient. Discard the temporary,  */
                     /* putting s in instead                             */
-                    sa = e1.EV.sp.Vsym;
+                    sa = e1x.EV.Vsym;
                     sa.Sflags |= SFLnodtor;
                     if (sa.Sflags & SFLfree)
                     {   sa.Sflags &= ~SFLfree;
                         symbol_keep(sa);
                     }
                     if (dflag & DTRsnull)
-                        e1.Eoper = OPstrthis;
+                        e1x.Eoper = OPstrthis;
                     else
                     {
                         if (dflag & DTRptre)
-                            e1.Eoper = OPvar;
-                        e1.EV.sp.Vsym = s;
-                        e1.EV.sp.Voffset = offset;
+                            e1x.Eoper = OPvar;
+                        e1x.EV.Vsym = s;
+                        e1x.EV.Voffset = offset;
                     }
                     if (ec)
-                    {   ec.Eoper = e1.Eoper;
-                        ec.EV.sp.Vsym = e1.EV.sp.Vsym;
-                        ec.EV.sp.Voffset = e1.EV.sp.Voffset;
+                    {   ec.Eoper = e1x.Eoper;
+                        ec.EV.Vsym = e1x.EV.Vsym;
+                        ec.EV.Voffset = e1x.EV.Voffset;
                     }
                 L2: e = list_elem(arglist);
-                    list_free(&arglist,FPnull);
+                    list_free(&arglist,FPNULL);
 
                     /* Convert to pointer to struct     */
                     if (dflag & DTRptre)
                     {   type *tret;
 
                         tret = newpointer(e.ET);
-#if TX86
                         if (!I32)
                         {   tret.Tty = TYfptr;
                             if (e.Eoper == OPind &&
-                                e.E1.Eoper == OPoffset)
+                                e.EV.E1.Eoper == OPoffset)
                             {
                                 e = selecte1(selecte1(e,tret),tret);
                                 goto L1;
                             }
                         }
-#endif
                         e = el_unat(OPaddr,tret,e);
                     }
                     else if (dflag & DTRsnull)
                     {
-                        e = selecte1(e,e.E1.ET);
+                        e = selecte1(e,e.EV.E1.ET);
                     }
 
                     goto L1;
@@ -2220,7 +2228,7 @@ assert(0); // can't find any cases of this, must be an anachronism
         }
     }
 
-    switch (dflag & (DTRptre | DTRsnull))
+    final switch (dflag & (DTRptre | DTRsnull))
     {   case DTRptre:
             eptr = el_var(s);
             break;
@@ -2237,14 +2245,14 @@ assert(0); // can't find any cases of this, must be an anachronism
     e = cpp_constructor(eptr,tclass,arglist,enelems,null,(dtorflag & 0x20) | ((dflag & DTRnoeh) ? 8 : 0));
 
     if (e)
-    {   char localstatic;
+    {
     L1:
         assert(!sinit);
         if (dflag & DTRrete)
             return e;
 
         s.Sflags |= SFLimplem;         /* got an initializer for variable */
-        localstatic = 0;
+        char localstatic = 0;
         switch (s.Sclass)
         {
             case SCstatic:
@@ -2301,7 +2309,7 @@ assert(0); // can't find any cases of this, must be an anachronism
                 break;
 
             case SCcomdat:
-                synerr(EM_should_be_static, s.Sident);
+                synerr(EM_should_be_static, &s.Sident[0]);
                 e = null;
                 break;
 
@@ -2315,8 +2323,8 @@ Ldtor:
     if (dflag & DTRdtor && stag.Sstruct.Sdtor &&
         (s.Sclass == SCstatic || s.Sclass == SCglobal))
     {
-            elem *enelems;
-            elem *e;
+            elem *enelems2;
+            elem *ey;
             int temp = 0;
 
             for (Symbol *sc = s.Sscope; sc; sc = sc.Sscope)
@@ -2334,30 +2342,29 @@ Ldtor:
 
             if (temp == 0 && s.Sclass == SCglobal && s.Sdt && s.Sdt.dt == DT_common)
                 s.Sdt.dt = DT_azeros;         // don't use common block if dtor
-            enelems = el_nelems(t);
-            e = el_ptr_offset(s,offset);
-            e = cpp_destructor(tclass,e,enelems,DTORmostderived | DTORnoeh);
-            if (e && sinit)
-            {   /* Rewrite e as (sinit && e)    */
+            enelems2 = el_nelems(t);
+            ey = el_ptr_offset(s,offset);
+            ey = cpp_destructor(tclass,ey,enelems2,DTORmostderived | DTORnoeh);
+            if (ey && sinit)
+            {   /* Rewrite ey as (sinit && ey)    */
                 elem *ex;
                 if (temp)
                 {
-                    // Rewrite e as (sinit -= 1, e)
+                    // Rewrite ey as (sinit -= 1, ey)
                     ex = el_bint(OPminass,tstypes[TYchar],el_var(sinit),el_longt(tstypes[TYchar],1));
-                    e = el_combine(ex, e);
+                    ey = el_combine(ex, ey);
                 }
-                e = el_bint(OPandand,tstypes[TYint],el_var(sinit),e);
+                ey = el_bint(OPandand,tstypes[TYint],el_var(sinit),ey);
                 if (temp == 2)
                 {   // (sinit || (sinit += 1, e))
                     ex.Eoper = OPaddass;
-                    e.Eoper = OPoror;
+                    ey.Eoper = OPoror;
                 }
             }
-            list_prepend(&destructor_list,e);
+            list_prepend(&destructor_list,ey);
     }
     return e;
 }
-+/
 
 /*******************************************
  * Generate Symbol to be used as a global flag to indicate if
