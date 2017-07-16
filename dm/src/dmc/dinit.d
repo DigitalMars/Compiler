@@ -21,6 +21,7 @@ version (COMPILEIT)
 {
 import core.stdc.stdio;
 import core.stdc.string;
+import core.stdc.stdlib;
 
 
 import dtoken;
@@ -2356,31 +2357,29 @@ Ldtor:
     }
     return e;
 }
++/
 
 /*******************************************
  * Generate Symbol to be used as a global flag to indicate if
  * Symbol s is constructed or not.
  */
 
-STATIC Symbol * init_staticflag(symbol *s)
-{   Symbol *sinit;
-    char *sid;
-    char *name;
-
+//private
+ Symbol* init_staticflag(Symbol *s)
+{
     // Generate name as _flag_%s
-    sid = cpp_mangle(s);
-    name = (char *)alloca(6 + strlen(sid) + 1);
-    memcpy(name, "_flag_", 6);
+    char* sid = cpp_mangle(s);
+    char* name = cast(char *)alloca(6 + strlen(sid) + 1);
+    memcpy(name, cast(const(char)*)"_flag_", 6);
     strcpy(name + 6, sid);
 
-    sinit = symbol_name(name, SCglobal, tstypes[TYchar]);
+    Symbol* sinit = symbol_name(name, SCglobal, tstypes[TYchar]);
     init_common(sinit);
     outdata(sinit);
     symbol_keep(sinit);
 
     return sinit;
 }
-+/
 
 /********************************
  * Initialize an element of an array.

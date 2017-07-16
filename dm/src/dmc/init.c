@@ -45,7 +45,7 @@ STATIC elem * elemtodt(symbol *, DtBuilder&, elem *, targ_size_t);
 /*STATIC*/ int init_arraywithctor(symbol *);
 /*STATIC*/ symbol * init_localstatic(elem **peinit,symbol *s);
 /*STATIC*/ elem * init_sets(symbol *sauto,symbol *s);
-STATIC symbol * init_staticflag(symbol *s);
+/*STATIC*/ symbol * init_staticflag(symbol *s);
 
 int endofarray(void);
 STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown);
@@ -2328,6 +2328,7 @@ Ldtor:
  * symbol s is constructed or not.
  */
 
+#if 0
 STATIC symbol * init_staticflag(symbol *s)
 {   symbol *sinit;
     char *sid;
@@ -2346,6 +2347,7 @@ STATIC symbol * init_staticflag(symbol *s)
 
     return sinit;
 }
+#endif
 
 /********************************
  * Initialize an element of an array.

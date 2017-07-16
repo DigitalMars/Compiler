@@ -97,11 +97,12 @@ __gshared Configv configv;                // non-ph part of configuration
 Symbol *asm_define_label(const(char)* id);
 
 // cpp.c
-//#if SCPP || MARS
-//char *cpp_mangle(Symbol* s);
-//#else
-//#define cpp_mangle(s)   ((s)->Sident)
-//#endif
+version (SCPP)
+    char* cpp_mangle(Symbol* s);
+else version (MARS)
+    char* cpp_mangle(Symbol* s);
+else
+    char* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
 
 // ee.c
 void eecontext_convs(uint marksi);
