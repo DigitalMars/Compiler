@@ -30,6 +30,7 @@ import scopeh;
 
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
+import ddmd.backend.cpph;
 import ddmd.backend.dt;
 import ddmd.backend.el;
 import ddmd.backend.global;
@@ -40,6 +41,10 @@ import ddmd.backend.type;
 import tk.dlist;
 
 extern (C++):
+
+int endofarray();
+elem * initarrayelem(Symbol *s,type *t,targ_size_t offset);
+
 /+
 #include        <stdio.h>
 #include        <string.h>
@@ -2440,6 +2445,7 @@ STATIC elem * initarrayelem(symbol *s,type *t,targ_size_t offset)
     init_closebrack(brack);
     return e;
 }
++/
 
 /**********************************
  * Initialize array of structs with constructors.
@@ -2448,15 +2454,15 @@ STATIC elem * initarrayelem(symbol *s,type *t,targ_size_t offset)
  *      0       s is not an array of structs with constructors
  */
 
-STATIC int init_arraywithctor(symbol *s)
-{   type *t;
-    type *tclass;
+//private
+ int init_arraywithctor(Symbol *s)
+{
     Symbol *sinit;
     Classsym *stag;
     char localstatic;
 
-    t = s.Stype;
-    tclass = type_arrayroot(t);
+    type* t = s.Stype;
+    type* tclass = type_arrayroot(t);
     if (tybasic(tclass.Tty) != TYstruct)
         return 0;
     stag = tclass.Ttag;
@@ -2464,10 +2470,10 @@ STATIC int init_arraywithctor(symbol *s)
     if (stag.Sstruct.Sflags & STRanyctor)
     {   targ_size_t dim;                /* # of initializers seen so far */
         targ_size_t elemsize;
-        enum SC sclass;
-        elem *e,*e2;
+        enum_SC sclass;
+        elem* e,e2;
 
-        sclass = (enum SC)s.Sclass;    // storage class
+        sclass = cast(enum_SC)s.Sclass;    // storage class
         localstatic = (level > 0) && (sclass == SCstatic);
         if (/*sclass == SClocstat ||*/ (sclass == SCstatic && !localstatic) ||
             sclass == SCglobal)
@@ -2499,9 +2505,7 @@ STATIC int init_arraywithctor(symbol *s)
         {
             if (t.Tdim > dim)                  /* if not enough initializers */
             {                                   /* initialize remainder */
-                type *tc;
-
-                tc = type_copy(t);
+                type* tc = type_copy(t);
                 tc.Tcount++;
                 tc.Tdim = t.Tdim - dim;
                 e2 = init_constructor(s,tc,null,dim * elemsize,0x20,null);
@@ -2531,17 +2535,15 @@ STATIC int init_arraywithctor(symbol *s)
             s.Sdt = dtb.finish();
 
             /* Call destructors */
-            {   elem *enelems;
-                elem *e;
-
-                enelems = el_nelems(t);
-                e = el_ptr(s);
-                e = cpp_destructor(tclass,e,enelems,DTORmostderived | DTORnoeh);
-                if (e && sinit)
-                {   /* Rewrite e as (sinit && e)        */
-                    e = el_bint(OPandand,tstypes[TYint],el_var(sinit),e);
+            {
+                elem* enelems = el_nelems(t);
+                elem* ex = el_ptr(s);
+                ex = cpp_destructor(tclass,ex,enelems,DTORmostderived | DTORnoeh);
+                if (ex && sinit)
+                {   // Rewrite ex as (sinit && ex)
+                    ex = el_bint(OPandand,tstypes[TYint],el_var(sinit),ex);
                 }
-                list_prepend(&destructor_list,e);
+                list_prepend(&destructor_list,ex);
             }
         }
         return 1;
@@ -2549,7 +2551,6 @@ STATIC int init_arraywithctor(symbol *s)
     else
         return 0;
 }
-+/
 
 
 /****************************************

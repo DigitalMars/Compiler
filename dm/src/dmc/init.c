@@ -42,12 +42,12 @@ STATIC elem * initelem(type *, DtBuilder&, symbol *,targ_size_t);
 STATIC elem * initstruct(type *, DtBuilder&, symbol *,targ_size_t);
 STATIC elem * initarray(type *, DtBuilder&, symbol *,targ_size_t);
 STATIC elem * elemtodt(symbol *, DtBuilder&, elem *, targ_size_t);
-STATIC int init_arraywithctor(symbol *);
+/*STATIC*/ int init_arraywithctor(symbol *);
 /*STATIC*/ symbol * init_localstatic(elem **peinit,symbol *s);
 /*STATIC*/ elem * init_sets(symbol *sauto,symbol *s);
 STATIC symbol * init_staticflag(symbol *s);
 
-STATIC int endofarray(void);
+int endofarray(void);
 STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown);
 STATIC void initializer(symbol *);
 STATIC elem * dyn_init(symbol *);
@@ -1020,7 +1020,7 @@ STATIC void init_closebrack(int brack)
  * Parse end of array.
  */
 
-STATIC int endofarray()
+int endofarray()
 {
     if (tok.TKval != TKcomma)
         return 1;
@@ -2355,7 +2355,7 @@ STATIC symbol * init_staticflag(symbol *s)
  *      initialization expression if a local static initialization
  */
 
-STATIC elem * initarrayelem(symbol *s,type *t,targ_size_t offset)
+elem * initarrayelem(symbol *s,type *t,targ_size_t offset)
 {   list_t arglist;
     targ_uns dim;
     bool brack;
@@ -2420,6 +2420,7 @@ STATIC elem * initarrayelem(symbol *s,type *t,targ_size_t offset)
  *      0       s is not an array of structs with constructors
  */
 
+#if 0
 STATIC int init_arraywithctor(symbol *s)
 {   type *t;
     type *tclass;
@@ -2521,7 +2522,7 @@ STATIC int init_arraywithctor(symbol *s)
     else
         return 0;
 }
-
+#endif
 
 /****************************************
  * Handle conditional initialization of local statics.
