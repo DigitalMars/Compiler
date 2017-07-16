@@ -43,7 +43,7 @@ STATIC elem * initstruct(type *, DtBuilder&, symbol *,targ_size_t);
 STATIC elem * initarray(type *, DtBuilder&, symbol *,targ_size_t);
 STATIC elem * elemtodt(symbol *, DtBuilder&, elem *, targ_size_t);
 STATIC int init_arraywithctor(symbol *);
-STATIC symbol * init_localstatic(elem **peinit,symbol *s);
+/*STATIC*/ symbol * init_localstatic(elem **peinit,symbol *s);
 /*STATIC*/ elem * init_sets(symbol *sauto,symbol *s);
 STATIC symbol * init_staticflag(symbol *s);
 
@@ -64,7 +64,7 @@ STATIC elem * dyn_init(symbol *);
 #define CSMTY           mTYfar
 #endif
 
-static targ_size_t dsout = 0;   /* # of bytes actually output to data   */
+/*static*/ targ_size_t dsout = 0;   /* # of bytes actually output to data   */
                                 /* segment, used to pad for alignment   */
 
 
@@ -2534,6 +2534,7 @@ STATIC int init_arraywithctor(symbol *s)
  *      symbol generated that is the conditional, NULL if none needed
  */
 
+#if 0
 STATIC symbol * init_localstatic(elem **peinit,symbol *s)
 {   type *tr;
     symbol *sinit = NULL;
@@ -2593,6 +2594,7 @@ STATIC symbol * init_localstatic(elem **peinit,symbol *s)
     }
     return sinit;
 }
+#endif
 
 /********************************
  * Initialize auto symbol sauto with static symbol s.
