@@ -40,6 +40,7 @@ import ddmd.backend.ty;
 import ddmd.backend.type;
 
 import tk.dlist;
+import tk.mem;
 
 extern (C++):
 
@@ -58,7 +59,19 @@ enum
     DT_ibytes = 6,
 }
 
+bool I16() { return _tysize[TYnptr] == 2; }
 bool I32() { return _tysize[TYnptr] == 4; }
+bool I64() { return _tysize[TYnptr] == 8; }
+
+void TOOFFSET(void* p, targ_size_t value)
+{
+    final switch (_tysize[TYnptr])
+    {
+        case 2: *cast(ushort*)p = cast(ushort)value; break;
+        case 4: *cast(uint*)  p = cast(uint)  value; break;
+        case 8: *cast(ulong*) p = cast(ulong) value; break;
+    }
+}
 
 /+
 #include        <stdio.h>
@@ -766,7 +779,7 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
             {   Symbol *s;
 
                 // Put out offset to base class
-                dtb.nbytes(intsize,(char *)&b.BCoffset);
+                dtb.nbytes(_tysize[TYint],(char *)&b.BCoffset);
 
                 // Put out pointer to base class type info
                 s = init_typeinfo_data(b.BCbase.Stype);
@@ -1810,20 +1823,18 @@ err:
  *      srtti           class of complete Symbol
  */
 
-void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
+void init_vtbl(Symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 {
     list_t lvf;
     targ_size_t size;
     tym_t fty;                          /* pointer to function type     */
     short offset;
 
-    symbol_debug(s_vtbl);
-    symbol_debug(stag);
+    //symbol_debug(s_vtbl);
+    //symbol_debug(stag);
     fty = LARGECODE ? TYfptr : TYnptr;
     cpp_getpredefined();                        /* get s_mptr           */
-#ifdef DEBUG
-    assert(fty == s_mptr.Stype.Tty);
-#endif
+    debug assert(fty == s_mptr.Stype.Tty);
     fty = tybasic(fty);
     size = type_size(s_mptr.Stype);
 
@@ -1833,7 +1844,7 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
     if (config.flags3 & CFG3rtti)
     {   Symbol *s;
 
-        symbol_debug(srtti);
+        //symbol_debug(srtti);
         s = init_typeinfo(srtti.Stype);
         if (s)
             dtb.xoff(s,0,srtti.Sstruct.ptrtype);
@@ -1842,16 +1853,15 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
     for (lvf = virtlist; lvf; lvf = list_next(lvf))
     {   Symbol *s;
 
-        mptr_t *m = (mptr_t *) list_ptr(lvf);
+        mptr_t *m = cast(mptr_t *) list_ptr(lvf);
         s = m.MPf;
         // Replace destructor call with scalar deleting destructor
         if (s.Sfunc.Fflags & Fdtor)
-        {   Classsym *stag;
-
-            stag = (Classsym *)s.Sscope;
+        {
+            Classsym* stag2 = cast(Classsym *)s.Sscope;
             if (!stag.Sstruct.Sscaldeldtor)
-                n2_createscaldeldtor(stag);
-            s = stag.Sstruct.Sscaldeldtor;
+                n2_createscaldeldtor(stag2);
+            s = stag2.Sstruct.Sscaldeldtor;
         }
         if (m.MPd && !(s.Sfunc.Fflags & Fpure)) // if displacement from this
         {                                         // then a thunk is required
@@ -1863,16 +1873,16 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
             //symbol_keep(sthunk);
             /*dbg_printf("Adding %s to class %s\n",sthunk.Sident,stag.Sident);*/
             //n2_addfunctoclass(stag.Stype,sthunk);
-#if 0
-            m.MPf = sthunk;            /* for possible other users     */
-            m.MPd = 0;
-#endif
+
+            //m.MPf = sthunk;            // for possible other users
+            //m.MPd = 0;
+
             s = sthunk;
         }
 
         // BUG: if covariant return type needs adjustment, build wrapper
         // for s here.
-        symbol_debug(s);
+        //symbol_debug(s);
         /*dbg_printf("vtbl[] = %s\n",s.Sident);*/
         assert(s.Sfunc && tyfunc(s.Stype.Tty));
 
@@ -1890,17 +1900,17 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
             /* Compute __mptr.f, the function pointer itself    */
             dtb.xoff(s,0,fty);
             dsout += _tysize[fty];
-#ifdef DEBUG
+
             /*dbg_printf(" tysize = %d, size = %d\n",
                 _tysize[fty],size - 2 * SHORTSIZE);*/
             assert(_tysize[fty] == size);
-#endif
         }
     }
     s_vtbl.Sdt = dtb.finish();
 
     /*dbg_printf("Tdim = %d\n",s_vtbl.Stype.Tdim);*/
 }
++/
 
 
 /*********************************
@@ -1913,49 +1923,38 @@ void init_vbtbl(
         Classsym    *stag,      // class of Symbol we're generating vbtbl[] for
         targ_size_t  vbptr_off) // offset of Svbptr from address point of class
 {
-    char *pdata;
-    baseclass_t *b;
-    unsigned size;
-    unsigned dim;
-
     //dbg_printf("init_vbtbl(s_vbtbl='%s',stag='%s',vbptr_off=x%lx)\n",
     //  s_vbtbl.Sident,stag.Sident,(long)vbptr_off);
 
     // Guess number of slots
-    dim = (1 + baseclass_nitems(virtbase)) * intsize;   // extra slot at beginning
+    uint dim = (1 + baseclass_nitems(virtbase)) * _tysize[TYint];   // extra slot at beginning
 
     // Allocate table
-    pdata = (char *) MEM_PARF_CALLOC(dim);
+    char* pdata = cast(char *)mem_calloc(dim);
 
     // Fill the table
-    size = 0;
-    for (b = virtbase; b; b = b.BCnext)
-    {   baseclass_t *b2;
-
-        b2 = baseclass_find(stag.Sstruct.Svirtbase,b.BCbase);
+    uint size = 0;
+    for (baseclass_t* b = virtbase; b; b = b.BCnext)
+    {
+        baseclass_t* b2 = baseclass_find(stag.Sstruct.Svirtbase,b.BCbase);
         assert(b2);
         //dbg_printf("b2='%s' vbtbloff = x%lx, size=x%x\n",b2.BCbase.Sident,(long)b2.vbtbloff,size);
-        if (b2.BCvbtbloff + intsize > size)
-        {   size = b2.BCvbtbloff + intsize;
+        if (b2.BCvbtbloff + _tysize[TYint] > size)
+        {   size = b2.BCvbtbloff + _tysize[TYint];
             if (size > dim)             // need to reallocate array
-            {   pdata = (char *) MEM_PARF_REALLOC(pdata,size);
+            {   pdata = cast(char *)mem_realloc(pdata,size);
                 memset(pdata + dim,0,size - dim);
                 dim = size;
             }
         }
-#if TX86
         TOOFFSET(pdata + b.BCvbtbloff,b2.BCoffset - vbptr_off);
-#else
-        *(unsigned long *)(pdata + b.BCvbtbloff) = b2.BCoffset - vbptr_off;
-#endif
     }
 
     scope dtb = new DtBuilder();
     dtb.nbytes(size, pdata);
     s_vbtbl.Sdt = dtb.finish();
-    MEM_PARF_FREE(pdata);
+    mem_free(pdata);
 }
-+/
 
 
 /******************************

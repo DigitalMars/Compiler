@@ -1859,6 +1859,7 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
  * Construct static initializer for vtbl[].
  */
 
+#if 0
 void init_vbtbl(
         symbol      *s_vbtbl,   // symbol for vbtbl[]
         baseclass_t *virtbase,  // list of virtual base classes
@@ -1907,6 +1908,7 @@ void init_vbtbl(
     s_vbtbl->Sdt = dtb.finish();
     MEM_PARF_FREE(pdata);
 }
+#endif
 
 
 /******************************
