@@ -1003,7 +1003,7 @@ STATIC elem * dyn_init(symbol *s)
  * Parse closing bracket of initializer list.
  */
 
-STATIC void init_closebrack(int brack)
+/*STATIC*/ void init_closebrack(int brack)
 {
     if (brack)                          /* if expecting closing bracket */
     {   if (tok.TKval == TKcomma)
@@ -2355,6 +2355,7 @@ STATIC symbol * init_staticflag(symbol *s)
  *      initialization expression if a local static initialization
  */
 
+#if 0
 elem * initarrayelem(symbol *s,type *t,targ_size_t offset)
 {   list_t arglist;
     targ_uns dim;
@@ -2412,6 +2413,7 @@ elem * initarrayelem(symbol *s,type *t,targ_size_t offset)
     init_closebrack(brack);
     return e;
 }
+#endif
 
 /**********************************
  * Initialize array of structs with constructors.

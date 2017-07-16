@@ -44,6 +44,7 @@ extern (C++):
 
 int endofarray();
 elem * initarrayelem(Symbol *s,type *t,targ_size_t offset);
+void init_closebrack(int brack);
 
 /+
 #include        <stdio.h>
@@ -2379,6 +2380,7 @@ STATIC Symbol * init_staticflag(symbol *s)
 
     return sinit;
 }
++/
 
 /********************************
  * Initialize an element of an array.
@@ -2388,7 +2390,8 @@ STATIC Symbol * init_staticflag(symbol *s)
  *      initialization expression if a local static initialization
  */
 
-STATIC elem * initarrayelem(symbol *s,type *t,targ_size_t offset)
+//private
+ elem* initarrayelem(Symbol *s,type *t,targ_size_t offset)
 {   list_t arglist;
     targ_uns dim;
     bool brack;
@@ -2445,7 +2448,6 @@ STATIC elem * initarrayelem(symbol *s,type *t,targ_size_t offset)
     init_closebrack(brack);
     return e;
 }
-+/
 
 /**********************************
  * Initialize array of structs with constructors.
