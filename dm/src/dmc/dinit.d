@@ -46,6 +46,7 @@ import tk.mem;
 extern (C++):
 
 int endofarray();
+void init_typeinfo_struct(DtBuilder dtb, Classsym *stag);
 elem* initarrayelem(Symbol *s,type *t,targ_size_t offset);
 void init_closebrack(int brack);
 //elem* initelem(type *, DtBuilder, Symbol *,targ_size_t);
@@ -792,6 +793,7 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
         b = st.Sbase;
     }
 }
++/
 
 /**********************************
  * Create a symbol representing a type.
@@ -799,22 +801,22 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
  * exception handling type matching.
  */
 
-symbol *init_typeinfo_data(type *ptype)
+Symbol *init_typeinfo_data(type *ptype)
 {
     Symbol *s;
     char *id;
-    enum FL fl;
+    int fl;
     type *t = null;
 
     fl = CSTABLES ? CSFL : FLdatseg;
     // Create the basic mangled name
     if (!ptype)                 // if ... (any type)
     {
-        id = "__tiX";           // this symbol defined by the runtime
+        id = cast(char*)"__tiX";       // this symbol defined by the runtime
     }
     else
     {
-        type_debug(ptype);
+        //type_debug(ptype);
 
         // Since T, const T, T& and const T& are all considered the same,
         // remove any & and const.
@@ -824,7 +826,7 @@ symbol *init_typeinfo_data(type *ptype)
         t.Tty &= ~(mTYconst | mTYvolatile);    // remove volatile too
         t.Tcount++;
 
-        id = cpp_typetostring( t, "__ti" );
+        id = cpp_typetostring( t, cast(char*)"__ti" );
     }
 
     // Now we have the symbol name.
@@ -851,23 +853,22 @@ symbol *init_typeinfo_data(type *ptype)
         {   // Generate:
             //  2, type-info, name
             init_typeinfo_struct(dtb,ptype.Ttag);
-            s.Sfl = fl;
+            s.Sfl = cast(char)fl;
             goto Lname;
         }
         else if (typtr(ty))
         {   // Generate:
             //  1, flags, ptr-to-next, name
-            char data[2];
-            Symbol *sn;
-            type *tn;
-
-            tn = ptype.Tnext;
-            data[0] = 1;                        // indicate a pointer type
-            data[1] = ty | (tn.Tty & (mTYvolatile | mTYconst));
-            dtb.nbytes(2,data);
-            sn = init_typeinfo_data(tn);
-            dtb.xoff(sn,0,pointertype);
-            s.Sfl = fl;
+            {
+                ubyte[2] data;
+                type* tn = ptype.Tnext;
+                data[0] = 1;                        // indicate a pointer type
+                data[1] = cast(ubyte)(ty | (tn.Tty & (mTYvolatile | mTYconst)));
+                dtb.nbytes(2, cast(const(char)*)&data[0]);
+                Symbol* sn = init_typeinfo_data(tn);
+                dtb.xoff(sn,0,pointertype);
+                s.Sfl = cast(char)fl;
+            }
           Lname:
             // Append RTTI human readable type name
             Outbuffer buf;
@@ -884,34 +885,35 @@ symbol *init_typeinfo_data(type *ptype)
         {   // Generate reference to extern
           Lextern:
             s.Sclass = SCextern;
-#if TX86
             if (s.Stype.Tty & mTYcs)
                 s.Sfl = FLcsdata;
             else
-#endif
                 s.Sfl = FLextern;
         }
         else
         {   // Generate:
-#if 1
-            // 0, name
-            char data = 0;
-            dtb.nbytes(1,&data);
-            s.Sfl = fl;
-            goto Lname;
-#else
-            //  0 (a common block)
-            s.Sclass = SCglobal;
-            init_common(s);
-#endif
+            version (all)
+            {
+                // 0, name
+                ubyte data = 0;
+                dtb.nbytes(1,cast(const(char)*)&data);
+                s.Sfl = cast(char)fl;
+                goto Lname;
+            }
+            else
+            {
+                //  0 (a common block)
+                s.Sclass = SCglobal;
+                init_common(s);
+            }
         }
     }
     if (t)
         type_free(t);
-    symbol_debug(s);
+    //symbol_debug(s);
     return s;
 }
-+/
+
 
 /**************************************
  * Create and initialize an instance of Type_info.

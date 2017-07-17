@@ -685,7 +685,7 @@ cret:
  * Create typeinfo data for a struct.
  */
 
-STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
+/*STATIC*/ void init_typeinfo_struct(DtBuilder* dtb, Classsym *stag)
 {
     int nbases;
     baseclass_t *b;
@@ -694,7 +694,7 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
     int flags;
 
     char c = 2;
-    dtb.nbytes(1,&c);
+    dtb->nbytes(1,&c);
 
     // Compute number of bases
     nbases = 0;
@@ -706,7 +706,7 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
     for (b = st->Sbase; b; b = b->BCnext)
         if (!(b->BCflags & (BCFprivate | BCFvirtual)))
             nbases++;
-    dtb.nbytes(2,(char *)&nbases);
+    dtb->nbytes(2,(char *)&nbases);
 
     // Put out the base class info for each class
     flags = BCFprivate;
@@ -718,11 +718,11 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
             {   symbol *s;
 
                 // Put out offset to base class
-                dtb.nbytes(intsize,(char *)&b->BCoffset);
+                dtb->nbytes(intsize,(char *)&b->BCoffset);
 
                 // Put out pointer to base class type info
                 s = init_typeinfo_data(b->BCbase->Stype);
-                dtb.xoff(s,0,pointertype);
+                dtb->xoff(s,0,pointertype);
             }
         }
         flags |= BCFvirtual;
@@ -736,6 +736,7 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
  * exception handling type matching.
  */
 
+#if 0
 symbol *init_typeinfo_data(type *ptype)
 {
     symbol *s;
@@ -787,7 +788,7 @@ symbol *init_typeinfo_data(type *ptype)
         else if ((ty = tybasic(ptype->Tty)) == TYstruct)
         {   // Generate:
             //  2, type-info, name
-            init_typeinfo_struct(dtb,ptype->Ttag);
+            init_typeinfo_struct(&dtb,ptype->Ttag);
             s->Sfl = fl;
             goto Lname;
         }
@@ -848,6 +849,7 @@ symbol *init_typeinfo_data(type *ptype)
     symbol_debug(s);
     return s;
 }
+#endif
 
 /**************************************
  * Create and initialize an instance of Type_info.
