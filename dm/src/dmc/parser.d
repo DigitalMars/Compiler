@@ -519,8 +519,8 @@ Symbol *struct_searchmember(const(char)* ,Classsym *);
 void n2_instantiate_memfunc(Symbol *s);
 type *n2_adjfunctype(type *t);
 int n2_anypure(list_t);
-void n2_genvtbl(Classsym *stag, enum_SC sc , int);
-void n2_genvbtbl(Classsym *stag, enum_SC sc , int);
+void n2_genvtbl(Classsym *stag, int sc , int);
+void n2_genvbtbl(Classsym *stag, int sc , int);
 void n2_creatector(type *tclass);
 /*void n2_createdtor(type *tclass);*/
 Symbol *n2_createprimdtor(Classsym *stag);

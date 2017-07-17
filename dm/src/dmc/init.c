@@ -858,6 +858,7 @@ symbol *init_typeinfo_data(type *ptype)
  *      NULL for error
  */
 
+#if 0
 symbol *init_typeinfo(type *ptype)
 {
     symbol *s;
@@ -935,6 +936,7 @@ void init_sym(symbol *s,elem *e)
     assert(!s->Sdt);
     s->Sdt = dtb.finish();
 }
+#endif
 
 /*********************************
  * Read in a dynamic initializer for symbol s.

@@ -4399,7 +4399,7 @@ STATIC type * n2_vtbltype(Classsym *stag,int nitems)
     return t;
 }
 
-void n2_genvtbl(Classsym *stag,enum SC sc,int flag)
+void n2_genvtbl(Classsym *stag,int sc,int flag)
 {
     struct_t *st = stag->Sstruct;
     symbol *s_vtbl;

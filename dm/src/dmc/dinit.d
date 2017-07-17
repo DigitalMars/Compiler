@@ -115,18 +115,21 @@ STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown);
 STATIC void initializer(symbol *);
 STATIC elem * dyn_init(symbol *);
 STATIC Symbol *init_alloca();
-
++/
 
 // Decide to put typeinfo symbols in code segment
-#define CSTABLES        (config.memmodel & 2)
-#if 1
-#define CSFL            FLcsdata
-#define CSMTY           mTYcs
-#else
-#define CSFL            FLfardata
-#define CSMTY           mTYfar
-#endif
-+/
+bool CSTABLES() { return cast(bool)(config.memmodel & 2); }
+version (all)
+{
+    enum CSFL = FLcsdata;
+    enum CSMTY = mTYcs;
+}
+else
+{
+    enum CSFL = FLfardata;
+    enum CSMTY = mTYfar;
+}
+
 
 extern __gshared targ_size_t dsout;   // # of bytes actually output to data
                                 // segment, used to pad for alignment
@@ -908,6 +911,7 @@ symbol *init_typeinfo_data(type *ptype)
     symbol_debug(s);
     return s;
 }
++/
 
 /**************************************
  * Create and initialize an instance of Type_info.
@@ -929,7 +933,7 @@ Symbol *init_typeinfo(type *ptype)
     if (!srtti)
         return null;
 
-    type_debug(ptype);
+    //type_debug(ptype);
 
     // C++ 5.2.8-4, -5 Ignore top level reference and cv qualifiers
     t = ptype;
@@ -938,7 +942,7 @@ Symbol *init_typeinfo(type *ptype)
     t.Tcount++;
     type_setcv(&t, 0);
 
-    id = cpp_typetostring(t, "__rtti");
+    id = cpp_typetostring(t, cast(char*)"__rtti");
     type_free(t);
 
     // Now we have the symbol name.
@@ -978,7 +982,7 @@ Symbol *init_typeinfo(type *ptype)
         s.Sdt = dtb.finish();
         s.Sfl = CSTABLES ? CSFL : FLdatseg;
     }
-    symbol_debug(s);
+    //symbol_debug(s);
     return s;
 }
 
@@ -995,7 +999,6 @@ void init_sym(Symbol *s,elem *e)
     assert(!s.Sdt);
     s.Sdt = dtb.finish();
 }
-+/
 
 /*********************************
  * Read in a dynamic initializer for Symbol s.
