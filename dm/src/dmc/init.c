@@ -50,7 +50,7 @@ bool init_staticctor;   /* TRUE if this is a static initializer */
 int endofarray();
 /*STATIC*/ size_t getArrayIndex(size_t i, size_t dim, char unknown);
 STATIC void initializer(symbol *);
-STATIC elem * dyn_init(symbol *);
+/*STATIC*/ elem * dyn_init(symbol *);
 /*STATIC*/ symbol *init_alloca();
 
 
@@ -941,6 +941,7 @@ void init_sym(symbol *s,elem *e)
  * Output the assignment expression.
  */
 
+#if 0
 STATIC elem * dyn_init(symbol *s)
 {   elem *e,*e1,*e2;
     type *t;
@@ -998,6 +999,7 @@ STATIC elem * dyn_init(symbol *s)
     }
     return e;
 }
+#endif
 
 /*******************************
  * Parse closing bracket of initializer list.

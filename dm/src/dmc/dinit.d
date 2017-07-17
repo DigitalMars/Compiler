@@ -918,7 +918,7 @@ symbol *init_typeinfo_data(type *ptype)
  *      null for error
  */
 
-symbol *init_typeinfo(type *ptype)
+Symbol *init_typeinfo(type *ptype)
 {
     Symbol *s;
     char *id;
@@ -966,7 +966,7 @@ symbol *init_typeinfo(type *ptype)
 
         // The first entry is a pointer to the vtbl[]
         assert(st.Svptr.Smemoff == 0);        // should be first member
-        enum SC scvtbl = (enum SC) (config.flags2 & CFG2comdat) ? SCcomdat :
+        enum_SC scvtbl = cast(enum_SC) (config.flags2 & CFG2comdat) ? SCcomdat :
              (st.Sflags & STRvtblext) ? SCextern : SCstatic;
         n2_genvtbl(srtti,scvtbl,0);
         scope dtb = new DtBuilder();
@@ -986,7 +986,7 @@ symbol *init_typeinfo(type *ptype)
  * Initialize Symbol with expression e.
  */
 
-void init_sym(symbol *s,elem *e)
+void init_sym(Symbol *s,elem *e)
 {
     e = poptelem(e);
     scope dtb = new DtBuilder();
@@ -995,20 +995,22 @@ void init_sym(symbol *s,elem *e)
     assert(!s.Sdt);
     s.Sdt = dtb.finish();
 }
++/
 
 /*********************************
  * Read in a dynamic initializer for Symbol s.
  * Output the assignment expression.
  */
 
-STATIC elem * dyn_init(symbol *s)
-{   elem *e,*e1,*e2;
+//private
+ elem * dyn_init(Symbol *s)
+{   elem* e,e1,e2;
     type *t;
     type *tv;
     tym_t ty;
 
     //printf("dyn_init('%s')\n", s.Sident);
-    symbol_debug(s);
+    //symbol_debug(s);
     t = s.Stype;
     assert(t);
     if (tok.TKval == TKlcur)    /* could be { initializer }     */
@@ -1018,7 +1020,7 @@ STATIC elem * dyn_init(symbol *s)
     }
     else
     {
-        type_debug(t);
+        //type_debug(t);
         e2 = poptelem(arraytoptr(assign_exp()));
         ty = t.Tty;
         if (ty & mTYconst && e2.Eoper == OPconst)
@@ -1054,11 +1056,10 @@ STATIC elem * dyn_init(symbol *s)
                     e = el_ctor(cpp_fixptrtype(el_ptr(s),t),e,n2_createprimdtor(stag));
             }
         }
-        elem_debug(e);
+        //elem_debug(e);
     }
     return e;
 }
-+/
 
 /*******************************
  * Parse closing bracket of initializer list.

@@ -385,7 +385,6 @@ int c1isbaseofc2(elem **,Symbol *,Symbol *);
 int c1dominatesc2(Symbol *stag, Symbol *c1, Symbol *c2);
 int exp2_retmethod(type *);
 type *exp2_hiddentype(type *);
-int typematch(type *,type *,int);
 int typecompat(type *,type *);
 int t1isSameOrSubsett2(type *,type *);
 void handleaccess(elem *);
@@ -756,7 +755,6 @@ version (SPP)
 }
 
 extern __gshared uint idhash;        // hash value of identifier
-extern __gshared tym_t pointertype;  // default data pointer type
 
 extern __gshared int level;     // declaration level
                                 // -2: base class list
