@@ -41,7 +41,7 @@ bool init_staticctor;   /* TRUE if this is a static initializer */
 STATIC elem * initelem(type *, DtBuilder&, symbol *,targ_size_t);
 STATIC elem * initstruct(type *, DtBuilder&, symbol *,targ_size_t);
 STATIC elem * initarray(type *, DtBuilder&, symbol *,targ_size_t);
-STATIC elem * elemtodt(symbol *, DtBuilder&, elem *, targ_size_t);
+/*STATIC*/ elem * elemtodt(symbol *, DtBuilder*, elem *, targ_size_t);
 /*STATIC*/ int init_arraywithctor(symbol *);
 /*STATIC*/ symbol * init_localstatic(elem **peinit,symbol *s);
 /*STATIC*/ elem * init_sets(symbol *sauto,symbol *s);
@@ -491,7 +491,7 @@ STATIC void initializer(symbol *s)
                 e = poptelem(e);
                 t = type_setdim(&s->Stype,1);
                 DtBuilder dtb;
-                einit = elemtodt(s,dtb,e,0);
+                einit = elemtodt(s,&dtb,e,0);
                 assert(!s->Sdt);
                 s->Sdt = dtb.finish();
             }
@@ -596,7 +596,7 @@ STATIC void initializer(symbol *s)
                 e = assign_exp();
                 e = typechk(e,t);
                 e = poptelem3(e);
-                einit = elemtodt(s,dtb,e,0);
+                einit = elemtodt(s,&dtb,e,0);
             }
             else
                 einit = initelem(t,dtb,sinit,0);
@@ -930,7 +930,7 @@ void init_sym(symbol *s,elem *e)
 {
     e = poptelem(e);
     DtBuilder dtb;
-    e = elemtodt(s,dtb,e,0);
+    e = elemtodt(s,&dtb,e,0);
     assert(e == NULL);
     assert(!s->Sdt);
     s->Sdt = dtb.finish();
@@ -1135,7 +1135,7 @@ STATIC elem * initelem(type *t, DtBuilder& dtb, symbol *s, targ_size_t offset)
                 {   s->Sflags |= SFLvalue;
                     s->Svalue = el_copytree(e);
                 }
-                e = elemtodt(s,dtb,e,offset);
+                e = elemtodt(s,&dtb,e,offset);
             }
             break;
         case TYstruct:
@@ -1383,7 +1383,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, symbol *ss,targ_size_t offset)
                     dtb.nzeros(n);
                     dsout += n;
                     e = poptelem(e);
-                    ec = elemtodt(ss,dtb,e,offset + soffset);
+                    ec = elemtodt(ss,&dtb,e,offset + soffset);
                     ei = el_combine(ei,ec);
                     e = NULL;
                 }
@@ -1433,7 +1433,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, symbol *ss,targ_size_t offset)
                     dtb.nzeros(n);
                     dsout += n;
                     e = poptelem(e);
-                    ec = elemtodt(ss,dtb,e,offset + soffset);
+                    ec = elemtodt(ss,&dtb,e,offset + soffset);
                     ei = el_combine(ei,ec);
                     e = NULL;
                 }
@@ -1457,7 +1457,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, symbol *ss,targ_size_t offset)
     if (e)
     {
         e = poptelem(e);
-        ec = elemtodt(ss,dtb,e,offset + soffset);
+        ec = elemtodt(ss,&dtb,e,offset + soffset);
         ei = el_combine(ei,ec);
         e = NULL;
     }
@@ -1591,6 +1591,7 @@ Ldone:
  *      NULL = no dynamic part of initialization, e is free'd
  */
 
+#if 0
 STATIC elem * elemtodt(symbol *s, DtBuilder& dtb, elem *e, targ_size_t offset)
 {
   char *p;
@@ -1750,7 +1751,7 @@ err:
     synerr(EM_const_init);      // constant initializer expected
     goto ret;
 }
-
+#endif
 
 
 /*********************************

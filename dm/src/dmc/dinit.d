@@ -29,6 +29,7 @@ import msgs2;
 import parser;
 import scopeh;
 
+import ddmd.backend.bcomplex;
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
 import ddmd.backend.cpph;
@@ -1642,7 +1643,9 @@ Ldone:
     init_closebrack(brack);
     return e;
 }
-
++/
+
+
 /***********************************
  * Convert from elem to dt.
  * Input:
@@ -1652,7 +1655,8 @@ Ldone:
  *      null = no dynamic part of initialization, e is free'd
  */
 
-STATIC elem * elemtodt(symbol *s, DtBuilder& dtb, elem *e, targ_size_t offset)
+//private
+ elem* elemtodt(Symbol *s, DtBuilder dtb, elem *e, targ_size_t offset)
 {
   char *p;
   tym_t ty;
@@ -1668,7 +1672,7 @@ Lagain:
   switch (e.Eoper)
   {
     case OPrelconst:
-        sa = e.EV.sp.Vsym;
+        sa = e.EV.Vsym;
         if (!sa) return null;
     again:
         switch (sa.Sclass)
@@ -1699,56 +1703,50 @@ Lagain:
             case SCunde:
                 return null;
             default:
-#ifdef DEBUG
-                WRclass((enum SC)sa.Sclass);
-#endif
+                debug WRclass(cast(enum_SC)sa.Sclass);
                 assert(0);
         }
         ty = tym_conv(e.ET);
-        dtb.xoff(sa,e.EV.sp.Voffset,ty);
+        dtb.xoff(sa,e.EV.Voffset,ty);
         dsout += tysize(ty);
         break;
 
     case OPstring:
-        size = e.EV.ss.Vstrlen;
-        dtb.abytes(e.ET.Tty, e.EV.ss.Voffset, size, e.EV.ss.Vstring, 0);
+        size = e.EV.Vstrlen;
+        dtb.abytes(e.ET.Tty, e.EV.Voffset, size, e.EV.Vstring, 0);
         dsout += tysize(e.ET.Tty);
         break;
 
     case OPconst:
     {
         size = type_size(e.ET);
-        targ_float f;
-        targ_double d;
-        Complex_f fc;
-        Complex_d dc;
         switch (e.ET.Tty)
         {
             case TYfloat:
             case TYifloat:
-                f = e.EV.Vfloat;
-                p = (char *) &f;
+                targ_float f = e.EV.Vfloat;
+                p = cast(char *) &f;
                 break;
 
             case TYdouble:
             case TYdouble_alias:
             case TYidouble:
-                d = e.EV.Vdouble;
-                p = (char *) &d;
+                targ_double d = e.EV.Vdouble;
+                p = cast(char *) &d;
                 break;
 
             case TYcfloat:
-                fc = e.EV.Vcfloat;
-                p = (char *) &fc;
+                Complex_f fc = e.EV.Vcfloat;
+                p = cast(char *) &fc;
                 break;
 
             case TYcdouble:
-                dc = e.EV.Vcdouble;
-                p = (char *) &dc;
+                Complex_d dc = e.EV.Vcdouble;
+                p = cast(char *) &dc;
                 break;
 
             default:
-                p = (char *) &e.EV;
+                p = cast(char *) &e.EV;
                 break;
         }
         dsout += size;
@@ -1758,7 +1756,7 @@ Lagain:
 
     default:
         e = poptelem4(e);               // try again to fold constants
-        if (!EOP(e))
+        if (OTleaf(e.Eoper))
             goto Lagain;
     case OPvar:
     Lexp:
@@ -1774,7 +1772,7 @@ Lagain:
 
             s.Sflags |= SFLdyninit;
             ev = el_var(s);
-            ev.EV.sp.Voffset = offset;
+            ev.EV.Voffset = offset;
             t = e.ET;
             assert(!tyref(t.Tty));
             el_settype(ev,t);
@@ -1805,13 +1803,10 @@ ret2:
     return e;
 
 err:
-#ifdef DEBUG
-    elem_print(e);
-#endif
+    debug elem_print(e);
     synerr(EM_const_init);      // constant initializer expected
     goto ret;
 }
-+/
 
 
 /*********************************
