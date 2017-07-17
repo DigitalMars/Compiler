@@ -685,6 +685,7 @@ cret:
  * Create typeinfo data for a struct.
  */
 
+#if 0
 /*STATIC*/ void init_typeinfo_struct(DtBuilder* dtb, Classsym *stag)
 {
     int nbases;
@@ -729,6 +730,7 @@ cret:
         b = st->Sbase;
     }
 }
+#endif
 
 /**********************************
  * Create a symbol representing a type.

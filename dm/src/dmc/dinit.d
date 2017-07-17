@@ -46,7 +46,6 @@ import tk.mem;
 extern (C++):
 
 int endofarray();
-void init_typeinfo_struct(DtBuilder dtb, Classsym *stag);
 elem* initarrayelem(Symbol *s,type *t,targ_size_t offset);
 void init_closebrack(int brack);
 //elem* initelem(type *, DtBuilder, Symbol *,targ_size_t);
@@ -744,12 +743,14 @@ cret:
         scope_pop();
     }
 }
-
++/
+
 /*************************************
  * Create typeinfo data for a struct.
  */
 
-STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
+//private
+ void init_typeinfo_struct(DtBuilder dtb, Classsym *stag)
 {
     int nbases;
     baseclass_t *b;
@@ -762,7 +763,7 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
 
     // Compute number of bases
     nbases = 0;
-    class_debug(stag);
+    //class_debug(stag);
     st = stag.Sstruct;
     for (b = st.Svirtbase; b; b = b.BCnext)
         if (!(b.BCflags & BCFprivate))
@@ -770,7 +771,7 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
     for (b = st.Sbase; b; b = b.BCnext)
         if (!(b.BCflags & (BCFprivate | BCFvirtual)))
             nbases++;
-    dtb.nbytes(2,(char *)&nbases);
+    dtb.nbytes(2,cast(char*)&nbases);
 
     // Put out the base class info for each class
     flags = BCFprivate;
@@ -779,13 +780,12 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
     {
         for (; b; b = b.BCnext)
         {   if (!(b.BCflags & flags))
-            {   Symbol *s;
-
+            {
                 // Put out offset to base class
-                dtb.nbytes(_tysize[TYint],(char *)&b.BCoffset);
+                dtb.nbytes(_tysize[TYint],cast(char*)&b.BCoffset);
 
                 // Put out pointer to base class type info
-                s = init_typeinfo_data(b.BCbase.Stype);
+                Symbol* s = init_typeinfo_data(b.BCbase.Stype);
                 dtb.xoff(s,0,pointertype);
             }
         }
@@ -793,7 +793,6 @@ STATIC void init_typeinfo_struct(DtBuilder& dtb, Classsym *stag)
         b = st.Sbase;
     }
 }
-+/
 
 /**********************************
  * Create a symbol representing a type.
