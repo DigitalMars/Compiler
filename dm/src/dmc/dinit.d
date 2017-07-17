@@ -1811,7 +1811,7 @@ err:
     synerr(EM_const_init);      // constant initializer expected
     goto ret;
 }
-
++/
 
 
 /*********************************
@@ -1910,7 +1910,6 @@ void init_vtbl(Symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 
     /*dbg_printf("Tdim = %d\n",s_vtbl.Stype.Tdim);*/
 }
-+/
 
 
 /*********************************

@@ -1762,6 +1762,7 @@ err:
  *      srtti           class of complete symbol
  */
 
+#if 0
 void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 {
     list_t lvf;
@@ -1853,6 +1854,7 @@ void init_vtbl(symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 
     /*dbg_printf("Tdim = %d\n",s_vtbl->Stype->Tdim);*/
 }
+#endif
 
 
 /*********************************

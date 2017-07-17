@@ -74,10 +74,16 @@ enum LANG
 }
 
 
-//#if MEMMODELS == 1
-//#define LARGEDATA 0     /* don't want 48 bit pointers */
-//#define LARGECODE 0
-//#endif
+static if (MEMMODELS == 1)
+{
+    enum LARGEDATA = 0;     // don't want 48 bit pointers
+    enum LARGECODE = 0;
+}
+else
+{
+    bool LARGEDATA() { return (config.memmodel & 6) != 0; }
+    bool LARGECODE() { return (config.memmodel & 5) != 0; }
+}
 
 //#if SPP || SCPP
 //#include        "msgs2.h"
@@ -1399,7 +1405,13 @@ alias Aliassym = Symbol;
 version (SCPP)
 {
     char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : s.Sident; }
+    char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
+}
+
+version (HTOD)
+{
+    char *cpp_prettyident (Symbol *s);
+    char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
 }
 
 version (MARS)

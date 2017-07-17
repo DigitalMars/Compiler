@@ -366,9 +366,6 @@ version (MARS)
 else
     enum MEMMODELS = 5;
 
-//#define LARGEDATA       (config.memmodel & 6)
-//#define LARGECODE       (config.memmodel & 5)
-
 /* Segments     */
 enum
 {
