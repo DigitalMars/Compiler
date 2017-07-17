@@ -49,7 +49,7 @@ bool init_staticctor;   /* TRUE if this is a static initializer */
 
 int endofarray();
 /*STATIC*/ size_t getArrayIndex(size_t i, size_t dim, char unknown);
-STATIC void initializer(symbol *);
+/*STATIC*/ void initializer(symbol *);
 /*STATIC*/ elem * dyn_init(symbol *);
 /*STATIC*/ symbol *init_alloca();
 
@@ -240,6 +240,7 @@ void datadef(symbol *s)
  * Take care of external references.
  */
 
+#if 0
 STATIC void initializer(symbol *s)
 { type *t;
   tym_t ty;
@@ -680,7 +681,8 @@ cret:
         scope_pop();
     }
 }
-
+#endif
+
 /*************************************
  * Create typeinfo data for a struct.
  */

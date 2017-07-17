@@ -294,7 +294,8 @@ void datadef(symbol *s)
                 assert(0);
         }
 }
-
++/
+
 /************************************
  * Provide initializer for Symbol s.
  * If statically initialized, output data directly to output
@@ -302,10 +303,11 @@ void datadef(symbol *s)
  * Take care of external references.
  */
 
-STATIC void initializer(symbol *s)
+//private
+ void initializer(Symbol *s)
 { type *t;
   tym_t ty;
-  enum SC sclass;
+  enum_SC sclass;
   Symbol *sauto;
   elem *einit;                          /* for dynamic initializers     */
   Symbol *sinit;                        /* Symbol to pass to initelem   */
@@ -320,22 +322,28 @@ STATIC void initializer(symbol *s)
   //printf("initializer('%s')\n", s.Sident);
   //symbol_print(s);
 
+    bool isstring(type* t)
+    {
+        return tok.TKval == TKstring && tyintegral(t.Tnext.Tty) && tysize(t.Tnext.Tty) == _tysize[tok.TKty];
+    }
+
+
   /* Allow void through */
   /*assert(tybasic(s.Stype.Tty));*/   /* variables only               */
 
   t = s.Stype;
   assert(t);
   ty = tybasic(t.Tty);                 /* type of data                 */
-  sclass = (enum SC) s.Sclass;         // storage class
+  sclass = cast(enum_SC) s.Sclass;         // storage class
   if (CPP)
   {
     localstatic = ((sclass == SCstatic || sclass == SCglobal || sclass == SCcomdat)
         && level > 0);
-    scope_pushclass((Classsym *)s.Sscope);
+    scope_pushclass(cast(Classsym *)s.Sscope);
     classsymsave = pstate.STclasssym;
     if (s.Sscope && s.Sscope.Sclass == SCstruct)
         // Go into scope of class that s is a member of
-        pstate.STclasssym = (Classsym *)s.Sscope;
+        pstate.STclasssym = cast(Classsym *)s.Sscope;
 
     // Remember top of symbol table so we can see if any temporaries are
     // generated during initialization, so we can add in destructors for
@@ -402,6 +410,10 @@ STATIC void initializer(symbol *s)
                 {
                     init_staticctor = true;
                 }
+                break;
+
+            default:
+                break;
         }
         if (t.Tflags & TFsizeunknown)
         {
@@ -409,10 +421,10 @@ STATIC void initializer(symbol *s)
             {   Classsym *stag = t.Ttag;
                 template_instantiate_forward(stag);
                 if (stag.Stype.Tflags & TFsizeunknown)
-                    synerr(EM_unknown_size,stag.Sident); // size of %s is not known
+                    synerr(EM_unknown_size, &stag.Sident[0]); // size of %s is not known
             }
             else if (tybasic(t.Tty) == TYarray)
-                synerr(EM_unknown_size,"array");        // size of %s is not known
+                synerr(EM_unknown_size,"array".ptr);        // size of %s is not known
             t.Tflags &= ~TFsizeunknown;
         }
         if (tybasic(t.Tty) == TYarray && type_isvla(t))
@@ -432,7 +444,7 @@ STATIC void initializer(symbol *s)
             e = arraytoptr(e);
             en = el_typesize(t);
             en = el_bint(OPcall, salloca.Stype.Tnext, el_var(salloca), en);
-            en = cast(en, e.ET);
+            en = _cast(en, e.ET);
             e = el_bint(OPeq, e.ET, e, en);
             block_appendexp(curblock, e);
         }
@@ -442,9 +454,9 @@ STATIC void initializer(symbol *s)
             (t.Tty & mTYconst &&
              tybasic(type_arrayroot(t).Tty) != TYstruct &&
              // MSC allows static const x;
-             (ANSI || sclass != SCstatic)))
+             (config.ansi_c || sclass != SCstatic)))
         {
-            cpperr(EM_const_needs_init,s.Sident);      // uninitialized reference
+            cpperr(EM_const_needs_init, &s.Sident[0]);      // uninitialized reference
         }
         if (tybasic(type_arrayroot(t).Tty) == TYstruct)
         {   list_t arglist;
@@ -461,10 +473,10 @@ STATIC void initializer(symbol *s)
         }
         init_staticctor = false;
         goto cret;
-  }
+    }
 
-  stoken();                             /* skip over '='                */
-  s.Sflags |= SFLimplem;               /* seen implementation          */
+    stoken();                            // skip over '='
+    s.Sflags |= SFLimplem;               // seen implementation
 
     if (CPP)
     {
@@ -529,20 +541,18 @@ STATIC void initializer(symbol *s)
     {   char bracket = 0;
 
         /* Take care of char a[]="  ";          */
-#define isstring(t) (tok.TKval == TKstring && tyintegral((t).Tnext.Tty) && tysize((t).Tnext.Tty) == _tysize[tok.TKty])
 
         if (tok.TKval == TKstring || tok.TKval == TKlpar)
-        {   elem *e;
-
+        {
         Lstring:
-            e = arraytoptr(CPP ? assign_exp() : const_exp());
+            elem *e = arraytoptr(CPP ? assign_exp() : const_exp());
             e = poptelem(e);
             if (e.Eoper == OPstring && tyintegral(t.Tnext.Tty) && tysize((t).Tnext.Tty) == tysize(e.ET.Tnext.Tty))
             {
-                type_setdim(&s.Stype,e.EV.ss.Vstrlen / type_size(s.Stype.Tnext));   /* we have determined its size  */
+                type_setdim(&s.Stype,e.EV.Vstrlen / type_size(s.Stype.Tnext));   /* we have determined its size  */
                 assert(s.Sdt == null);
                 scope dtb = new DtBuilder();
-                dtb.nbytes(e.EV.ss.Vstrlen,e.EV.ss.Vstring);
+                dtb.nbytes(e.EV.Vstrlen, e.EV.Vstring);
                 s.Sdt = dtb.finish();
                 el_free(e);
                 t = s.Stype;
@@ -634,7 +644,7 @@ STATIC void initializer(symbol *s)
         case SCauto:
         case SCregister:
             einit = dyn_init(s);        /* dynamic initializer          */
-            elem_debug(einit);
+            //elem_debug(einit);
             break;
 
         case SCstatic:
@@ -743,7 +753,6 @@ cret:
         scope_pop();
     }
 }
-+/
 
 /*************************************
  * Create typeinfo data for a struct.
