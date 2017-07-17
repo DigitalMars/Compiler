@@ -1213,7 +1213,9 @@ STATIC elem * initelem(type *t, DtBuilder& dtb, Symbol *s, targ_size_t offset)
     //dbg_printf("-initelem(): e = %p\n", e);
     return e;
 }
-
++/
+
+
 /***************************
  * Read in initializer for a structure.
  * Watch out for bit fields.
@@ -1228,9 +1230,10 @@ struct StructDesignator
     Symbol *smember;
     elem *exp;          // SCfield
     dt_t *dt;           // SCmember
-};
+}
 
-STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
+//private
+ elem* initstruct(type *t, DtBuilder dtb, Symbol *ss,targ_size_t offset)
 {   elem *e;
     list_t sl;
     targ_size_t dsstart;
@@ -1249,7 +1252,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
     ei = null;
     dsstart = dsout;
     assert(t);
-    type_debug(t);
+    //type_debug(t);
     if (tok.TKval == TKlcur)
     {   brack = true;
         stoken();
@@ -1280,12 +1283,15 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
             case SCmember:
                 nmembers++;
                 break;
+
+            default:
+                break;
         }
     }
 
     // Allocate and clear array of designators
-    sd = (StructDesignator *)alloca(sizeof(StructDesignator) * nmembers);
-    memset(sd, 0, sizeof(StructDesignator) * nmembers);
+    sd = cast(StructDesignator *)alloca(StructDesignator.sizeof * nmembers);
+    memset(sd, 0, StructDesignator.sizeof * nmembers);
 
     // Populate array of designators
     i = 0;
@@ -1299,11 +1305,14 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
                 sd[i].smember = s;
                 i++;
                 break;
+
+            default:
+                break;
         }
     }
 
     e = null;
-    soffset = (targ_size_t)-1;
+    soffset = cast(targ_size_t)-1;
     designated = 0;
     for (i = 0; 1; i++)
     {   Symbol *s;
@@ -1326,7 +1335,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
 
             //printf("\tsd[%d] = '%s'\n", i, sd[i].smember.Sident);
             s = sd[i].smember;
-            symbol_debug(s);
+            //symbol_debug(s);
         }
 
         designated = 0;
@@ -1347,7 +1356,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
                 {   err_notamember(tok.TKid, stag);
                     return null;
                 }
-                if (strcmp(tok.TKid, sd[i].smember.Sident) == 0)
+                if (strcmp(tok.TKid, &sd[i].smember.Sident[0]) == 0)
                 {   s = sd[i].smember;
                     break;
                 }
@@ -1383,7 +1392,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
                         goto Ldesignator;
                 }
                 soffset = s.Smemoff;
-                e = (elem *)1;
+                e = cast(elem *)1;
                 e1 = CPP ? assign_exp() : const_exp();  // get an integer
                 e1 = typechk(e1,s.Stype);
                 if (!e1)
@@ -1408,9 +1417,9 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
                 soffset = s.Smemoff;
                 dt_free(sd[i].dt);
                 sd[i].dt = null;
-                scope dtb = new DtBuilder();
-                sd[i].exp = initelem(s.Stype,dtb,ss,offset + soffset);
-                sd[i].dt = dtb.finish();
+                scope dtb2 = new DtBuilder();
+                sd[i].exp = initelem(s.Stype,dtb2,ss,offset + soffset);
+                sd[i].dt = dtb2.finish();
                 break;
 
             default:
@@ -1420,18 +1429,18 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
         if (tok.TKval != TKcomma)
             break;
 
-        if (designated and !brack)
+        if (designated && !brack)
             break;
     }
 
     e = null;
-    soffset = (targ_size_t)-1;
+    soffset = cast(targ_size_t)-1;
     dsout = dsstart;
     for (i = 0; i < nmembers; i++)
     {
         Symbol *s = sd[i].smember;
-        unsigned long ul;
-        unsigned long fieldmask;
+        uint ul;
+        uint fieldmask;
         elem *e1;
 
         switch (s.Sclass)
@@ -1439,7 +1448,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
             case SCfield:
                 if (e && s.Smemoff != soffset)
                 {
-                    unsigned n = soffset - (dsout - dsstart);
+                    uint n = soffset - (dsout - dsstart);
                     dtb.nzeros(n);
                     dsout += n;
                     e = poptelem(e);
@@ -1453,7 +1462,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
                     continue;
                 if (!e)
                     e = el_longt(s.Stype,0);
-                fieldmask = ~(~0L << s.Swidth);
+                fieldmask = ~(~0 << s.Swidth);
                 if (CPP)
                 {
                     e1 = el_bint(OPand,e1.ET,e1,el_longt(e1.ET,fieldmask));
@@ -1468,10 +1477,10 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
                 }
                 else
                 {
-                    if (EOP(e1))
+                    if (!OTleaf(e1.Eoper))
                     {
                         e1 = poptelem2(e1);
-                        if (EOP(e1))
+                        if (!OTleaf(e1.Eoper))
                             synerr(EM_const_init);      // constant initializer expected
                     }
                     ul = e1.EV.Vulong;
@@ -1489,7 +1498,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
             case SCmember:
                 if (e)                  // if bit field
                 {
-                    unsigned n = soffset - (dsout - dsstart);
+                    uint n = soffset - (dsout - dsstart);
                     dtb.nzeros(n);
                     dsout += n;
                     e = poptelem(e);
@@ -1501,7 +1510,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
                 if (sd[i].dt)
                 {
                     soffset = s.Smemoff;
-                    unsigned n = soffset - (dsout - dsstart);
+                    uint n = soffset - (dsout - dsstart);
                     dtb.nzeros(n);
                     dsout += n;
                     dtb.cat(sd[i].dt);
@@ -1509,6 +1518,9 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, Symbol *ss,targ_size_t offset)
                 }
                 if (sd[i].exp)
                     ei = el_combine(ei,sd[i].exp);
+                break;
+
+            default:
                 break;
         }
     }
@@ -1526,7 +1538,7 @@ Ldone:
     tsize = type_size(t);
     if (tsize > (dsout - dsstart))
     {
-        unsigned n = tsize - (dsout - dsstart);
+        uint n = tsize - (dsout - dsstart);
         dtb.nzeros(n);
         dsout += n;
     }
@@ -1534,7 +1546,6 @@ Ldone:
     //printf("-initstruct(): ei = %p\n", ei);
     return ei;
 }
-+/
 
 
 /*************************

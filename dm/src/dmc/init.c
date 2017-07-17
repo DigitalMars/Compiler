@@ -39,7 +39,7 @@ bool init_staticctor;   /* TRUE if this is a static initializer */
 #endif
 
 /*STATIC*/ elem * initelem(type *, DtBuilder*, symbol *,targ_size_t);
-STATIC elem * initstruct(type *, DtBuilder&, symbol *,targ_size_t);
+/*STATIC*/ elem * initstruct(type *, DtBuilder*, symbol *,targ_size_t);
 /*STATIC*/ elem * initarray(type *, DtBuilder*, symbol *,targ_size_t);
 /*STATIC*/ elem * elemtodt(symbol *, DtBuilder*, elem *, targ_size_t);
 /*STATIC*/ int init_arraywithctor(symbol *);
@@ -1139,7 +1139,7 @@ int endofarray()
             }
             break;
         case TYstruct:
-            e = initstruct(t,*dtb,s,offset);
+            e = initstruct(t,dtb,s,offset);
             break;
         case TYarray:
             e = initarray(t,dtb,s,offset);
@@ -1163,6 +1163,7 @@ int endofarray()
  *      pdt     where to store initializer list
  */
 
+#if 0
 struct StructDesignator
 {
     symbol *smember;
@@ -1474,7 +1475,8 @@ Ldone:
     //printf("-initstruct(): ei = %p\n", ei);
     return ei;
 }
-
+#endif
+
 /*************************
  * Read and write an initializer for an array of type t.
  */
