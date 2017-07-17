@@ -1072,6 +1072,7 @@ int endofarray()
  *      NULL = no dynamic part of initialization
  */
 
+#if 0
 /*STATIC*/ elem * initelem(type *t, DtBuilder* dtb, symbol *s, targ_size_t offset)
 {   elem *e;
 
@@ -1153,7 +1154,8 @@ int endofarray()
     //dbg_printf("-initelem(): e = %p\n", e);
     return e;
 }
-
+#endif
+
 /***************************
  * Read in initializer for a structure.
  * Watch out for bit fields.

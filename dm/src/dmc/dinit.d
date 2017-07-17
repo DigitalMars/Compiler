@@ -48,7 +48,7 @@ extern (C++):
 int endofarray();
 elem* initarrayelem(Symbol *s,type *t,targ_size_t offset);
 void init_closebrack(int brack);
-elem* initelem(type *, DtBuilder, Symbol *,targ_size_t);
+//elem* initelem(type *, DtBuilder, Symbol *,targ_size_t);
 size_t getArrayIndex(size_t i, size_t dim, char unknown);
 
 enum
@@ -1119,7 +1119,8 @@ STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown)
     }
     return i;
 }
-
++/
+
 /*******************************
  * Read and write an initializer of type t.
  * Input:
@@ -1132,12 +1133,13 @@ STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown)
  *      null = no dynamic part of initialization
  */
 
-STATIC elem * initelem(type *t, DtBuilder& dtb, Symbol *s, targ_size_t offset)
+//private
+ elem* initelem(type *t, DtBuilder dtb, Symbol *s, targ_size_t offset)
 {   elem *e;
 
     //dbg_printf("+initelem()\n");
     assert(t);
-    type_debug(t);
+    //type_debug(t);
     switch (tybasic(t.Tty))
     {
         case TYbool:
@@ -1165,13 +1167,14 @@ STATIC elem * initelem(type *t, DtBuilder& dtb, Symbol *s, targ_size_t offset)
         case TYcfloat:
         case TYcdouble:
         case TYcldouble:
-#if TX86
+
+        // TX86
         case TYnullptr:
         case TYnptr:
         case TYsptr:
         case TYcptr:
         case TYhptr:
-#endif
+
         case TYfptr:
         case TYvptr:
         case TYenum:
@@ -1213,7 +1216,6 @@ STATIC elem * initelem(type *t, DtBuilder& dtb, Symbol *s, targ_size_t offset)
     //dbg_printf("-initelem(): e = %p\n", e);
     return e;
 }
-+/
 
 
 /***************************
