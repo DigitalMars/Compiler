@@ -1058,12 +1058,14 @@ STATIC elem * dyn_init(symbol *s)
     }
     return e;
 }
++/
 
 /*******************************
  * Parse closing bracket of initializer list.
  */
 
-STATIC void init_closebrack(int brack)
+//private
+ void init_closebrack(int brack)
 {
     if (brack)                          /* if expecting closing bracket */
     {   if (tok.TKval == TKcomma)
@@ -1080,7 +1082,8 @@ STATIC void init_closebrack(int brack)
  * Parse end of array.
  */
 
-STATIC int endofarray()
+//private
+ int endofarray()
 {
     if (tok.TKval != TKcomma)
         return 1;
@@ -1092,7 +1095,8 @@ STATIC int endofarray()
  * Return index of initializer.
  */
 
-STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown)
+//private
+ size_t getArrayIndex(size_t i, size_t dim, char unknown)
 {
     // C99 6.7.8
     if (tok.TKval == TKlbra)    // [ constant-expression ]
@@ -1100,11 +1104,11 @@ STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown)
         targ_size_t index;
 
         stoken();
-        index = msc_getnum();
-        if ((int)index < 0 || (ANSI && index == 0) ||
+        index = cast(uint)msc_getnum();  // BUG: fix truncation
+        if (cast(int)index < 0 || (config.ansi_c && index == 0) ||
             (!unknown && index >= dim))
         {
-            synerr(EM_array_dim, (int)index);
+            synerr(EM_array_dim, cast(int)index);
             index = dim - 1;
         }
         chktok(TKrbra, EM_rbra);        // closing ']'
@@ -1119,7 +1123,6 @@ STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown)
     }
     return i;
 }
-+/
 
 /*******************************
  * Read and write an initializer of type t.

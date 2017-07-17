@@ -47,7 +47,7 @@ bool init_staticctor;   /* TRUE if this is a static initializer */
 /*STATIC*/ elem * init_sets(symbol *sauto,symbol *s);
 /*STATIC*/ symbol * init_staticflag(symbol *s);
 
-int endofarray(void);
+int endofarray();
 /*STATIC*/ size_t getArrayIndex(size_t i, size_t dim, char unknown);
 STATIC void initializer(symbol *);
 STATIC elem * dyn_init(symbol *);
@@ -1003,6 +1003,7 @@ STATIC elem * dyn_init(symbol *s)
  * Parse closing bracket of initializer list.
  */
 
+#if 0
 /*STATIC*/ void init_closebrack(int brack)
 {
     if (brack)                          /* if expecting closing bracket */
@@ -1015,11 +1016,13 @@ STATIC elem * dyn_init(symbol *s)
         stoken();
     }
 }
+#endif
 
 /*********************************
  * Parse end of array.
  */
 
+#if 0
 int endofarray()
 {
     if (tok.TKval != TKcomma)
@@ -1027,11 +1030,13 @@ int endofarray()
     stoken();                           /* skip over comma      */
     return (tok.TKval == TKrcur);               /* {A,B,C,} case        */
 }
+#endif
 
 /*********************************
  * Return index of initializer.
  */
 
+#if 0
 /*STATIC*/ size_t getArrayIndex(size_t i, size_t dim, char unknown)
 {
     // C99 6.7.8
@@ -1059,7 +1064,8 @@ int endofarray()
     }
     return i;
 }
-
+#endif
+
 /*******************************
  * Read and write an initializer of type t.
  * Input:
