@@ -46,8 +46,10 @@ import tk.mem;
 extern (C++):
 
 int endofarray();
-elem * initarrayelem(Symbol *s,type *t,targ_size_t offset);
+elem* initarrayelem(Symbol *s,type *t,targ_size_t offset);
 void init_closebrack(int brack);
+elem* initelem(type *, DtBuilder, Symbol *,targ_size_t);
+size_t getArrayIndex(size_t i, size_t dim, char unknown);
 
 enum
 {
@@ -128,7 +130,6 @@ STATIC Symbol *init_alloca();
 
 extern __gshared targ_size_t dsout;   // # of bytes actually output to data
                                 // segment, used to pad for alignment
-/+
 
 /*********************** DtArray ***********************/
 
@@ -137,12 +138,7 @@ struct DtArray
     dt_t **data;
     size_t dim;
 
-    DtArray()
-    {   data = null;
-        dim = 0;
-    }
-
-    ~DtArray()
+    void dtor()
     {
         if (data)
         {   free(data);
@@ -152,9 +148,10 @@ struct DtArray
 
     void ensureSize(size_t i);
 
-    void join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown);
-};
+    void join(DtBuilder dtb, size_t elemsize, size_t dim, char unknown);
+}
 
+/+
 void DtArray.ensureSize(size_t i)
 {
     if (i >= dim)
@@ -611,6 +608,7 @@ STATIC void initializer(symbol *s)
                 init_constructor(s,t,null,0,0x21,si);   /* call destructor, if any */
                 init_staticctor = false;
             }
+            dta.dtor();
             goto ret;
         }
 
@@ -1536,25 +1534,29 @@ Ldone:
     //printf("-initstruct(): ei = %p\n", ei);
     return ei;
 }
-
++/
+
+
 /*************************
  * Read and write an initializer for an array of type t.
  */
 
-STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
+//private
+ elem* initarray(type *t, DtBuilder dtb,Symbol *s,targ_size_t offset)
 {
-  char brack;
-  targ_size_t dsstart,elemsize;
-  targ_size_t tsize;
-  char unknown;
+    char brack;
+    targ_size_t dsstart,elemsize;
+    targ_size_t tsize;
+    char unknown;
 
-  elem *e = null;
+    elem *e = null;
 
-  if (tok.TKval == TKlcur)
-  {     brack = true;
+    if (tok.TKval == TKlcur)
+    {
+        brack = true;
         stoken();
-  }
-  else
+    }
+    else
         brack = false;                  /* elements are not bracketed   */
 
     //printf("initarray(brack = %d, s = '%s')\n", brack, s.Sident);
@@ -1583,7 +1585,7 @@ STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
                 tsize = len;
 
             // Lop off trailing 0 so 'char a[3]="abc";' works
-            if (len - ts == tsize && (!CPP || !ANSI))
+            if (len - ts == tsize && (!CPP || !config.ansi_c))
                 len -= ts;
 
             if (len > tsize)
@@ -1594,7 +1596,7 @@ STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
             dsout += len;
             dtb.nzeros(tsize - len);
             dsout += tsize - len;
-            MEM_PH_FREE(mstring);
+            mem_free(mstring); // MEM_PH_FREE()
             goto Ldone;
         }
     }
@@ -1622,9 +1624,9 @@ STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
             // Ensure dtarray[] is big enough
             dta.ensureSize(i);
 
-            scope dtb = new DtBuilder();
-            elem *ec = initelem(t.Tnext,dtb,s,i * elemsize);
-            dta.data[i] = dtb.finish();
+            scope dtb2 = new DtBuilder();
+            elem *ec = initelem(t.Tnext,dtb2,s,i * elemsize);
+            dta.data[i] = dtb2.finish();
             e = el_combine(e,ec);
             i++;                        /* # of elements in array       */
             //dbg_printf("elemsize = %ld, i = %ld, dsout = %ld, dsstart = %ld, unknown = %d\n",
@@ -1637,13 +1639,13 @@ STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
         } while (!endofarray());
 
         dta.join(dtb, elemsize, dim, unknown);
+        dta.dtor();
     }
 
 Ldone:
     init_closebrack(brack);
     return e;
 }
-+/
 
 
 /***********************************

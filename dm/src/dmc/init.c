@@ -38,9 +38,9 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 bool init_staticctor;   /* TRUE if this is a static initializer */
 #endif
 
-STATIC elem * initelem(type *, DtBuilder&, symbol *,targ_size_t);
+/*STATIC*/ elem * initelem(type *, DtBuilder*, symbol *,targ_size_t);
 STATIC elem * initstruct(type *, DtBuilder&, symbol *,targ_size_t);
-STATIC elem * initarray(type *, DtBuilder&, symbol *,targ_size_t);
+/*STATIC*/ elem * initarray(type *, DtBuilder*, symbol *,targ_size_t);
 /*STATIC*/ elem * elemtodt(symbol *, DtBuilder*, elem *, targ_size_t);
 /*STATIC*/ int init_arraywithctor(symbol *);
 /*STATIC*/ symbol * init_localstatic(elem **peinit,symbol *s);
@@ -48,7 +48,7 @@ STATIC elem * initarray(type *, DtBuilder&, symbol *,targ_size_t);
 /*STATIC*/ symbol * init_staticflag(symbol *s);
 
 int endofarray(void);
-STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown);
+/*STATIC*/ size_t getArrayIndex(size_t i, size_t dim, char unknown);
 STATIC void initializer(symbol *);
 STATIC elem * dyn_init(symbol *);
 /*STATIC*/ symbol *init_alloca();
@@ -90,7 +90,7 @@ struct DtArray
 
     void ensureSize(size_t i);
 
-    void join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown);
+    void join(DtBuilder* dtb, size_t elemsize, size_t dim, char unknown);
 };
 
 void DtArray::ensureSize(size_t i)
@@ -115,7 +115,7 @@ void DtArray::ensureSize(size_t i)
  * Put all the initializers together into one.
  */
 
-void DtArray::join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown)
+void DtArray::join(DtBuilder* dtb, size_t elemsize, size_t dim, char unknown)
 {
     size_t i = 0;
     for (size_t j = 0; j < this->dim; j++)
@@ -124,17 +124,17 @@ void DtArray::join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown)
         {
             if (j != i)
             {
-                dtb.nzeros(elemsize * (j - i));
+                dtb->nzeros(elemsize * (j - i));
                 dsout += elemsize * (j - 1);
             }
-            dtb.cat(data[j]);
+            dtb->cat(data[j]);
             i = j + 1;
         }
     }
 
     if (i < dim && !unknown)            // need to pad remainder with 0
     {
-        dtb.nzeros(elemsize * (dim - i));
+        dtb->nzeros(elemsize * (dim - i));
         dsout += elemsize * (dim - 1);
     }
 }
@@ -527,14 +527,14 @@ STATIC void initializer(symbol *s)
                 i = getArrayIndex(i, 0, 1);
                 dta.ensureSize(i);
                 DtBuilder dtb;
-                einit = el_combine(einit,initelem(t->Tnext,dtb,sinit,i * elemsize));
+                einit = el_combine(einit,initelem(t->Tnext,&dtb,sinit,i * elemsize));
                 dta.data[i] = dtb.finish();
                 i++;
                 if (i > dim)
                     dim = i;
             } while (!endofarray());
             DtBuilder dtb;
-            dta.join(dtb, elemsize, 0, 1);
+            dta.join(&dtb, elemsize, 0, 1);
             s->Sdt = dtb.finish();
             t = type_setdim(&s->Stype,dim);     // we have determined its size
             chktok(TKrcur,EM_rcur);             // end with a right curly
@@ -579,7 +579,7 @@ STATIC void initializer(symbol *s)
             if (!CPP)
             {
                 DtBuilder dtb;
-                initelem(t,dtb,s,0);                // static initializer
+                initelem(t,&dtb,s,0);                // static initializer
                 assert(!s->Sdt);
                 s->Sdt = dtb.finish();
                 break;
@@ -599,7 +599,7 @@ STATIC void initializer(symbol *s)
                 einit = elemtodt(s,&dtb,e,0);
             }
             else
-                einit = initelem(t,dtb,sinit,0);
+                einit = initelem(t,&dtb,sinit,0);
             assert(!s->Sdt);
             s->Sdt = dtb.finish();
 
@@ -1032,7 +1032,7 @@ int endofarray()
  * Return index of initializer.
  */
 
-STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown)
+/*STATIC*/ size_t getArrayIndex(size_t i, size_t dim, char unknown)
 {
     // C99 6.7.8
     if (tok.TKval == TKlbra)    // [ constant-expression ]
@@ -1072,7 +1072,7 @@ STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown)
  *      NULL = no dynamic part of initialization
  */
 
-STATIC elem * initelem(type *t, DtBuilder& dtb, symbol *s, targ_size_t offset)
+/*STATIC*/ elem * initelem(type *t, DtBuilder* dtb, symbol *s, targ_size_t offset)
 {   elem *e;
 
     //dbg_printf("+initelem()\n");
@@ -1135,11 +1135,11 @@ STATIC elem * initelem(type *t, DtBuilder& dtb, symbol *s, targ_size_t offset)
                 {   s->Sflags |= SFLvalue;
                     s->Svalue = el_copytree(e);
                 }
-                e = elemtodt(s,&dtb,e,offset);
+                e = elemtodt(s,dtb,e,offset);
             }
             break;
         case TYstruct:
-            e = initstruct(t,dtb,s,offset);
+            e = initstruct(t,*dtb,s,offset);
             break;
         case TYarray:
             e = initarray(t,dtb,s,offset);
@@ -1349,7 +1349,7 @@ STATIC elem * initstruct(type *t, DtBuilder& dtb, symbol *ss,targ_size_t offset)
                 dt_free(sd[i].dt);
                 sd[i].dt = NULL;
                 DtBuilder dtb;
-                sd[i].exp = initelem(s->Stype,dtb,ss,offset + soffset);
+                sd[i].exp = initelem(s->Stype,&dtb,ss,offset + soffset);
                 sd[i].dt = dtb.finish();
                 break;
 
@@ -1479,6 +1479,7 @@ Ldone:
  * Read and write an initializer for an array of type t.
  */
 
+#if 0
 STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
 {
   char brack;
@@ -1561,7 +1562,7 @@ STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
             dta.ensureSize(i);
 
             DtBuilder dtb;
-            elem *ec = initelem(t->Tnext,dtb,s,i * elemsize);
+            elem *ec = initelem(t->Tnext,&dtb,s,i * elemsize);
             dta.data[i] = dtb.finish();
             e = el_combine(e,ec);
             i++;                        /* # of elements in array       */
@@ -1574,14 +1575,16 @@ STATIC elem * initarray(type *t, DtBuilder& dtb,symbol *s,targ_size_t offset)
                 break;
         } while (!endofarray());
 
-        dta.join(dtb, elemsize, dim, unknown);
+        dta.join(&dtb, elemsize, dim, unknown);
     }
 
 Ldone:
     init_closebrack(brack);
     return e;
 }
-
+#endif
+
+
 /***********************************
  * Convert from elem to dt.
  * Input:
