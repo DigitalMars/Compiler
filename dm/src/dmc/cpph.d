@@ -73,7 +73,6 @@ elem *cpp_istype(elem *e, type *t);
 char *cpp_unmangleident(const(char)* p);
 int cpp_opidx(int op);
 char *cpp_opident(int op);
-char *cpp_prettyident(Symbol *s);
 char *cpp_catname(char *n1 , char *n2);
 char *cpp_genname(char *cl_name , char *mem_name);
 void cpp_getpredefined();

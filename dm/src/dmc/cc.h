@@ -168,13 +168,14 @@ struct token_t;
 struct param_t;
 struct block;
 //struct Classsym;
-struct Nspacesym;
+//struct Nspacesym;
 struct Outbuffer;
 struct Aliassym;
 struct dt_t;
 typedef struct TYPE type;
 typedef struct Symbol symbol;
 typedef struct Symbol Classsym;
+typedef struct Symbol Nspacesym;
 typedef Symbol Funcsym;
 struct elem;
 #if !MARS
@@ -1387,7 +1388,7 @@ struct Symbol
 //struct Classsym : Symbol { };
 
 // Namespace Symbol
-struct Nspacesym : Symbol { };
+//struct Nspacesym : Symbol { };
 
 // Alias for another Symbol
 struct Aliassym : Symbol { };

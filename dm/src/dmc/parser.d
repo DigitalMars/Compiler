@@ -632,7 +632,6 @@ elem *rtti_cast(enum_TK,elem *,type *);
 elem *rtti_typeid(type *,elem *);
 
 /* symbol.c */
-char *symbol_ident(Symbol *s);
 Symbol *symbol_search(const(char)* );
 void symbol_tree_hydrate(Symbol **ps);
 void symbol_tree_dehydrate(Symbol **ps);

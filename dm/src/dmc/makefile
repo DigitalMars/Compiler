@@ -278,12 +278,12 @@ DSRC=   \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	dinline.d divcoeff.d loadline.d parser.d scopeh.d dtoken.d \
-	dinit.d dt.d cpph.d
+	dinit.d nspace.d dt.d cpph.d
 
 SRC=    tassert.h html.h html.c \
         ini.c cgcv.h cv4.h tdb.h loadline.d ppexp.c errmsgs2.c tdbx.c \
         allocast.h go.h iasm.h cg.c scdll.h objrecor.c rtlsym.c util.c \
-        total.h exh.h cpp.h iasm.c type.c nspace.c err.c \
+        total.h exh.h cpp.h iasm.c type.c err.c \
         filename.c blklst.c tytostr.c ee.c symbol.c \
         msgsx.c eh.c template.c rtti.c scope.h scope.c token.h outbuf.h \
         outbuf.c trace.c dt.h file.c parser.h cod5.c type.h newman.c out.c \
@@ -393,6 +393,9 @@ denum.obj : denum.d
 dinit.obj : dinit.d
         $(DMD) -c $(DFLAGS) dinit.d
 
+nspace.obj : nspace.d
+        $(DMD) -c $(DFLAGS) nspace.d
+
 divcoeff.obj : divcoeff.d
         $(DMD) -c -O -release -betterC divcoeff.d
 
@@ -478,7 +481,6 @@ exp2.obj : $(DEP) $(exp2.dep) castab.c exp2.c
 err.obj : $(DEP) $(err.dep) err.c
 func.obj : $(DEP) $(func.dep) func.c
 adl.obj : $(DEP) $(adl.dep) adl.c
-nspace.obj : $(DEP) $(nspace.dep) nspace.c
 nwc.obj : $(DEP) $(nwc.dep) nwc.c
 iasm.obj : $(DEP) $(iasm.dep) iasm.h iasm.c
 go.obj : $(DEP) $(go.dep) go.c

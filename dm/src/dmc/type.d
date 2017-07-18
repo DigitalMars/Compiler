@@ -103,6 +103,12 @@ struct TYPE
 static if (__VERSION__ <= 2066)
     private enum computeEnumValue = TYMAX;
 
+// Return name mangling of type
+mangle_t type_mangle(type *t) { return t.Tmangle; }
+
+// Return true if function type has a variable number of arguments
+bool variadic(type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
+
 extern __gshared type*[TYMAX] tstypes;
 extern __gshared type*[TYMAX] tsptr2types;
 
