@@ -13,7 +13,7 @@
 module ddmd.backend.type;
 
 import ddmd.backend.cdef;
-import ddmd.backend.cc : block, Blockx, Classsym, Symbol;
+import ddmd.backend.cc : block, Blockx, Classsym, Symbol, param_t;
 import ddmd.backend.code;
 import ddmd.backend.el : elem;
 import ddmd.backend.ty;
@@ -57,21 +57,10 @@ enum
     TFemptyexc    = 0x100,  // tyfunc(): empty exception specification
 }
 
-struct PARAM;
 alias type = TYPE;
 
 void type_incCount(type* t);
 void type_setIdent(type* t, char* ident);
-
-type* type_pointer(type* tnext);
-type* type_dyn_array(type* tnext);
-extern extern (C) type* type_static_array(targ_size_t dim, type* tnext);
-type* type_assoc_array(type* tkey, type* tvalue);
-type* type_delegate(type* tnext);
-extern extern (C) type* type_function(tym_t tyf, type** ptypes, size_t nparams, bool variadic, type* tret);
-type* type_enum(const(char)* name, type* tbase);
-type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
-    type* arg1type, type* arg2type, bool isUnion, bool isClass, bool isPOD);
 
 void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
 
@@ -173,7 +162,7 @@ extern (C) type *type_static_array(targ_size_t dim, type *tnext);
 type *type_assoc_array(type *tkey, type *tvalue);
 type *type_delegate(type *tnext);
 extern (C) type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
-type *type_enum(const char *name, type *tbase);
+type *type_enum(const(char) *name, type *tbase);
 type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
         type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD);
 

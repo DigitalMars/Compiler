@@ -149,6 +149,7 @@ void DtArray::join(DtBuilder* dtb, size_t elemsize, size_t dim, char unknown)
  * Watch out for forward referenced structs and unions.
  */
 
+#if 0
 void datadef(symbol *s)
 {   type *t;
     SYMIDX marksi;
@@ -232,7 +233,8 @@ void datadef(symbol *s)
                 assert(0);
         }
 }
-
+#endif
+
 /************************************
  * Provide initializer for symbol s.
  * If statically initialized, output data directly to output

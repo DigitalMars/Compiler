@@ -200,6 +200,7 @@ void DtArray.join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown)
         dsout += elemsize * (dim - 1);
     }
 }
++/
 
 
 /********************************************************************/
@@ -211,15 +212,15 @@ void DtArray.join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown)
  * Watch out for forward referenced structs and unions.
  */
 
-void datadef(symbol *s)
-{   type *t;
+void datadef(Symbol *s)
+{
     SYMIDX marksi;
 
     assert(s);
-    symbol_debug(s);
-    t = s.Stype;
+    //symbol_debug(s);
+    type* t = s.Stype;
     assert(t);
-    type_debug(t);
+    //type_debug(t);
     //debug(debugy && dbg_printf("datadef('%s')\n",s.Sident));
     //printf("datadef('%s')\n",s.Sident);
     //symbol_print(s);
@@ -231,12 +232,10 @@ void datadef(symbol *s)
         {
             case SCauto:
             case SCregister:
-#if TX86
                 if (s.Stype.Tty & mTYcs)
                 {   s.Sclass = SCstatic;
                     goto Lstatic;
                 }
-#endif
                 symbol_add(s);
 
                 marksi = globsym.top;
@@ -267,12 +266,10 @@ void datadef(symbol *s)
                     synerr(EM_no_vla);          // can't be a VLA
                 else
                     initializer(s);             // followed by initializer
-#if SYMDEB_CODEVIEW
-                if (s.Sclass == SCstatic && funcsym_p) // local static?
-                    // So debug data appears twice (sigh) to be
+                if (SYMDEB_CODEVIEW && s.Sclass == SCstatic && funcsym_p) // local static?
+                    // So debug data appears twice to be
                     // MS bug compatible
                     symbol_add(s);
-#endif
                 break;
             case SCregpar:
             case SCparameter:
@@ -282,11 +279,9 @@ void datadef(symbol *s)
             case SCextern:
                 if (type_isvla(s.Stype))
                     synerr(EM_no_vla);          // can't be a VLA
-#if TX86
                 if (s.Stype.Tty & mTYfar)
                     s.Sfl = FLfardata;
                 else
-#endif
                     s.Sfl = FLextern;
                 break;
             default:
@@ -294,7 +289,6 @@ void datadef(symbol *s)
                 assert(0);
         }
 }
-+/
 
 /************************************
  * Provide initializer for Symbol s.

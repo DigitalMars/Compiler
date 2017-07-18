@@ -21,10 +21,29 @@ extern (C++):
 @nogc:
 nothrow:
 
-//struct Classsym;
-//struct Symbol;
-//struct LIST;
-//struct param_t;
+version (SCPP)
+    version = XVERSION;
+version (SPP)
+    version = XVERSION;
+version (HTOD)
+    version = XVERSION;
+
+version (XVERSION)
+{
+    extern (D) template xversion(string s)
+    {
+        enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
+    }
+
+    enum IN_GCC     = xversion!`IN_GCC`;
+
+    enum TARGET_LINUX   = xversion!`linux`;
+    enum TARGET_OSX     = xversion!`OSX`;
+    enum TARGET_FREEBSD = xversion!`FreeBSD`;
+    enum TARGET_OPENBSD = xversion!`OpenBSD`;
+    enum TARGET_SOLARIS = xversion!`Solaris`;
+    enum TARGET_WINDOS  = xversion!`Windows`;
+}
 
 
 //
@@ -347,8 +366,11 @@ else
 //#define MACHOBJ         TARGET_OSX
 //#endif
 
-//#define SYMDEB_CODEVIEW TARGET_WINDOS
-//#define SYMDEB_DWARF    (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX)
+version (XVERSION)
+{
+    enum SYMDEB_CODEVIEW = TARGET_WINDOS;
+    enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX;
+}
 
 //#define TOOLKIT_H
 
