@@ -45,12 +45,6 @@ import tk.mem;
 
 extern (C++):
 
-int endofarray();
-elem* initarrayelem(Symbol *s,type *t,targ_size_t offset);
-void init_closebrack(int brack);
-//elem* initelem(type *, DtBuilder, Symbol *,targ_size_t);
-size_t getArrayIndex(size_t i, size_t dim, char unknown);
-
 enum
 {
     DT_abytes = 0,
@@ -76,47 +70,6 @@ void TOOFFSET(void* p, targ_size_t value)
     }
 }
 
-/+
-#include        <stdio.h>
-#include        <string.h>
-#include        <stdlib.h>
-#include        "cc.h"
-#include        "parser.h"
-#include        "token.h"
-#include        "oper.h"
-#include        "global.h"
-#include        "el.h"
-#include        "type.h"
-#include        "dt.h"
-#include        "cpp.h"
-#include        "outbuf.h"
-#include        "scope.h"
-
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
-
-#define outtype(tym)    outword(tym)    /* fix this later               */
-
-#if TX86
-bool init_staticctor;   /* true if this is a static initializer */
-#endif
-
-STATIC elem * initelem(type *, DtBuilder&, Symbol *,targ_size_t);
-STATIC elem * initstruct(type *, DtBuilder&, Symbol *,targ_size_t);
-STATIC elem * initarray(type *, DtBuilder&, Symbol *,targ_size_t);
-STATIC elem * elemtodt(symbol *, DtBuilder&, elem *, targ_size_t);
-STATIC int init_arraywithctor(symbol *);
-STATIC Symbol * init_localstatic(elem **peinit,symbol *s);
-STATIC elem * init_sets(symbol *sauto,symbol *s);
-STATIC Symbol * init_staticflag(symbol *s);
-
-STATIC int endofarray(void);
-STATIC size_t getArrayIndex(size_t i, size_t dim, char unknown);
-STATIC void initializer(symbol *);
-STATIC elem * dyn_init(symbol *);
-STATIC Symbol *init_alloca();
-+/
-
 // Decide to put typeinfo symbols in code segment
 bool CSTABLES() { return cast(bool)(config.memmodel & 2); }
 version (all)
@@ -130,8 +83,9 @@ else
     enum CSMTY = mTYfar;
 }
 
+__gshared bool init_staticctor;   // true if this is a static initializer
 
-extern __gshared targ_size_t dsout;   // # of bytes actually output to data
+private __gshared targ_size_t dsout;   // # of bytes actually output to data
                                 // segment, used to pad for alignment
 
 /*********************** DtArray ***********************/
@@ -149,58 +103,51 @@ struct DtArray
         }
     }
 
-    void ensureSize(size_t i);
-
-    void join(DtBuilder dtb, size_t elemsize, size_t dim, char unknown);
-}
-
-/+
-void DtArray.ensureSize(size_t i)
-{
-    if (i >= dim)
-    {   size_t newdim;
-        newdim = (i + 1) * 2;
-        data = (dt_t **)realloc(data, newdim * sizeof(dt_t *));
-        if (!data)
-            err_nomem();
-        memset(data + dim, 0, (newdim - dim) * sizeof(dt_t *));
-        dim = newdim;
-    }
-    else if (data[i])
+    void ensureSize(size_t i)
     {
-        dt_free(data[i]);
-        data[i] = null;
-    }
-}
-
-/********************************
- * Put all the initializers together into one.
- */
-
-void DtArray.join(DtBuilder& dtb, size_t elemsize, size_t dim, char unknown)
-{
-    size_t i = 0;
-    for (size_t j = 0; j < this.dim; j++)
-    {
-        if (data[j])
+        if (i >= dim)
+        {   size_t newdim;
+            newdim = (i + 1) * 2;
+            data = cast(dt_t **)realloc(data, newdim * (dt_t *).sizeof);
+            if (!data)
+                err_nomem();
+            memset(data + dim, 0, (newdim - dim) * (dt_t *).sizeof);
+            dim = newdim;
+        }
+        else if (data[i])
         {
-            if (j != i)
-            {
-                dtb.nzeros(elemsize * (j - i));
-                dsout += elemsize * (j - 1);
-            }
-            dtb.cat(data[j]);
-            i = j + 1;
+            dt_free(data[i]);
+            data[i] = null;
         }
     }
 
-    if (i < dim && !unknown)            // need to pad remainder with 0
+    /********************************
+     * Put all the initializers together into one.
+     */
+    void join(DtBuilder dtb, size_t elemsize, size_t dim, char unknown)
     {
-        dtb.nzeros(elemsize * (dim - i));
-        dsout += elemsize * (dim - 1);
+        size_t i = 0;
+        for (size_t j = 0; j < this.dim; j++)
+        {
+            if (data[j])
+            {
+                if (j != i)
+                {
+                    dtb.nzeros(elemsize * (j - i));
+                    dsout += elemsize * (j - 1);
+                }
+                dtb.cat(data[j]);
+                i = j + 1;
+            }
+        }
+
+        if (i < dim && !unknown)            // need to pad remainder with 0
+        {
+            dtb.nzeros(elemsize * (dim - i));
+            dsout += elemsize * (dim - 1);
+        }
     }
 }
-+/
 
 
 /********************************************************************/
@@ -297,8 +244,7 @@ void datadef(Symbol *s)
  * Take care of external references.
  */
 
-//private
- void initializer(Symbol *s)
+private void initializer(Symbol *s)
 { type *t;
   tym_t ty;
   enum_SC sclass;
@@ -752,8 +698,7 @@ cret:
  * Create typeinfo data for a struct.
  */
 
-//private
- void init_typeinfo_struct(DtBuilder dtb, Classsym *stag)
+private void init_typeinfo_struct(DtBuilder dtb, Classsym *stag)
 {
     int nbases;
     baseclass_t *b;
@@ -1009,8 +954,7 @@ void init_sym(Symbol *s,elem *e)
  * Output the assignment expression.
  */
 
-//private
- elem * dyn_init(Symbol *s)
+private elem * dyn_init(Symbol *s)
 {   elem* e,e1,e2;
     type *t;
     type *tv;
@@ -1072,8 +1016,7 @@ void init_sym(Symbol *s,elem *e)
  * Parse closing bracket of initializer list.
  */
 
-//private
- void init_closebrack(int brack)
+private void init_closebrack(int brack)
 {
     if (brack)                          /* if expecting closing bracket */
     {   if (tok.TKval == TKcomma)
@@ -1090,8 +1033,7 @@ void init_sym(Symbol *s,elem *e)
  * Parse end of array.
  */
 
-//private
- int endofarray()
+private int endofarray()
 {
     if (tok.TKval != TKcomma)
         return 1;
@@ -1103,8 +1045,7 @@ void init_sym(Symbol *s,elem *e)
  * Return index of initializer.
  */
 
-//private
- size_t getArrayIndex(size_t i, size_t dim, char unknown)
+private size_t getArrayIndex(size_t i, size_t dim, char unknown)
 {
     // C99 6.7.8
     if (tok.TKval == TKlbra)    // [ constant-expression ]
@@ -1144,8 +1085,7 @@ void init_sym(Symbol *s,elem *e)
  *      null = no dynamic part of initialization
  */
 
-//private
- elem* initelem(type *t, DtBuilder dtb, Symbol *s, targ_size_t offset)
+private elem* initelem(type *t, DtBuilder dtb, Symbol *s, targ_size_t offset)
 {   elem *e;
 
     //dbg_printf("+initelem()\n");
@@ -1245,8 +1185,7 @@ struct StructDesignator
     dt_t *dt;           // SCmember
 }
 
-//private
- elem* initstruct(type *t, DtBuilder dtb, Symbol *ss,targ_size_t offset)
+private elem* initstruct(type *t, DtBuilder dtb, Symbol *ss,targ_size_t offset)
 {   elem *e;
     list_t sl;
     targ_size_t dsstart;
@@ -1565,8 +1504,7 @@ Ldone:
  * Read and write an initializer for an array of type t.
  */
 
-//private
- elem* initarray(type *t, DtBuilder dtb,Symbol *s,targ_size_t offset)
+private elem* initarray(type *t, DtBuilder dtb,Symbol *s,targ_size_t offset)
 {
     char brack;
     targ_size_t dsstart,elemsize;
@@ -1681,8 +1619,7 @@ Ldone:
  *      null = no dynamic part of initialization, e is free'd
  */
 
-//private
- elem* elemtodt(Symbol *s, DtBuilder dtb, elem *e, targ_size_t offset)
+private elem* elemtodt(Symbol *s, DtBuilder dtb, elem *e, targ_size_t offset)
 {
   char *p;
   tym_t ty;
@@ -2390,8 +2327,7 @@ Ldtor:
  * Symbol s is constructed or not.
  */
 
-//private
- Symbol* init_staticflag(Symbol *s)
+private Symbol* init_staticflag(Symbol *s)
 {
     // Generate name as _flag_%s
     char* sid = cpp_mangle(s);
@@ -2415,8 +2351,7 @@ Ldtor:
  *      initialization expression if a local static initialization
  */
 
-//private
- elem* initarrayelem(Symbol *s,type *t,targ_size_t offset)
+private elem* initarrayelem(Symbol *s,type *t,targ_size_t offset)
 {   list_t arglist;
     targ_uns dim;
     bool brack;
@@ -2481,8 +2416,7 @@ Ldtor:
  *      0       s is not an array of structs with constructors
  */
 
-//private
- int init_arraywithctor(Symbol *s)
+private int init_arraywithctor(Symbol *s)
 {
     Symbol *sinit;
     Classsym *stag;
@@ -2591,8 +2525,7 @@ Ldtor:
  *      Symbol generated that is the conditional, null if none needed
  */
 
-//private
- Symbol* init_localstatic(elem **peinit, Symbol *s)
+private Symbol* init_localstatic(elem **peinit, Symbol *s)
 {   type *tr;
     Symbol *sinit = null;
     elem *einit;
@@ -2659,8 +2592,7 @@ Ldtor:
  *      initialization expression
  */
 
-//private
- elem* init_sets(Symbol *sauto, Symbol *s)
+private elem* init_sets(Symbol *sauto, Symbol *s)
 {
     elem *e;
     if (s.Sdt && dtallzeros(s.Sdt))
@@ -2683,8 +2615,7 @@ Ldtor:
 /*******************************************
  */
 
-//private
- Symbol * init_alloca()
+private Symbol * init_alloca()
 {
     Symbol* s = scope_search("alloca", SCTglobal);
     if (!s)

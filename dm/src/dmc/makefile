@@ -155,7 +155,7 @@ debppnd:
 
 OBJ1a=blklst.obj blockopt.obj cpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
-OBJ1c=getcmd.obj ini.obj init.obj dinit.obj loadline.obj msc.obj
+OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=struct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj dth.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj cpph.obj
@@ -287,7 +287,7 @@ SRC=    tassert.h html.h html.c \
         filename.c blklst.c tytostr.c ee.c symbol.c \
         msgsx.c eh.c template.c rtti.c scope.h scope.c token.h outbuf.h \
         outbuf.c trace.c dt.h file.c parser.h cod5.c type.h newman.c out.c \
-        ty.h glocal.c pseudo.c init.c nteh.c \
+        ty.h glocal.c pseudo.c nteh.c \
         code.c el.c el.h ptrntab.c cpp.c func.c debug.c struct.c evalu8.c os.c \
         exp2.c blockopt.c exp.c gdag.c gflow.c gother.c global.h oper.h \
         optabgen.c cgcs.c cgcv.c go.c var.c cod2.c cc.h gloop.c msc.c cod3.c \
@@ -452,7 +452,6 @@ glocal.obj : $(DEP) $(glocal.dep) glocal.c
 gloop.obj : $(DEP) $(gloop.dep) gloop.c
 htod.obj : $(DEP) $(htod.dep) htod.c
 html.obj : $(DEP) $(html.dep) html.c
-init.obj : $(DEP) $(init.dep) init.c
 msc.obj : $(DEP) $(msc.dep) msc.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 objrecor.obj : $(DEP) $(objrecor.dep) objrecor.c
