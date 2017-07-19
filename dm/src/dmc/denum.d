@@ -14,11 +14,10 @@
 
 module denum;
 
-version (HTOD) { version = COMPILEIT; }
-version (SCPP) { version = COMPILEIT; }
-
-
-version (COMPILEIT)
+version (SPP)
+{
+}
+else
 {
 
 import core.stdc.stdio;

@@ -10,11 +10,10 @@
  * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/scopeh.d
  */
 
-version (HTOD) { version = COMPILEIT; }
-version (SCPP) { version = COMPILEIT; }
-
-
-version (COMPILEIT)
+version (SPP)
+{
+}
+else
 {
 
 import ddmd.backend.cdef;

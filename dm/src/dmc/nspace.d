@@ -14,10 +14,10 @@
 
 module dnspace;
 
-version (HTOD) { version = COMPILEIT; }
-version (SCPP) { version = COMPILEIT; }
-
-version (COMPILEIT)
+version (SPP)
+{
+}
+else
 {
 import core.stdc.stdio;
 import core.stdc.string;
