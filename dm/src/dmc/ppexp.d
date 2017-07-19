@@ -7,38 +7,31 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/ppexp.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/ppexp.d
  */
 
 // Expression parser for SPP
 
-#include        <stdio.h>
-#include        <string.h>
-#include        "cc.h"
-#include        "token.h"
-#include        "global.h"
+module ppexp;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+version (SPP)
+{
 
-#if SPP
+import core.stdc.stdio;
+import core.stdc.string;
 
-STATIC targ_long  cond_exp(void);
-STATIC targ_long  log_or_exp(void);
-STATIC targ_long  log_and_exp(void);
-STATIC targ_long  inc_or_exp(void);
-STATIC targ_long  xor_exp(void);
-STATIC targ_long  and_exp(void);
-STATIC targ_long  equal_exp(void);
-STATIC targ_long  rel_exp(void);
-STATIC targ_long  shift_exp(void);
-STATIC targ_long  add_exp(void);
-STATIC targ_long  mul_exp(void);
-STATIC targ_long  una_exp(void);
-STATIC targ_long  primary_exp(void);
-STATIC targ_long  exp_sizeof(void);
+import ddmd.backend.cdef;
+import ddmd.backend.cc;
+import ddmd.backend.global;
+import ddmd.backend.ty;
+import ddmd.backend.type;
 
-int pragma_option(void);
+import dtoken;
+import msgs2;
+
+extern (C++):
+
+extern int pragma_option();
 
 /********************************
  * Parse expression.
@@ -64,7 +57,8 @@ targ_llong msc_getnum()
   }
   return e;
 }
-
+
+
 /******************************
  * Groups right to left.
  * cond_exp ::= log_or_exp [ "?" cond_exp ":" cond_exp ]
@@ -83,14 +77,14 @@ targ_llong msc_getnum()
  * Watch out for the case ((e) ? NULL : (char *) e).
  */
 
-STATIC targ_long cond_exp()
+private targ_long cond_exp()
 { targ_long e1,e2,e3;
 
   e1 = log_or_exp();
   if (tok.TKval == TKques)
   {
         stoken();
-        e2 = msc_getnum();
+        e2 = cast(int)msc_getnum();
         chktok(TKcolon,EM_colon);
         e3 = cond_exp();
         return e1 ? e2 : e3;
@@ -111,7 +105,7 @@ STATIC targ_long cond_exp()
  *      e1   e2
  */
 
-STATIC targ_long log_or_exp()
+private targ_long log_or_exp()
 { targ_long e;
 
   e = log_and_exp();
@@ -124,6 +118,7 @@ STATIC targ_long log_or_exp()
   return e;
 }
 
+
 /*******************************
  * Groups left to right.
  * log_and_exp ::= inc_or_exp { "&&" inc_or_exp }
@@ -135,7 +130,7 @@ STATIC targ_long log_or_exp()
  *      e1   e2
  */
 
-STATIC targ_long log_and_exp()
+private targ_long log_and_exp()
 { targ_long e;
 
   e = inc_or_exp();
@@ -148,6 +143,7 @@ STATIC targ_long log_and_exp()
   return e;
 }
 
+
 /******************************
  * Groups left to right.
  * inc_or_exp ::= xor_exp { "|" xor_exp }
@@ -159,7 +155,7 @@ STATIC targ_long log_and_exp()
  *      e1   e2
  */
 
-STATIC targ_long inc_or_exp()
+private targ_long inc_or_exp()
 { targ_long e;
 
   e = xor_exp();
@@ -184,7 +180,7 @@ STATIC targ_long inc_or_exp()
  *      e1   e2
  */
 
-STATIC targ_long xor_exp()
+private targ_long xor_exp()
 { targ_long e;
 
   e = and_exp();
@@ -208,7 +204,7 @@ STATIC targ_long xor_exp()
  *      e1   e2
  */
 
-STATIC targ_long and_exp()
+private targ_long and_exp()
 { targ_long e;
 
   e = equal_exp();
@@ -232,12 +228,12 @@ STATIC targ_long and_exp()
  *      e1    e2
  */
 
-STATIC targ_long equal_exp()
+private targ_long equal_exp()
 { targ_long e;
 
   e = rel_exp();
   while (1)
-  {     switch ((int) tok.TKval)
+  {     switch (cast(int) tok.TKval)
         {    case TKeqeq:
                 stoken();
                 e = e == rel_exp();
@@ -253,7 +249,8 @@ STATIC targ_long equal_exp()
   }
   return e;
 }
-
+
+
 /******************************
  * Groups left to right.
  * rel_exp ::= shift_exp { relop shift_exp }
@@ -266,7 +263,7 @@ STATIC targ_long equal_exp()
  *      e1   e2
  */
 
-STATIC targ_long rel_exp()
+private targ_long rel_exp()
 {   targ_long e;
 
     e = shift_exp();
@@ -302,7 +299,7 @@ STATIC targ_long rel_exp()
  * shift_exp ::= add_exp { "<<" add_exp | ">>" add_exp }
  */
 
-STATIC targ_long shift_exp()
+private targ_long shift_exp()
 { targ_long e;
 
   e = add_exp();
@@ -328,7 +325,7 @@ STATIC targ_long shift_exp()
  * add_exp ::= mul_exp { "+" mul_exp | "-" mul_exp }
  */
 
-STATIC targ_long add_exp()
+private targ_long add_exp()
 { targ_long e;
 
   e = mul_exp();
@@ -352,7 +349,7 @@ STATIC targ_long add_exp()
  * mul_exp ::= una_exp { "*" una_exp | "/" una_exp | "%" una_exp }
  */
 
-STATIC targ_long mul_exp()
+private targ_long mul_exp()
 {   targ_long e;
     targ_long divisor;
 
@@ -403,7 +400,7 @@ STATIC targ_long mul_exp()
  *              sizeof (type_name)      ?? primary ??
  */
 
-STATIC targ_long una_exp()
+private targ_long una_exp()
 {
     targ_long e;
 
@@ -423,25 +420,27 @@ STATIC targ_long una_exp()
             return ~una_exp();
         case TKlpar:
             stoken();
-            e = msc_getnum();
+            e = cast(int)msc_getnum();
             if (tok.TKval != TKrpar)
                 synerr(EM_rpar);
             stoken();
             break;
-#if !TX86
+
+        // !TX86
         case TKsizeof:
-            if (ANSI && preprocessor)
+            if (config.ansi_c && preprocessor)
                 synerr(EM_prep_exp);    // sizeof illegal in preprocessor exp
             e = exp_sizeof();
             return 1;           // BUG: this looks like a bug to me! -Walter
-#endif
+
         default:
             e = primary_exp();
             break;
     }
     return e;
 }
-
+
+
 /******************************
  * Primary expression.
  * Groups left to right.
@@ -450,11 +449,10 @@ STATIC targ_long una_exp()
  *                      ( expression )
  */
 
-STATIC targ_long primary_exp()
+private targ_long primary_exp()
 { targ_long e;
-  symbol *s;
+  Symbol *s;
 
-  _chkstack();
   switch (tok.TKval)
   {
         case TKident:
@@ -463,13 +461,17 @@ STATIC targ_long primary_exp()
             {   e = pragma_defined();
                 break;
             }
-#if !TX86
-            if (strcmp( tok.TKid, "__option") == 0)
+
+            version (none)
             {
-                e = pragma_option();
-                break;
+                // !TX86
+                if (strcmp( tok.TKid, "__option") == 0)
+                {
+                    e = pragma_option();
+                    break;
+                }
             }
-#endif
+
             /* If identifier appears here, that is because it
                is an undefined macro.
                Treat as number 0.
@@ -479,7 +481,7 @@ STATIC targ_long primary_exp()
             break;
         case TKnum:
             /* BUG: what about unsigned longs? */
-            e = tok.TKutok.Vlong;
+            e = tok.Vlong;
             stoken();
             break;
         default:
@@ -496,16 +498,17 @@ STATIC targ_long primary_exp()
  * Handle __typeinfo expressions also.
  */
 
-#if !TX86
+// !TX86
 
-STATIC targ_long exp_sizeof()
-{       unsigned short had_paren = FALSE;
-        int siz=-1;
+private targ_long exp_sizeof()
+{
+        bool had_paren = false;
+        int siz = -1;
 
         stoken();
         if (tok.TKval == TKlpar)
         {
-            had_paren = TRUE;
+            had_paren = true;
             stoken();
         }
         switch (tok.TKval)
@@ -546,6 +549,4 @@ STATIC targ_long exp_sizeof()
         return siz;
 }
 
-#endif
-
-#endif /* SPP */
+}

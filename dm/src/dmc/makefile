@@ -278,10 +278,11 @@ DSRC=   \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	dinline.d divcoeff.d loadline.d parser.d scopeh.d dtoken.d \
-	dinit.d nspace.d dt.d cpph.d html.di html.d entity.d
+	dinit.d nspace.d dt.d cpph.d html.di html.d entity.d unialpha.d \
+	ppexp.d
 
 SRC=    tassert.h html.h \
-        ini.c cgcv.h cv4.h tdb.h loadline.d ppexp.c errmsgs2.c tdbx.c \
+        ini.c cgcv.h cv4.h tdb.h loadline.d errmsgs2.c tdbx.c \
         allocast.h go.h iasm.h cg.c scdll.h objrecor.c rtlsym.c util.c \
         total.h exh.h cpp.h iasm.c type.c err.c \
         filename.c blklst.c tytostr.c ee.c symbol.c \
@@ -294,7 +295,7 @@ SRC=    tassert.h html.h \
         code.h cgsched.c cgen.c ph.c cgreg.c cgcod.c token.c \
         pragma.c cod1.c cg87.c cgxmm.c cod4.c cgobj.c nwc.c getcmd.c tk.c cdef.h \
         cgelem.c rtlsym.h dt.c strtold.c \
-        bcomplex.h bcomplex.c adl.c castab.c unialpha.c \
+        bcomplex.h bcomplex.c adl.c castab.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
         ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
         backconfig.c ph2.c util2.c dwarf.h dwarf.c dwarfeh.c \
@@ -426,6 +427,12 @@ dtoken.obj : dtoken.d
 entity.obj : entity.d
         $(DMD) -c $(DFLAGS) entity.d
 
+ppexp.obj : ppexp.d
+        $(DMD) -c $(DFLAGS) ppexp.d
+
+unialpha.obj : unialpha.d
+        $(DMD) -c $(DFLAGS) unialpha.d
+
 ################# Source file dependencies ###############
 
 DEP=total.sym msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
@@ -504,13 +511,11 @@ cpp.obj : $(DEP) $(cpp.dep) cpp.c
 exp.obj : $(DEP) $(exp.dep) exp.c
 file.obj : $(DEP) $(file.dep) file.c
 outbuf.obj : $(DEP) $(outbuf.dep) outbuf.c
-ppexp.obj : $(DEP) $(ppexp.dep) ppexp.c
 newman.obj : $(DEP) $(newman.dep) newman.c
 rtti.obj : $(DEP) $(rtti.dep) rtti.c
 scope.obj : $(DEP) $(scope.dep) scope.c
 tdbx.obj : $(DEP) $(tdbx.dep) tdbx.c
 var.obj : $(DEP) $(var.dep) var.c
-unialpha.obj : unialpha.c
 
 ################### Utilities ################
 

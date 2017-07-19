@@ -363,20 +363,21 @@ void token_term();
 /+
 #define ptoken()        rtoken(1)
 #define token()         rtoken(0)
++/
 
-#if !MARS
+// !MARS
 /* from pragma.c */
 //enum_TK ptoken();
 void pragma_process();
 int pragma_search(const(char)* id);
-macro_t * macfind();
-macro_t *macdefined(const(char)* id, unsigned hash);
+//macro_t * macfind();
+//macro_t *macdefined(const(char)* id, uint hash);
 void listident();
 void pragma_term();
-macro_t *defmac(const(char)* name , const(char)* text);
+//macro_t *defmac(const(char)* name , const(char)* text);
 int pragma_defined();
-#endif
 
+/+
 #if SPP && TX86
 #define token_linnum()  getlinnum()
 #endif
