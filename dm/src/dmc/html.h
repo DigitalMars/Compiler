@@ -32,7 +32,7 @@ struct Html
     int inCode;                 // !=0 if in code
 
 
-    Html(const char *sourcename, unsigned char *base, unsigned length);
+    void initialize(const char *sourcename, unsigned char *base, unsigned length);
 
     void error(const char *format, ...);
 #if MARS

@@ -540,7 +540,8 @@ STATIC void file_openread(const char *name,blklst *b)
         p[size] = 0;                            // make sure it's terminated
 
         Outbuffer buf;
-        Html h(name, p, size);
+        Html h;
+        h.initialize(name, p, size);
 
         buf.reserve(3 + size + 2);
         buf.writeByte(0);

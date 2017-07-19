@@ -278,9 +278,9 @@ DSRC=   \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	dinline.d divcoeff.d loadline.d parser.d scopeh.d dtoken.d \
-	dinit.d nspace.d dt.d cpph.d
+	dinit.d nspace.d dt.d cpph.d html.di html.d
 
-SRC=    tassert.h html.h html.c \
+SRC=    tassert.h html.h \
         ini.c cgcv.h cv4.h tdb.h loadline.d ppexp.c errmsgs2.c tdbx.c \
         allocast.h go.h iasm.h cg.c scdll.h objrecor.c rtlsym.c util.c \
         total.h exh.h cpp.h iasm.c type.c err.c \
@@ -405,6 +405,9 @@ loadline.obj : loadline.d msgs2.d
 dinline.obj : dinline.d
         $(DMD) -c $(DFLAGS) dinline.d
 
+html.obj : html.d
+        $(DMD) -c $(DFLAGS) html.d
+
 oper.obj : oper.d
         $(DMD) -c $(DFLAGS) oper.d
 
@@ -454,7 +457,6 @@ filename.obj : $(DEP) $(filename.dep) filename.c
 glocal.obj : $(DEP) $(glocal.dep) glocal.c
 gloop.obj : $(DEP) $(gloop.dep) gloop.c
 htod.obj : $(DEP) $(htod.dep) htod.c
-html.obj : $(DEP) $(html.dep) html.c
 msc.obj : $(DEP) $(msc.dep) msc.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 objrecor.obj : $(DEP) $(objrecor.dep) objrecor.c
