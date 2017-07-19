@@ -7,31 +7,38 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/objrecor.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/objrecor.d
  */
 
 // All .OBJ file writing is done here.
 
-#include        <stdio.h>
-#include        <string.h>
-#include        <stdlib.h>
-#include        <ctype.h>
-#include        "cc.h"
-#include        "token.h"
-#include        "global.h"
-#include        "parser.h"
+module objrecor;
 
-#if (SCPP || MARS) && !HTOD
+version (SPP)
+{
+}
+else version (HTOD)
+{
+}
+else
+{
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import ddmd.backend.global;
 
-static char *fobjname;                  // output file name
+import tk.mem;
+
+import msgs2;
+
+extern (C++):
+
+private __gshared char* fobjname;                  // output file name
+
+enum TERMCODE = 1;
 
 /*******************************
  */
 
-STATIC void objfile_error()
+private void objfile_error()
 {
     err_fatal(EM_write_error,fobjname);         // error writing output file
 }
@@ -40,16 +47,16 @@ STATIC void objfile_error()
  * Open .OBJ file.
  */
 
-void objfile_open(const char *name)
+void objfile_open(const(char)* name)
 {
-    fobjname = (char *)name;
+    fobjname = cast(char*)name;
 }
 
 /************************************
  * Close .OBJ file.
  */
 
-void objfile_close(void *data, unsigned len)
+void objfile_close(void *data, uint len)
 {
     if (file_write(fobjname, data, len))
         objfile_error();
@@ -70,10 +77,11 @@ void objfile_delete()
 
 void objfile_term()
 {
-#if TERMCODE
-    mem_free(fobjname);
-    fobjname = NULL;
-#endif
+    if (TERMCODE)
+    {
+        mem_free(fobjname);
+        fobjname = null;
+    }
 }
 
-#endif
+}

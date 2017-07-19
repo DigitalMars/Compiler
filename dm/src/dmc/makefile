@@ -275,12 +275,13 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 
 # Front end only
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpph.d nspace.d dinit.d \
-	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d
+	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
+	objrecor.d
 
 FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
 	\
-        ini.c loadline.d errmsgs2.c tdbx.c objrecor.c util.c \
+        ini.c loadline.d errmsgs2.c tdbx.c util.c \
         iasm.c err.c filename.c blklst.c tytostr.c \
         msgsx.c eh.c template.c rtti.c scope.c \
         trace.c file.c pseudo.c cpp.c func.c struct.c \
@@ -426,6 +427,9 @@ dtoken.obj : dtoken.d
 entity.obj : entity.d
         $(DMD) -c $(DFLAGS) entity.d
 
+objrecor.obj : objrecor.d
+        $(DMD) -c $(DFLAGS) objrecor.d
+
 ppexp.obj : ppexp.d
         $(DMD) -c $(DFLAGS) ppexp.d
 
@@ -471,7 +475,6 @@ gloop.obj : $(DEP) $(gloop.dep) gloop.c
 htod.obj : $(DEP) $(htod.dep) htod.c
 msc.obj : $(DEP) $(msc.dep) msc.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
-objrecor.obj : $(DEP) $(objrecor.dep) objrecor.c
 out.obj : $(DEP) $(out.dep) out.c
 pdata.obj : $(DEP) $(pdata.dep) pdata.c
 pragma.obj : $(DEP) $(pragma.dep) pragma.c
