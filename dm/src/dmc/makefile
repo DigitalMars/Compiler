@@ -275,7 +275,7 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 
 # Front end only
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpph.d nspace.d dinit.d \
-	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d
+	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d
 
 FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
@@ -286,7 +286,7 @@ FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
         trace.c file.c pseudo.c cpp.c func.c struct.c \
         exp2.c exp.c msc.c ph.c token.c \
         pragma.c nwc.c getcmd.c tk.c \
-        castab.c htod.c speller.c utf.c
+        castab.c htod.c speller.c
 
 # Back end
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d \
@@ -432,6 +432,9 @@ ppexp.obj : ppexp.d
 unialpha.obj : unialpha.d
         $(DMD) -c $(DFLAGS) unialpha.d
 
+utf.obj : utf.d
+        $(DMD) -c $(DFLAGS) utf.d
+
 ################# Source file dependencies ###############
 
 DEP=total.sym msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
@@ -480,7 +483,6 @@ ti_achar.obj : tinfo.h ti_achar.c
 ti_pvoid.obj : tinfo.h ti_pvoid.c
 tk.obj : $(DEP) $(tk.dep) tk.c
 type.obj : $(DEP) $(type.dep) type.c
-utf.obj : utf.h utf.c
 util.obj : $(DEP) $(util.dep) util.c
 cgcv.obj : $(DEP) $(cgcv.dep) cgcv.c
 cgelem.obj : $(DEP) $(cgelem.dep) cgelem.c

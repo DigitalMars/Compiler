@@ -6,13 +6,16 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/utf.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/utf.d
  */
 
-#include <stdio.h>
-#include <assert.h>
+module utf;
 
-#include "utf.h"
+import core.stdc.stdio;
+
+extern (C++):
+
+alias dchar_t = uint;
 
 int utf_isValidDchar(dchar_t c)
 {
@@ -20,8 +23,8 @@ int utf_isValidDchar(dchar_t c)
         (c > 0xDFFF && c <= 0x10FFFF && c != 0xFFFE && c != 0xFFFF);
 }
 
-static const unsigned char UTF8stride[256] =
-{
+extern (D) private __gshared immutable ubyte[256] UTF8stride =
+[
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -38,7 +41,7 @@ static const unsigned char UTF8stride[256] =
     2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
     3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
     4,4,4,4,4,4,4,4,5,5,5,5,6,6,0xFF,0xFF,
-};
+];
 
 /**
  * stride() returns the length of a UTF-8 sequence starting at index i
@@ -48,9 +51,9 @@ static const unsigned char UTF8stride[256] =
  *  0xFF meaning s[i] is not the start of of UTF-8 sequence.
  */
 
-unsigned stride(unsigned char* s, size_t i)
+uint stride(ubyte* s, size_t i)
 {
-    unsigned result = UTF8stride[s[i]];
+    uint result = UTF8stride[s[i]];
     return result;
 }
 
@@ -61,19 +64,19 @@ unsigned stride(unsigned char* s, size_t i)
  *      !=NULL  error message string
  */
 
-const char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *presult)
+const(char)* utf_decodeChar(ubyte *s, size_t len, size_t *pidx, dchar_t *presult)
 {
     dchar_t V;
     size_t i = *pidx;
-    unsigned char u = s[i];
+    ubyte u = s[i];
 
     //printf("utf_decodeChar(s = %02x, %02x, %02x len = %d)\n", u, s[1], s[2], len);
 
     assert(i >= 0 && i < len);
 
     if (u & 0x80)
-    {   unsigned n;
-        unsigned char u2;
+    {   uint n;
+        ubyte u2;
 
         /* The following encodings are valid, except for the 5 and 6 byte
          * combinations:
@@ -97,7 +100,7 @@ const char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *
         }
 
         // Pick off (7 - n) significant bits of B from first byte of octet
-        V = (dchar_t)(u & ((1 << (7 - n)) - 1));
+        V = cast(dchar_t)(u & ((1 << (7 - n)) - 1));
 
         if (i + (n - 1) >= len)
             goto Lerr;                  // off end of string
@@ -117,7 +120,7 @@ const char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *
             (u == 0xFC && (u2 & 0xFC) == 0x80))
             goto Lerr;                  // overlong combination
 
-        for (unsigned j = 1; j != n; j++)
+        for (uint j = 1; j != n; j++)
         {
             u = s[i + j];
             if ((u & 0xC0) != 0x80)
@@ -130,17 +133,17 @@ const char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *
     }
     else
     {
-        V = (dchar_t) u;
+        V = cast(dchar_t) u;
         i++;
     }
 
     assert(utf_isValidDchar(V));
     *pidx = i;
     *presult = V;
-    return NULL;
+    return null;
 
   Lerr:
-    *presult = (dchar_t) s[i];
+    *presult = cast(dchar_t) s[i];
     *pidx = i + 1;
     return "invalid UTF-8 sequence";
 }
@@ -152,10 +155,10 @@ const char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *
  *      !=NULL  error message string
  */
 
-const char *utf_validateString(unsigned char *s, size_t len)
+const(char)* utf_validateString(ubyte *s, size_t len)
 {
     size_t idx;
-    const char *err = NULL;
+    const(char)* err = null;
     dchar_t dc;
 
     for (idx = 0; idx < len; )
@@ -171,21 +174,21 @@ const char *utf_validateString(unsigned char *s, size_t len)
 /********************************************
  * Decode a single UTF-16 character sequence.
  * Returns:
- *      NULL    success
- *      !=NULL  error message string
+ *      null    success
+ *      !=null  error message string
  */
 
 
-const char *utf_decodeWchar(unsigned short *s, size_t len, size_t *pidx, dchar_t *presult)
+const(char)* utf_decodeWchar(ushort *s, size_t len, size_t *pidx, dchar_t *presult)
 {
-    const char *msg;
+    const(char)* msg;
     size_t i = *pidx;
-    unsigned u = s[i];
+    uint u = s[i];
 
     assert(i >= 0 && i < len);
     if (u & ~0x7F)
     {   if (u >= 0xD800 && u <= 0xDBFF)
-        {   unsigned u2;
+        {   uint u2;
 
             if (i + 1 == len)
             {   msg = "surrogate UTF-16 high value past end of string";
@@ -217,11 +220,11 @@ const char *utf_decodeWchar(unsigned short *s, size_t len, size_t *pidx, dchar_t
 
     assert(utf_isValidDchar(u));
     *pidx = i;
-    *presult = (dchar_t)u;
-    return NULL;
+    *presult = cast(dchar_t)u;
+    return null;
 
   Lerr:
-    *presult = (dchar_t)s[i];
+    *presult = cast(dchar_t)s[i];
     *pidx = i + 1;
     return msg;
 }
