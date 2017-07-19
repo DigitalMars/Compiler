@@ -159,6 +159,10 @@ struct section
         #define S_16BYTE_LITERALS               14
         #define S_DTRACE_DOF                    15
 
+        #define S_THREAD_LOCAL_REGULAR          0x11 // template of initial values for TLVs
+        #define S_THREAD_LOCAL_ZEROFILL         0x12 // template of initial values for TLVs
+        #define S_THREAD_LOCAL_VARIABLES        0x13 // TLV descriptors
+
         #define SECTION_ATTRIBUTES_USR          0xFF000000
         #define S_ATTR_PURE_INSTRUCTIONS        0x80000000
         #define S_ATTR_NO_TOC                   0x40000000
@@ -299,18 +303,19 @@ struct relocation_info
             #define X86_64_RELOC_SIGNED_1               6
             #define X86_64_RELOC_SIGNED_2               7
             #define X86_64_RELOC_SIGNED_4               8
+            #define X86_64_RELOC_TLV                    9 // for thread local variables
 };
 
 struct scattered_relocation_info
 {
-    #if LITTLE_ENDIAN
+    #if 1 // LITTLE_ENDIAN for x86
         uint32_t r_address:24,
         r_type:4,
         r_length:2,
         r_pcrel:1,
         r_scattered:1;
         int32_t r_value;
-    #elif BIG_ENDIAN
+    #else // BIG_ENDIAN
         uint32_t r_scattered:1,
         r_pcrel:1,
         r_length:2,

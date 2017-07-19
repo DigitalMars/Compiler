@@ -273,34 +273,53 @@ msgsx.exe : msgsx.c
 
 RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 
-DSRC=   \
-        bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d denum.d \
+# Front end only
+FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpph.d nspace.d dinit.d \
+	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d
+
+FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
+	speller.h tdb.h total.h utf.h \
+	\
+        ini.c loadline.d errmsgs2.c tdbx.c objrecor.c util.c \
+        iasm.c err.c filename.c blklst.c tytostr.c \
+        msgsx.c eh.c template.c rtti.c scope.c \
+        trace.c file.c pseudo.c cpp.c func.c struct.c \
+        exp2.c exp.c msc.c ph.c token.c \
+        pragma.c nwc.c getcmd.c tk.c \
+        adl.c castab.c htod.c speller.c utf.c
+
+# Back end
+BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
-	dinline.d divcoeff.d loadline.d parser.d scopeh.d dtoken.d \
-	dinit.d nspace.d dt.d cpph.d html.di html.d entity.d unialpha.d \
-	ppexp.d
+	divcoeff.d
 
-SRC=    tassert.h html.h \
-        ini.c cgcv.h cv4.h tdb.h loadline.d errmsgs2.c tdbx.c \
-        allocast.h go.h iasm.h cg.c scdll.h objrecor.c rtlsym.c util.c \
-        total.h exh.h cpp.h iasm.c type.c err.c \
-        filename.c blklst.c tytostr.c ee.c symbol.c \
-        msgsx.c eh.c template.c rtti.c scope.h scope.c token.h outbuf.h \
-        outbuf.c trace.c dt.h file.c parser.h cod5.c type.h newman.c out.c \
-        ty.h glocal.c pseudo.c nteh.c \
-        code.c el.c el.h ptrntab.c cpp.c func.c debug.c struct.c evalu8.c os.c \
-        exp2.c blockopt.c exp.c gdag.c gflow.c gother.c global.h oper.h \
-        optabgen.c cgcs.c cgcv.c go.c var.c cod2.c cc.h gloop.c msc.c cod3.c \
-        code.h cgsched.c cgen.c ph.c cgreg.c cgcod.c token.c \
-        pragma.c cod1.c cg87.c cgxmm.c cod4.c cgobj.c nwc.c getcmd.c tk.c cdef.h \
-        cgelem.c rtlsym.h dt.c strtold.c \
-        bcomplex.h bcomplex.c adl.c castab.c \
-        aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
-        ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
-        backconfig.c ph2.c util2.c dwarf.h dwarf.c dwarfeh.c \
-        elfobj.c elfobj1.c machobj.c compress.c varstats.h varstats.c gsroa.c \
-	$(DSRC)
+BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
+	global.h code.h code_x86.h code_stub.h \
+	type.h dt.h cgcv.h cv4.h \
+	el.h iasm.h rtlsym.h dwarf.h dwarf2.h exh.h go.h \
+	melf.h mach.h md5.h mscoff.h bcomplex.h obj.h \
+	outbuf.h token.h tassert.h tinfo.h varstats.h xmm.h \
+	\
+	optabgen.c platform_stub.c \
+	bcomplex.c blockopt.c cg.c cg87.c cgxmm.c \
+	cgcod.c cgcs.c cgcv.c cgelem.c cgen.c cgobj.c \
+	cgreg.c var.c compress.c \
+	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
+	code.c symbol.c debug.c dt.c ee.c el.c \
+	evalu8.c go.c gflow.c gdag.c gsroa.c \
+	gother.c glocal.c gloop.c newman.c \
+	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
+	type.c \
+	elfobj.c \
+	dwarf.c machobj.c \
+	strtold.c aa.c ti_achar.c \
+	md5.c ti_pvoid.c ph2.c util2.c \
+	mscoffobj.c pdata.c cv8.c backconfig.c \
+	divcoeff.d dwarfeh.c varstats.c \
+	backend.txt
+
+SRC= $(FRONTSRC) $(FRONTDSRC) $(BACKSRC) $(BACKDSRC)
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c \
@@ -314,29 +333,6 @@ LIBSRC= $(NTDLLSHELL)\lib\spwnlnd.lib $(NTDLLSHELL)\lib\netsploc.obj
 BUILDSRC= sppn.tra sccn.tra htodn.tra scppn.tra makefile posix.mak
 
 LICENSE= license.txt gpl.txt
-
-# D back end
-BACKSRC= cdef.h cc.h oper.h ty.h optabgen.c \
-	global.h code.h code_x86.h code_stub.h platform_stub.c \
-	type.h dt.h cgcv.h \
-	el.h iasm.h rtlsym.h \
-	bcomplex.c blockopt.c cg.c cg87.c cgxmm.c \
-	cgcod.c cgcs.c cgcv.c cgelem.c cgen.c cgobj.c \
-	cgreg.c var.c compress.c \
-	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
-	code.c symbol.c debug.c dt.c ee.c el.c \
-	evalu8.c go.c gflow.c gdag.c gsroa.c \
-	gother.c glocal.c gloop.c newman.c \
-	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
-	type.c melf.h mach.h mscoff.h bcomplex.h \
-	cdeflnx.h outbuf.h token.h tassert.h \
-	elfobj.c cv4.h dwarf2.h exh.h go.h \
-	dwarf.c dwarf.h machobj.c \
-	strtold.c aa.h aa.c tinfo.h ti_achar.c \
-	md5.h md5.c ti_pvoid.c xmm.h ph2.c util2.c \
-	mscoffobj.c obj.h pdata.c cv8.c backconfig.c \
-	divcoeff.d dwarfeh.c varstats.h varstats.c compress.c \
-	backend.txt
 
 VERSION=857
 
