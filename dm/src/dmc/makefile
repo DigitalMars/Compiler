@@ -275,7 +275,7 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 
 # Front end only
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpph.d nspace.d dinit.d \
-	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d
+	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d
 
 FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
@@ -286,7 +286,7 @@ FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
         trace.c file.c pseudo.c cpp.c func.c struct.c \
         exp2.c exp.c msc.c ph.c token.c \
         pragma.c nwc.c getcmd.c tk.c \
-        adl.c castab.c htod.c speller.c utf.c
+        castab.c htod.c speller.c utf.c
 
 # Back end
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d \
@@ -383,6 +383,9 @@ os.obj : os.c
 
 strtold.obj : strtold.c
         $(CC) -c -o strtold.c
+
+adl.obj : adl.d
+        $(DMD) -c $(DFLAGS) adl.d
 
 denum.obj : denum.d
         $(DMD) -c $(DFLAGS) denum.d
@@ -488,7 +491,6 @@ gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
 exp2.obj : $(DEP) $(exp2.dep) castab.c exp2.c
 err.obj : $(DEP) $(err.dep) err.c
 func.obj : $(DEP) $(func.dep) func.c
-adl.obj : $(DEP) $(adl.dep) adl.c
 nwc.obj : $(DEP) $(nwc.dep) nwc.c
 iasm.obj : $(DEP) $(iasm.dep) iasm.h iasm.c
 go.obj : $(DEP) $(go.dep) go.c
