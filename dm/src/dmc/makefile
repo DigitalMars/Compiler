@@ -45,7 +45,7 @@ LFLAGS=/map/e/f/packcode/noe;
 # Flags for building Windows DLL
 DDLLFLAGS=
 
-DFLAGS=-O -release -inline -betterC -d -mv=ddmd.backend=. -mv=tk=tk -version=$(TARGET) $(DDLLFLAGS)
+DFLAGS=-O -release -inline -betterC -d -noboundscheck -mv=ddmd.backend=. -mv=tk=tk -version=$(TARGET) $(DDLLFLAGS)
 BASE=
 
 ##### Tools
@@ -278,7 +278,7 @@ DSRC=   \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	dinline.d divcoeff.d loadline.d parser.d scopeh.d dtoken.d \
-	dinit.d nspace.d dt.d cpph.d html.di html.d
+	dinit.d nspace.d dt.d cpph.d html.di html.d entity.d
 
 SRC=    tassert.h html.h \
         ini.c cgcv.h cv4.h tdb.h loadline.d ppexp.c errmsgs2.c tdbx.c \
@@ -294,7 +294,7 @@ SRC=    tassert.h html.h \
         code.h cgsched.c cgen.c ph.c cgreg.c cgcod.c token.c \
         pragma.c cod1.c cg87.c cgxmm.c cod4.c cgobj.c nwc.c getcmd.c tk.c cdef.h \
         cgelem.c rtlsym.h dt.c strtold.c \
-        bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
+        bcomplex.h bcomplex.c adl.c castab.c unialpha.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
         ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
         backconfig.c ph2.c util2.c dwarf.h dwarf.c dwarfeh.c \
@@ -422,6 +422,9 @@ dth.obj : dt.d
 
 dtoken.obj : dtoken.d
         $(DMD) -c $(DFLAGS) dtoken.d
+
+entity.obj : entity.d
+        $(DMD) -c $(DFLAGS) entity.d
 
 ################# Source file dependencies ###############
 

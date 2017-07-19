@@ -31,7 +31,7 @@ import ddmd.backend.outbuf : Outbuffer;
 extern (C++):
 
 void html_err(const(char)* , uint, uint, ...);
-int HtmlNamedEntity(ubyte *p, int length);
+int HtmlNamedEntity(const(ubyte) *p, int length);
 
 int mymemicmp(const(char)* s1, const(char)* s2, int n)
 {
