@@ -323,7 +323,7 @@ SRC= $(FRONTSRC) $(FRONTDSRC) $(BACKSRC) $(BACKDSRC)
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c \
-        $(TK)\dlist.d $(TK)\mem.d
+        $(TK)\dlist.d $(TK)\mem.di
 
 SHELLSRC= $(NTDLLSHELL)\include\dllrun.h $(NTDLLSHELL)\include\network.h \
         $(NTDLLSHELL)\include\nsidde.h $(NTDLLSHELL)\include\netspawn.h
