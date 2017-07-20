@@ -276,7 +276,7 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 # Front end only
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpph.d nspace.d dinit.d \
 	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
-	objrecor.d tytostr.d filename.d precomp.d
+	objrecor.d tytostr.d filename.d precomp.d pseudo.d
 
 FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
@@ -284,7 +284,7 @@ FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
         ini.c errmsgs2.c tdbx.c util.c \
         iasm.c err.c blklst.c \
         msgsx.c eh.c template.c rtti.c scope.c \
-        trace.c file.c pseudo.c cpp.c func.c struct.c \
+        trace.c file.c cpp.c func.c struct.c \
         exp2.c exp.c msc.c ph.c token.c \
         pragma.c nwc.c getcmd.c tk.c \
         castab.c htod.c speller.c
@@ -439,6 +439,9 @@ objrecor.obj : objrecor.d
 ppexp.obj : ppexp.d
         $(DMD) -c $(DFLAGS) ppexp.d
 
+pseudo.obj : pseudo.d
+        $(DMD) -c $(DFLAGS) pseudo.d
+
 tytostr.obj : tytostr.d
         $(DMD) -c $(DFLAGS) tytostr.d
 
@@ -486,7 +489,6 @@ nteh.obj : $(DEP) $(nteh.dep) nteh.c
 out.obj : $(DEP) $(out.dep) out.c
 pdata.obj : $(DEP) $(pdata.dep) pdata.c
 pragma.obj : $(DEP) $(pragma.dep) pragma.c
-pseudo.obj : $(DEP) $(pseudo.dep) pseudo.c
 ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
 speller.obj : speller.h speller.c
 template.obj : $(DEP) $(template.dep) template.c
