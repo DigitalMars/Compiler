@@ -155,7 +155,7 @@ debppnd:
 
 OBJ1a=blklst.obj blockopt.obj cpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
-OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj
+OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=struct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj dth.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj cpph.obj
@@ -276,13 +276,13 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 # Front end only
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpph.d nspace.d dinit.d \
 	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
-	objrecor.d tytostr.d
+	objrecor.d tytostr.d filename.d precomp.d
 
 FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
 	\
         ini.c errmsgs2.c tdbx.c util.c \
-        iasm.c err.c filename.c blklst.c \
+        iasm.c err.c blklst.c \
         msgsx.c eh.c template.c rtti.c scope.c \
         trace.c file.c pseudo.c cpp.c func.c struct.c \
         exp2.c exp.c msc.c ph.c token.c \
@@ -415,6 +415,9 @@ oper.obj : oper.d
 parser.obj : parser.d
         $(DMD) -c $(DFLAGS) parser.d
 
+precomp.obj : precomp.d
+        $(DMD) -c $(DFLAGS) precomp.d
+
 cpph.obj : cpph.d
         $(DMD) -c $(DFLAGS) cpph.d
 
@@ -426,6 +429,9 @@ dtoken.obj : dtoken.d
 
 entity.obj : entity.d
         $(DMD) -c $(DFLAGS) entity.d
+
+filename.obj : filename.d
+        $(DMD) -c $(DFLAGS) filename.d
 
 objrecor.obj : objrecor.d
         $(DMD) -c $(DFLAGS) objrecor.d
@@ -472,7 +478,6 @@ eh.obj : $(DEP) $(eh.dep) eh.c
 el.obj : $(DEP) $(el.dep) el.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 evalu8.obj : $(DEP) $(evalu8.dep) evalu8.c
-filename.obj : $(DEP) $(filename.dep) filename.c
 glocal.obj : $(DEP) $(glocal.dep) glocal.c
 gloop.obj : $(DEP) $(gloop.dep) gloop.c
 htod.obj : $(DEP) $(htod.dep) htod.c

@@ -7,46 +7,54 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/filename.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/filename.d
  */
 
 // Package to handle source files.
 
+module filename;
 
-#include        <stdio.h>
-#include        <string.h>
-#if _WIN32
-#include        <sys\stat.h>
-#endif
+import core.stdc.stdio;
+import core.stdc.string;
+version (Windows)
+    import core.sys.windows.stat;
 
-#include        "cc.h"
-#include        "parser.h"
-#include        "global.h"
-#include        "filespec.h"
+import ddmd.backend.cc;
+import ddmd.backend.cdef;
+import ddmd.backend.global;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import tk.dlist;
+import tk.filespec;
+import tk.mem;
 
-Srcfiles srcfiles;
+import msgs2;
+import parser;
+import precomp;
 
-#define TRANS   0                       // translated file names
+extern (C++):
 
-#if TRANS
-static unsigned *filename_trans;                // translation array
-static unsigned filename_transi;
-#endif
+__gshared Srcfiles srcfiles;
+
+//version = TRANS;                       // translated file names
+enum TERMCODE = 0;
+
+version (TRANS)
+{
+    private __gshared uint* filename_trans;                // translation array
+    private __gshared uint  filename_transi;
+}
 
 /***********************************
  */
 
-static __inline const char *filename_adj(const char *f)
+private const(char)* filename_adj(const(char)* f)
 {
     // Remove leading ./
     f = (*f == '.' && (f[1] == '\\' || f[1] == '/')) ? f + 2 : f;
 
-    char *newf = (char *)f;
+    char *newf = cast(char *)f;
     char *q;
-    for (const char *p = f; *p; ++p)
+    for (const(char)* p = f; *p; ++p)
     {
         if ((*p == '/' || *p == '\\') && p[1] == '.')
         {
@@ -85,15 +93,14 @@ static __inline const char *filename_adj(const char *f)
     return newf;
 }
 
-#ifdef DEBUG
-void unittest_filename_adj()
+debug void unittest_filename_adj()
 {
-    static bool run = false;
+    __gshared bool run = false;
     if (run)
         return;
     run = true;
 
-    const char *f;
+    const(char)* f;
     f = filename_adj("abc");
     assert(strcmp(f, "abc") == 0);
     f = filename_adj("./abc");
@@ -114,22 +121,22 @@ void unittest_filename_adj()
     f = filename_adj("abc\\.\\d\\..\\e");
     assert(strcmp(f, "abc\\e") == 0);
 }
-#endif
+
 
 /**************************************
  * Compute hash of filename.
  */
 
-STATIC unsigned filename_hash(const char *name)
+private uint filename_hash(const(char)* name)
 {
-    unsigned hashval;
+    uint hashval;
 
     int len = strlen(name);
-    for (hashval = len; len >= (int)(sizeof(unsigned) - 1); len -= sizeof(unsigned))
+    for (hashval = len; len >= cast(int)(uint.sizeof - 1); len -= uint.sizeof)
     {
         // The ~0x20... is to make it case insensitive
-        hashval += *(unsigned *)name & ~0x20202020;
-        name += sizeof(unsigned);
+        hashval += *cast(uint *)name & ~0x20202020;
+        name += uint.sizeof;
     }
     return hashval;
 }
@@ -139,34 +146,33 @@ STATIC unsigned filename_hash(const char *name)
  */
 
 Sfile **filename_indirect(Sfile *sf)
-{   unsigned u;
-
-    for (u = 0; u < srcfiles.idx; u++)
+{
+    for (uint u = 0; u < srcfiles.idx; u++)
     {
         if (srcfiles.pfiles[u] == sf)
             return &srcfiles.pfiles[u];
     }
     assert(0);
-    return NULL;
+    return null;
 }
 
 /*****************************
  * Search for name in srcfiles.arr[].
- * If found, return pointer for it, else NULL.
+ * If found, return pointer for it, else null.
  */
 
-Sfile *filename_search(const char *name)
+Sfile *filename_search(const(char)* name)
 {
     //printf("filename_search('%s',%d)\n",name,srcfiles.idx);
     name = filename_adj(name);
-    unsigned hashval = filename_hash(name);
-    for (unsigned u = 0; u < srcfiles.idx; u++)
-    {   Sfile *sf = &sfile(u);
-        if (sf->SFhashval == hashval &&
-            filespeccmp(sf->SFname,name) == 0)
+    uint hashval = filename_hash(name);
+    for (uint u = 0; u < srcfiles.idx; u++)
+    {   auto sf = sfile(u);
+        if (sf.SFhashval == hashval &&
+            filespeccmp(sf.SFname,name) == 0)
             return sf;
     }
-    return NULL;
+    return null;
 }
 
 /**************************
@@ -175,11 +181,9 @@ Sfile *filename_search(const char *name)
  *      filename pointer of added name
  */
 
-Sfile *filename_add(const char *name)
+Sfile *filename_add(const(char)* name)
 {
-#ifdef DEBUG
-    unittest_filename_adj();
-#endif
+    debug unittest_filename_adj();
 
     name = filename_adj(name);
     Sfile *sf = filename_search(name);
@@ -187,18 +191,16 @@ Sfile *filename_add(const char *name)
         return sf;
 
     // Extend the array
-    unsigned u = srcfiles.idx;
+    uint u = srcfiles.idx;
     // Make sure pfiles[] is initialized
     if (!srcfiles.pfiles)
-        srcfiles.pfiles = (Sfile **) mem_malloc(sizeof(Sfile *) * SRCFILES_MAX);
+        srcfiles.pfiles = cast(Sfile **) mem_malloc((Sfile *).sizeof * SRCFILES_MAX);
 
-    sf = (Sfile *) mem_calloc(sizeof(Sfile));
+    sf = cast(Sfile *) mem_calloc(Sfile.sizeof);
     srcfiles.idx++;
-#ifdef DEBUG
-    sf->id = IDsfile;
-#endif
-    sf->SFname = mem_strdup(name);
-    sf->SFhashval = filename_hash(sf->SFname);
+    debug sf.id = IDsfile;
+    sf.SFname = mem_strdup(name);
+    sf.SFhashval = filename_hash(sf.SFname);
     if (u >= SRCFILES_MAX)
         err_fatal(EM_2manyfiles,SRCFILES_MAX);
     srcfiles.pfiles[u] = sf;
@@ -206,61 +208,60 @@ Sfile *filename_add(const char *name)
     return sf;
 }
 
-#if !SPP
+version (SPP)
+{
+}
+else
+{
 
 /*****************************
  * Hydrate srcfiles.
  */
 
-#if HYDRATE
+static if (HYDRATE)
+{
 void filename_hydrate(Srcfiles *fn)
 {
-    unsigned u;
-
-//    ph_hydrate(&fn->arr);
-    ph_hydrate(&fn->pfiles);
-    for (u = 0; u < fn->idx; u++)
-    {   Sfile *sf;
-
-        sf = (Sfile *)ph_hydrate(&fn->pfiles[u]);
-        ph_hydrate(&sf->SFname);
-        ph_hydrate(&sf->SFinc_once_id);
-        list_hydrate(&sf->SFfillist,FPNULL);
+//    ph_hydrate(&fn.arr);
+    ph_hydrate(cast(void**)&fn.pfiles);
+    for (uint u = 0; u < fn.idx; u++)
+    {
+        Sfile* sf = cast(Sfile *)ph_hydrate(cast(void**)&fn.pfiles[u]);
+        ph_hydrate(cast(void**)&sf.SFname);
+        ph_hydrate(cast(void**)&sf.SFinc_once_id);
+        list_hydrate(&sf.SFfillist,FPNULL);
     }
 }
-#endif
+}
 
 /*****************************
  * Dehydrate Srcfiles.
  */
 
-#if DEHYDRATE
+static if (DEHYDRATE)
+{
 void filename_dehydrate(Srcfiles *fn)
 {
-    unsigned u;
-
-    for (u = 0; u < fn->idx; u++)
-    {   Sfile *sf;
-
-        sf = fn->pfiles[u];
-        ph_dehydrate(&fn->pfiles[u]);
-        ph_dehydrate(&sf->SFname);
-        ph_dehydrate(&sf->SFinc_once_id);
-        list_dehydrate(&sf->SFfillist,FPNULL);
+    for (uint u = 0; u < fn.idx; u++)
+    {
+        Sfile* sf = fn.pfiles[u];
+        ph_dehydrate(&fn.pfiles[u]);
+        ph_dehydrate(&sf.SFname);
+        ph_dehydrate(&sf.SFinc_once_id);
+        list_dehydrate(&sf.SFfillist,FPNULL);
     }
-    //ph_dehydrate(&fn->arr);
-    ph_dehydrate(&fn->pfiles);
+    //ph_dehydrate(&fn.arr);
+    ph_dehydrate(&fn.pfiles);
 }
-#endif
+}
 
 /******************************
  */
 
 void srcpos_hydrate(Srcpos *s)
 {
-#if HYDRATE
-    ph_hydrate(&s->Sfilptr);
-#endif
+    static if (HYDRATE)
+        ph_hydrate(cast(void**)&s.Sfilptr);
 }
 
 /******************************
@@ -268,12 +269,11 @@ void srcpos_hydrate(Srcpos *s)
 
 void srcpos_dehydrate(Srcpos *s)
 {
-#if DEHYDRATE
-    ph_dehydrate(&s->Sfilptr);
-#endif
+    static if (DEHYDRATE)
+        ph_dehydrate(&s.Sfilptr);
 }
 
-#endif
+}
 
 /*****************************
  * Merge fn with global srcfiles.
@@ -281,49 +281,49 @@ void srcpos_dehydrate(Srcpos *s)
  */
 
 void filename_merge(Srcfiles *fn)
-{   unsigned u;
-
-#if !TRANS
-    Sfile *sf;
-
-    //dbg_printf("filename_merge()\n");
-    for (u = 0; u < fn->idx; u++)
-    {   sfile_debug(fn->pfiles[u]);
-        filename_add(fn->pfiles[u]->SFname);
+{
+    version (TRANS)
+    {
+        //dbg_printf("filename_merge()\n");
+        filename_trans = cast(uint *) mem_realloc(filename_trans,fn.idx * uint.sizeof);
+        filename_transi = fn.idx;
+        for (uint u = 0; u < fn.idx; u++)
+        {
+            uint t = filename_add(fn.arr[u].SFname);
+            filename_trans[u] = t;
+            sfile(t).SFflags |= fn.arr[u].SFflags & (SFonce | SFtop);
+            sfile(t).SFinc_once_id = fn.arr[u].SFinc_once_id;
+        }
     }
+    else
+    {
+        Sfile *sf;
 
-    for (u = 0; u < fn->idx; u++)
-    {   Sfile *sfn;
+        //dbg_printf("filename_merge()\n");
+        for (uint u = 0; u < fn.idx; u++)
+        {   //sfile_debug(fn.pfiles[u]);
+            filename_add(fn.pfiles[u].SFname);
+        }
 
-        sfn = fn->pfiles[u];
-        sfile_debug(sfn);
-        sf = filename_search(sfn->SFname);
-        sfile_debug(sf);
-        fn->pfiles[u] = sf;
-        sf->SFflags |= sfn->SFflags & (SFonce | SFtop);
+        for (uint u = 0; u < fn.idx; u++)
+        {
+            Sfile* sfn = fn.pfiles[u];
+            //sfile_debug(sfn);
+            sf = filename_search(sfn.SFname);
+            //sfile_debug(sf);
+            fn.pfiles[u] = sf;
+            sf.SFflags |= sfn.SFflags & (SFonce | SFtop);
 
-        sf->SFtemp_ft = sfn->SFtemp_ft;
-        sf->SFtemp_class = sfn->SFtemp_class;
-        sf->SFtagsymdefs = sfn->SFtagsymdefs;
-        sf->SFfillist = sfn->SFfillist;
-        sf->SFmacdefs = sfn->SFmacdefs;
-        sf->SFsymdefs = sfn->SFsymdefs;
-        sf->SFcomdefs = sfn->SFcomdefs;
-        sf->SFinc_once_id = sfn->SFinc_once_id;
+            sf.SFtemp_ft = sfn.SFtemp_ft;
+            sf.SFtemp_class = sfn.SFtemp_class;
+            sf.SFtagsymdefs = sfn.SFtagsymdefs;
+            sf.SFfillist = sfn.SFfillist;
+            sf.SFmacdefs = sfn.SFmacdefs;
+            sf.SFsymdefs = sfn.SFsymdefs;
+            sf.SFcomdefs = sfn.SFcomdefs;
+            sf.SFinc_once_id = sfn.SFinc_once_id;
+        }
     }
-#else
-    unsigned t;
-
-    //dbg_printf("filename_merge()\n");
-    filename_trans = (unsigned *) mem_realloc(filename_trans,fn->idx * sizeof(unsigned));
-    filename_transi = fn->idx;
-    for (u = 0; u < fn->idx; u++)
-    {   t = filename_add(fn->arr[u].SFname);
-        filename_trans[u] = t;
-        sfile(t).SFflags |= fn->arr[u].SFflags & (SFonce | SFtop);
-        sfile(t).SFinc_once_id = fn->arr[u].SFinc_once_id;
-    }
-#endif
 }
 
 /*********************************
@@ -334,15 +334,14 @@ void filename_mergefl(Sfile *sf)
 {
     list_t fl;
 
-    sfile_debug(sf);
-    for (fl = sf->SFfillist; fl; fl = list_next(fl))
-    {   Sfile *sfl;
-
-        sfl = (Sfile *) list_ptr(fl);
-        sfl = filename_search(sfl->SFname);
+    //sfile_debug(sf);
+    for (fl = sf.SFfillist; fl; fl = list_next(fl))
+    {
+        Sfile* sfl = cast(Sfile *) list_ptr(fl);
+        sfl = filename_search(sfl.SFname);
         assert(sfl);
-        sfile_debug(sfl);
-        list_ptr(fl) = sfl;
+        //sfile_debug(sfl);
+        fl.ptr = sfl;
     }
 }
 
@@ -352,22 +351,23 @@ void filename_mergefl(Sfile *sf)
 
 void filename_translate(Srcpos *sp)
 {
-#if TRANS
-    if (sp->Slinnum)
+    version (TRANS)
     {
-        //if (sp->Sfilnum >= filename_transi)
-        //dbg_printf("Sfilnum = %d, transi = %d\n",sp->Sfilnum,filename_transi);
-        assert(sp->Sfilnum < filename_transi);
-        sp->Sfilnum = filename_trans[sp->Sfilnum];
+        if (sp.Slinnum)
+        {
+            //if (sp.Sfilnum >= filename_transi)
+            //dbg_printf("Sfilnum = %d, transi = %d\n",sp.Sfilnum,filename_transi);
+            assert(sp.Sfilnum < filename_transi);
+            sp.Sfilnum = filename_trans[sp.Sfilnum];
+        }
     }
-#endif
 }
 
 /*****************************
  * Compare file names.
  */
 
-int filename_cmp(const char *f1,const char *f2)
+int filename_cmp(const(char)* f1,const(char)* f2)
 {
     f1 = filename_adj(f1);
     f2 = filename_adj(f2);
@@ -378,17 +378,15 @@ int filename_cmp(const char *f1,const char *f2)
  * Free srcfiles.arr[].
  */
 
-#if TERMCODE
+static if (TERMCODE)
+{
 
 void filename_free()
-{   unsigned u;
-
-    for (u = 0; u < srcfiles.idx; u++)
+{
+    for (uint u = 0; u < srcfiles.idx; u++)
     {
-        sfile_debug(&sfile(u));
-#ifdef DEBUG
-        sfile(u).id = 0;
-#endif
+        //sfile_debug(&sfile(u));
+        debug sfile(u).id = 0;
         mem_free(srcfiles_name(u));
         macro_freelist(sfile(u).SFmacdefs);
         list_free(&sfile(u).SFfillist,FPNULL);
@@ -398,9 +396,8 @@ void filename_free()
     }
     //mem_free(srcfiles.arr);
     mem_free(srcfiles.pfiles);
-#if TRANS
-    mem_free(filename_trans);
-#endif
+    version (TRANS)
+        mem_free(filename_trans);
 }
 
-#endif
+}

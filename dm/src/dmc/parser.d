@@ -53,9 +53,6 @@ else
 }
 
 
-void list_hydrate(list_t *plist, void function(void *) hydptr);
-void list_dehydrate(list_t *plist, void function(void *) dehydptr);
-
 /* Type matches */
 enum
 {
@@ -562,43 +559,6 @@ void *ph_calloc(size_t nbytes);
 void ph_free(void *p);
 void *ph_realloc(void *p , size_t nbytes);
 void ph_add_global_symdef(Symbol *s, uint sctype);
-
-static if (H_STYLE & H_OFFSET)
-{
-    //#define dohydrate       ph_hdradjust
-    bool isdehydrated(void* p) { return ph_hdrbaseaddress <= p && p < ph_hdrmaxaddress; }
-    //#define ph_hydrate(p)   ((isdehydrated(*(void **)(p)) && (*(char **)(p) -= ph_hdradjust)),*(void **)(p))
-    //#define ph_dehydrate(p) (()(p))
-    extern __gshared void *ph_hdrbaseaddress;
-    extern __gshared void *ph_hdrmaxaddress;
-    extern __gshared int   ph_hdradjust;
-}
-else static if (H_STYLE & H_BIT0)
-{
-    enum dohydrate = 1;
-    bool isdehydrated(void *p) { return cast(int)p & 1; }
-    extern __gshared int ph_hdradjust;
-    //#define ph_hydrate(p)   ((isdehydrated(*(void **)(p)) && (*(char **)(p) -= ph_hdradjust)),*(void **)(p))
-    //#define ph_dehydrate(p) ((*(long *)(p)) && (*(long *)(p) |= 1))
-}
-else static if (H_STYLE & H_COMPLEX)
-{
-    enum dohydrate = 1;
-    bool isdehydrated(void *p) { return cast(int)p & 1; }
-    void *ph_hydrate(void *pp);
-    void *ph_dehydrate(void *pp);
-}
-else static if (H_STYLE & H_NONE)
-{
-    enum dohydrate = 0;
-    bool isdehydrated(void *p) { return false; }
-    //#define ph_hydrate(p)   (*(void **)(p))
-    //#define ph_dehydrate(p) (()(p))
-}
-else
-{
-    static assert(0, "H_STYLE set wrong");
-}
 
 /* pragma.c */
 int pragma_search(const(char)* id);

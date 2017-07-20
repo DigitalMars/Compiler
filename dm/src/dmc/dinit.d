@@ -24,11 +24,6 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 
-import dtoken;
-import msgs2;
-import parser;
-import scopeh;
-
 import ddmd.backend.bcomplex;
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
@@ -42,6 +37,12 @@ import ddmd.backend.type;
 
 import tk.dlist;
 import tk.mem;
+
+import dtoken;
+import msgs2;
+import parser;
+import scopeh;
+
 
 extern (C++):
 

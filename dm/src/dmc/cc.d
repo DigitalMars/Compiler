@@ -1566,6 +1566,8 @@ enum
     SFloaded  = 8,      // read from PH file
 }
 
+private import parser : macro_t;
+
 struct Sfile
 {
     debug ushort      id;
@@ -1577,15 +1579,15 @@ struct Sfile
     list_t    SFfillist;        // file pointers of Sfile's that this Sfile is
                                 //     dependent on (i.e. they were #include'd).
                                 //     Does not include nested #include's
-//    macro_t  *SFmacdefs;        // threaded list of macros #defined by this file
-//    macro_t **SFpmacdefs;       // end of macdefs list
-//    Symbol   *SFsymdefs;        // threaded list of global symbols declared by this file
-//    symlist_t SFcomdefs;        // comdefs defined in PH
-//    symlist_t SFtemp_ft;        // template_ftlist
-//    symlist_t SFtemp_class;     // template_class_list
-//    Symbol   *SFtagsymdefs;     // list of tag names (C only)
-//    char     *SFinc_once_id;    // macro include guard identifier
-//    unsigned SFhashval;         // hash of file name
+    macro_t  *SFmacdefs;        // threaded list of macros #defined by this file
+    macro_t **SFpmacdefs;       // end of macdefs list
+    Symbol   *SFsymdefs;        // threaded list of global symbols declared by this file
+    symlist_t SFcomdefs;        // comdefs defined in PH
+    symlist_t SFtemp_ft;        // template_ftlist
+    symlist_t SFtemp_class;     // template_class_list
+    Symbol   *SFtagsymdefs;     // list of tag names (C only)
+    char     *SFinc_once_id;    // macro include guard identifier
+    uint SFhashval;             // hash of file name
 }
 
 // Source files are referred to by a pointer into pfiles[]. This is so that
@@ -1593,24 +1595,30 @@ struct Sfile
 // means that pfiles[] cannot be reallocated to larger numbers, its size is
 // fixed at SRCFILES_MAX.
 
+version (SPP)
+{
+    enum SRCFILES_MAX = (2*512*4);      // no precompiled headers for SPP
+}
+else
+{
+    enum SRCFILES_MAX = (2*512);
+}
+
 struct Srcfiles
 {
 //  Sfile *arr;         // array of Sfiles
     Sfile **pfiles;     // parallel array of pointers into arr[]
-  version (SPP)
-  {
-      enum SRCFILES_MAX = (2*512*4);      // no precompiled headers for SPP
-  }
-  else
-  {
-      enum SRCFILES_MAX = (2*512);
-  }
     uint dim;       // dimension of array
     uint idx;       // # used in array
 }
 
-//#define sfile(fi)               (*srcfiles.pfiles[fi])
-//#define srcfiles_name(fi)       (sfile(fi).SFname)
+Sfile* sfile(uint fi)
+{
+    import ddmd.backend.global : srcfiles;
+    return srcfiles.pfiles[fi];
+}
+
+char* srcfiles_name(uint fi) { return sfile(fi).SFname; }
 }
 
 /**************************************************

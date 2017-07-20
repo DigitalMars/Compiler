@@ -480,6 +480,10 @@ version (SCPP)
     void srcpos_hydrate(Srcpos *);
     void srcpos_dehydrate(Srcpos *);
 }
+version (SPP)
+    extern __gshared Srcfiles srcfiles;
+version (HTOD)
+    extern __gshared Srcfiles srcfiles;
 
 // tdb.c
 uint tdb_gettimestamp();

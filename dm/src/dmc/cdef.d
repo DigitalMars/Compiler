@@ -101,67 +101,6 @@ enum bool HEADER_LIST = true;
 //#endif
 
 
-// Precompiled header variations
-version (_WINDLL)
-    enum MEMORYHX = 1;     // HX and SYM files are cached in memory
-else
-    enum MEMORYHX = 0;
-
-version (Windows)
-    enum MMFIO = 1;        // if memory mapped files
-else version (Posix)
-    enum MMFIO = 1;
-else
-    static assert(0);
-
-version (Windows)
-    enum LINEARALLOC = 1;  // can reserve address ranges
-else
-    enum LINEARALLOC = 0;  // can not reserve address ranges
-
-// H_STYLE takes on one of these precompiled header methods
-enum
-{
-    H_NONE    = 1,       // no hydration/dehydration necessary
-    H_BIT0    = 2,       // bit 0 of the pointer determines if pointer
-                         // is dehydrated, an offset is added to
-                         // hydrate it
-    H_OFFSET  = 4,       // the address range of the pointer determines
-                         // if pointer is dehydrated, and an offset is
-                         // added to hydrate it. No dehydration necessary.
-    H_COMPLEX = 8,       // dehydrated pointers have bit 0 set, hydrated
-                         // pointers are in non-contiguous buffers
-}
-
-// Determine hydration style
-//      NT console:     H_NONE
-//      NT DLL:         H_OFFSET
-//      DOSX:           H_COMPLEX
-version (MARS)
-{
-    enum H_STYLE = H_NONE;         // DMD doesn't use precompiled headers
-}
-else
-{
-    static if (MMFIO)
-    {
-        version (_WINDLL)
-            enum H_STYLE = H_OFFSET;
-        else
-            enum H_STYLE = H_OFFSET; //H_NONE
-    }
-    else static if (LINEARALLOC)
-        enum H_STYLE = H_BIT0;
-    else
-        enum H_STYLE = H_COMPLEX;
-}
-
-// Do we need hydration code
-enum HYDRATE = H_STYLE & (H_BIT0 | H_OFFSET | H_COMPLEX);
-
-// Do we need dehydration code
-enum DEHYDRATE = H_STYLE & (H_BIT0 | H_COMPLEX);
-
 // NT structured exception handling
 //      0: no support
 //      1: old style
