@@ -99,6 +99,16 @@ struct TYPE
     unittest { assert(sizeCheck() == TYPE.sizeof); }
 }
 
+struct typetemp_t
+{
+    TYPE Ttype;
+
+    /* Tsym should really be part of a derived class, as we only
+        allocate room for it if TYtemplate
+     */
+    Symbol *Tsym;               // primary class template symbol
+}
+
 // Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
 static if (__VERSION__ <= 2066)
     private enum computeEnumValue = TYMAX;

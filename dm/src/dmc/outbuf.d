@@ -168,15 +168,15 @@ struct Outbuffer
      */
     void writeDouble(double v);
 
-    void write(const char *s);
+    void write(const(char)* s);
 
-    void write(const ubyte *s);
+    void write(const(ubyte)* s);
 
-    void writeString(const char *s);
+    void writeString(const(char)* s);
 
-    void prependBytes(const char *s);
+    void prependBytes(const(char)* s);
 
-    void prepend(const void *b, size_t len);
+    void prepend(const(void)* b, size_t len);
 
     void bracket(char c1,char c2);
 

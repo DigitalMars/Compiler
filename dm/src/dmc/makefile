@@ -276,13 +276,13 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 # Front end only
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpph.d nspace.d dinit.d \
 	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
-	objrecor.d
+	objrecor.d tytostr.d
 
 FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
 	\
-        ini.c loadline.d errmsgs2.c tdbx.c util.c \
-        iasm.c err.c filename.c blklst.c tytostr.c \
+        ini.c errmsgs2.c tdbx.c util.c \
+        iasm.c err.c filename.c blklst.c \
         msgsx.c eh.c template.c rtti.c scope.c \
         trace.c file.c pseudo.c cpp.c func.c struct.c \
         exp2.c exp.c msc.c ph.c token.c \
@@ -433,6 +433,9 @@ objrecor.obj : objrecor.d
 ppexp.obj : ppexp.d
         $(DMD) -c $(DFLAGS) ppexp.d
 
+tytostr.obj : tytostr.d
+        $(DMD) -c $(DFLAGS) tytostr.d
+
 unialpha.obj : unialpha.d
         $(DMD) -c $(DFLAGS) unialpha.d
 
@@ -507,7 +510,6 @@ ph.obj : $(DEP) $(ph.dep) ph.c
 token.obj : $(DEP) $(token.dep) token.c
 rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 symbol.obj : $(DEP) $(symbol.dep) symbol.c
-tytostr.obj : $(DEP) $(tytostr.dep) tytostr.c
 cg87.obj : $(DEP) $(cg87.dep) cg87.c
 cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
 cpp.obj : $(DEP) $(cpp.dep) cpp.c

@@ -1092,7 +1092,7 @@ void dotytab()
 
     for (i = 0; i < arraysize(typetab); i++)
         tystring[typetab[i].ty] = typetab[i].string;
-    fprintf(f,"const char *tystring[] =\n{ ");
+    fprintf(f,"extern \"C\" const char *tystring[] =\n{ ");
     for (i = 0; i < arraysize(tystring); i++)
     {   fprintf(f,"\"%s\",",tystring[i]);
         if ((i & 7) == 7 && i < arraysize(tystring) - 1)
