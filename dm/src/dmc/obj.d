@@ -52,7 +52,10 @@ class Obj
     void staticctor(Symbol *s,int dtor,int seg);
     void staticdtor(Symbol *s);
     void setModuleCtorDtor(Symbol *s, bool isCtor);
-    void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+    version (SCPP)
+        static void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+    else
+        void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     void ehsections();
     void moduleinfo(Symbol *scc);
     int comdat(Symbol *);
@@ -129,7 +132,10 @@ class MsCoffObj : Obj
     override void staticctor(Symbol *s,int dtor,int seg);
     override void staticdtor(Symbol *s);
     override void setModuleCtorDtor(Symbol *s, bool isCtor);
-    override void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+    version (SCPP)
+        static void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+    else
+        override void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     override void ehsections();
     override void moduleinfo(Symbol *scc);
     override int comdat(Symbol *);

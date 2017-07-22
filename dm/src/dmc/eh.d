@@ -7,60 +7,84 @@
  * Authors:     John Micco, $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/eh.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/eh.d
  */
 
 // Exception handling for the C++ compiler
 
-#if !SPP
+version (SPP)
+{
+}
+else
+{
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "cc.h"
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 
-#include "global.h"
-#include "exh.h"
-#include "parser.h"
-#include "type.h"
-#include "token.h"
-#include "cpp.h"
-#include "oper.h"
-#include "code.h"
-#include "scope.h"
+import ddmd.backend.cc;
+import ddmd.backend.cdef;
+import ddmd.backend.code;
+import ddmd.backend.dt;
+import ddmd.backend.dtoken;
+import ddmd.backend.el;
+import ddmd.backend.exh;
+import ddmd.backend.global;
+import ddmd.backend.obj;
+import ddmd.backend.oper;
+import ddmd.backend.ty;
+import ddmd.backend.type;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import tk.mem;
+import tk.dlist;
 
-typedef struct Ehstack
+import cpph;
+import msgs2;
+import parser;
+import scopeh;
+
+extern (C++):
+
+enum TX86 = 1;
+
+struct Ehstack
 {
     int prev;                   // index of previous stack (-1 is beginning)
     elem *el;
     block *bl;
-} Ehstack;
+}
 
-static Ehstack *ehstack;
-static int ehstacki;            // current index into ehstack[]
-static int ehstackmax;          // max index used in ehstack[]
-static int ehstackdim;          // allocated dimension of ehstack[]
-static list_t marklist;         // stack of marks
+private __gshared
+{
+    Ehstack *ehstack;
+    int ehstacki;            // current index into ehstack[]
+    int ehstackmax;          // max index used in ehstack[]
+    int ehstackdim;          // allocated dimension of ehstack[]
+    list_t marklist;         // stack of marks
+}
 
-typedef struct Ehpair
+struct Ehpair
 {   targ_size_t offset;
     int index;                  // index into ehstack[]
     void *p;                    // pointer to use as identifying marker
                                 // (points to Code or Block)
-} Ehpair;
+}
 
-static Ehpair *ehpair;
-static int ehpairi;             // current index into ehpair[]
-static int ehpairdim;           // allocated dimension of ehpair[]
+private __gshared
+{
+    Ehpair *ehpair;
+    int ehpairi;             // current index into ehpair[]
+    int ehpairdim;           // allocated dimension of ehpair[]
 
-// Special predefined functions
-static symbol *eh_throw;        // throw function
-static symbol *eh_rethrow;      // rethrow function
-static symbol *eh_newp;         // ptr to storage allocator for thrown object
+    // Special predefined functions
+    Symbol *eh_throw;        // throw function
+    Symbol *eh_rethrow;      // rethrow function
+    Symbol *eh_newp;         // ptr to storage allocator for thrown object
+}
 
-
+
+type* list_type(list_t tl) { return cast(type*)list_ptr(tl); }
+
 /**************************************
  * Initialize exception handling code.
  */
@@ -75,14 +99,9 @@ void except_init()
 
 void except_term()
 {
-    assert(marklist == NULL);
-#if TX86
+    assert(marklist == null);
     mem_free(ehstack);
     mem_free(ehpair);
-#else
-    MEM_PARC_FREE(ehstack);
-    MEM_PARC_FREE(ehpair);
-#endif
 }
 
 /*************************************
@@ -96,13 +115,14 @@ void except_term()
  *      augmented elem
  */
 
-#if 0
-
-elem *except_obj_ctor(elem *e,symbol *s,targ_size_t offset,symbol *sdtor)
+version (none)
 {
-    symbol_debug(s);
-    e = el_unat(OPinfo,e->ET,e);
-    e->EV.eop.Edtor = s;
+
+elem *except_obj_ctor(elem *e,Symbol *s,targ_size_t offset,Symbol *sdtor)
+{
+    //symbol_debug(s);
+    e = el_unat(OPinfo,e.ET,e);
+    e.EV.eop.Edtor = s;
     return e;
 }
 
@@ -110,12 +130,12 @@ elem *except_obj_ctor(elem *e,symbol *s,targ_size_t offset,symbol *sdtor)
  * Add 'object destroyed' data to elem.
  */
 
-elem *except_obj_dtor(elem *e,symbol *s,targ_size_t offset)
+elem *except_obj_dtor(elem *e,Symbol *s,targ_size_t offset)
 {
-    return except_obj_ctor(e,s,offset,NULL);
+    return except_obj_ctor(e,s,offset,null);
 }
 
-#endif
+}
 
 /*************************************
  * Degrades function and array types to their appropriate
@@ -124,10 +144,9 @@ elem *except_obj_dtor(elem *e,symbol *s,targ_size_t offset)
  * in getprototype().
  */
 
-STATIC type * except_degrade_type(type *t)
-{   tym_t tym;
-
-    tym = tybasic(t->Tty);
+private type * except_degrade_type(type *t)
+{
+    tym_t tym = tybasic(t.Tty);
 
     // If the top type of the catch variable is an array, then warp the
     // top type to be a pointer ( as for function arguments )
@@ -139,8 +158,8 @@ STATIC type * except_degrade_type(type *t)
     else if (tyfunc(tym))
     {
         t = newpointer(t);
-        t->Tnext->Tcount--;
-        t->Tcount++;
+        t.Tnext.Tcount--;
+        t.Tcount++;
     }
 
     // Convert <array of> to <pointer to> in prototypes
@@ -161,11 +180,11 @@ STATIC type * except_degrade_type(type *t)
 elem *except_throw_expression()
 {
     elem *pe;
-    symbol *psym;
+    Symbol *psym;
     targ_size_t tsize = 0;              // size of thrown object
     type *tae;                          // type of assignment-expression
     type *tdtor;                        // type of destructor
-    list_t arglist = NULL;
+    list_t arglist = null;
     elem *efunc;
     elem *edtor;
 
@@ -174,7 +193,7 @@ elem *except_throw_expression()
         cpperr(EM_compileEH);                   // EH not enabled
         panic(TKsemi);
         stoken();
-        return el_longt(tsvoid,0);
+        return el_longt(tstypes[TYvoid],0);
     }
 
     stoken();
@@ -184,31 +203,31 @@ elem *except_throw_expression()
         // Generate a call to __rethrow
         if (!eh_rethrow)
         {   eh_rethrow = scope_search("__eh_rethrow",SCTglobal);
-            eh_rethrow->Sflags |= SFLexit;    // 'rethrow' never returns
+            eh_rethrow.Sflags |= SFLexit;    // 'rethrow' never returns
         }
-        symbol_debug(eh_rethrow);
+        //symbol_debug(eh_rethrow);
         efunc = el_var(eh_rethrow);
         goto L1;
     }
     // Parse assignment-expression to get object to throw
     pe = arraytoptr(assign_exp());
-    tae = pe->ET;
+    tae = pe.ET;
 
     // If it is a pointer, adjust pointer types
-    if (typtr(tae->Tty))
+    if (typtr(tae.Tty))
     {
-        tae->Tcount++;
-#if CFM68K || CFMV2
-        paramtypadj(&tae,pe->ET);       // Check second argument
-#else
+        tae.Tcount++;
+        //#if CFM68K || CFMV2
+        //paramtypadj(&tae,pe.ET);       // Check second argument
+        //#else
         paramtypadj(&tae);
-#endif
-        pe = cast(pe,tae);
+        //#endif
+        pe = _cast(pe,tae);
         type_free(tae);
     }
 
     pe = poptelem(pe);
-    tae = pe->ET;
+    tae = pe.ET;
 
     // Create a new symbol for the string with the type embedded
     psym = init_typeinfo_data(tae);
@@ -233,53 +252,51 @@ elem *except_throw_expression()
 
     if (!eh_throw)
     {   eh_throw = scope_search("__eh_throw",SCTglobal);
-        eh_throw->Sflags |= SFLexit;    // 'throw' never returns
+        eh_throw.Sflags |= SFLexit;    // 'throw' never returns
     }
-    symbol_debug(eh_throw);
+    //symbol_debug(eh_throw);
     efunc = el_var(eh_throw);
-    tdtor = efunc->ET->Tparamtypes->Pnext->Ptype;
+    tdtor = efunc.ET.Tparamtypes.Pnext.Ptype;
 
     tsize = type_size(tae);
     if (type_struct(tae))
     {   elem *en;
-        list_t arglist;
-        symbol *sdtor;
-        symbol *stmp;
+        list_t arglist2;
+        Symbol *sdtor;
+        Symbol *stmp;
 
         if (!eh_newp)
             eh_newp = scope_search("__eh_newp",SCTglobal);
-        symbol_debug(eh_newp);
+        //symbol_debug(eh_newp);
 
         // Allocate memory by calling (*__eh_newp)(tsize)
         // (the following code emitted assumes eh_new()
-        //  returns a non-NULL pointer)
+        //  returns a non-null pointer)
         en = el_bint(OPcall,newpointer(tae),
-                el_unat(OPind,eh_newp->Stype->Tnext,el_var(eh_newp)),
-                el_longt(tsuns,tsize));
+                el_unat(OPind,eh_newp.Stype.Tnext,el_var(eh_newp)),
+                el_longt(tstypes[TYuint],tsize));
 
         // Allocate temporary for 'this' pointer
-        stmp = symbol_genauto(en->ET);
-        en = el_bint(OPeq,stmp->Stype,el_var(stmp),en);
+        stmp = symbol_genauto(en.ET);
+        en = el_bint(OPeq,stmp.Stype,el_var(stmp),en);
 
         // Initialize allocated memory by using copy constructor
-        arglist = list_build(pe,NULL);
-        pe = cpp_constructor(el_var(stmp),tae,arglist,NULL,NULL,8);
+        arglist2 = list_build(pe,null);
+        pe = cpp_constructor(el_var(stmp),tae,arglist2,null,null,8);
 
-        pe = el_bint(OPcomma,pe->ET,en,pe);
+        pe = el_bint(OPcomma,pe.ET,en,pe);
 
         // Indicate that storage was allocated by eh_new()
         tsize = 0;
 
-        sdtor = tae->Ttag->Sstruct->Sdtor;
+        sdtor = tae.Ttag.Sstruct.Sdtor;
 
         // Error if this pointer type or
         // destructor is not of the ambient memory model.
         if (
-#if TX86
-            (sdtor && (tyfarfunc(sdtor->Stype->Tty) ? !LARGECODE : LARGECODE)) ||
-#endif
-             pointertype != tae->Ttag->Sstruct->ptrtype)
-            cpperr(EM_not_of_ambient_model,prettyident(tae->Ttag));     // not ambient memory model
+            (sdtor && (tyfarfunc(sdtor.Stype.Tty) ? !LARGECODE : LARGECODE)) ||
+             pointertype != tae.Ttag.Sstruct.ptrtype)
+            cpperr(EM_not_of_ambient_model,prettyident(tae.Ttag));     // not ambient memory model
 
         // Create pointer to destructor
         if (sdtor)
@@ -287,21 +304,21 @@ elem *except_throw_expression()
             el_settype(edtor,tdtor);
         }
         else
-            edtor = el_longt(tdtor,0);          // NULL ptr to destructor
+            edtor = el_longt(tdtor,0);          // null ptr to destructor
 
     }
     else
-        edtor = el_longt(tdtor,0);              // NULL ptr to destructor
+        edtor = el_longt(tdtor,0);              // null ptr to destructor
 
     // Assemble argument list to __eh_throw()
-#if TX86
-    arglist = list_build(el_ptr(psym),edtor,el_longt(tsuns,tsize),pe,NULL);
-#else
-    arglist = list_build(arraytoptr(el_var(psym)),edtor,el_longt(tsuns,tsize),pe,NULL);
-#endif
+    // TX86
+    arglist = list_build(el_ptr(psym),edtor,el_longt(tstypes[TYuint],tsize),pe,null);
+    //else
+    //arglist = list_build(arraytoptr(el_var(psym)),edtor,el_longt(tstypes[TYuint],tsize),pe,null);
+    //endif
 
 L1:
-    pe = xfunccall(efunc,NULL,NULL,arglist);    // call throw function
+    pe = xfunccall(efunc,null,null,arglist);    // call throw function
     return pe;
 }
 
@@ -316,7 +333,7 @@ L1:
  *      T Cv = ((T) I )
  */
 
-STATIC void except_initialize_catchvar(symbol *psymCatchvar,symbol *sinit)
+private void except_initialize_catchvar(Symbol *psymCatchvar,Symbol *sinit)
 {
     tym_t       ty;
     type        *t;
@@ -326,40 +343,28 @@ STATIC void except_initialize_catchvar(symbol *psymCatchvar,symbol *sinit)
 
     einit = el_var( sinit );
 
-    t = psymCatchvar->Stype;
-    ty = tybasic(t->Tty);
+    t = psymCatchvar.Stype;
+    ty = tybasic(t.Tty);
 
     // The type of sinit is (void **), so we must convert it to (t **)
     el_settype(einit,newpointer(newpointer(t)));
 
-    einit = el_unat( OPind, einit->ET->Tnext, einit );
+    einit = el_unat( OPind, einit.ET.Tnext, einit );
     einit = el_unat( OPind, t, einit );
 
     if (ty == TYstruct)
     {
-        list_t arglist;
-
-        arglist = list_build(einit,NULL);
-        init_constructor(psymCatchvar,t,arglist,0,1,NULL);
+        list_t arglist = list_build(einit,null);
+        init_constructor(psymCatchvar,t,arglist,0,1,null);
     }
     else
     {
-#if 0
-        if (!tyref(ty) && _tysize[ty] <= _tysize[pointertype])
-            // s = cv;
-            el_settype(einit,t);            // copy it over directly
-        else
-        {   // s = *cv;
-            el_settype(einit,newpointer(t));
-            einit = el_unat( OPind, t, einit );
-        }
-#endif
         pe1 = el_var(psymCatchvar);
         if (tyref(ty))
         {   pe1 = el_settype(pe1,reftoptr(t));
-            einit = el_unat(OPaddr,pe1->ET,einit);
+            einit = el_unat(OPaddr,pe1.ET,einit);
         }
-        e = addlinnum(el_bint(OPeq,pe1->ET,pe1,einit));
+        e = addlinnum(el_bint(OPeq,pe1.ET,pe1,einit));
         block_appendexp(curblock, e);
     }
 }
@@ -379,55 +384,51 @@ STATIC void except_initialize_catchvar(symbol *psymCatchvar,symbol *sinit)
  *              the exception-declaration.
  * Returns:
  *      type of exception-declaration (Tcount incremented)
- *      NULL if ...
+ *      null if ...
  */
 
-type *except_declaration(symbol *cv)
+type *except_declaration(Symbol *cv)
 {   type *tcatch;
 
     if (tok.TKval == TKellipsis)        // If it is a ... it matches anything
     {   stoken();
-        tcatch = NULL;
+        tcatch = null;
     }
     else
     {
         // Otherwise it must be a single parameter
         // style declaration
         type *typ_spec;
-        char vident[2*IDMAX + 1];
-        symbol *s;
+        char[2*IDMAX + 1] vident = void;
+        Symbol *s;
         list_t lt;
 
-#if TX86 && VERSIONINT >= 0x710
         type_specifier( &typ_spec );
-#else
-        type_specifier( &typ_spec, NULL );
-#endif
-        tcatch = declar_fix(typ_spec,vident);
+        tcatch = declar_fix(typ_spec,&vident[0]);
         type_free(typ_spec);
 
         tcatch = except_degrade_type( tcatch );
-        type_debug(tcatch);
+        //type_debug(tcatch);
 
         if (vident[0] != 0)             // if not abstract-declarator
         {
-            tcatch->Tcount++;
-            s = symdecl(vident,tcatch,SCauto,NULL);
+            tcatch.Tcount++;
+            s = symdecl(&vident[0],tcatch,SCauto,null);
             if (s)
             {   tym_t ty;
 
-                ty = tybasic(s->Stype->Tty);
+                ty = tybasic(s.Stype.Tty);
                 if (ty == TYvoid || tyfunc(ty))
                 {
                     synerr(EM_void_novalue);    // void has no value
-                    type_free(s->Stype);
-                    s->Stype = tsint;
-                    tsint->Tcount++;
+                    type_free(s.Stype);
+                    s.Stype = tstypes[TYint];
+                    tstypes[TYint].Tcount++;
                 }
-                if (!(s->Stype->Tflags & TFsizeunknown) &&
-                    intsize == 2 &&
-                    type_size(s->Stype) > 30000)
-                    warerr(WM_large_auto);      // local variable is too big
+                if (!(s.Stype.Tflags & TFsizeunknown) &&
+                    _tysize[TYint] == 2 &&
+                    type_size(s.Stype) > 30000)
+                    warerr(WM.WM_large_auto);      // local variable is too big
                 symbol_add(s);
                 except_initialize_catchvar(s,cv);
             }
@@ -449,25 +450,21 @@ type *except_declaration(symbol *cv)
 void except_exception_spec(type *t)
 {
     //printf("except_exception_spec()\n");
-    assert(t->Tcount == 0);
+    assert(t.Tcount == 0);
     if (tok.TKval == TKthrow)
     {
         stoken();
         chktok(TKlpar,EM_lpar2,"throw");
-        t->Tflags |= TFemptyexc;                // assume empty exception-specification
+        t.Tflags |= TFemptyexc;                // assume empty exception-specification
         while (1)
         {   if (tok.TKval == TKeof)
                 err_fatal(EM_eof);              // premature end of file
             if (tok.TKval != TKrpar)
-            {   type *typ_spec, *type_id;
+            {   type* typ_spec, type_id;
                 list_t list1;
 
                 // Get type-id
-#if TX86 && VERSIONINT >= 0x710
                 type_specifier(&typ_spec);
-#else
-                type_specifier(&typ_spec, NULL);
-#endif
                 type_id = declar_abstract(typ_spec);
                 fixdeclar(type_id);
                 type_free(typ_spec);
@@ -476,20 +473,21 @@ void except_exception_spec(type *t)
                 // function and array types
                 type_id = except_degrade_type(type_id);
 
-#if 0   // Not clear this check is required
-                // Check to insure that the same type is not specified more
-                // than once on an exception specification
-                for (list1 = list; list1; list1 = list_next(list1))
+                version (none)   // Not clear this check is required
                 {
-                    if (typematch( list_type(list1),type_id,0 ))
+                    // Check to insure that the same type is not specified more
+                    // than once on an exception specification
+                    for (list1 = list; list1; list1 = list_next(list1))
                     {
-                        cpperr(EM_eh_types);    // duplicated type
-                        break;
+                        if (typematch( list_type(list1),type_id,0 ))
+                        {
+                            cpperr(EM_eh_types);    // duplicated type
+                            break;
+                        }
                     }
                 }
-#endif
-                list_append(&t->Texcspec, type_id);     // append the type to the list
-                t->Tflags &= ~TFemptyexc;       // non-empty exception-specification
+                list_append(&t.Texcspec, type_id);     // append the type to the list
+                t.Tflags &= ~TFemptyexc;       // non-empty exception-specification
             }
 
             switch (tok.TKval)
@@ -518,11 +516,11 @@ void except_exception_spec(type *t)
  *      tok     token past exception-specification
  */
 
-void except_exception_spec_old(symbol *sfunc)
+void except_exception_spec_old(Symbol *sfunc)
 {
-    list_t list = NULL;
+    list_t list = null;
     func_t *f;
-    unsigned char flags3 = 0;
+    ubyte flags3 = 0;
 
     if (tok.TKval == TKthrow)
     {
@@ -533,15 +531,11 @@ void except_exception_spec_old(symbol *sfunc)
         {   if (tok.TKval == TKeof)
                 err_fatal(EM_eof);              // premature end of file
             if (tok.TKval != TKrpar)
-            {   type *typ_spec, *type_id;
+            {   type* typ_spec, type_id;
                 list_t list1;
 
                 // Get type-id
-#if TX86 && VERSIONINT >= 0x710
                 type_specifier(&typ_spec);
-#else
-                type_specifier(&typ_spec, NULL);
-#endif
                 type_id = declar_abstract(typ_spec);
                 fixdeclar(type_id);
                 type_free(typ_spec);
@@ -550,18 +544,19 @@ void except_exception_spec_old(symbol *sfunc)
                 // function and array types
                 type_id = except_degrade_type(type_id);
 
-#if 0   // Not clear this check is required
-                // Check to insure that the same type is not specified more
-                // than once on an exception specification
-                for (list1 = list; list1; list1 = list_next(list1))
+                version (none)   // Not clear this check is required
                 {
-                    if (typematch( list_type(list1),type_id,0 ))
+                    // Check to insure that the same type is not specified more
+                    // than once on an exception specification
+                    for (list1 = list; list1; list1 = list_next(list1))
                     {
-                        cpperr(EM_eh_types);    // duplicated type
-                        break;
+                        if (typematch( list_type(list1),type_id,0 ))
+                        {
+                            cpperr(EM_eh_types);    // duplicated type
+                            break;
+                        }
                     }
                 }
-#endif
                 list_append(&list,type_id);     // append the type to the list
                 flags3 &= ~Femptyexc;           // non-empty exception-specification
             }
@@ -582,24 +577,24 @@ void except_exception_spec_old(symbol *sfunc)
         }
     }
 
-    f = sfunc->Sfunc;
-    if (f->Fflags3 & Fdeclared)         // if already declared function
+    f = sfunc.Sfunc;
+    if (f.Fflags3 & Fdeclared)         // if already declared function
     {   // Then any exception-specification must match
         // (i.e. contain the same set of type-id's)
         list_t list1;
         list_t list2;
 
-        if ((flags3 ^ f->Fflags3) & Femptyexc)
+        if ((flags3 ^ f.Fflags3) & Femptyexc)
             cpperr(EM_exception_specs);                         // exc-specs must match
 
         for (list1 = list; list1; list1 = list_next(list1))
         {
-            for (list2 = f->Fexcspec; list2; list2 = list_next(list2))
+            for (list2 = f.Fexcspec; list2; list2 = list_next(list2))
             {
                 if (typematch(list_type(list1),list_type(list2),0))
                 {
                     type_free(list_type(list2));
-                    list_subtract(&f->Fexcspec,list_type(list2));
+                    list_subtract(&f.Fexcspec,list_type(list2));
                     goto L1;
                 }
             }
@@ -608,16 +603,16 @@ void except_exception_spec_old(symbol *sfunc)
 
          L1: ;
         }
-        if (f->Fexcspec)                        // if any left over
+        if (f.Fexcspec)                        // if any left over
         {
             cpperr(EM_exception_specs);                 // exc-specs must match
-            list_free(&f->Fexcspec,(list_free_fp)type_free); // free remainder
+            list_free(&f.Fexcspec,cast(list_free_fp)&type_free); // free remainder
         }
     }
-    f->Fexcspec = list;
-    f->Fflags3 |= flags3 | Fdeclared;
+    f.Fexcspec = list;
+    f.Fflags3 |= flags3 | Fdeclared;
 }
-
+
 /********************************
  * Get/set eh stack index.
  */
@@ -634,13 +629,11 @@ int except_index_get()
  */
 
 void except_pair_setoffset(void *p,targ_size_t offset)
-{   int i;
-
-#ifdef DEBUG
-    if (debuge)
+{
+    debug if (debuge)
         dbg_printf("except_pair_setoffset(p = %p, offset = x%lx)\n",p,offset);
-#endif
-    for (i = ehpairi; i;)
+
+    for (int i = ehpairi; i;)
     {
         i--;
         if (ehpair[i].p == p)
@@ -661,26 +654,21 @@ void except_pair_setoffset(void *p,targ_size_t offset)
 
 void except_pair_append(void *p, int index)
 {
-#ifdef DEBUG
-    if (debuge)
+    debug if (debuge)
         dbg_printf("except_pair_append(p = %p, index = %d)\n",p,index);
-#endif
-#if 0
+
+/+
     if (ehpairi && offset == ehpair[ehpairi - 1].offset)
         ehpair[ehpairi - 1].index = index;
     else
-#endif
++/
     {
         if (ehpairi == ehpairdim)
         {   ehpairdim += ehpairdim + 10;
-#if TX86 // DJB
-            ehpair = (Ehpair *) mem_realloc(ehpair,ehpairdim * sizeof(Ehpair));
-#else
-            ehpair = (Ehpair *) MEM_PARC_REALLOC(ehpair,ehpairdim * sizeof(Ehpair));
-#endif
+            ehpair = cast(Ehpair *) mem_realloc(ehpair,ehpairdim * Ehpair.sizeof);
         }
         ehpair[ehpairi].p = p;
-        ehpair[ehpairi].offset = (targ_size_t)-1L;
+        ehpair[ehpairi].offset = cast(targ_size_t)-1;
         ehpair[ehpairi].index  = index;
         ehpairi++;
     }
@@ -689,7 +677,7 @@ void except_pair_append(void *p, int index)
 /********************************
  * Add constructed object onto list of objects to be destructed.
  * Input:
- *      p               identifying pointer, NULL if NT
+ *      p               identifying pointer, null if NT
  *      e               Elem describing a pointer to the object
  *      b               Block pointer for tryblock
  */
@@ -697,20 +685,15 @@ void except_pair_append(void *p, int index)
 void except_push(void *p,elem *e,block *b)
 {   int prev;
 
-#ifdef DEBUG
-    if (debuge)
+    debug if (debuge)
     {   dbg_printf("except_push(p = %p, e = %p, b = %p)\n",p,e,b);
         if (e) elem_print(e);
     }
-#endif
-    assert(b || e->Eoper == OPctor);
+
+    assert(b || e.Eoper == OPctor);
     if (ehstackdim == ehstackmax)
     {   ehstackdim += ehstackdim + 10;
-#if TX86 // DJB
-        ehstack = (Ehstack *) mem_realloc(ehstack,ehstackdim * sizeof(Ehstack));
-#else
-        ehstack = (Ehstack *) MEM_PARC_REALLOC(ehstack,ehstackdim * sizeof(Ehstack));
-#endif
+        ehstack = cast(Ehstack *) mem_realloc(ehstack,ehstackdim * Ehstack.sizeof);
     }
     prev = ehstacki - 1;
     if (ehstacki < ehstackmax)
@@ -718,9 +701,7 @@ void except_push(void *p,elem *e,block *b)
     ehstack[ehstacki].prev = prev;
     ehstack[ehstacki].el = e;
     ehstack[ehstacki].bl = b;
-#if TX86 && NTEXCEPTIONS
     if (config.exe != EX_WIN32)
-#endif
         except_pair_append(p,ehstacki);
     //printf(" prev = %d, ehstacki = %d\n",prev,ehstacki);
     ehstackmax = ++ehstacki;
@@ -729,7 +710,7 @@ void except_push(void *p,elem *e,block *b)
 /********************************
  * Remove constructed object from list of objects to be destructed.
  * Input:
- *      p               identifying pointer, NULL if NT
+ *      p               identifying pointer, null if NT
  *      e               Elem describing a pointer to the object
  */
 
@@ -737,14 +718,13 @@ void except_pop(void *p,elem *e,block *b)
 {   int i,ip;
     list_t elist,el;
 
-#ifdef DEBUG
-    if (debuge)
+    debug if (debuge)
     {   dbg_printf("except_pop(p = %p, e = %p, b = %p)\n",p,e,b);
         if (e) elem_print(e);
     }
-#endif
-    assert(b || e->Eoper == OPdtor);
-    elist = NULL;
+
+    assert(b || e.Eoper == OPdtor);
+    elist = null;
     i = ehstacki - 1;
     while (1)
     {
@@ -752,19 +732,15 @@ void except_pop(void *p,elem *e,block *b)
         assert(i >= 0);
         ip = ehstack[i].prev;
         if ((b && b == ehstack[i].bl) ||
-            (e && ehstack[i].el && el_match(e->E1,ehstack[i].el->E1))
+            (e && ehstack[i].el && el_match(e.EV.E1,ehstack[i].el.EV.E1))
            )
         {   ehstacki = ip + 1;
-#if TX86 && NTEXCEPTIONS
             if (config.exe != EX_WIN32)
-#endif
                 except_pair_append(p,ip);
             break;
         }
-#ifdef DEBUG
-        if (debuge)
+        debug if (debuge)
             dbg_printf("out-of-sequence\n");
-#endif
         //assert(0);            // no out-of-sequence pops
         list_prependdata(&elist,i);
         i = ip;
@@ -790,53 +766,47 @@ void except_pop(void *p,elem *e,block *b)
 
 void except_mark()
 {
-#ifdef DEBUG
-    if (debuge)
+    debug if (debuge)
         dbg_printf("except_mark() %d\n",ehstacki);
-#endif
     list_prependdata(&marklist,ehstacki);
 }
 
 void except_release()
 {
     ehstacki = list_data(marklist);
-#ifdef DEBUG
-    if (debuge)
+    debug if (debuge)
         dbg_printf("except_release() %d\n",ehstacki);
-#endif
     list_pop(&marklist);
 }
-
+
 /****************************************
  * Generate symbol for scope table for current function.
  * Returns:
- *      NULL    None generated
+ *      null    None generated
  */
 
-static symbol *except_sym;
+private __gshared Symbol *except_sym;
 
-symbol *except_gensym()
+Symbol *except_gensym()
 {
-#if !TX86
-    static type *t = NULL;
-#endif
-
     // Determine if we need to do anything at all
-    if (!(ehstackmax || ehpairi || funcsym_p->Sfunc->Fflags3 & Fcppeh))
-        except_sym = NULL;
+    if (!(ehstackmax || ehpairi || funcsym_p.Sfunc.Fflags3 & Fcppeh))
+        except_sym = null;
     else if (!except_sym)
     {
-#if !TX86
-        if (!t)
+        static if (!TX86)
         {
-            t = newpointer(tschar);
-            t->Tty = TYarray;
-            t->Tdim = 0;
+            __gshared type *t = null;
+            if (!t)
+            {
+                t = newpointer(tschar);
+                t.Tty = TYarray;
+                t.Tdim = 0;
+            }
+            except_sym = symbol_generate(SCextern,t);
         }
-        except_sym = symbol_generate(SCextern,t);
-#else
-        except_sym = symbol_generate(SCextern,type_alloc(TYint));
-#endif
+        else
+            except_sym = symbol_generate(SCextern,type_alloc(TYint));
         symbol_keep(except_sym);
     }
     return except_sym;
@@ -862,7 +832,7 @@ symbol *except_gensym()
  *      handler-table
  *      cleanup-table
  * exception-specification-table
- *      This is a NULL-terminated array of pointers to typeinfo objects.
+ *      This is a null-terminated array of pointers to typeinfo objects.
  *      A (void*)(-1) as the first entry means no exceptions are thrown.
  * address-table
  *      short number-of-entries
@@ -889,23 +859,26 @@ symbol *except_gensym()
  *          dtor()              4       Destructor pointer
  */
 
-symbol *except_gentables()
+Symbol *except_gentables()
 {
-    symbol *ehsym;              // symbol for eh data
+    Symbol *ehsym;              // symbol for eh data
     type *tsym;                 // type for eh data
-    DtBuilder dtb;
-    unsigned psize;             // target size of (void *)
-    unsigned fsize;             // target size of function pointer
+    scope dtb = new DtBuilder();
+    uint psize;                 // target size of (void *)
+    uint fsize;                 // target size of function pointer
     int i;
     block *b;
-    unsigned short us;          // For placing short values into the stream
-#if TX86
-    int ntrys;
-    typedef char tyexcept_type;
-#else
-    unsigned short ntrys;       // Number of trys (short)
-    typedef short tyexcept_type;
-#endif
+    ushort us;                  // For placing short values into the stream
+    static if (TX86)
+    {
+        int ntrys;
+        alias char tyexcept_type;
+    }
+    else
+    {
+        ushort ntrys;       // Number of trys (short)
+        alias short tyexcept_type;
+    }
     int sz;                     // size so far
     int farfunc;
     long zero = 0;
@@ -913,101 +886,98 @@ symbol *except_gentables()
 
     ehsym = except_gensym();
     if (!ehsym)
-        return NULL;
-    ehsym->Sclass = SCstatic;
-    tsym = ehsym->Stype;
+        return null;
+    ehsym.Sclass = SCstatic;
+    tsym = ehsym.Stype;
     sz = 0;
 
-#if !TX86
-    psize = _tysize[pointertype];
-    fsize = psize;
-
-#else
-
-    psize = _tysize[pointertype];
-    fsize = LARGECODE ? (2 + intsize) : intsize;
-
-    if (LARGEDATA)
-    {   // Put table in code segment for large data models
-        if (config.flags & CFGfarvtbls)
-            tsym->Tty |= mTYfar;
-#if MEMMODELS != 1
-        else if (config.memmodel != Vmodel)     // table can't be in overlay
-        {   tsym->Tty |= mTYcs;
-            if (SegData[cseg]->segidx < 0)
-                ehsym->Sxtrnnum = funcsym_p->Sxtrnnum;
-        }
-#endif
-    }
-
-#if TARGET_WINDOS
-    if (config.exe != EX_WIN64)
+    static if (!TX86)
     {
-        farfunc = tyfarfunc(funcsym_p->Stype->Tty) ? 2 : 1;
-        dtb.nbytes(2,(char *)&farfunc);
-        sz += 2;
+        psize = _tysize[pointertype];
+        fsize = psize;
     }
+    else
+    {
+        psize = _tysize[pointertype];
+        fsize = LARGECODE ? (2 + _tysize[TYint]) : _tysize[TYint];
 
-    if (config.exe == EX_WIN32)
-    {   // Address of start of function
-        symbol_debug(funcsym_p);
-        dtb.xoff(funcsym_p,0,TYnptr);
-        sz += fsize;
+        if (LARGEDATA)
+        {   // Put table in code segment for large data models
+            if (config.flags & CFGfarvtbls)
+                tsym.Tty |= mTYfar;
+            else if (MEMMODELS != 1 && config.memmodel != Vmodel)     // table can't be in overlay
+            {   tsym.Tty |= mTYcs;
+                if (SegData[cseg].segidx < 0)
+                    ehsym.Sxtrnnum = funcsym_p.Sxtrnnum;
+            }
+        }
+
+        static if (TARGET_WINDOS)
+        {
+            if (config.exe != EX_WIN64)
+            {
+                farfunc = tyfarfunc(funcsym_p.Stype.Tty) ? 2 : 1;
+                dtb.nbytes(2,cast(char *)&farfunc);
+                sz += 2;
+            }
+
+            if (config.exe == EX_WIN32)
+            {   // Address of start of function
+                //symbol_debug(funcsym_p);
+                dtb.xoff(funcsym_p,0,TYnptr);
+                sz += fsize;
+            }
+        }
+
+        // Get offset of SP from BP
+        // BUG: what if alloca() was used?
+        spoff = cod3_spoff();
+        dtb.nbytes(_tysize[TYint],cast(char *)&spoff);
+        sz += _tysize[TYint];
+
+        // Offset from start of function to return code
+        dtb.nbytes(_tysize[TYint],cast(char *)&retoffset);
+        sz += _tysize[TYint];
     }
-#endif
-
-    // Get offset of SP from BP
-    // BUG: what if alloca() was used?
-    spoff = cod3_spoff();
-    dtb.nbytes(intsize,(char *)&spoff);
-    sz += intsize;
-
-    // Offset from start of function to return code
-    dtb.nbytes(intsize,(char *)&retoffset);
-    sz += intsize;
-
-#endif
 
     // Generate exception-specification-table
-    if (funcsym_p->Stype->Tflags & TFemptyexc)  // no exceptions thrown
+    if (funcsym_p.Stype.Tflags & TFemptyexc)  // no exceptions thrown
     {   long x = -1L;
 
-        dtb.nbytes(psize,(char *)&x);
+        dtb.nbytes(psize,cast(char *)&x);
         sz += psize;
     }
     else
     {   list_t tl;
 
-        for (tl = funcsym_p->Stype->Texcspec; tl; tl = list_next(tl))
+        for (tl = funcsym_p.Stype.Texcspec; tl; tl = list_next(tl))
         {   type *t = list_type(tl);
-            symbol *s;
+            Symbol *s;
 
             s = init_typeinfo_data(t);
             dtb.xoff(s,0,pointertype);
             sz += psize;
         }
     }
-    // Append the NULL
+    // Append the null
     dtb.nzeros(psize);
     sz += psize;
 
-#if TX86
-    if (config.ehmethod == EH_DM)
-#endif
+    if (TX86 && config.ehmethod == EHmethod.EH_DM)
     {
         // Generate the address-table
         //printf("dim of address-table = %d\n",ehpairi);
-        dtb.nbytes(intsize,(char *)&ehpairi);
-        sz += intsize;
+        dtb.nbytes(_tysize[TYint],cast(char *)&ehpairi);
+        sz += _tysize[TYint];
         for (i = 0; i < ehpairi; i++)
-        {   dtb.nbytes(intsize,(char *)&ehpair[i].offset);
-            us = ehpair[i].index;
-            dtb.nbytes(2,(char *)&us);
-            sz += intsize + 2;
-#if DEBUG
-            if (debuge)
+        {   dtb.nbytes(_tysize[TYint],cast(char *)&ehpair[i].offset);
+            us = cast(ushort)ehpair[i].index;
+            dtb.nbytes(2,cast(char *)&us);
+            sz += _tysize[TYint] + 2;
+
+            debug if (debuge)
                 dbg_printf("ehpair[%d] = (offset=%X, index=%d, p = %p)\n", i, ehpair[i].offset, ehpair[i].index, ehpair[i].p);
-#endif
+
             assert(ehpair[i].offset != -1);
         }
     }
@@ -1021,67 +991,63 @@ symbol *except_gentables()
     //                  offset of handler from start of function
     //                  pointer to typeinfo
     ntrys = 0;
-    for (b = startblock; b; b = b->Bnext)
-        ntrys += (b->BC == BCtry);
-#ifdef DEBUG
-        if (debuge)
-    dbg_printf("ntrys = %d\n",ntrys);
-#endif
+    for (b = startblock; b; b = b.Bnext)
+        ntrys += (b.BC == BCtry);
+
+    debug if (debuge)
+        dbg_printf("ntrys = %d\n",ntrys);
+
     //printf("ntrys = %d\n",ntrys);
-    dtb.nbytes(2,(char *)&ntrys);
+    dtb.nbytes(2,cast(char *)&ntrys);
     sz += 2;
-    for (b = startblock; b; b = b->Bnext)
+    for (b = startblock; b; b = b.Bnext)
     {   list_t list;
         targ_size_t cvoffset;
-#if DEBUG
-        int handler = 0;
-#endif
+        debug int handler = 0;
 
-        if (b->BC != BCtry)
+        if (b.BC != BCtry)
             continue;
-        b->Btryoff = sz;
+        b.Btryoff = sz;
 
         // Put out BP offset of catch variable
-        symbol_debug(b->catchvar);
-        cvoffset = cod3_bpoffset(b->catchvar);
-        dtb.nbytes(intsize,(char *)&cvoffset);
-        sz += intsize;
+        //symbol_debug(b.catchvar);
+        cvoffset = cod3_bpoffset(b.catchvar);
+        dtb.nbytes(_tysize[TYint],cast(char *)&cvoffset);
+        sz += _tysize[TYint];
 
-#if TX86
-        i = b->numSucc() - 1;          // number of handlers
-        assert(i > 0);
-        dtb.nbytes(2,(char *)&i);
-#ifdef DEBUG
-        if (debuge)
-            dbg_printf("cvoffset=%X ncatches=%d\n", cvoffset, i);
-#endif
-#else
-        us = b->numSucc() - 1;         // number of handlers
-        assert(us > 0);
-        dtb.nbytes(2,(char *)&us);
-#endif
+        static if (TX86)
+        {
+            i = b.numSucc() - 1;          // number of handlers
+            assert(i > 0);
+            dtb.nbytes(2,cast(char *)&i);
+            debug if (debuge)
+                dbg_printf("cvoffset=%X ncatches=%d\n", cvoffset, i);
+        }
+        else
+        {
+            us = b.numSucc() - 1;         // number of handlers
+            assert(us > 0);
+            dtb.nbytes(2,cast(char *)&us);
+        }
         sz += 2;
-        for (list = b->Bsucc; (list = list_next(list)) != NULL;)
+        for (list = b.Bsucc; (list = list_next(list)) != null;)
         {   block *bc = list_block(list);
-            symbol *s;
+            Symbol *s;
             targ_size_t hoffset;
 
-            assert(bc->BC == BCcatch);
-#if TX86
-            hoffset = bc->Boffset - funcoffset;
-#else
-            hoffset = bc->Boffset;
-#endif
-            dtb.nbytes(intsize,(char *)&hoffset);
-            sz += intsize;
+            assert(bc.BC == BCcatch);
+            hoffset = bc.Boffset;
+            if (TX86)
+                hoffset -= funcoffset;
+            dtb.nbytes(_tysize[TYint],cast(char *)&hoffset);
+            sz += _tysize[TYint];
 
-            s = init_typeinfo_data(bc->Bcatchtype);
+            s = init_typeinfo_data(bc.Bcatchtype);
             dtb.xoff(s,0,pointertype);
             sz += psize;
-#ifdef DEBUG
-            if (debuge)
+
+            debug if (debuge)
                 dbg_printf("\tCatch #%d: offset=%X typeinfo='%s'\n", ++handler, hoffset, prettyident(s));
-#endif
         }
     }
 
@@ -1090,133 +1056,126 @@ symbol *except_gentables()
     //  prev, 2, BP offset, 0, dtor
     //  prev, 3, BP offset of this, offset from this, dtor
     //  prev, 4, far pointer, dtor
-#ifdef DEBUG
-    if (debuge)
+
+    debug if (debuge)
         dbg_printf("Cleanup table:\n");
-#endif
+
     for (i = 0; i < ehstackmax; i++)
     {   Ehstack *eh;
         elem *e;
         block *tb;
         tyexcept_type type;
-        symbol *s;
+        Symbol *s;
         targ_size_t offset;
         targ_size_t thisoff;
         long prev;
         elem *es;
 
         eh = &ehstack[i];
-        prev = eh->prev;
-        dtb.nbytes(intsize,(char *)&prev);
-        sz += intsize;
-        tb = eh->bl;
-        e = eh->el;
+        prev = eh.prev;
+        dtb.nbytes(_tysize[TYint],cast(char *)&prev);
+        sz += _tysize[TYint];
+        tb = eh.bl;
+        e = eh.el;
         if (tb)
         {
-            assert(tb->BC == BCtry);
+            assert(tb.BC == BCtry);
             type = 1;
-            dtb.nbytes(sizeof(type),(char *) &type);
-            dtb.nbytes(intsize,(char *)&tb->Btryoff);
-            dtb.nbytes(intsize,(char *)&zero);
-            dtb.nbytes(fsize,(char *)&zero);
-            sz += sizeof(type) + intsize + intsize + fsize;
-#if DEBUG
-            if (debuge)
+            dtb.nbytes(type.sizeof,cast(char *) &type);
+            dtb.nbytes(_tysize[TYint],cast(char *)&tb.Btryoff);
+            dtb.nbytes(_tysize[TYint],cast(char *)&zero);
+            dtb.nbytes(fsize,cast(char *)&zero);
+            sz += type.sizeof + _tysize[TYint] + _tysize[TYint] + fsize;
+
+            debug if (debuge)
                 dbg_printf("cleanup[%d]: prev=%2d type=1 [try] offset=%p\n",
-                        i, prev, tb->Btryoff);
-#endif
+                        i, prev, tb.Btryoff);
         }
-        else if (e->E1->Eoper == OPadd)
+        else if (e.EV.E1.Eoper == OPadd)
         {
             type = 3;
-            es = e->E1->E1;
-            assert(es->Eoper == OPvar);
-            assert(e->E1->E2->Eoper == OPconst);
-            thisoff = el_tolong(e->E1->E2);
+            es = e.EV.E1.EV.E1;
+            assert(es.Eoper == OPvar);
+            assert(e.EV.E1.EV.E2.Eoper == OPconst);
+            thisoff = cast(targ_size_t)el_tolong(e.EV.E1.EV.E2);
             goto L1;
         }
-        else if (e->E1->Eoper == OPvar)
+        else if (e.EV.E1.Eoper == OPvar)
         {
             type = 3;
-            es = e->E1;
+            es = e.EV.E1;
             thisoff = 0;
             goto L1;
         }
-        else if (e->E1->Eoper == OPrelconst)
+        else if (e.EV.E1.Eoper == OPrelconst)
         {
             type = 2;
             thisoff = 0;
-            es = e->E1;
+            es = e.EV.E1;
 
         L1:
-            s = es->EV.sp.Vsym;
-            offset = es->EV.sp.Voffset;
-            if (sytab[s->Sclass] & SCSS)        // if stack variable
+            s = es.EV.Vsym;
+            offset = es.EV.Voffset;
+            if (sytab[s.Sclass] & SCSS)        // if stack variable
             {
-                dtb.nbytes(sizeof(type),(char *) &type);
+                dtb.nbytes(type.sizeof,cast(char *) &type);
                 offset += cod3_bpoffset(s);
-                dtb.nbytes(intsize,(char *)&offset);
-                dtb.nbytes(intsize,(char *)&thisoff);
-                sz += sizeof(type) + intsize + intsize;
+                dtb.nbytes(_tysize[TYint],cast(char *)&offset);
+                dtb.nbytes(_tysize[TYint],cast(char *)&thisoff);
+                sz += type.sizeof + _tysize[TYint] + _tysize[TYint];
             }
             else
             {   type = 4;
-                dtb.nbytes(sizeof(type), (char *) &type);
+                dtb.nbytes(type.sizeof, cast(char *) &type);
                 dtb.xoff(s,offset,pointertype);
-                sz += sizeof(type) + psize;
-#if TX86
-                if (pointertype == TYnptr)
-#endif
+                sz += type.sizeof + psize;
+                if (TX86 && pointertype == TYnptr)
                 {
-                    dtb.nbytes(intsize,(char *)&thisoff);
-                    sz += intsize;
+                    dtb.nbytes(_tysize[TYint], cast(char *)&thisoff);
+                    sz += _tysize[TYint];
                 }
             }
 
-#if 0
-            // This function might be an inline template function that was
-            // never parsed. If so, parse it now.
-            if (e->EV.eop.Edtor->Sfunc->Fbody)
+            version (none)
             {
-                n2_instantiate_memfunc(e->EV.eop.Edtor);
-            }
-            nwc_mustwrite(e->EV.eop.Edtor);
-#endif
-#if TX86
-            dtb.xoff(e->EV.eop.Edtor,0,LARGECODE ? TYfptr : TYnptr);
-#else
-            dtb.xoff(e->EV.eop.Edtor,0,TYfptr);
-#endif
-            sz += fsize;
-#if DEBUG
-            if (debuge)
+                // This function might be an inline template function that was
+                // never parsed. If so, parse it now.
+                if (e.EV.eop.Edtor.Sfunc.Fbody)
                 {
+                    n2_instantiate_memfunc(e.EV.eop.Edtor);
+                }
+                nwc_mustwrite(e.EV.eop.Edtor);
+            }
+            if (TX86)
+                dtb.xoff(e.EV.Edtor,0,LARGECODE ? TYfptr : TYnptr);
+            else
+                dtb.xoff(e.EV.Edtor,0,TYfptr);
+            sz += fsize;
+            debug if (debuge)
+            {
                 char types[3][18] = { "dtor(this)", "dtor(this+offset)", "dtor(ptr)" };
                 dbg_printf("cleanup[%d]: prev=%2d type=%d [%s] offset=%X thisoffset=%X dtor=%p '%s'",
                         i, prev, type, types[type-2], offset, thisoff,
-                        e->EV.eop.Edtor, prettyident(e->EV.eop.Edtor));
+                        e.EV.Edtor, prettyident(e.EV.Edtor));
                 dbg_printf(" var='%s'\n", prettyident(s));
-                }
-#endif
+            }
         }
         else
         {
-#ifdef DEBUG
-            elem_print(e);
-#endif
+            debug elem_print(e);
             assert(0);
         }
     }
-#if !TX86
-    ehsym->Stype->Tdim = sz;                    // Set the size into the type
-#endif
-    ehsym->Sdt = dtb.finish();
+    static if (!TX86)
+        ehsym.Stype.Tdim = sz;                    // Set the size into the type
+    ehsym.Sdt = dtb.finish();
     outdata(ehsym);                             // output the eh data
 
-#if TX86
-    if (config.ehmethod == EH_DM)
-        Obj::ehtables(funcsym_p,funcsym_p->Ssize,ehsym);
-#endif
+    static if (TX86)
+    {
+        if (config.ehmethod == EHmethod.EH_DM)
+            objmod.ehtables(funcsym_p,funcsym_p.Ssize,ehsym);
+    }
 
     return ehsym;
 }
@@ -1231,7 +1190,7 @@ void except_reset()
     ehstacki = 0;
     ehstackmax = 0;
     ehpairi = 0;
-    except_sym = NULL;
+    except_sym = null;
 }
 
-#endif
+}

@@ -4083,7 +4083,7 @@ STATIC symbol * anonymous(Classsym *stag,enum SC sc_specifier)
  *      NULL don't declare this one
  */
 
-symbol *symdecl(char *vident,type *dt,enum SC sc_specifier, param_t *ptpl)
+symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
 {   type *prevty;
     symbol *s;
     enum SC sc2;
@@ -4096,7 +4096,7 @@ symbol *symdecl(char *vident,type *dt,enum SC sc_specifier, param_t *ptpl)
 
     if (CPP)
     {
-      sc2 = sc_specifier;
+      sc2 = (enum SC)sc_specifier;
       if (sc2 == SCfriend)
         sc_specifier = SCextern;
       if (gdeclar.class_sym)            /* if id is a class member      */

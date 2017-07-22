@@ -496,6 +496,14 @@ struct block
             }                           // BCcatch
         }
 
+        version (HTOD)
+        {
+            struct
+            {
+                type *Bcatchtype;       // one type for each catch block
+            }                           // BCcatch
+        }
+
         version (MARS)
         {
             struct

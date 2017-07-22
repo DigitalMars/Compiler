@@ -483,7 +483,7 @@ int declaration_specifier(type **ptyp_spec, enum SC *pclass, unsigned long *pcla
 symbol *id_expression();
 elem *declaration(int flag);
 int funcdecl(symbol *,enum SC,int,Declar *);
-symbol *symdecl(char *,type *,enum SC,param_t *);
+symbol *symdecl(char *,type *,int,param_t *);
 void nwc_typematch(type *,type *,symbol *);
 int isexpression(void);
 void nwc_setlinkage(char *,long,mangle_t);

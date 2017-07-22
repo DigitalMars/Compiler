@@ -66,7 +66,7 @@ extern __gshared
     symtab_t globsym;
 
 //    Config config;                  // precompiled part of configuration
-//    char[SCMAX] sytab;
+    char[SCMAX] sytab;
 
     //volatile int controlc_saw;    // a control C was seen
     uint maxblks;                   // array max for all block stuff
@@ -113,7 +113,7 @@ void eecontext_parse();
         /* doesn't belong here, but func to OPxxx is in exp2 */
 void exp2_setstrthis(elem *e,Symbol *s,targ_size_t offset,type *t);
 Symbol *exp2_qualified_lookup(Classsym *sclass, int flags, int *pflags);
-elem *exp2_copytotemp(elem *e);
+//elem *exp2_copytotemp(elem *e);
 
 /* util.c */
 //#if __clang__

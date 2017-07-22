@@ -7,52 +7,61 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/rtti.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/rtti.d
  */
 
 // C++ RTTI support
 
-#if !SPP
+version (SPP)
+{
+}
+else
+{
 
-#include        <stdio.h>
-#include        <string.h>
-#include        <stdlib.h>
-#include        "cc.h"
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 
-#include        "parser.h"
-#include        "token.h"
-#include        "global.h"
-#include        "oper.h"
-#include        "el.h"
-#include        "type.h"
-#include        "cpp.h"
-#include        "exh.h"
+import ddmd.backend.cc;
+import ddmd.backend.cdef;
+import ddmd.backend.dtoken;
+import ddmd.backend.el;
+import ddmd.backend.exh;
+import ddmd.backend.global;
+import ddmd.backend.oper;
+import ddmd.backend.ty;
+import ddmd.backend.type;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import tk.dlist;
+
+import cpph;
+import msgs2;
+import parser;
+import scopeh;
+
+extern (C++):
 
 /*******************************
  * Make sure Type_info was defined properly.
  * Returns:
  *      symbol for class Type_info
- *      NULL error
+ *      null error
  */
 
-Classsym *rtti_typeinfo()
+Classsym* rtti_typeinfo()
 {
-    static const char rtti_name_ti[] = "Type_info";
-    static Classsym *s_rtti_ti;
+    const(char)* rtti_name_ti = "Type_info";
+    __gshared Classsym* s_rtti_ti;
 
     if (!s_rtti_ti)
-    {   s_rtti_ti = (Classsym *)scope_search(rtti_name_ti,SCTglobal);
-        if (!s_rtti_ti || s_rtti_ti->Sclass != SCstruct)
+    {   s_rtti_ti = cast(Classsym *)scope_search(rtti_name_ti,SCTglobal);
+        if (!s_rtti_ti || s_rtti_ti.Sclass != SCstruct)
         {
             cpperr(EM_typeinfo_h);              // must #include <typeinfo.h>
-            s_rtti_ti = NULL;
+            s_rtti_ti = null;
         }
     }
-    if (s_rtti_ti)
-        symbol_debug(s_rtti_ti);
+    //if (s_rtti_ti) symbol_debug(s_rtti_ti);
     return s_rtti_ti;
 }
 
@@ -71,14 +80,13 @@ Classsym *rtti_typeinfo()
  */
 
 elem *rtti_cast(enum_TK tk,elem *e,type *t)
-{   type *et;
-    tym_t ty,ety;
+{
     type *tn;
     type *etn;
     elem *efunc;
     list_t arglist;
-    symbol *s;
-    symbol *v;
+    Symbol *s;
+    Symbol *v;
     elem *ed;
     elem *ep;
     elem *eflag;
@@ -86,32 +94,32 @@ elem *rtti_cast(enum_TK tk,elem *e,type *t)
     elem *ep2;
     elem *etmp;
     int flag;
-    static symbol *sfunc;
+    __gshared Symbol *sfunc;
 
-    type_debug(t);
-    ty = tybasic(t->Tty);
-    elem_debug(e);
-    et = e->ET;
-    type_debug(et);
-    ety = tybasic(et->Tty);
+    //type_debug(t);
+    tym_t ty = tybasic(t.Tty);
+    //elem_debug(e);
+    type* et = e.ET;
+    //type_debug(et);
+    tym_t ety = tybasic(et.Tty);
 
     if (errcnt)
-        return cast(e,t);
+        return _cast(e,t);
 
-    switch ((int) tk)
+    switch (cast(int) tk)
     {
         case TKreinterpret_cast:
             /* CPP98 5.2.10-2 "the reinterpret_cast operator shall not
              * cast away constness."
              */
             if (typtr(ty) && typtr(ety) &&
-                et->Tnext->Tty & ~t->Tnext->Tty & mTYconst)
+                et.Tnext.Tty & ~t.Tnext.Tty & mTYconst)
                 typerr(EM_no_castaway, et, t);
 
         case TKstatic_cast:
         case TKconst_cast:
         case_cast:
-            e = cast(e,t);
+            e = _cast(e,t);
             break;
 
         case TKdynamic_cast:
@@ -120,13 +128,13 @@ elem *rtti_cast(enum_TK tk,elem *e,type *t)
                 config.flags3 |= CFG3rtti;
             }
 
-            tn = t->Tnext;
-            etn = et->Tnext;
+            tn = t.Tnext;
+            etn = et.Tnext;
             flag = 0;
 
             // If t is void*, then e must be a pointer and the value is
             // a pointer to the complete object.
-            if (typtr(ty) && tybasic(tn->Tty) == TYvoid)
+            if (typtr(ty) && tybasic(tn.Tty) == TYvoid)
             {
                 if (!typtr(ety))
                 {   cpperr(EM_not_pointer);             // must be a pointer
@@ -135,7 +143,7 @@ elem *rtti_cast(enum_TK tk,elem *e,type *t)
 
                 // If e is not a polymorphic type, then return a pointer
                 // to the static type of the object, which is just e.
-                if (!type_struct(etn) || !etn->Ttag->Sstruct->Svptr)
+                if (!type_struct(etn) || !etn.Ttag.Sstruct.Svptr)
                     break;
 
                 // Call RTL function to convert e to a pointer to the
@@ -148,33 +156,33 @@ elem *rtti_cast(enum_TK tk,elem *e,type *t)
             // class or void*.
             if ((!tyref(ty) && !typtr(ty)) ||
                 !type_struct(tn) ||
-                (template_instantiate_forward(tn->Ttag), s = tn->Ttag)->Stype->Tflags & TFforward)
+                (template_instantiate_forward(tn.Ttag), s = tn.Ttag).Stype.Tflags & TFforward)
             {   //cpperr(EM_ptr_to_class);              // must be pointer to class
-                typerr(EM_ptr_to_class,t,NULL); // must be pointer to class
+                typerr(EM_ptr_to_class,t,null); // must be pointer to class
                 goto case_cast;
             }
 
             if (ety == TYstruct)
-                v = et->Ttag;
+                v = et.Ttag;
             else if ((!tyref(ety) && !typtr(ety)) ||
                 !type_struct(etn) ||
-                (v = etn->Ttag)->Stype->Tflags & TFforward)
+                (v = etn.Ttag).Stype.Tflags & TFforward)
             {   //cpperr(EM_ptr_to_class);              // must be pointer to class
-                typerr(EM_ptr_to_class,et,NULL);        // must be pointer to class
+                typerr(EM_ptr_to_class,et,null);        // must be pointer to class
                 goto case_cast;
             }
 
-            if (!v->Sstruct->Svptr)             // if not a polymorphic type
+            if (!v.Sstruct.Svptr)             // if not a polymorphic type
             {
                 // If s is an accessible base class of v, then we perform
                 // the cast statically.
                 // BUG: we are not checking accessibility here
-                if (!c1isbaseofc2(NULL,s,v))
+                if (!c1isbaseofc2(null,s,v))
                     cpperr(EM_ptr_to_polymorph);        // must be ptr or ref to polymorphic type
                 goto case_cast;
             }
 
-            if (c1isbaseofc2(NULL,v,s) & BCFvirtual)
+            if (c1isbaseofc2(null,v,s) & BCFvirtual)
                 flag |= 2;              // v is a virtual base of s
 
         case_dynamic:
@@ -187,41 +195,41 @@ elem *rtti_cast(enum_TK tk,elem *e,type *t)
 
             if (!sfunc)
                 sfunc = scope_search("__rtti_cast",SCTglobal);
-            symbol_debug(sfunc);
+            //symbol_debug(sfunc);
             efunc = el_var(sfunc);
 
             // Get pointer to dynamic type of e
             e = poptelem(e);
             e = exp2_copytotemp(e);
-            etmp = e->E2;
+            etmp = e.EV.E2;
 
             ep = el_copytree(etmp);
             ep = el_settype(ep,tspvoid);
 
             ed = el_copytree(etmp);
-            ed = el_unat(OPind,ed->ET->Tnext,ed);
-            ed = rtti_typeid(NULL,ed);
-            ed = el_unat(OPaddr,newpointer(ed->ET),ed);
+            ed = el_unat(OPind,ed.ET.Tnext,ed);
+            ed = rtti_typeid(null,ed);
+            ed = el_unat(OPaddr,newpointer(ed.ET),ed);
 
-            ep1 = el_ptr(init_typeinfo_data(e->ET->Tnext));
+            ep1 = el_ptr(init_typeinfo_data(e.ET.Tnext));
             ep2 = el_ptr(init_typeinfo_data(tn));
 
             arglist = list_build(ed,
                 ep,
                 ep1,
                 ep2,
-                el_longt(tsint,flag),
-                NULL);
-            ep = xfunccall(efunc,NULL,NULL,arglist);
+                el_longt(tstypes[TYint],flag),
+                null);
+            ep = xfunccall(efunc,null,null,arglist);
 
             if (tyref(ty))
             {   ep = reftostart(ep,t);
                 // Construct (e,ep)
-                e = el_bint(OPcomma,ep->ET,e,ep);
+                e = el_bint(OPcomma,ep.ET,e,ep);
             }
             else
             {   el_settype(ep,t);
-                // Construct (e ? ep : NULL)
+                // Construct (e ? ep : null)
                 e = el_bint(OPcond,t,e,el_bint(OPcolon,t,ep,el_longt(t,0)));
             }
             break;
@@ -236,8 +244,8 @@ elem *rtti_cast(enum_TK tk,elem *e,type *t)
 /*************************
  * A typeid(expression) or typeid(type-name) has been parsed.
  * Input:
- *      t       type-name, NULL if there wasn't one
- *      e       expression, NULL if there wasn't one
+ *      t       type-name, null if there wasn't one
+ *      e       expression, null if there wasn't one
  * Output:
  *      t & e are free'd
  * Returns:
@@ -245,8 +253,8 @@ elem *rtti_cast(enum_TK tk,elem *e,type *t)
  */
 
 elem *rtti_typeid(type *t,elem *e)
-{   symbol *s;
-    symbol *svptr;
+{   Symbol *s;
+    Symbol *svptr;
     type *tref;
     Classsym *srtti;
     Classsym *stag;
@@ -256,8 +264,8 @@ elem *rtti_typeid(type *t,elem *e)
     //if (t) type_print(t);
     //if (e) elem_print(e);
 
-    if (t) type_debug(t);
-    if (e) elem_debug(e);
+    //if (t) type_debug(t);
+    //if (e) elem_debug(e);
     assert(!t || !e);
 
     srtti = rtti_typeinfo();
@@ -265,14 +273,14 @@ elem *rtti_typeid(type *t,elem *e)
     {   el_free(e);
         type_free(t);
         e = el_calloc();
-        e->Eoper = OPconst;
-        el_settype(e,tserr);
+        e.Eoper = OPconst;
+        el_settype(e,tstypes[TYerror]);
         return e;
     }
 
     // Create type that is a "const Type_info&"
-    tref = newref(srtti->Stype);
-    tref->Tty |= mTYconst;
+    tref = newref(srtti.Stype);
+    tref.Tty |= mTYconst;
 
     if (e)
     {   e = reftostar(e);
@@ -282,9 +290,9 @@ elem *rtti_typeid(type *t,elem *e)
     // If e is a polymorphic type, return a reference to the complete
     // object represented by that type.
     if (e &&
-        e->Eoper != OPvar &&
-        type_struct(e->ET) &&
-        (svptr = (stag = e->ET->Ttag)->Sstruct->Svptr) != 0)
+        e.Eoper != OPvar &&
+        type_struct(e.ET) &&
+        (svptr = (stag = e.ET.Ttag).Sstruct.Svptr) !is null)
     {   elem *emos;
 
         if (!(config.flags3 & CFG3rtti))
@@ -292,32 +300,32 @@ elem *rtti_typeid(type *t,elem *e)
             config.flags3 |= CFG3rtti;
         }
 
-        // *(e->vptr - 1)
+        // *(e.vptr - 1)
 
-        symbol_debug(svptr);
-        emos = el_longt(tsint,svptr->Smemoff);
+        //symbol_debug(svptr);
+        emos = el_longt(tstypes[TYint],svptr.Smemoff);
         // Account for offset due to reuse of primary base class vtbl
-        st = stag->Sstruct;
-        if (st->Sprimary && st->Sprimary->BCbase->Sstruct->Svptr == st->Svptr)
-            emos->EV.sp.Voffset = st->Sprimary->BCoffset;
-        e = el_unat(OPaddr,newpointer(e->ET),e);
-        t = type_allocn(st->ptrtype,svptr->Stype); // match pointer type of ethis
+        st = stag.Sstruct;
+        if (st.Sprimary && st.Sprimary.BCbase.Sstruct.Svptr == st.Svptr)
+            emos.EV.Voffset = st.Sprimary.BCoffset;
+        e = el_unat(OPaddr,newpointer(e.ET),e);
+        t = type_allocn(st.ptrtype,svptr.Stype); // match pointer type of ethis
         e = el_bint(OPadd,t,e,emos);               // ethis + mos
-        e = el_unat(OPind,svptr->Stype,e);      // *(ethis + mos)
+        e = el_unat(OPind,svptr.Stype,e);      // *(ethis + mos)
 
-        e = el_bint(OPadd,e->ET,e,el_longt(tsint,-tysize(st->ptrtype)));
+        e = el_bint(OPadd,e.ET,e,el_longt(tstypes[TYint],-tysize(st.ptrtype)));
         e = el_unat(OPind,tref,e);
     }
     else
     {
         type *ti;
 
-        ti = t ? t : e->ET;
+        ti = t ? t : e.ET;
 
         // Create an instance of type Type_info
         s = init_typeinfo(ti);
         assert(s);
-        symbol_debug(s);
+        //symbol_debug(s);
 
         type_free(t);
         el_free(e);
@@ -325,10 +333,10 @@ elem *rtti_typeid(type *t,elem *e)
         // e will be a const reference to s
         e = el_ptr(s);
         el_settype(e,tref);
-        elem_debug(e);
+        //elem_debug(e);
     }
 
     return reftostar(e);
 }
 
-#endif
+}

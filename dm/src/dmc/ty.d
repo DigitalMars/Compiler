@@ -140,6 +140,8 @@ enum
     TYMAX               = 0x5C,
 }
 
+alias TYerror = TYint;
+
 extern __gshared int TYaarray;                            // D type
 
 // These change depending on memory model
