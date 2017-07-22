@@ -115,6 +115,7 @@ elem *rtti_cast(enum_TK tk,elem *e,type *t)
             if (typtr(ty) && typtr(ety) &&
                 et.Tnext.Tty & ~t.Tnext.Tty & mTYconst)
                 typerr(EM_no_castaway, et, t);
+            goto case_cast;
 
         case TKstatic_cast:
         case TKconst_cast:
@@ -155,9 +156,15 @@ elem *rtti_cast(enum_TK tk,elem *e,type *t)
             // Type t must be a pointer or a reference to a defined
             // class or void*.
             if ((!tyref(ty) && !typtr(ty)) ||
-                !type_struct(tn) ||
-                (template_instantiate_forward(tn.Ttag), s = tn.Ttag).Stype.Tflags & TFforward)
-            {   //cpperr(EM_ptr_to_class);              // must be pointer to class
+                !type_struct(tn))
+            {
+                typerr(EM_ptr_to_class,t,null); // must be pointer to class
+                goto case_cast;
+            }
+
+            template_instantiate_forward(tn.Ttag);
+            if ((s = tn.Ttag).Stype.Tflags & TFforward)
+            {
                 typerr(EM_ptr_to_class,t,null); // must be pointer to class
                 goto case_cast;
             }

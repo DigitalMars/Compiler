@@ -85,6 +85,8 @@ private __gshared
 
 type* list_type(list_t tl) { return cast(type*)list_ptr(tl); }
 
+alias dbg_printf = printf;
+
 /**************************************
  * Initialize exception handling code.
  */
@@ -1153,7 +1155,7 @@ Symbol *except_gentables()
             sz += fsize;
             debug if (debuge)
             {
-                char types[3][18] = { "dtor(this)", "dtor(this+offset)", "dtor(ptr)" };
+                const(char)*[3] types = [ "dtor(this)", "dtor(this+offset)", "dtor(ptr)" ];
                 dbg_printf("cleanup[%d]: prev=%2d type=%d [%s] offset=%X thisoffset=%X dtor=%p '%s'",
                         i, prev, type, types[type-2], offset, thisoff,
                         e.EV.Edtor, prettyident(e.EV.Edtor));

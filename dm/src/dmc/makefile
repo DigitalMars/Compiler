@@ -11,13 +11,14 @@
 
 # Paths:
 
+DMCDIR=\dm
+DMDDIR=e:\dmd2.074
+
 CBX=.
-DMC=\dm
 NTDLLSHELL=ntdllshell
 TK=tk
-INCLUDE=-I$(TK);$(NTDLLSHELL)\include;$(DMC)\include
-CC=dmc
-LIBNT=$(DMC)\lib
+INCLUDE=-I$(TK);$(NTDLLSHELL)\include;$(DMCDIR)\include
+LIBNT=$(DMCDIR)\lib
 SNN=$(LIBNT)\snn
 # Where scp command copies to
 SCPDIR=..\backup
@@ -34,24 +35,35 @@ SCPDIR=walter@mercury:dm
 #       LINKN           linker to use for target
 
 TARGET=
+
+###### Flags for C++ compiler
 XFLG=
 OPT=
 DEBUG=-gl
 NTDLL=-WD
 PREC=-H -HP32 -HItotal.h -HO
+CFLAGS=$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -6 -D$(TARGET) -r -cpp
+
+###### Flags for D compiler
+
+# Additive flags for building Windows DLL
+DDLLFLAGS=
+# Additive flags for optimization
+DOPT=-O -release -inline
+# Additive flags for debug build
+DDEBUG=
+DFLAGS=-betterC -noboundscheck -mv=ddmd.backend=. -mv=tk=tk -version=$(TARGET) $(DDLLFLAGS) $(DOPT) $(DDEBUG)
+
+###### Flags for linking
+
+BASE=
 #LFLAGS=/map/co
 LFLAGS=/map/e/f/packcode/noe;
-
-# Flags for building Windows DLL
-DDLLFLAGS=
-
-DFLAGS=-O -release -inline -betterC -d -noboundscheck -mv=ddmd.backend=. -mv=tk=tk -version=$(TARGET) $(DDLLFLAGS)
-BASE=
 
 ##### Tools
 
 # D compiler
-DMD=e:\dmd2.074\windows\bin\dmd
+DMD=$(DMDDIR)\windows\bin\dmd
 # C++ compiler
 CC=dmc
 # Make program
@@ -78,9 +90,8 @@ SCP=\putty\pscp -i c:\.ssh\colossus.ppk
 # PVS-Studio command line executable
 PVS="c:\Program Files (x86)\PVS-Studio\x64\PVS-Studio"
 
-LINKN=$(DMC)\bin\link /de
+LINKN=$(DMCDIR)\bin\link /de
 
-CFLAGS=$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -6 -D$(TARGET) -r -cpp
 
 # Makerules:
 .c.obj:
@@ -126,30 +137,35 @@ htodn:
 ################ NT COMMAND LINE DEBUG #########################
 
 debcppn:
-        make TARGET=SCPP OPT= "DEBUG=-D -g -DMEM_DEBUG" LFLAGS=/noi/noe/co/m scppn.exe
+        make TARGET=SCPP OPT= "DEBUG=-D -g -DMEM_DEBUG" \
+            DDEBUG=-debug LFLAGS=/noi/noe/co/m scppn.exe
 
 debppn:
-        make TARGET=SPP  OPT= "DEBUG=-D -g -DMEM_DEBUG" LFLAGS=/noi/noe/co/m sppn.exe
+        make TARGET=SPP  OPT= "DEBUG=-D -g -DMEM_DEBUG" \
+	    DDEBUG=-debug LFLAGS=/noi/noe/co/m sppn.exe
 
 debhtodn:
-        make TARGET=HTOD XFLG=-DSCPP  OPT= "DEBUG=-D -g -DMEM_DEBUG" LFLAGS=/noi/noe/co/m htodn.exe
+        make TARGET=HTOD XFLG=-DSCPP  OPT= "DEBUG=-D -g -DMEM_DEBUG" \
+	    DDEBUG=-debug LFLAGS=/noi/noe/co/m htodn.exe
 
 ################ NT DLL RELEASE #########################
 
 scppnd:
-        make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG= LFLAGS=/noi/noe/map BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
-#       make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG=-g LFLAGS=/noi/noe/map/co BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
+        make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG= DDEBUG=-debug LFLAGS=/noi/noe/map BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
+#       make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG=-g DDEBUG=-debug LFLAGS=/noi/noe/map/co BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
 
 sppnd:
-        make TARGET=SPP  OPT=-o+space "XFLG=$(NTDLL)" DEBUG= LFLAGS=/noi/noe/map BASE=21430272 DDLLFLAGS=-version=_WINDLL sppnd.dll
+        make TARGET=SPP  OPT=-o+space "XFLG=$(NTDLL)" DEBUG= DDEBUG=-debug LFLAGS=/noi/noe/map BASE=21430272 DDLLFLAGS=-version=_WINDLL sppnd.dll
 
 ################ NT DLL DEBUG #########################
 
 debcppnd:
-        make TARGET=SCPP OPT= "DEBUG=-g -D -DMEM_DEBUG -DTERMCODE" "XFLG=$(NTDLL)" LFLAGS=/noi/noe/map/co DDLLFLAGS=-version=_WINDLL scppnd.dll
+        make TARGET=SCPP OPT= "DEBUG=-g -D -DMEM_DEBUG -DTERMCODE" "XFLG=$(NTDLL)" \
+	    DDEBUG=-debug LFLAGS=/noi/noe/map/co DDLLFLAGS=-version=_WINDLL scppnd.dll
 
 debppnd:
-        make TARGET=SPP  OPT=-o+space "XFLG=$(NTDLL)" LFLAGS=/noi/noe/map/co DDLLFLAGS=-version=_WINDLL sppnd.dll
+        make TARGET=SPP  OPT=-o+space "XFLG=$(NTDLL)" \
+	    DDEBUG=-debug LFLAGS=/noi/noe/map/co DDLLFLAGS=-version=_WINDLL sppnd.dll
 
 #########################################
 
@@ -398,10 +414,10 @@ nspace.obj : nspace.d
         $(DMD) -c $(DFLAGS) nspace.d
 
 divcoeff.obj : divcoeff.d
-        $(DMD) -c -O -release -betterC divcoeff.d
+        $(DMD) -c $(DFLAGS) divcoeff.d
 
 loadline.obj : loadline.d msgs2.d
-        $(DMD) -c -O -release -betterC loadline.d
+        $(DMD) -c $(DFLAGS) loadline.d
 
 dinline.obj : dinline.d
         $(DMD) -c $(DFLAGS) dinline.d

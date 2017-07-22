@@ -32,6 +32,7 @@ import ddmd.backend.dt;
 import ddmd.backend.el;
 import ddmd.backend.global;
 import ddmd.backend.oper;
+import ddmd.backend.outbuf;
 import ddmd.backend.ty;
 import ddmd.backend.type;
 
@@ -200,13 +201,18 @@ void datadef(Symbol *s)
 
                 func_expadddtors(&curblock.Belem, marksi, endsi, 0, true);
                 break;
+
             case SCunde:
                 assert(errcnt);         // only happens on errors
+                goto case SCglobal;
+
             case SCglobal:
                 if (s.Sscope &&
                     s.Sscope.Sclass != SCstruct &&
                     s.Sscope.Sclass != SCnamespace)
                     s.Sclass = SCcomdat;
+                goto Lstatic;
+
             case SCstatic:
             case SCcomdat:
             Lstatic:
@@ -598,6 +604,8 @@ private void initializer(Symbol *s)
                 s.Sdt = dtb.finish();
                 break;
             }
+            goto case SCcomdat;
+
         case SCcomdat:
             // No symbols that get this far have constructors
             assert(CPP);
@@ -1667,7 +1675,7 @@ Lagain:
             case SCunde:
                 return null;
             default:
-                debug WRclass(cast(enum_SC)sa.Sclass);
+                //debug WRclass(cast(enum_SC)sa.Sclass);
                 assert(0);
         }
         ty = tym_conv(e.ET);
@@ -1722,6 +1730,8 @@ Lagain:
         e = poptelem4(e);               // try again to fold constants
         if (OTleaf(e.Eoper))
             goto Lagain;
+        goto Lexp;
+
     case OPvar:
     Lexp:
         if (!CPP)
@@ -2216,7 +2226,8 @@ assert(0); // can't find any cases of this, must be an anachronism
             /*case SClocstat:*/
                 if (level > 0)
                     localstatic = 1;
-                /* FALL-THROUGH */
+                goto case SCglobal;
+
             case SCglobal:
                 if (localstatic || (s.Sscope && s.Sscope.Sclass == SCinline))
                 {
@@ -2257,7 +2268,8 @@ assert(0); // can't find any cases of this, must be an anachronism
                     e = null;
                     break;
                 }
-                /* FALLTHROUGH */
+                goto case SCauto;
+
             case SCauto:
             case SCregister:
                 block_appendexp(curblock, addlinnum(e));

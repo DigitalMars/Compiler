@@ -198,7 +198,7 @@ Sfile *filename_add(const(char)* name)
 
     sf = cast(Sfile *) mem_calloc(Sfile.sizeof);
     srcfiles.idx++;
-    debug sf.id = IDsfile;
+    debug sf.id = Sfile.IDsfile;
     sf.SFname = mem_strdup(name);
     sf.SFhashval = filename_hash(sf.SFname);
     if (u >= SRCFILES_MAX)

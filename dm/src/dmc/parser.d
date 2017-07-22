@@ -48,8 +48,8 @@ else
         tym_t FUNC_TYPE(int l, int m) { return functypetab[l][m]; }
     }
 
-    extern mangle_t funcmangletab[LINK_MAXDIM];
-    extern mangle_t varmangletab[LINK_MAXDIM];
+    extern mangle_t[LINK_MAXDIM] funcmangletab;
+    extern mangle_t[LINK_MAXDIM] varmangletab;
 }
 
 

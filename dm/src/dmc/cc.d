@@ -1580,7 +1580,6 @@ struct Sfile
 {
     debug ushort      id;
     enum IDsfile = (('f' << 8) | 's');
-    //#define sfile_debug(sf) assert((sf)->id == IDsfile)
 
     char     *SFname;           // name of file
     sfile_flags_t  SFflags;
@@ -1596,6 +1595,11 @@ struct Sfile
     Symbol   *SFtagsymdefs;     // list of tag names (C only)
     char     *SFinc_once_id;    // macro include guard identifier
     uint SFhashval;             // hash of file name
+}
+
+void sfile_debug(Sfile* sf)
+{
+    debug assert(sf.id == Sfile.IDsfile);
 }
 
 // Source files are referred to by a pointer into pfiles[]. This is so that

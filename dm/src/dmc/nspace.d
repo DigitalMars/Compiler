@@ -462,7 +462,8 @@ L7:
                     if (!s)
                         goto L7;
                     //symbol_debug(s);
-                    /* FALL-THROUGH */
+                    goto case SCstruct;
+
                 case SCstruct:
                     if (stoken() == TKcolcol)
                     {
@@ -624,7 +625,8 @@ L7:
                 if (!s)
                     goto L7;
                 //symbol_debug(s);
-                /* FALL-THROUGH */
+                goto case SCstruct;
+
             case SCstruct:
                 if (!c1isbaseofc2(null,s,stag))
                 {
