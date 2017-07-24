@@ -36,7 +36,7 @@
  * TKfilespec   <filespec>
  */
 
-module token;
+module dtoken;
 
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
@@ -272,7 +272,8 @@ struct token_t
         targ_double Vdouble;
         targ_ldouble Vldouble;
     }
-    Srcpos TKsrcpos;            // line number from where it was taken
+    align(8)                    // necessary to line TKsrcpos where it is in C version
+      Srcpos TKsrcpos;          // line number from where it was taken
     token_t *TKnext;            // to create a list of tokens
 
     debug ushort id;
@@ -375,7 +376,7 @@ int pragma_search(const(char)* id);
 void listident();
 void pragma_term();
 //macro_t *defmac(const(char)* name , const(char)* text);
-int pragma_defined();
+//int pragma_defined();
 
 /+
 #if SPP && TX86
@@ -403,6 +404,7 @@ int pragma_defined();
 
 #define EXPANDING_LISTING()     (expflag == 0)
 #define NOT_EXPANDING_LISTING() (expflag)
++/
 
 /***********************************************
  * This is the token lookahead API, which enables us to
@@ -418,19 +420,17 @@ struct Token_lookahead
 
     void init()
     {
-        toks = NULL;
+        toks = null;
         pend = &toks;
         inited = 1;
     }
 
     enum_TK lookahead()
     {
-    #ifdef DEBUG
         //assert(inited == 1);
-    #endif
         *pend = token_copy();
-        (*pend)->TKflags |= TKFfree;
-        pend = &(*pend)->TKnext;
+        (*pend).TKflags |= TKFfree;
+        pend = &(*pend).TKnext;
         return stoken();
     }
 
@@ -452,4 +452,3 @@ struct Token_lookahead
         token_free(toks);
     }
 }
-+/

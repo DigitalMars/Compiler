@@ -26,7 +26,6 @@ import ddmd.backend.cc;
 import ddmd.backend.cdef;
 import ddmd.backend.code;
 import ddmd.backend.dt;
-import ddmd.backend.dtoken;
 import ddmd.backend.el;
 import ddmd.backend.exh;
 import ddmd.backend.global;
@@ -42,6 +41,7 @@ import cpph;
 import msgs2;
 import parser;
 import scopeh;
+import dtoken;
 
 extern (C++):
 

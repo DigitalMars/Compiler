@@ -48,8 +48,8 @@ else
         tym_t FUNC_TYPE(int l, int m) { return functypetab[l][m]; }
     }
 
-    extern mangle_t[LINK_MAXDIM] funcmangletab;
-    extern mangle_t[LINK_MAXDIM] varmangletab;
+    extern __gshared mangle_t[LINK_MAXDIM] funcmangletab;
+    extern __gshared mangle_t[LINK_MAXDIM] varmangletab;
 }
 
 
@@ -366,7 +366,7 @@ elem *exp2_gethidden(elem *e);
 elem *dodotstar(elem *, elem *);
 elem *reftostar(elem *);
 elem *reftostart(elem *,type *);
-elem *exp2_copytotemp(elem *);
+//elem *exp2_copytotemp(elem *);
 elem *dofunc(elem *);
 elem *builtinFunc(elem *);
 elem *arraytoptr(elem *);

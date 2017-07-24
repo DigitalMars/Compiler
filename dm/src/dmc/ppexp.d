@@ -28,6 +28,7 @@ import ddmd.backend.type;
 
 import dtoken;
 import msgs2;
+import parser;
 
 extern (C++):
 

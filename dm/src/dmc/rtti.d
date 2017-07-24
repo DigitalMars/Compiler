@@ -24,7 +24,6 @@ import core.stdc.string;
 
 import ddmd.backend.cc;
 import ddmd.backend.cdef;
-import ddmd.backend.dtoken;
 import ddmd.backend.el;
 import ddmd.backend.exh;
 import ddmd.backend.global;
@@ -35,6 +34,7 @@ import ddmd.backend.type;
 import tk.dlist;
 
 import cpph;
+import dtoken;
 import msgs2;
 import parser;
 import scopeh;

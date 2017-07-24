@@ -346,3 +346,9 @@ extern (C) { extern __gshared const char*[TYMAX] tystring; }
 /* Debugger value for type      */
 extern __gshared ubyte[TYMAX] dttab;
 extern __gshared ushort[TYMAX] dttab4;
+
+
+bool I16() { return _tysize[TYnptr] == 2; }
+bool I32() { return _tysize[TYnptr] == 4; }
+bool I64() { return _tysize[TYnptr] == 8; }
+

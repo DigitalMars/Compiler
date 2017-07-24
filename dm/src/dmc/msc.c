@@ -286,7 +286,7 @@ type *type_arrayroot(type *t)
  * Give error message if size is wrong.
  */
 
-int type_chksize(unsigned long u)
+int type_chksize(unsigned u)
 {   int result;
 
     if (u > 0xFFFF && intsize == 2)

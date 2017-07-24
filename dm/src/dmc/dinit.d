@@ -58,10 +58,6 @@ enum
     DT_ibytes = 6,
 }
 
-bool I16() { return _tysize[TYnptr] == 2; }
-bool I32() { return _tysize[TYnptr] == 4; }
-bool I64() { return _tysize[TYnptr] == 8; }
-
 void TOOFFSET(void* p, targ_size_t value)
 {
     final switch (_tysize[TYnptr])

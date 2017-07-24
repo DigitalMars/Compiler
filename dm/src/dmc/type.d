@@ -70,6 +70,7 @@ bool type_struct(type* t) { return tybasic(t.Tty) == TYstruct; }
 struct TYPE
 {
     debug ushort id;
+    enum IDtype = 0x1234;
 
     tym_t Tty;     /* mask (TYxxx)                         */
     type_flags_t Tflags; // TFxxxxx
@@ -107,6 +108,11 @@ struct typetemp_t
         allocate room for it if TYtemplate
      */
     Symbol *Tsym;               // primary class template symbol
+}
+
+void type_debug(type* t)
+{
+    debug assert(t.id == t.IDtype);
 }
 
 // Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.

@@ -292,7 +292,7 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 # Front end only
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpph.d nspace.d dinit.d \
 	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
-	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d
+	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d
 
 FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
@@ -301,7 +301,7 @@ FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
         iasm.c err.c blklst.c \
         msgsx.c template.c scope.c \
         trace.c file.c cpp.c func.c struct.c \
-        exp2.c exp.c msc.c ph.c token.c \
+        exp2.c msc.c ph.c token.c \
         pragma.c nwc.c getcmd.c tk.c \
         castab.c htod.c speller.c
 
@@ -452,6 +452,9 @@ eh.obj : eh.d
 entity.obj : entity.d
         $(DMD) -c $(DFLAGS) entity.d
 
+exp.obj : exp.d
+        $(DMD) -c $(DFLAGS) exp.d
+
 filename.obj : filename.d
         $(DMD) -c $(DFLAGS) filename.d
 
@@ -544,7 +547,6 @@ symbol.obj : $(DEP) $(symbol.dep) symbol.c
 cg87.obj : $(DEP) $(cg87.dep) cg87.c
 cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
 cpp.obj : $(DEP) $(cpp.dep) cpp.c
-exp.obj : $(DEP) $(exp.dep) exp.c
 file.obj : $(DEP) $(file.dep) file.c
 outbuf.obj : $(DEP) $(outbuf.dep) outbuf.c
 newman.obj : $(DEP) $(newman.dep) newman.c

@@ -112,7 +112,6 @@ Symbol *pseudo_declar(char *id)
         {
             tym_t ty = pseudoty[i];
             // Can't use extended registers for 16 bit compilations
-            static bool I16() { return _tysize[TYnptr] == 2; }
             if (!I16 || !tylong(ty))
             {
                 s = scope_define(id,SCTlocal,SCpseudo);

@@ -66,7 +66,6 @@ struct elem
 {
     debug ushort      id;
     enum IDelem = 0x4C45;   // 'EL'
-    //elem_debug(e) assert((e)->id == IDelem)
 
     version (OSX) // workaround https://issues.dlang.org/show_bug.cgi?id=16466
         align(16) eve EV; // variants for each type of elem
@@ -117,6 +116,11 @@ struct elem
 
     type *ET;            // pointer to type of elem if TYstruct | TYarray
     Srcpos Esrcpos;      // source file position
+}
+
+void elem_debug(elem* e)
+{
+    debug assert(e.id == e.IDelem);
 }
 
 version (MARS)

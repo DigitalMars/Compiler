@@ -144,7 +144,12 @@ enum STRMAX = 65000;           // max length of string (determined by
 
 //enum SC;
 struct Thunk;
-struct token_t;
+
+version (MARS)
+    struct token_t;
+else
+    import dtoken : token_t;
+
 //struct param_t;
 //struct block;
 //struct Classsym;
@@ -1207,11 +1212,9 @@ struct Symbol
 {
 //#ifdef DEBUG
     debug ushort      id;
-//#define IDsymbol 0x5678
-//#define symbol_debug(s) assert((s)->id == IDsymbol)
+    enum IDsymbol = 0x5678;
 //#define class_debug(s) assert((s)->id == IDsymbol)
 //#else
-//#define symbol_debug(s)
 //#define class_debug(s)
 //#endif
 
@@ -1321,7 +1324,6 @@ struct Symbol
     Symbol *Sscope;             // enclosing scope (could be struct tag,
                                 // enclosing inline function for statics,
                                 // or namespace)
-//#define isclassmember(s)        ((s)->Sscope && (s)->Sscope->Sclass == SCstruct)
 //#endif
 
     version (SCPP)
@@ -1397,6 +1399,13 @@ struct Symbol
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Symbol.sizeof); }
 }
+
+void symbol_debug(Symbol* s)
+{
+    debug assert(s.id == s.IDsymbol);
+}
+
+bool isclassmember(Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
 
 // Class, struct or union
 

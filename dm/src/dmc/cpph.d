@@ -16,6 +16,7 @@ module cpph;
 
 extern (C++):
 
+import dtoken;
 import parser;
 
 import ddmd.backend.cdef;
