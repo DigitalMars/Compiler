@@ -173,7 +173,7 @@ OBJ1a=blklst.obj blockopt.obj cpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
-OBJ1e=struct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj dth.obj
+OBJ1e=dstruct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj dth.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj cpph.obj dlist.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
@@ -292,7 +292,8 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 # Front end only
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpph.d nspace.d dinit.d \
 	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
-	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d
+	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
+	dstruct.d
 
 FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
@@ -300,7 +301,7 @@ FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
         ini.c errmsgs2.c tdbx.c util.c \
         iasm.c err.c blklst.c \
         msgsx.c template.c scope.c \
-        trace.c file.c cpp.c func.c struct.c \
+        trace.c file.c cpp.c func.c \
         exp2.c msc.c ph.c token.c \
         pragma.c nwc.c getcmd.c tk.c \
         castab.c htod.c speller.c
@@ -440,6 +441,9 @@ cpph.obj : cpph.d
 dlist.obj : $(TK)\dlist.d
         $(DMD) -c $(DFLAGS) $(TK)\dlist.d -ofdlist.obj
 
+dstruct.obj : dstruct.d
+        $(DMD) -c $(DFLAGS) dstruct.d
+
 dth.obj : dt.d
         $(DMD) -c $(DFLAGS) dt.d -ofdth.obj
 
@@ -536,7 +540,6 @@ func.obj : $(DEP) $(func.dep) func.c
 nwc.obj : $(DEP) $(nwc.dep) nwc.c
 iasm.obj : $(DEP) $(iasm.dep) iasm.h iasm.c
 go.obj : $(DEP) $(go.dep) go.c
-struct.obj : $(DEP) $(struct.dep) struct.c
 gflow.obj : $(DEP) $(gflow.dep) gflow.c
 cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
 cgen.obj : $(DEP) $(cgen.dep) cgen.c

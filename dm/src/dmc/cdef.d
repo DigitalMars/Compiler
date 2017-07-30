@@ -14,6 +14,7 @@ module ddmd.backend.cdef;
 
 import ddmd.backend.cc: Classsym, Symbol, param_t;
 import ddmd.backend.el;
+import ddmd.backend.ty : I32;
 
 import tk.dlist;
 
@@ -290,8 +291,8 @@ else
  */
 //#define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
 //#define USEDLLSHELL     _WINDLL
-//#define MFUNC           (I32) //0 && config.exe == EX_WIN32)       // member functions are TYmfunc
-//#define CV3             0       // 1 means support CV3 debug format
+bool MFUNC() { return I32 != 0; } // && config.exe == EX_WIN32)       // member functions are TYmfunc
+enum CV3 = 0;          // 1 means support CV3 debug format
 
 /* Object module format
  */

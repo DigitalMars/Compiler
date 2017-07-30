@@ -226,6 +226,24 @@ bool Symbol::Sisdead(bool anyiasm)
             (config.flags4 & CFG4optimized || !config.fulltypes));
 }
 
+/****************************************
+ * Determine if symbol needs a 'this' pointer.
+ */
+
+int Symbol::needThis()
+{
+    //printf("needThis() '%s'\n", Sident);
+#ifdef DEBUG
+    assert(isclassmember(this));
+#endif
+    if (Sclass == SCmember || Sclass == SCfield)
+        return 1;
+    if (tyfunc(Stype->Tty) && !(Sfunc->Fflags & Fstatic))
+        return 1;
+    return 0;
+}
+
+
 /***********************************
  * Get user name of symbol.
  */

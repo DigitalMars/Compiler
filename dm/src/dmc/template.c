@@ -1555,7 +1555,7 @@ found_rcur:
     {
         if (temp_arglist)
             pstate.STignoretal = 1;
-        unsigned long class_m2 = 0;
+        unsigned class_m2 = 0;
         declaration_specifier(&typ_spec, NULL, &class_m2);
         if (class_m2 & mskl(SCvirtual))
         {
@@ -2788,7 +2788,7 @@ void template_instantiate_classmember(Symbol *st, Symbol *si)
  *      1       is a class name
  */
 
-int template_classname(char *vident,Classsym *stag)
+bool template_classname(char *vident,Classsym *stag)
 {   symbol *s;
 
     symbol_debug(stag);
@@ -3966,7 +3966,7 @@ printf("sf  : "); type_print(sf->Stype->Tnext);
     char vident[2*IDMAX + 1];
     linkage_t save = linkage;
     int constructor = 0;
-    enum SC sc;
+    int sc;
     Pstate pstatesave = pstate;
     int levelSave = level;
     unsigned Fflags = 0;

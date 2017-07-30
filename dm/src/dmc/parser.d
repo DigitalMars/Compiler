@@ -490,10 +490,10 @@ type *declar_fix(type *,char *);
 void fixdeclar(type *);
 type *declar(type *,char *,int);
 int type_specifier(type **);
-int declaration_specifier(type **ptyp_spec, SC *pclass, uint *pclassm);
+int declaration_specifier(type **ptyp_spec, int *pclass, uint *pclassm);
 Symbol *id_expression();
 elem *declaration(int flag);
-int funcdecl(Symbol *,enum_SC,int,Declar *);
+int funcdecl(Symbol *,int,int,Declar *);
 Symbol *symdecl(char *,type *,SC,param_t *);
 void nwc_typematch(type *,type *,Symbol *);
 int isexpression();
@@ -633,7 +633,7 @@ Symbol *template_matchfunc(Symbol *stemp, param_t *pl, int, match_t, param_t *pt
 Symbol *template_matchfunctempl(Symbol *sfunc, param_t *ptali, type *tf, Symbol *stagfriend = null, int flags = 1);
 int template_match_expanded_type(type *ptyTemplate, param_t *ptpl, param_t *ptal, type *ptyActual,
         type *ptyFormal );
-int template_classname(char *vident, Classsym *stag);
+bool template_classname(char *vident, Classsym *stag);
 void template_free_ptal(param_t *ptal);
 int template_function_leastAsSpecialized(Symbol *f1, Symbol *f2, param_t *ptal);
 version (SCPP)

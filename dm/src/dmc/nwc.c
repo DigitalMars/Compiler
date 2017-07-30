@@ -42,7 +42,7 @@ static void nwc_outstatics();
 STATIC void nwc_predefine();
 STATIC type * getprototype(const char *,type *);
 STATIC void getparamlst(type *,type *);
-STATIC symbol * anonymous(Classsym *,enum SC);
+STATIC symbol * anonymous(Classsym *,int);
 STATIC void nwc_based(void);
 void output_func(void);
 
@@ -864,7 +864,7 @@ enum TKW
 
 #define SCWvirtual      mskl(SCvirtual)
 
-int declaration_specifier(type **ptyp_spec, enum SC *pclass, unsigned long *pclassm)
+int declaration_specifier(type **ptyp_spec, int *pclass, unsigned *pclassm)
 { symbol *s;
   Classsym *sclass0;
   tym_t modifiers = 0;
@@ -1659,7 +1659,7 @@ elem *declaration(int flag)
     tym_t ty;
     char vident[2*IDMAX + 1];
     type *tspec;
-    enum SC sc_specifier;
+    int sc_specifier;
     int dss;
 
     _chkstack();
@@ -4018,7 +4018,7 @@ void fixdeclar(type *t)
  * Generate an instance of the anonymous union given by tspec.
  */
 
-STATIC symbol * anonymous(Classsym *stag,enum SC sc_specifier)
+STATIC symbol * anonymous(Classsym *stag,int sc_specifier)
 {   symbol *s;
     list_t list;
     char *id,*unionid;
@@ -4556,7 +4556,7 @@ L8:
  *      FALSE   no function body
  */
 
-int funcdecl(symbol *s,enum SC sc_specifier,int pflags,Declar *decl)
+int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
 {
     char body = FALSE;
     int li;

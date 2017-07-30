@@ -356,6 +356,7 @@ struct Pstate
     unittest { assert(sizeCheck() == Pstate.sizeof); }
 }
 
+void funcsym_p(Funcsym* fp) { pstate.STfuncsym_p = fp; }
 Funcsym* funcsym_p() { return pstate.STfuncsym_p; }
 
 stflags_t preprocessor() { return pstate.STflags & PFLpreprocessor; }
@@ -847,8 +848,6 @@ struct baseclass_t
     unittest { assert(sizeCheck() == baseclass_t.sizeof); }
 }
 
-//baseclass_t* baseclass_malloc() { return cast(baseclass_t*) mem_fmalloc(baseclass_t.sizeof); }
-void baseclass_free(baseclass_t *b) { }
 
 /*************************
  * For virtual tables.
@@ -1133,9 +1132,6 @@ struct struct_t
     static uint sizeCheck();
     unittest { assert(sizeCheck() == struct_t.sizeof); }
 }
-
-//struct_t* struct_calloc() { return cast(struct_t*) mem_fcalloc(struct_t.sizeof); }
-void struct_free(struct_t* st) { }
 
 /**********************************
  * Symbol Table

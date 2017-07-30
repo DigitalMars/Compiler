@@ -479,10 +479,10 @@ type *declar_fix(type *,char *);
 void fixdeclar(type *);
 type *declar(type *,char *,int);
 int type_specifier(type **);
-int declaration_specifier(type **ptyp_spec, enum SC *pclass, unsigned long *pclassm);
+int declaration_specifier(type **ptyp_spec, int *pclass, unsigned *pclassm);
 symbol *id_expression();
 elem *declaration(int flag);
-int funcdecl(symbol *,enum SC,int,Declar *);
+int funcdecl(symbol *,int,int,Declar *);
 symbol *symdecl(char *,type *,int,param_t *);
 void nwc_typematch(type *,type *,symbol *);
 int isexpression(void);
@@ -506,7 +506,7 @@ void n2_instantiate_memfunc(symbol *s);
 type *n2_adjfunctype(type *t);
 int n2_anypure(list_t);
 void n2_genvtbl(Classsym *stag, int sc , int);
-void n2_genvbtbl(Classsym *stag, enum SC sc , int);
+void n2_genvbtbl(Classsym *stag, int sc , int);
 void n2_creatector(type *tclass);
 /*void n2_createdtor(type *tclass);*/
 symbol *n2_createprimdtor(Classsym *stag);
@@ -652,7 +652,7 @@ symbol *template_matchfunc(symbol *stemp, param_t *pl, int, match_t, param_t *pt
 symbol *template_matchfunctempl(symbol *sfunc, param_t *ptali, type *tf, symbol *stagfriend = NULL, int flags = 1);
 int template_match_expanded_type(type *ptyTemplate, param_t *ptpl, param_t *ptal, type *ptyActual,
         type *ptyFormal );
-int template_classname(char *vident, Classsym *stag);
+bool template_classname(char *vident, Classsym *stag);
 void template_free_ptal(param_t *ptal);
 int template_function_leastAsSpecialized(symbol *f1, symbol *f2, param_t *ptal);
 #if SCPP
