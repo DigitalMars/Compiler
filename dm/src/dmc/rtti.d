@@ -33,7 +33,7 @@ import ddmd.backend.type;
 
 import tk.dlist;
 
-import cpph;
+import cpp;
 import dtoken;
 import msgs2;
 import parser;

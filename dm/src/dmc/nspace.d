@@ -23,6 +23,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
 
+import cpp;
 import dtoken;
 import msgs2;
 import parser;
@@ -32,7 +33,6 @@ import ddmd.backend.bcomplex;
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
 import ddmd.backend.cgcv;
-import ddmd.backend.cpph;
 import ddmd.backend.dt;
 import ddmd.backend.el;
 import ddmd.backend.global;

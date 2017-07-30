@@ -174,7 +174,7 @@ OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj template.obj tk.obj token.obj type.obj dt.obj dth.obj
-OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj cpph.obj dlist.obj
+OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj dlist.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj code.obj
@@ -290,7 +290,7 @@ msgsx.exe : msgsx.c
 RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 
 # Front end only
-FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpph.d nspace.d dinit.d \
+FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di nspace.d dinit.d \
 	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
 	dstruct.d
@@ -434,9 +434,6 @@ parser.obj : parser.d
 
 precomp.obj : precomp.d
         $(DMD) -c $(DFLAGS) precomp.d
-
-cpph.obj : cpph.d
-        $(DMD) -c $(DFLAGS) cpph.d
 
 dlist.obj : $(TK)\dlist.d
         $(DMD) -c $(DFLAGS) $(TK)\dlist.d -ofdlist.obj

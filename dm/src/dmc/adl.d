@@ -33,7 +33,7 @@ import ddmd.backend.oper;
 import ddmd.backend.ty;
 import ddmd.backend.type;
 
-import cpph;
+import cpp;
 import dtoken;
 import parser;
 import scopeh;

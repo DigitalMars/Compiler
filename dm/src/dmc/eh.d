@@ -37,7 +37,7 @@ import ddmd.backend.type;
 import tk.mem;
 import tk.dlist;
 
-import cpph;
+import cpp;
 import msgs2;
 import parser;
 import scopeh;
