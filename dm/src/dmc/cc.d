@@ -553,15 +553,15 @@ struct block
         // CPP
         struct
         {
-            SYMIDX      symstart;       // (symstart <= symnum < symend) Symbols
-            SYMIDX      symend;         // are declared in this block
-            block*      endscope;       // block that forms the end of the
+            SYMIDX      Bsymstart;      // (symstart <= symnum < symend) Symbols
+            SYMIDX      Bsymend;        // are declared in this block
+            block*      Bendscope;      // block that forms the end of the
                                         // scope for the declared Symbols
-            uint        blknum;         // position of block from startblock
+            uint        Bblknum;        // position of block from startblock
             Symbol*     Binitvar;       // !=NULL points to an auto variable with
                                         // an explicit or implicit initializer
-            block*      gotolist;       // BCtry, BCcatch: backward list of try scopes
-            block*      gotothread;     // BCgoto: threaded list of goto's to
+            block*      Bgotolist;      // BCtry, BCcatch: backward list of try scopes
+            block*      Bgotothread;    // BCgoto: threaded list of goto's to
                                         // unknown labels
         }
 
@@ -1237,7 +1237,7 @@ struct Symbol
         struct                  // SClabel
         {
             int Slabel;         // TRUE if label was defined
-            block* Slabelblk_;  // label block
+            block* Slabelblk;   // label block
         }
 
         //#define Senumlist Senum->SEenumlist

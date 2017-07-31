@@ -133,7 +133,7 @@ void block_next(Blockx *bctx,int bc,block *bn)
     bctx->curblock->Bflags |= bctx->flags;
 }
 #else
-void block_next(enum BC bc,block *bn)
+void block_next(int bc,block *bn)
 {
     curblock->BC = bc;
     curblock->Bsymend = globsym.top;

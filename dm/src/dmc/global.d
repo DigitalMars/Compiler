@@ -401,7 +401,7 @@ extern __gshared uint[BCMAX] bc_goal;
 block* block_calloc();
 void block_init();
 void block_term();
-void block_next(BC,block *);
+void block_next(int,block *);
 void block_next(Blockx *bctx,int bc,block *bn);
 block *block_goto(Blockx *bctx,BC bc,block *bn);
 void block_setlabel(uint lbl);

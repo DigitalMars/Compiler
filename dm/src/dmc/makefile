@@ -293,7 +293,7 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di nspace.d dinit.d \
 	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
-	dstruct.d
+	dstruct.d func.d
 
 FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
@@ -301,7 +301,7 @@ FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
         ini.c errmsgs2.c tdbx.c util.c \
         iasm.c err.c blklst.c \
         msgsx.c template.c scope.c \
-        trace.c file.c cpp.c func.c \
+        trace.c file.c cpp.c \
         exp2.c msc.c ph.c token.c \
         pragma.c nwc.c getcmd.c tk.c \
         castab.c htod.c speller.c
@@ -407,6 +407,9 @@ adl.obj : adl.d
 
 denum.obj : denum.d
         $(DMD) -c $(DFLAGS) denum.d
+
+func.obj : func.d
+        $(DMD) -c $(DFLAGS) func.d
 
 dinit.obj : dinit.d
         $(DMD) -c $(DFLAGS) dinit.d
@@ -533,7 +536,6 @@ gother.obj : $(DEP) $(gother.dep) gother.c
 gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
 exp2.obj : $(DEP) $(exp2.dep) castab.c exp2.c
 err.obj : $(DEP) $(err.dep) err.c
-func.obj : $(DEP) $(func.dep) func.c
 nwc.obj : $(DEP) $(nwc.dep) nwc.c
 iasm.obj : $(DEP) $(iasm.dep) iasm.h iasm.c
 go.obj : $(DEP) $(go.dep) go.c
