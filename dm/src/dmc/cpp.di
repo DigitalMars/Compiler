@@ -38,9 +38,9 @@ extern __gshared
     char[2] cpp_name_dt;
     char[2] cpp_name_as;
     char[3] cpp_name_vc;
-    char[4] cpp_name_this;
-    char[6] cpp_name_free;
-    char[11] cpp_name_initvbases;
+    char[5] cpp_name_this;
+    char[7] cpp_name_free;
+    char[12] cpp_name_initvbases;
     char[2] cpp_name_new;
     char[2] cpp_name_delete;
     char[3] cpp_name_anew;
@@ -48,8 +48,8 @@ extern __gshared
     char[3] cpp_name_primdt;
     char[3] cpp_name_scaldeldt;
     char[3] cpp_name_priminv;
-    char[9] cpp_name_none;
-    char[11] cpp_name_invariant;
+    char[10] cpp_name_none;
+    char[12] cpp_name_invariant;
 
     list_t cpp_stidtors;     // auto destructors that go in _STIxxxx
 }

@@ -49,7 +49,10 @@ class Obj
     void _alias(const(char)* n1,const(char)* n2);
     void theadr(const(char)* modname);
     void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-    void staticctor(Symbol *s,int dtor,int seg);
+    version (SCPP)
+        static void staticctor(Symbol *s,int dtor,int seg);
+    else
+        void staticctor(Symbol *s,int dtor,int seg);
     void staticdtor(Symbol *s);
     void setModuleCtorDtor(Symbol *s, bool isCtor);
     version (SCPP)
@@ -129,7 +132,10 @@ class MsCoffObj : Obj
     override void _alias(const(char)* n1,const(char)* n2);
 //    void theadr(const(char)* modname);
 //    void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-    override void staticctor(Symbol *s,int dtor,int seg);
+    version (SCPP)
+        static void staticctor(Symbol *s,int dtor,int seg);
+    else
+        override void staticctor(Symbol *s,int dtor,int seg);
     override void staticdtor(Symbol *s);
     override void setModuleCtorDtor(Symbol *s, bool isCtor);
     version (SCPP)

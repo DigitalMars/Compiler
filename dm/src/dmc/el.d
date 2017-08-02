@@ -192,7 +192,6 @@ elem *el_var(Symbol *);
 elem *el_settype(elem *,type *);
 elem *el_typesize(type *);
 elem *el_ptr(Symbol *);
-void el_replace_sym(elem *e,Symbol *s1,Symbol *s2);
 elem *el_ptr_offset(Symbol *s,targ_size_t offset);
 void el_replacesym(elem *,Symbol *,Symbol *);
 elem *el_nelems(type *);

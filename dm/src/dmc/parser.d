@@ -67,8 +67,6 @@ enum
 
 alias match_t = ubyte;
 
-version (SCPP)
-{
 struct Match
 {
     match_t m;
@@ -79,9 +77,13 @@ struct Match
     int _ref;           // !=0 if reference binding
     tym_t toplevelcv;
 
-    static int cmp(ref Match m1, ref Match m2);
+    static int cmp(ref Match m1, ref Match m2)
+    {
+        return Match__cmp(m1, m2);
+    }
 }
-}
+
+int Match__cmp(ref Match m1, ref Match m2);
 
 /***************************
  * Type of destructor call

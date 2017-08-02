@@ -36,7 +36,6 @@ extern (C++):
 __gshared Srcfiles srcfiles;
 
 //version = TRANS;                       // translated file names
-enum TERMCODE = 0;
 
 version (TRANS)
 {

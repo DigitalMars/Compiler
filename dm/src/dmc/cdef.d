@@ -77,6 +77,8 @@ enum
 //#define ATTR_CAN_IGNORE(a) (((a) & (ATTR_LINKMOD|ATTR_TYPEMOD|ATTR_FUNCINFO|ATTR_DATAINFO|ATTR_TRANSU)) == 0)
 //#define LNX_CHECK_ATTRIBUTES(a,x) assert(((a) & ~(x|ATTR_IGNORED|ATTR_WARNING)) == 0)
 
+// Generate cleanup code
+enum TERMCODE = 0;
 
 // C++ Language Features
 enum ANGLE_BRACKET_HACK = 0;       // >> means two template arglist closes
