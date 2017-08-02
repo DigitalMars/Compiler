@@ -72,6 +72,7 @@ alias MEM_PARF_STRDUP = mem_strdup;
 /*private*/ int      fixctorwalk(elem *e , elem *ec , Symbol *s_this);
 /*private*/ Match    cpp_builtinoperator(elem *e);
 /*private*/ match_t cpp_bool_match(elem *e);
+elem *cpp_buildterminator(Classsym *stag, Symbol *s_this, elem **ped);
 
 extern __gshared
 {
@@ -5260,6 +5261,7 @@ elem *cpp_buildterminator(Classsym *stag, Symbol *s_this, elem **ped)
     return e;
 }
 
+}
 
 /**************************
  * Add code to destructor function.
@@ -5453,7 +5455,6 @@ int cpp_needInvariant(type *tclass)
     return false;
 }
 
-}
 
 /**************************
  * Add code to invariant function.

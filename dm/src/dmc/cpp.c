@@ -5206,6 +5206,7 @@ elem *cpp_buildterminator(Classsym *stag, symbol *s_this, elem **ped)
  * Add code to destructor function.
  */
 
+#if 0
 void cpp_fixdestructor(symbol *s_dtor)
 {   elem *e,*e1,*e2;
     elem *ed;
@@ -5402,7 +5403,6 @@ int cpp_needInvariant(type *tclass)
  * This parallels cpp_fixdestructor().
  */
 
-#if 0
 void cpp_fixinvariant(symbol *s_inv)
 {
     elem *e,*e1,*e2;
