@@ -60,12 +60,12 @@ list_t cpp_stidtors;            /* auto destructors that go in _STIxxxx */
 #endif
 
 /* Special predefined functions */
-static symbol *s_vec_new,*s_vec_ctor,*s_vec_cpct,*s_vec_delete;
+/*static*/ symbol *s_vec_new,*s_vec_ctor,*s_vec_cpct,*s_vec_delete;
 symbol *s_vec_dtor;
 symbol *s_vec_invariant;
-static symbol *s_fatexit;
-static type *t_pctor;           /* type for pointer to constructor      */
-static type *t_pdtor;           // type for pointer to destructor (and invariant)
+/*static*/ symbol *s_fatexit;
+/*static*/ type *t_pctor;           /* type for pointer to constructor      */
+/*static*/ type *t_pdtor;           // type for pointer to destructor (and invariant)
 symbol *s_mptr;
 symbol *s_genthunk;
 
@@ -5402,6 +5402,7 @@ int cpp_needInvariant(type *tclass)
  * This parallels cpp_fixdestructor().
  */
 
+#if 0
 void cpp_fixinvariant(symbol *s_inv)
 {
     elem *e,*e1,*e2;
@@ -5665,7 +5666,6 @@ elem *Funcsym_invariant(Funcsym *s, int Fflag)
  * Return match level of built-in operator.
  */
 
-#if 0
 STATIC Match cpp_builtinoperator(elem *e)
 {
     Match m;

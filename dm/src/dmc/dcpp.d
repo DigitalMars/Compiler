@@ -5453,6 +5453,7 @@ int cpp_needInvariant(type *tclass)
     return false;
 }
 
+}
 
 /**************************
  * Add code to invariant function.
@@ -5691,6 +5692,7 @@ version (none)
     return e;
 }
 
+
 /**********************************
  * Decide if we need to add call to __invariant() to __in block.
  *      Fflag   Fxxx functions to exclude
@@ -5718,7 +5720,6 @@ elem *Funcsym_invariant(Funcsym *s, int Fflag)
     return null;
 }
 
-}
 
 extern __gshared char* cpp_pi;
 
