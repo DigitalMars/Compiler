@@ -2265,6 +2265,7 @@ symbol * cpp_lookformatch(symbol *sfunc,type *tthis,
  * of class X.
  */
 
+#if 0
 symbol *cpp_findopeq(Classsym *stag)
 {
     elem e;
@@ -2936,7 +2937,6 @@ int cpp_funcisfriend(symbol *sfunc,Classsym *sclass)
  *      0       is not a friend
  */
 
-#if 0
 int cpp_classisfriend(Classsym *s,Classsym *sclass)
 {   list_t tl;
 

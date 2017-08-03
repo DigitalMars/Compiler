@@ -77,6 +77,10 @@ elem *cpp_addr_vtable(Classsym *stag);
 Symbol * cpp_typecast(type *tclass,type *t2,Match *pmatch);
 int cpp_memberaccesst(Symbol *smember,Symbol *sfunc,Classsym *sclass);
 /*private*/ int cpp_memberaccessx(Symbol *smember,Symbol *sfunc,Classsym *sclass);
+Symbol * cpp_lookformatch(Symbol *sfunc,type *tthis,
+        list_t arglist,Match *pmatch,Symbol **pambig,match_t *pma,
+        param_t *ptali,uint flags,
+        Symbol *sfunc2, type *tthis2, Symbol *stagfriend = null);
 
 extern __gshared
 {
@@ -2332,6 +2336,7 @@ static if (LOG_LOOKFORMATCH)
     return s;
 }
 
+}
 
 /********************************
  * For a class X, find any X::operator=() that takes an argument
@@ -2365,6 +2370,7 @@ Symbol *cpp_findopeq(Classsym *stag)
     }
     return sopeq;
 }
+
 
 /************************************
  * Overload function, issue errors, check access rights.
@@ -2403,6 +2409,7 @@ Symbol *cpp_overload(
     }
     return sfunc;
 }
+
 
 /************************************
  * Determine which function sfunc really is.
@@ -2533,6 +2540,7 @@ L1:
     //printf("-cpp_findfunc()\n");
     return s;
 }
+
 
 /*********************************
  * Determine if two function types are exactly the same, as far
@@ -2882,6 +2890,7 @@ rete:
     return eret;
 }
 
+
 /**********************************
  * Look for a unique user-defined conversion of e to a non-void*.
  */
@@ -2999,7 +3008,6 @@ int cpp_funcisfriend(Symbol *sfunc,Classsym *sclass)
     return 0;
 }
 
-}
 
 /**********************************
  * Determine if class s is the same or a friend of sclass.
