@@ -73,6 +73,8 @@ alias MEM_PARF_STRDUP = mem_strdup;
 /*private*/ Match    cpp_builtinoperator(elem *e);
 /*private*/ match_t cpp_bool_match(elem *e);
 elem *cpp_buildterminator(Classsym *stag, Symbol *s_this, elem **ped);
+elem *cpp_addr_vtable(Classsym *stag);
+Symbol * cpp_typecast(type *tclass,type *t2,Match *pmatch);
 
 extern __gshared
 {
@@ -3570,6 +3572,8 @@ elem *cpp_istype(elem *e, type *t)
     return ec;
 }
 
+}
+
 /***********************************
  * Given the symbol for the this pointer, construct an elem
  *      *(this + _vptr) = &_vtbl
@@ -3795,6 +3799,7 @@ L2:
 
     return ec;
 }
+
 
 /***********************************
  * Determine offset of virtual function sfunc from the start of the
@@ -4485,6 +4490,8 @@ else
 }
     }
 
+version (SCPP)
+{
     // Do constructors (_STI)
     if (constructor_list)
     {   Symbol *sctor;
@@ -4494,6 +4501,8 @@ else
         Obj.staticctor(sctor,dtor,pstate.STinitseg);
     }
 }
+}
+
 
 /***************************
  * Build a function that executes all the elems in tor_list.
@@ -4573,6 +4582,7 @@ Symbol *cpp_getlocalsym(Symbol *sfunc,char *name)
     return null;
 }
 
+
 /********************************
  * Get pointer to "this" variable for function.
  */
@@ -4582,6 +4592,7 @@ Symbol *cpp_getthis(Symbol *sfunc)
     //dbg_printf("cpp_getthis(%p, '%s')\n",sfunc, sfunc.Sident);
     return cpp_getlocalsym(sfunc,cast(char*)cpp_name_this);
 }
+
 
 /**********************************
  * Find constructor X::X() for class stag.
@@ -4607,6 +4618,7 @@ Symbol *cpp_findctor0(Classsym *stag)
     }
     return sctor;
 }
+
 
 /***************************************
  * Construct list of pointers to virtual base classes to pass to the
@@ -4964,7 +4976,7 @@ fixret:
 
             b.BC = BCretexp;
             ex = b.Belem;
-            if (e)
+            if (ex)
             {   Symbol *s;
 
                 while (ex.Eoper == OPcomma)
@@ -4987,6 +4999,7 @@ fixret:
     cstate.CSpsymtab = psymtabsave;
     /*dbg_printf("cpp_fixconstructor ret\n");*/
 }
+
 
 /*private*/ int fixctorwalk(
         elem *e,        // the tree down which assignments to this are
@@ -5137,6 +5150,7 @@ int cpp_dtor(type *tclass)
 L2: return false;
 }
 
+
 /******************************************
  * Build an expression that destructs all the base classes
  * and members.
@@ -5261,7 +5275,6 @@ elem *cpp_buildterminator(Classsym *stag, Symbol *s_this, elem **ped)
     return e;
 }
 
-}
 
 /**************************
  * Add code to destructor function.

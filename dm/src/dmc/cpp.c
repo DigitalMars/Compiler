@@ -3506,6 +3506,7 @@ elem *cpp_istype(elem *e, type *t)
  *      NULL    no vptr assignment
  */
 
+#if 0
 STATIC elem * cpp_assignvptr(symbol *s_this,int ctor)
 {   symbol *svptr;
     Classsym *stag;
@@ -4931,6 +4932,7 @@ fixret:
     /*dbg_printf("cpp_fixconstructor ret\n");*/
 }
 
+
 STATIC int fixctorwalk(
         elem *e,        // the tree down which assignments to this are
         elem *ec,       // elem which is appended to assignments to this
@@ -5206,7 +5208,6 @@ elem *cpp_buildterminator(Classsym *stag, symbol *s_this, elem **ped)
  * Add code to destructor function.
  */
 
-#if 0
 void cpp_fixdestructor(symbol *s_dtor)
 {   elem *e,*e1,*e2;
     elem *ed;
