@@ -2936,6 +2936,7 @@ int cpp_funcisfriend(symbol *sfunc,Classsym *sclass)
  *      0       is not a friend
  */
 
+#if 0
 int cpp_classisfriend(Classsym *s,Classsym *sclass)
 {   list_t tl;
 
@@ -3343,6 +3344,7 @@ int cpp_memberaccesst(symbol *smember,symbol *sfunc,Classsym *sclass)
     return result;
 }
 
+
 void cpp_memberaccess(symbol *smember,symbol *sfunc,Classsym *sclass)
 {
     if (!cpp_memberaccesst(smember, sfunc, sclass))
@@ -3506,7 +3508,6 @@ elem *cpp_istype(elem *e, type *t)
  *      NULL    no vptr assignment
  */
 
-#if 0
 STATIC elem * cpp_assignvptr(symbol *s_this,int ctor)
 {   symbol *svptr;
     Classsym *stag;

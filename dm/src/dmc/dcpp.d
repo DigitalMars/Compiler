@@ -75,6 +75,8 @@ alias MEM_PARF_STRDUP = mem_strdup;
 elem *cpp_buildterminator(Classsym *stag, Symbol *s_this, elem **ped);
 elem *cpp_addr_vtable(Classsym *stag);
 Symbol * cpp_typecast(type *tclass,type *t2,Match *pmatch);
+int cpp_memberaccesst(Symbol *smember,Symbol *sfunc,Classsym *sclass);
+/*private*/ int cpp_memberaccessx(Symbol *smember,Symbol *sfunc,Classsym *sclass);
 
 extern __gshared
 {
@@ -2997,6 +2999,8 @@ int cpp_funcisfriend(Symbol *sfunc,Classsym *sclass)
     return 0;
 }
 
+}
+
 /**********************************
  * Determine if class s is the same or a friend of sclass.
  * Returns:
@@ -3046,6 +3050,7 @@ Symbol *cpp_findmember(Classsym *sclass,const(char)* sident,uint flag)
     //dbg_printf("cpp_findmember(%s::%s)\n",sclass.Sident,sident);
     return cpp_findmemberx(sclass,sident,flag,&svirtual);
 }
+
 
 /************************************************
  * Same as cpp_findmember(), but look at enclosing class scopes.
@@ -3271,6 +3276,7 @@ int cpp_findaccess(Symbol *smember,Classsym *sclass)
     return access_ret;
 }
 
+
 /**********************************
  * Determine if we have access to member smember.
  * Assume presence of smember and ambiguity checking are already done.
@@ -3335,6 +3341,7 @@ static if (LOG_MEMBERACCESS)
     }
     return 0;
 }
+
 
 /*************************
  * Returns:
@@ -3419,6 +3426,7 @@ static if (LOG_MEMBERACCESS)
     return result;
 }
 
+
 void cpp_memberaccess(Symbol *smember,Symbol *sfunc,Classsym *sclass)
 {
     if (!cpp_memberaccesst(smember, sfunc, sclass))
@@ -3476,6 +3484,7 @@ else
     return s;
 }
 
+
 /***********************************
  * Given a pointer to a class, adjust the type of the pointer to
  * be a pointer to another class.
@@ -3523,6 +3532,7 @@ elem *cpp_addr_vtable(Classsym *stag)
     ev = el_unat(OPaddr,svptr.Stype,ev);
     return ev;
 }
+
 
 /***********************************
  * Return boolean expression if e is of type t.
@@ -3572,7 +3582,6 @@ elem *cpp_istype(elem *e, type *t)
     return ec;
 }
 
-}
 
 /***********************************
  * Given the symbol for the this pointer, construct an elem
