@@ -85,7 +85,7 @@ int checkSequence(Symbol *s);
 /*private*/ int match_cmp(Match *m1, Match *m2, int nargs);
 match_t cpp_matchtypes(elem *e1,type *t2, Match *pm = null);
 
-extern __gshared
+__gshared
 {
 /* List of elems which are the constructor and destructor calls to make */
 list_t constructor_list;         // for _STIxxxx
@@ -108,12 +108,11 @@ extern OPTABLE[57] oparray;
 
 /* Names for special variables  */
 
-char[7] cpp_name_free;//        = "__free";
-char[5] cpp_name_this;//        = "this";
-char[10] cpp_name_none;//       = "__unnamed";
-char[12] cpp_name_initvbases;// = "$initVBases";
-char[12] cpp_name_invariant;//  = "__invariant";
-
+char[7] cpp_name_free        = "__free";
+char[5] cpp_name_this        = "this";
+char[10] cpp_name_none       = "__unnamed";
+char[12] cpp_name_initvbases = "$initVBases";
+char[12] cpp_name_invariant  = "__invariant";
 
 /***********************************
  * Array of linked lists of function symbols. Each function
@@ -124,7 +123,6 @@ Symbol*[OPMAX] cpp_operfuncs;
 
 /* Bit array for if there are namespace operator overloads */
 uint[(OPMAX + 31) / 32] cpp_operfuncs_nspace;
-
 }
 
 /*private*/ __gshared int cpp_usertypecmp_nest;
@@ -132,6 +130,7 @@ uint[(OPMAX + 31) / 32] cpp_operfuncs_nspace;
 
 version (none)
 {
+}
 /****************************************
  * Check to see if s is 'visible' at this point or not.
  * Returns:
@@ -234,6 +233,7 @@ Lret:
     return result;
 }
 
+
 /***************************************
  * Compare two match arrays.
  * Returns:
@@ -289,6 +289,7 @@ version (none)
     //printf("match_cmp: result = %d\n", result);
     return result;
 }
+
 
 /***************************************
  * Translate identifier for symbol to pretty-printed string.
@@ -427,6 +428,7 @@ char *cpp_prettyident(Symbol *s)
     return b;
 }
 
+
 /**********************************
  * Make sure predefined symbols are defined.
  */
@@ -548,6 +550,7 @@ elem *cpp_new(int global,Symbol *sfunc,elem *esize,list_t arglist,type *tret)
     return e;
 }
 
+
 /************************************
  * Call operator delete(void *p, size_t size)
  * Input:
@@ -606,7 +609,6 @@ elem *cpp_delete(int global,Symbol *sfunc,elem *eptr,elem *esize)
     e = xfunccall(el_var(s),null,null,arglist);
     return e;
 }
-
 
 
 /*********************************
@@ -882,7 +884,6 @@ Lret:
     return result;
 }
 
-}
 
 /*********************************
  * Determine matching level of elem e1 to type t2.
@@ -5763,7 +5764,7 @@ elem *Funcsym_invariant(Funcsym *s, int Fflag)
 }
 
 
-extern __gshared char* cpp_pi;
+//extern __gshared char* cpp_pi;
 
 /******************************************
  * C++98 13.6

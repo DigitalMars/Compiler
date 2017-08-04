@@ -35,6 +35,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+#if 0
 #undef STATIC
 #define STATIC
 
@@ -88,6 +89,7 @@ symbol *cpp_operfuncs[OPMAX];
 
 /* Bit array for if there are namespace operator overloads */
 unsigned cpp_operfuncs_nspace[(OPMAX + 31) / 32];
+
 
 /****************************************
  * Check to see if s is 'visible' at this point or not.
@@ -450,7 +452,6 @@ void cpp_getpredefined()
  * Output:
  *      arglist is free'd
  */
-
 
 elem *cpp_new(int global,symbol *sfunc,elem *esize,list_t arglist,type *tret)
 {   symbol *snew;
@@ -843,7 +844,7 @@ Lret:
  *      match level (as a byte)
  */
 
-match_t cpp_matchtypesx(elem *e1,type *t2, Match *pm)
+match_t cpp_matchtypes(elem *e1,type *t2, Match *pm)
 {   match_t match;
     Match m;
     type *t1;
@@ -1203,7 +1204,6 @@ yesmatch:
  *      !=0     match level
  */
 
-#if 0
 int cpp_cast(elem **pe1,type *t2,int doit)
 {   elem *e1;
     type *t1;
