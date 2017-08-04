@@ -81,6 +81,9 @@ Symbol * cpp_lookformatch(Symbol *sfunc,type *tthis,
         list_t arglist,Match *pmatch,Symbol **pambig,match_t *pma,
         param_t *ptali,uint flags,
         Symbol *sfunc2, type *tthis2, Symbol *stagfriend = null);
+int checkSequence(Symbol *s);
+/*private*/ int match_cmp(Match *m1, Match *m2, int nargs);
+match_t cpp_matchtypes(elem *e1,type *t2, Match *pm = null);
 
 extern __gshared
 {
@@ -123,6 +126,8 @@ Symbol*[OPMAX] cpp_operfuncs;
 uint[(OPMAX + 31) / 32] cpp_operfuncs_nspace;
 
 }
+
+/*private*/ __gshared int cpp_usertypecmp_nest;
 
 
 version (none)
@@ -800,14 +805,13 @@ version (none)
 }
 }
 
+
 /*********************************
  * Determine if two types match. Try to get them to match using
  * user-defined conversions.
  * Returns:
  *      TMATCHxxxxx match level after user-defined conversion
  */
-
-/*private*/ __gshared int cpp_usertypecmp_nest;
 
 /*private*/ Match cpp_usertypecmp(elem *e1,type *t2)
 {   type *t1 = e1.ET;
@@ -878,6 +882,8 @@ Lret:
     return result;
 }
 
+}
+
 /*********************************
  * Determine matching level of elem e1 to type t2.
  * Returns:
@@ -885,7 +891,8 @@ Lret:
  */
 
 match_t cpp_matchtypes(elem *e1,type *t2, Match *pm = null)
-{   match_t match;
+{
+    match_t match;
     Match m;
     type *t1;
     tym_t tym1,tym2;
@@ -1047,7 +1054,7 @@ version (none)   // this crashes cpp2.cpp, don't know why.
     /* Look for exact match     */
     match = TMATCHexact;
     /*dbg_printf("result is %d\n",cpp_typecmp(t1,t2,2));*/
-    if (cpp_typecmp(t1,t2,2))
+    if (cpp_typecmp(t1,t2,2,null,null))
     {
 static if (LOG_MATCHTYPES)
 {
@@ -1396,6 +1403,7 @@ static if (LOG_CAST)
     return matchconv > matchctor ? matchconv : matchctor;
 }
 
+
 /***************************
  * Create a new variable of type tclass and call constructor on it.
  */
@@ -1432,6 +1440,7 @@ type_debug(s.Stype);
     }
     return el_unat(OPind,tclass,ec);
 }
+
 
 /*********************************
  * Run through elem tree, and allocate temps for deferred allocations.
@@ -1484,6 +1493,7 @@ void cpp_alloctmps(elem *e)
 
 }
 
+
 /*****************************
  * Determine if *pe is a struct that can be cast to a pointer.
  * If so, do it.
@@ -1513,6 +1523,7 @@ int cpp_casttoptr(elem **pe)
     }
     return result;
 }
+
 
 /*****************************
  * If e is a struct, determine if there is a user-defined cast
@@ -1593,6 +1604,7 @@ elem *cpp_bool(elem *e, int flags)
     }
     return m;
 }
+
 
 /*************************************
  * Determine if there is a cast function to convert from tclass to t2.
@@ -2336,7 +2348,6 @@ static if (LOG_LOOKFORMATCH)
     return s;
 }
 
-}
 
 /********************************
  * For a class X, find any X::operator=() that takes an argument

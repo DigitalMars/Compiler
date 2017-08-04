@@ -644,6 +644,12 @@ version (SCPP)
     Match template_deduce_ptal(type *tthis, Symbol *sfunc, param_t *ptali,
         Match *ma, int flags, param_t *pl, param_t **pptal);
 }
+version (HTOD)
+{
+    Match template_matchtype(type *tp,type *te,elem *ee,param_t *ptpl, param_t *ptal, int flags);
+    Match template_deduce_ptal(type *tthis, Symbol *sfunc, param_t *ptali,
+        Match *ma, int flags, param_t *pl, param_t **pptal);
+}
 void template_function_verify(Symbol *sfunc, list_t arglist, param_t *ptali, int matchStage);
 int template_arglst_match(param_t *p1, param_t *p2);
 type * template_tyident(type *t,param_t *ptal,param_t *ptpl, int flag);

@@ -96,7 +96,7 @@ unsigned cpp_operfuncs_nspace[(OPMAX + 31) / 32];
  *      1       visible
  */
 
-inline int checkSequence(Symbol *s)
+/*inline*/ int checkSequence(Symbol *s)
 {
     if (s->Ssequence > pstate.STmaxsequence &&
         config.flags4 & CFG4dependent &&
@@ -765,7 +765,7 @@ int cpp_typecmp(type *t1,type *t2,int flags, param_t *p1, param_t *p2)
  *      TMATCHxxxxx match level after user-defined conversion
  */
 
-static int cpp_usertypecmp_nest;
+/*static*/ int cpp_usertypecmp_nest;
 
 STATIC Match cpp_usertypecmp(elem *e1,type *t2)
 {   type *t1 = e1->ET;
@@ -836,13 +836,14 @@ Lret:
     return result;
 }
 
+
 /*********************************
  * Determine matching level of elem e1 to type t2.
  * Returns:
  *      match level (as a byte)
  */
 
-match_t cpp_matchtypes(elem *e1,type *t2, Match *pm)
+match_t cpp_matchtypesx(elem *e1,type *t2, Match *pm)
 {   match_t match;
     Match m;
     type *t1;
@@ -1202,6 +1203,7 @@ yesmatch:
  *      !=0     match level
  */
 
+#if 0
 int cpp_cast(elem **pe1,type *t2,int doit)
 {   elem *e1;
     type *t1;
@@ -1911,7 +1913,6 @@ nomatch:
 }
 
 
-
 /*************************
  * Look for function symbol matching arglist.
  * The matched function must be unique, or a syntax error is generated.
@@ -2265,7 +2266,6 @@ symbol * cpp_lookformatch(symbol *sfunc,type *tthis,
  * of class X.
  */
 
-#if 0
 symbol *cpp_findopeq(Classsym *stag)
 {
     elem e;
