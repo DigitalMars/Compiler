@@ -59,31 +59,6 @@ alias MEM_PARF_REALLOC = mem_realloc;
 alias MEM_PARF_FREE = mem_free;
 alias MEM_PARF_STRDUP = mem_strdup;
 
-/*private*/ block *  block_new(int bc);
-/*private*/ Match    cpp_usertypecmp(elem *e1 , type *t2);
-/*private*/ Match    cpp_matchfuncs(type *tthis,list_t arglist,Symbol *sfunc,Match *ma,int *puseDefault);
-/*private*/ Symbol * cpp_overloadfunc(Symbol *sfunc,type *tthis,
-        list_t arglist,match_t *pmatch,Symbol **pambig,param_t *ptal, uint flags);
-/*private*/ elem *   cpp_assignvptr(Symbol *s_this, int ctor);
-/*private*/ elem *   cpp_assignvbptr(Symbol *s_this);
-/*private*/ Symbol * cpp_build_STX(char *name , list_t tor_list);
-/*private*/ list_t   cpp_meminitializer(list_t bl , Symbol *s);
-/*private*/ list_t   cpp_pvirtbase(Classsym *stag , Classsym *sbase);
-/*private*/ int      fixctorwalk(elem *e , elem *ec , Symbol *s_this);
-/*private*/ Match    cpp_builtinoperator(elem *e);
-/*private*/ match_t cpp_bool_match(elem *e);
-elem *cpp_buildterminator(Classsym *stag, Symbol *s_this, elem **ped);
-elem *cpp_addr_vtable(Classsym *stag);
-Symbol * cpp_typecast(type *tclass,type *t2,Match *pmatch);
-int cpp_memberaccesst(Symbol *smember,Symbol *sfunc,Classsym *sclass);
-/*private*/ int cpp_memberaccessx(Symbol *smember,Symbol *sfunc,Classsym *sclass);
-Symbol * cpp_lookformatch(Symbol *sfunc,type *tthis,
-        list_t arglist,Match *pmatch,Symbol **pambig,match_t *pma,
-        param_t *ptali,uint flags,
-        Symbol *sfunc2, type *tthis2, Symbol *stagfriend = null);
-int checkSequence(Symbol *s);
-/*private*/ int match_cmp(Match *m1, Match *m2, int nargs);
-match_t cpp_matchtypes(elem *e1,type *t2, Match *pm = null);
 
 __gshared
 {
@@ -94,12 +69,12 @@ list_t destructor_list;          // for _STDxxxx
 list_t cpp_stidtors;            /* auto destructors that go in _STIxxxx */
 
 /* Special predefined functions */
-/*private*/ Symbol* s_vec_new,s_vec_ctor,s_vec_cpct,s_vec_delete;
+private Symbol* s_vec_new,s_vec_ctor,s_vec_cpct,s_vec_delete;
 Symbol *s_vec_dtor;
 Symbol *s_vec_invariant;
-/*private*/ Symbol *s_fatexit;
-/*private*/ type *t_pctor;           /* type for pointer to constructor      */
-/*private*/ type *t_pdtor;           // type for pointer to destructor (and invariant)
+private Symbol *s_fatexit;
+private type *t_pctor;           /* type for pointer to constructor      */
+private type *t_pdtor;           // type for pointer to destructor (and invariant)
 Symbol *s_mptr;
 Symbol *s_genthunk;
 
@@ -125,12 +100,9 @@ Symbol*[OPMAX] cpp_operfuncs;
 uint[(OPMAX + 31) / 32] cpp_operfuncs_nspace;
 }
 
-/*private*/ __gshared int cpp_usertypecmp_nest;
+private __gshared int cpp_usertypecmp_nest;
 
 
-version (none)
-{
-}
 /****************************************
  * Check to see if s is 'visible' at this point or not.
  * Returns:
@@ -242,7 +214,7 @@ Lret:
  *      > 0     1 is a better match than 2
  */
 
-/*private*/ int match_cmp(Match *m1, Match *m2, int nargs)
+private int match_cmp(Match *m1, Match *m2, int nargs)
 {   int result;
 
 version (none)
@@ -295,7 +267,7 @@ version (none)
  * Translate identifier for symbol to pretty-printed string.
  */
 
-/*private*/ __gshared
+private __gshared
 {
     char *cpp_pi;
     size_t cpp_pi_max;
@@ -310,7 +282,7 @@ void pi_ensure(size_t len)
     }
 }
 
-/*private*/ char *pi_cpy(const(char)* s2)
+private char *pi_cpy(const(char)* s2)
 {   size_t len;
 
     len = strlen(s2) + 1;
@@ -318,7 +290,7 @@ void pi_ensure(size_t len)
     return cast(char *)memcpy(cpp_pi,s2,len);
 }
 
-/*private*/ char *pi_cat(const(char)* s2)
+private char *pi_cat(const(char)* s2)
 {   size_t len1,len2;
 
     if (!cpp_pi)
@@ -420,7 +392,7 @@ char *cpp_prettyident(Symbol *s)
 /***************************
  */
 
-/*private*/ block * block_new(int bc)
+private block * block_new(int bc)
 {   block *b;
 
     b = block_calloc();
@@ -815,7 +787,7 @@ version (none)
  *      TMATCHxxxxx match level after user-defined conversion
  */
 
-/*private*/ Match cpp_usertypecmp(elem *e1,type *t2)
+private Match cpp_usertypecmp(elem *e1,type *t2)
 {   type *t1 = e1.ET;
     type *t2class;
     Match result;
@@ -1447,8 +1419,8 @@ type_debug(s.Stype);
  * Run through elem tree, and allocate temps for deferred allocations.
  */
 
-/*private*/ void cpp_alloctmp_walk(elem *e);
-/*private*/ __gshared elem *cpp_alloctmp_e;
+private void cpp_alloctmp_walk(elem *e);
+private __gshared elem *cpp_alloctmp_e;
 
 void cpp_alloctmps(elem *e)
 {
@@ -1456,7 +1428,7 @@ void cpp_alloctmps(elem *e)
     cpp_alloctmp_walk(e);
 }
 
-/*private*/ void cpp_alloctmp_walk(elem *e)
+private void cpp_alloctmp_walk(elem *e)
 {   Symbol *s;
 
     while (1)
@@ -1535,7 +1507,7 @@ int cpp_casttoptr(elem **pe)
  *              0       to any scalar
  */
 
-/*private*/ __gshared type * *[16] cpp_typ =
+private __gshared type * *[16] cpp_typ =
 [   &tspcvoid,&tstypes[TYbool],&tstypes[TYchar],&tstypes[TYschar],&tstypes[TYuchar],
     &tstypes[TYshort],&tstypes[TYushort],&tstypes[TYwchar_t],&tstypes[TYint],&tstypes[TYuint],&tstypes[TYlong],&tstypes[TYulong],
     &tstypes[TYdchar],
@@ -1586,7 +1558,7 @@ elem *cpp_bool(elem *e, int flags)
     return e;
 }
 
-/*private*/ match_t cpp_bool_match(elem *e)
+private match_t cpp_bool_match(elem *e)
 {
     match_t m = TMATCHexact;
 
@@ -1772,7 +1744,7 @@ static if (LOG_TYPECAST)
  *      != 0    worst match level
  */
 
-/*private*/ Match cpp_matchfuncs(type *tthis,list_t arglist,Symbol *sfunc,Match *ma, int *puseDefault)
+private Match cpp_matchfuncs(type *tthis,list_t arglist,Symbol *sfunc,Match *ma, int *puseDefault)
 {   list_t al;
     param_t *p;
     type *functype;
@@ -2449,7 +2421,7 @@ Symbol *cpp_overload(
  *                      null
  */
 
-/*private*/ Symbol * cpp_overloadfunc(Symbol *sfunc,type *tthis,
+private Symbol * cpp_overloadfunc(Symbol *sfunc,type *tthis,
         list_t arglist,match_t *pmatch,Symbol **pambig,param_t *ptal, uint flags)
 {   Symbol *s;
     match_t match;
@@ -3061,7 +3033,7 @@ int cpp_classisfriend(Classsym *s,Classsym *sclass)
  *      null    member not found
  */
 
-/*private*/ Symbol * cpp_findmemberx (Classsym *sclass,const(char)* sident,uint flag,Symbol **psvirtual);
+private Symbol * cpp_findmemberx (Classsym *sclass,const(char)* sident,uint flag,Symbol **psvirtual);
 
 Symbol *cpp_findmember(Classsym *sclass,const(char)* sident,uint flag)
 {   Symbol *svirtual;
@@ -3084,7 +3056,7 @@ Symbol *cpp_findmember(Classsym *sclass,const(char)* sident,uint flag)
  *      null    member not found
  */
 
-/*private*/ void *cpp_findmember_nest_fp(void *arg, const(char)* id)
+private void *cpp_findmember_nest_fp(void *arg, const(char)* id)
 {
     return cpp_findmember_nest(cast(Classsym **)arg, id, 0);
 }
@@ -3115,7 +3087,7 @@ Symbol *cpp_findmember_nest(Classsym **psclass,const(char)* sident,uint flag)
     return smember;
 }
 
-/*private*/ Symbol * cpp_findmemberx(Classsym *sclass,const(char)* sident,
+private Symbol * cpp_findmemberx(Classsym *sclass,const(char)* sident,
         uint flag,Symbol **psvirtual)
 {   Symbol *s;
     struct_t *st;
@@ -3309,7 +3281,7 @@ int cpp_findaccess(Symbol *smember,Classsym *sclass)
 enum LOG_MEMBERACCESS = 0;
 
 /* Helper function for cpp_memberaccess()       */
-/*private*/ int cpp_memberaccessx(Symbol *smember,Symbol *sfunc,Classsym *sclass)
+private int cpp_memberaccessx(Symbol *smember,Symbol *sfunc,Classsym *sclass)
 {
     struct_t *st;
 
@@ -3615,7 +3587,7 @@ elem *cpp_istype(elem *e, type *t)
  *      null    no vptr assignment
  */
 
-/*private*/ elem * cpp_assignvptr(Symbol *s_this,int ctor)
+private elem * cpp_assignvptr(Symbol *s_this,int ctor)
 {   Symbol *svptr;
     Classsym *stag;
     elem* emos,ev;
@@ -3758,7 +3730,7 @@ L2:
  *      null    no vbptr assignment
  */
 
-/*private*/ elem * cpp_assignvbptr(Symbol *s_this)
+private elem * cpp_assignvbptr(Symbol *s_this)
 {   Symbol *svptr;
     Classsym *stag;
     elem* emos,ev;
@@ -4539,7 +4511,7 @@ version (SCPP)
  *      *name           what to name the function
  */
 
-/*private*/ Symbol * cpp_build_STX(char *name,list_t tor_list)
+private Symbol * cpp_build_STX(char *name,list_t tor_list)
 {
     Symbol *s;
     elem *e;
@@ -4654,7 +4626,7 @@ Symbol *cpp_findctor0(Classsym *stag)
  * constructor for the base class sbase.
  */
 
-/*private*/ list_t cpp_pvirtbase(Classsym *stag,Classsym *sbase)
+private list_t cpp_pvirtbase(Classsym *stag,Classsym *sbase)
 {
     list_t pvirtbase = null;
     if (sbase.Sstruct.Svirtbase)
@@ -4668,7 +4640,7 @@ Symbol *cpp_findctor0(Classsym *stag)
  * Return null if none found.
  */
 
-/*private*/ list_t cpp_meminitializer(list_t bl,Symbol *s)
+private list_t cpp_meminitializer(list_t bl,Symbol *s)
 {
     meminit_t *m;
     list_t arglist;
@@ -5030,7 +5002,7 @@ fixret:
 }
 
 
-/*private*/ int fixctorwalk(
+private int fixctorwalk(
         elem *e,        // the tree down which assignments to this are
         elem *ec,       // elem which is appended to assignments to this
         Symbol *s_this)
@@ -5771,7 +5743,7 @@ elem *Funcsym_invariant(Funcsym *s, int Fflag)
  * Return match level of built-in operator.
  */
 
-/*private*/ Match cpp_builtinoperator(elem *e)
+private Match cpp_builtinoperator(elem *e)
 {
     Match m;
     match_t m1 = TMATCHnomatch;

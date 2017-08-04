@@ -169,7 +169,7 @@ debppnd:
 
 #########################################
 
-OBJ1a=blklst.obj blockopt.obj cpp.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
+OBJ1a=blklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
@@ -301,7 +301,7 @@ FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
         ini.c errmsgs2.c tdbx.c util.c \
         iasm.c err.c blklst.c \
         msgsx.c template.c scope.c \
-        trace.c file.c cpp.c \
+        trace.c file.c \
         exp2.c msc.c ph.c token.c \
         pragma.c nwc.c getcmd.c tk.c \
         castab.c htod.c speller.c
@@ -551,7 +551,6 @@ rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 symbol.obj : $(DEP) $(symbol.dep) symbol.c
 cg87.obj : $(DEP) $(cg87.dep) cg87.c
 cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
-cpp.obj : $(DEP) $(cpp.dep) cpp.c
 file.obj : $(DEP) $(file.dep) file.c
 outbuf.obj : $(DEP) $(outbuf.dep) outbuf.c
 newman.obj : $(DEP) $(newman.dep) newman.c
