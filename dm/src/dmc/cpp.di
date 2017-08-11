@@ -86,6 +86,11 @@ version (SCPP)
     match_t cpp_matchtypes(elem *e1,type *t2, Match *m = null);
     Symbol *cpp_typecast(type *tclass , type *t2 , Match *pmatch);
 }
+version (HTOD)
+{
+    match_t cpp_matchtypes(elem *e1,type *t2, Match *m = null);
+    Symbol *cpp_typecast(type *tclass , type *t2 , Match *pmatch);
+}
 int cpp_typecmp(type *t1, type *t2, int relax, param_t *p1 = null, param_t *p2 = null);
 char *cpp_typetostring(type *t, char *prefix);
 int cpp_cast(elem **pe1, type *t2, int doit);
@@ -133,6 +138,10 @@ Symbol *mangle_tbl(int,type *,Classsym *,baseclass_t *);
 void cpp_alloctmps(elem *e);
 
 version (SCPP)
+    Symbol *cpp_lookformatch(Symbol *sfunc, type *tthis, list_t arglist,
+                Match *pmatch, Symbol **pambig, match_t *pma, param_t *ptal,
+                uint flags, Symbol *sfunc2, type *tthis2, Symbol *stagfriend = null);
+version (HTOD)
     Symbol *cpp_lookformatch(Symbol *sfunc, type *tthis, list_t arglist,
                 Match *pmatch, Symbol **pambig, match_t *pma, param_t *ptal,
                 uint flags, Symbol *sfunc2, type *tthis2, Symbol *stagfriend = null);

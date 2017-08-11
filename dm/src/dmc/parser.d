@@ -339,7 +339,7 @@ uint egchar2();
 uint egchar();
 
 void insblk(char *text,int typ,list_t aargs,int nargs,macro_t *m);
-void insblk2(char *text,int typ);
+void insblk2(ubyte *text,int typ);
 
 version (__GNUC__)
 {

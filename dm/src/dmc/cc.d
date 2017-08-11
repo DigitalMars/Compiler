@@ -162,7 +162,10 @@ else
 alias Funcsym = Symbol;
 //#if !MARS
 //typedef struct MACRO macro_t;
-struct blklst;
+version (MARS)
+    struct blklst;
+else
+    import parser : blklst;
 //#endif
 //typedef list_t symlist_t;       /* list of pointers to Symbols          */
 alias symlist_t = list_t;

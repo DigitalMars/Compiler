@@ -88,6 +88,7 @@ struct TYPE
         Classsym* Ttag;     // TYstruct,TYmemptr: tag symbol
                             // TYenum,TYvtshape: tag symbol
         char* Tident;       // TYident: identifier
+        type* Talternate;   // C++: typtr: type of parameter before converting
         type* Tkey;         // typtr: key type for associative arrays
     }
 
