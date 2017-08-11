@@ -83,6 +83,10 @@ void template_explicit_instantiation();
 void template_instantiate_classmember(Symbol *st, TMF *tmf);
 void template_instantiate_classmember(Symbol *st, Symbol *si);
 
+int template_deduce_ptal2(param_t *ptpl, match_t matchStage,
+        int flags, param_t *pproto, param_t *pl, param_t **pptal);
+int template_class_leastAsSpecialized(Symbol *st1, Symbol *st2);
+
 extern __gshared
 {
 symlist_t template_ftlist;              // list of template function symbols
@@ -5641,6 +5645,7 @@ Lless:
     //printf("\tless specialized\n");
     return 0;
 }
+}
 
 /*********************************************************
  * Deduce template-argument-list for class templates.
@@ -6338,8 +6343,6 @@ void tmnf_dehydrate(TMNF **ptmnf)
         symbol_dehydrate(cast(Symbol **)&tmnf.stag);
     }
 }
-}
-
 }
 
 }

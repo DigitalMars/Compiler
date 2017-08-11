@@ -59,7 +59,6 @@ symbol **template_class_list_p;
 
 /*INITIALIZED_STATIC_DEF*/ list_t template_xlist;
 
-#if 1
 /**************************************
  * Parse command line switches for templates.
  *      -XI...          Instantiate template ...
@@ -5588,6 +5587,7 @@ Lless:
  *      0       no match
  */
 
+#if 0
 int template_deduce_ptal2(param_t *ptpl, match_t matchStage,
         int flags, param_t *pproto, param_t *pl, param_t **pptal)
 {
