@@ -221,7 +221,7 @@ struct blklst
     blflags_t       BLflags;    // input block list flags
     bltyp_t         BLtyp;      // type of block (BLxxxx)
 
-version (IMPLIED_PRAGMA_ONCE)
+static if (IMPLIED_PRAGMA_ONCE)
 {
     uint ifnidx;                // index into ifn[] of IF_FIRSTIF
 }
@@ -232,7 +232,7 @@ version (IMPLIED_PRAGMA_ONCE)
     int         BLtextmax;      /* size of text buffer                  */
     char       *BLbuf;          // BLfile: file buffer
     char       *BLbufp;         // BLfile: next position in file buffer
-version (IMPLIED_PRAGMA_ONCE)
+static if (IMPLIED_PRAGMA_ONCE)
 {
     char        *BLinc_once_id; // macro identifier for #include guard
 }
@@ -249,7 +249,7 @@ struct BlklstSave
     ubyte BSxc;
 }
 
-version (IMPLIED_PRAGMA_ONCE)
+static if (IMPLIED_PRAGMA_ONCE)
 {
     extern __gshared int TokenCnt;
 }

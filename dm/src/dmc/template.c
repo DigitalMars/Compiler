@@ -59,6 +59,7 @@ symbol **template_class_list_p;
 
 /*INITIALIZED_STATIC_DEF*/ list_t template_xlist;
 
+#if 0
 /**************************************
  * Parse command line switches for templates.
  *      -XI...          Instantiate template ...
@@ -1877,7 +1878,17 @@ type * template_tyident(type *t,param_t *ptal,param_t *ptpl, int flag)
                     break;
 
                 default:
-                    assert(0);
+                    /* CPP 14.8.2-2 "type must be class type in qualified name"
+                     * template<class T> int f(typename T::B*) {}
+                     * int main() {
+                     *   int i = f<int>(0);
+                     * }
+                     */
+                    if (!flag)
+                        return NULL;
+                    cpperr(EM_must_be_class_type, t->Tident);
+                    t = tstypes[TYint];
+                    break;
 
                 case TYstruct:
                 {   Classsym *stag = tn->Ttag;
@@ -2162,6 +2173,9 @@ STATIC symbol * template_define(Classsym *stag, symbol *sprimary, enum_TK tk, in
     unsigned sct;
 
     //dbg_printf("template_define('%s')\n",vident);
+//printf("C blklst: %x\n", sizeof(blklst));
+//printf("C Srcpos: %x\n", sizeof(Srcpos));
+//printf("C BLsrcpos: %x\n", offsetof(blklst, BLsrcpos));
     if (stag || sprimary)
     {   // Template will be a member of stag
         s = symbol_calloc(vident);
@@ -5587,7 +5601,6 @@ Lless:
  *      0       no match
  */
 
-#if 0
 int template_deduce_ptal2(param_t *ptpl, match_t matchStage,
         int flags, param_t *pproto, param_t *pl, param_t **pptal)
 {

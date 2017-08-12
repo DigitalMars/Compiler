@@ -86,6 +86,8 @@ void template_instantiate_classmember(Symbol *st, Symbol *si);
 int template_deduce_ptal2(param_t *ptpl, match_t matchStage,
         int flags, param_t *pproto, param_t *pl, param_t **pptal);
 int template_class_leastAsSpecialized(Symbol *st1, Symbol *st2);
+/*private*/ int template_typedependent( type *t );
+Classsym *template_inscope(Symbol *s);
 
 extern __gshared
 {
@@ -100,6 +102,7 @@ type* tserr(); // { return tstypes[TYint]; }
 
 version (none)
 {
+}
 
 /**************************************
  * Parse command line switches for templates.
@@ -1955,7 +1958,17 @@ type * template_tyident(type *t,param_t *ptal,param_t *ptpl, int flag)
                     break;
 
                 default:
-                    assert(0);
+                    /* CPP 14.8.2-2 "type must be class type in qualified name"
+                     * template<class T> int f(typename T::B*) {}
+                     * int main() {
+                     *   int i = f<int>(0);
+                     * }
+                     */
+                    if (!flag)
+                        return null;
+                    cpperr(EM_must_be_class_type, t.Tident);
+                    t = tstypes[TYint];
+                    break;
 
                 case TYstruct:
                 {   Classsym *stag = tn.Ttag;
@@ -2073,7 +2086,9 @@ type * template_tyident(type *t,param_t *ptal,param_t *ptpl, int flag)
                         //tc.Tident = cast(char *)MEM_PH_STRDUP(ttag.Tident);
                     }
                     else
+                    {
                         assert(0);
+                    }
                 }
                 break;
 
@@ -2242,6 +2257,9 @@ static if (0)
     uint sct;
 
     //dbg_printf("template_define('%s')\n",&vident[0]);
+//printf("D blklst: %x\n", blklst.sizeof);
+//printf("D Srcpos: %x\n", Srcpos.sizeof);
+//printf("D BLsrcpos: %x\n", blklst.BLsrcpos.offsetof);
     if (stag || sprimary)
     {   // Template will be a member of stag
         s = symbol_calloc(vident);
@@ -5644,7 +5662,6 @@ Lless:
     param_free(&ptal);
     //printf("\tless specialized\n");
     return 0;
-}
 }
 
 /*********************************************************

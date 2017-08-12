@@ -3028,6 +3028,11 @@ struct Msgtable msgtable[] =
    { "explicit_following",
         "specialization for '%s' must appear before use",
    },
+   /* C++98 14.8.2-2
+    */
+   { "must_be_class_type",
+        "type '%s' must be class type in qualified name",
+   },
    /* C++98 15.4-1 "An exception-specification shall not appear in a
     * typedef declaration."
     */
