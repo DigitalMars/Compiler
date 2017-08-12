@@ -173,7 +173,7 @@ OBJ1a=blklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
-OBJ1e=dstruct.obj symbol.obj dtemplate.obj template.obj tk.obj token.obj type.obj dt.obj dth.obj
+OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj token.obj type.obj dt.obj dth.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj dlist.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
@@ -300,7 +300,7 @@ FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	\
         ini.c errmsgs2.c tdbx.c util.c \
         iasm.c err.c blklst.c \
-        msgsx.c template.c scope.c \
+        msgsx.c scope.c \
         trace.c file.c \
         exp2.c msc.c ph.c token.c \
         pragma.c nwc.c getcmd.c tk.c \
@@ -528,7 +528,6 @@ pdata.obj : $(DEP) $(pdata.dep) pdata.c
 pragma.obj : $(DEP) $(pragma.dep) pragma.c
 ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
 speller.obj : speller.h speller.c
-template.obj : $(DEP) $(template.dep) template.c
 ti_achar.obj : tinfo.h ti_achar.c
 ti_pvoid.obj : tinfo.h ti_pvoid.c
 tk.obj : $(DEP) $(tk.dep) tk.c

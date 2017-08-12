@@ -63,46 +63,17 @@ alias MEM_PARF_FREE = mem_free;
 alias MEM_PARF_STRDUP = mem_strdup;
 
 
-
-/*private*/ int template_isclasstemplate(int);
-/*private*/ void template_class_decl(Classsym *stag, param_t *temp_arglist, param_t *temp_arglist2, int member_template, uint access_specifier);
-/*private*/ void template_function_decl(Classsym *stag, param_t *temp_arglist, param_t *temp_arglist2, int member_template, uint access_specifier,
-        token_t *tbody, token_t *to, Symbol *s);
-/*private*/ Symbol * template_define(Classsym *stag, Symbol *sprimary, enum_TK tk, int structflags, char *vident, param_t *temp_arglist, param_t *ptal);
-/*private*/ void template_chkarg(type *, param_t *, char *);
-/*private*/ void template_createargtab(param_t *);
-/*private*/ void template_deleteargtab();
-/*private*/ Classsym * template_parsebody( Classsym *stag, Symbol *stempl, param_t *arglist );
-/*private*/ int template_elemdependent(elem *e, param_t *ptpl);
-/*private*/ int template_typedependent(type *t, param_t *ptpl);
-/*private*/ Classsym *template_expand2(Symbol *stempl, param_t *template_argument_list);
-/*private*/ elem *template_resolve_idents(elem *e, param_t *ptal);
-Symbol *template_class_match(Symbol *sprimary, param_t *ptal, param_t **pptali);
-void template_explicit_instantiation();
-
-void template_instantiate_classmember(Symbol *st, TMF *tmf);
-void template_instantiate_classmember(Symbol *st, Symbol *si);
-
-int template_deduce_ptal2(param_t *ptpl, match_t matchStage,
-        int flags, param_t *pproto, param_t *pl, param_t **pptal);
-int template_class_leastAsSpecialized(Symbol *st1, Symbol *st2);
-/*private*/ int template_typedependent( type *t );
-Classsym *template_inscope(Symbol *s);
-
-extern __gshared
+__gshared
 {
 symlist_t template_ftlist;              // list of template function symbols
 Symbol *template_class_list;
 Symbol **template_class_list_p;
 
-/*private*/ list_t template_xlist;
+private list_t template_xlist;
 }
 
 type* tserr(); // { return tstypes[TYint]; }
 
-version (none)
-{
-}
 
 /**************************************
  * Parse command line switches for templates.
@@ -145,7 +116,7 @@ int template_getcmd(char *p)
  *      parameter list
  */
 
-/*private*/ param_t *template_parameter_list()
+private param_t *template_parameter_list()
 {
     param_t **pp;
     param_t *temp_arglist;
@@ -455,7 +426,7 @@ void template_declaration(Classsym *stag, uint access_specifier)
  *      0       function template
  */
 
-/*private*/ int template_isclasstemplate(int member_template)
+private int template_isclasstemplate(int member_template)
 {
     Token_lookahead tla;
     int arglist;
@@ -539,7 +510,7 @@ Lisfunc:
  * Parse a class template declaration.
  */
 
-/*private*/ void template_class_decl(
+private void template_class_decl(
         Classsym *stag,         // != null means member template class
         param_t *temp_arglist,  // template parameter list
         param_t *temp_arglist2, // member template parameter list
@@ -1044,7 +1015,7 @@ Lerr:
  *      template<class T> T& vector<T>::xyzzy;
  */
 
-/*private*/ void template_function_decl(
+private void template_function_decl(
         Classsym *stag,         // != null means member template member function
         param_t *temp_arglist,  // template parameter list
         param_t *temp_arglist2, // member template parameter list
@@ -2182,7 +2153,7 @@ Symbol *template_createsym(const(char)* id, type *t, Symbol **proot)
  * the type structure.
  */
 
-/*private*/ void template_createargtab(param_t *ptpl)
+private void template_createargtab(param_t *ptpl)
 {   Symbol *root;
     int sequence = 0;
 
@@ -2231,7 +2202,7 @@ Symbol *template_createsym(const(char)* id, type *t, Symbol **proot)
  * Remove symbol table created by template_createargtab().
  */
 
-/*private*/ void template_deleteargtab()
+private void template_deleteargtab()
 {   Symbol *root;
 
     assert(scope_end.sctype == SCTtemparg);
@@ -2251,7 +2222,7 @@ static if (0)
  *      tk =    TKstruct, TKclass, TKunion
  */
 
-/*private*/ Symbol * template_define(Classsym *stag, Symbol *sprimary, enum_TK tk, int structflags, char *vident, param_t *temp_arglist, param_t *ptal)
+private Symbol * template_define(Classsym *stag, Symbol *sprimary, enum_TK tk, int structflags, char *vident, param_t *temp_arglist, param_t *ptal)
 {   Symbol *s;
     type *t;
     uint sct;
@@ -3558,7 +3529,7 @@ void template_instantiate_forward(Classsym *stag)
  */
 
 
-/*private*/ Classsym * template_parsebody(Classsym *stag, Symbol *stempl, param_t *arglist)
+private Classsym * template_parsebody(Classsym *stag, Symbol *stempl, param_t *arglist)
 {
     Scope *scsave;
     type *t;
@@ -3691,7 +3662,7 @@ Classsym *template_expand(Symbol *s,int flag)
  *  template_argument_list: <int*>
  */
 
-/*private*/ Classsym *template_expand2(Symbol *stempl, param_t *template_argument_list)
+private Classsym *template_expand2(Symbol *stempl, param_t *template_argument_list)
 {
     symlist_t sl;
     Classsym *si;
@@ -4451,7 +4422,7 @@ int template_match_expanded_type(
  * Mark any that are found.
  */
 
-/*private*/ void template_chkarg(type *t,param_t *temp_arglist, char *temp_used)
+private void template_chkarg(type *t,param_t *temp_arglist, char *temp_used)
 {   param_t *p;
     tym_t ty;
     char *id;
@@ -4515,7 +4486,7 @@ int template_match_expanded_type(
  * Return !=0 if type depends on a TYident or a template.
  */
 
-/*private*/ int template_typedependent( type *t )
+private int template_typedependent( type *t )
 {
     tym_t ty;
     param_t *p;
@@ -4561,7 +4532,7 @@ int template_match_expanded_type(
  *      !=0     error
  */
 
-/*private*/ int template_elemdependent(elem *e, param_t *ptpl)
+private int template_elemdependent(elem *e, param_t *ptpl)
 {   int error = 0;
 
     while (!OTleaf(e.Eoper))
@@ -4583,7 +4554,7 @@ int template_match_expanded_type(
     return error;
 }
 
-/*private*/ int template_typedependent(type *t, param_t *ptpl)
+private int template_typedependent(type *t, param_t *ptpl)
 {
     // BUG: this code should be more like template_tyident(), which
     // handles a lot more cases.
@@ -5381,7 +5352,7 @@ static if (LOG_MATCHTYPE)
  * See if we can resolve variables in e from values in ptal.
  */
 
-/*private*/ elem *template_resolve_idents(elem *e, param_t *ptal)
+private elem *template_resolve_idents(elem *e, param_t *ptal)
 {
     if (!OTleaf(e.Eoper))
     {
