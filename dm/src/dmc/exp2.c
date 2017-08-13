@@ -32,6 +32,9 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 extern list_t symlist;                  // for C
 
+#undef STATIC
+#define STATIC
+
 STATIC elem * exp2_paramchk(elem *e,type *t,int param);
 STATIC int typerelax(type *,type *);
 STATIC int paramlstcompat(param_t *,param_t *);
@@ -46,6 +49,7 @@ STATIC elem * exp2_castx(elem *e,type *newt,elem **pethis,int flags);
  *      tok.TKval       )
  */
 
+#if 0
 void getarglist(list_t *parglist)
 {
     //printf("+getarglist()\n");
@@ -5070,6 +5074,8 @@ void getinc(elem *e)
         e->E2 = typechk(e->E2,e->E1->ET);
   }
 }
+
+#endif
 
 #endif /* !SPP */
 

@@ -34,7 +34,12 @@ class Obj
     void term(const(char)* objfilename);
 
     size_t mangle(Symbol *s,char *dest);
-    void _import(elem *e);
+    version (SCPP)
+        static void _import(elem *e);
+    else version (HTOD)
+        static void _import(elem *e);
+    else
+        void _import(elem *e);
     void linnum(Srcpos srcpos, int seg, targ_size_t offset);
     int codeseg(char *name,int suffix);
     void dosseg();

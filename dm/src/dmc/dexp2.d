@@ -73,6 +73,12 @@ extern __gshared list_t symlist;                  // for C
 /*private*/ int paramlstcompat(param_t *,param_t *);
 /*private*/ elem * strarg(elem *e);
 /*private*/ elem * exp2_castx(elem *e,type *newt,elem **pethis,int flags);
+/*private*/ int c1isbaseofc2x(elem **pethis,Symbol *c1,Symbol *c2,Classsym **psvirtual);
+int type_exception_spec_match(type *t1, type *t2);
+/*private*/ elem * defaultpromotions(elem *e);
+/*private*/ elem * exp2_simpledtor(elem *e,type *t);
+/*private*/ type * exp2_issimpletypename();
+
 
 /* Array to give the 'relaxed' type for relaxed type checking   */
 extern __gshared ubyte[TYMAX] _tyrelax;
@@ -87,6 +93,7 @@ int REGSIZE() { return _tysize[TYnptr]; }
 
 version (none)
 {
+}
 
 /*******************************
  * Read list of comma-separated arguments into *parglist.
@@ -2673,7 +2680,7 @@ void chkarithmetic(elem *e)
     elem_debug(e);
     t2 = null;
     if (!tyarithmetic(e.EV.E1.ET.Tty) ||
-        !OTleaf(e.Eoper) && !tyarithmetic((t2 = e.EV.E2.ET).Tty))
+        OTbinary(e.Eoper) && !tyarithmetic((t2 = e.EV.E2.ET).Tty))
             typerr(EM_illegal_op_types,e.EV.E1.ET,t2); // illegal operand types
 }
 
@@ -2687,7 +2694,7 @@ void chkintegral(elem *e)
     elem_debug(e);
     t2 = null;
     if (!tyintegral(e.EV.E1.ET.Tty) ||
-        !OTleaf(e.Eoper) && !tyintegral((t2 = e.EV.E2.ET).Tty))
+        OTbinary(e.Eoper) && !tyintegral((t2 = e.EV.E2.ET).Tty))
     {
             typerr(EM_illegal_op_types,e.EV.E1.ET,t2); // illegal operand types
     }
@@ -3540,8 +3547,6 @@ int t1isbaseoft2(type *t1,type *t2)
  *      BCFprivate      (OR'd in) c1 is a private base class of c2
  *      levels * 0x100  number of inheritance levels down c1 is from c2
  */
-
-/*private*/ int c1isbaseofc2x(elem **pethis,Symbol *c1,Symbol *c2,Classsym **psvirtual);
 
 int c1isbaseofc2(elem **pethis,Symbol *c1,Symbol *c2)
 {   Classsym *svirtual;
@@ -5180,7 +5185,6 @@ void getinc(elem *e)
   }
 }
 
-}
 
 }
 
