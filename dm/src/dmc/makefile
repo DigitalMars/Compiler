@@ -170,7 +170,7 @@ debppnd:
 #########################################
 
 OBJ1a=blklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
-OBJ1b=evalu8.obj eh.obj exp.obj exp2.obj file.obj filename.obj func.obj adl.obj
+OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj exp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj token.obj type.obj dt.obj dth.obj
@@ -293,7 +293,7 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di nspace.d dinit.d \
 	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
-	dstruct.d func.d dcpp.d speller.di dtemplate.d
+	dstruct.d func.d dcpp.d speller.di dtemplate.d dexp2.d castab.d
 
 FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
@@ -410,6 +410,9 @@ dcpp.obj : dcpp.d
 
 denum.obj : denum.d
         $(DMD) -c $(DFLAGS) denum.d
+
+dexp2.obj : dexp2.d castab.d
+        $(DMD) -c $(DFLAGS) -J. dexp2.d
 
 dtemplate.obj : dtemplate.d
         $(DMD) -c $(DFLAGS) dtemplate.d

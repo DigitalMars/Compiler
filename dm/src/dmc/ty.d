@@ -324,16 +324,8 @@ uint tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
 static if (__VERSION__ <= 2066)
     private enum computeEnumValue = TYMAX;
 
-/* Array to give the 'relaxed' type for relaxed type checking   */
-extern __gshared ubyte[TYMAX] _tyrelax;
-//#define type_relax      (config.flags3 & CFG3relax)     // !=0 if relaxed type checking
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-//#define type_semirelax  (config.flags3 & CFG3semirelax) // !=0 if semi-relaxed type checking
-//#else
-//#define type_semirelax  type_relax
-//#endif
-
 /* Determine relaxed type       */
+extern __gshared ubyte[TYMAX] _tyrelax;
 uint tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
 
 
