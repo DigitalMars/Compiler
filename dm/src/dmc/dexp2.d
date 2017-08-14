@@ -66,19 +66,7 @@ alias MEM_PARF_STRDUP = mem_strdup;
 type* tserr(); // { return tstypes[TYint]; }
 
 
-extern __gshared list_t symlist;                  // for C
-
-/*private*/ elem * exp2_paramchk(elem *e,type *t,int param);
-/*private*/ int typerelax(type *,type *);
-/*private*/ int paramlstcompat(param_t *,param_t *);
-/*private*/ elem * strarg(elem *e);
-/*private*/ elem * exp2_castx(elem *e,type *newt,elem **pethis,int flags);
-/*private*/ int c1isbaseofc2x(elem **pethis,Symbol *c1,Symbol *c2,Classsym **psvirtual);
-int type_exception_spec_match(type *t1, type *t2);
-/*private*/ elem * defaultpromotions(elem *e);
-/*private*/ elem * exp2_simpledtor(elem *e,type *t);
-/*private*/ type * exp2_issimpletypename();
-
+__gshared list_t symlist;                  // for C
 
 /* Array to give the 'relaxed' type for relaxed type checking   */
 extern __gshared ubyte[TYMAX] _tyrelax;
@@ -91,9 +79,6 @@ else
 
 int REGSIZE() { return _tysize[TYnptr]; }
 
-version (none)
-{
-}
 
 /*******************************
  * Read list of comma-separated arguments into *parglist.
@@ -1729,7 +1714,7 @@ L1:
             }
             if (sfunc.Stype.Tty & mTYimport)
             {
-                objmod._import(e);                  // do deferred import
+                Obj._import(e);                  // do deferred import
             }
 
             // No longer needed
@@ -3091,7 +3076,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     }
                     if (s.Stype.Tty & mTYimport)
                     {
-                        objmod._import(e);                  // do deferred import
+                        Obj._import(e);                  // do deferred import
                     }
                 }
             }

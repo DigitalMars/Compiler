@@ -170,7 +170,7 @@ debppnd:
 #########################################
 
 OBJ1a=blklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
-OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj exp2.obj file.obj filename.obj func.obj adl.obj
+OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj token.obj type.obj dt.obj dth.obj
@@ -302,9 +302,9 @@ FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
         iasm.c err.c blklst.c \
         msgsx.c scope.c \
         trace.c file.c \
-        exp2.c msc.c ph.c token.c \
+        msc.c ph.c token.c \
         pragma.c nwc.c getcmd.c tk.c \
-        castab.c htod.c speller.c
+        htod.c speller.c
 
 # Back end
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d \
@@ -542,7 +542,6 @@ gdag.obj : $(DEP) $(gdag.dep) gdag.c
 getcmd.obj : $(DEP) $(getcmd.dep) getcmd.c
 gother.obj : $(DEP) $(gother.dep) gother.c
 gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
-exp2.obj : $(DEP) $(exp2.dep) castab.c exp2.c
 err.obj : $(DEP) $(err.dep) err.c
 nwc.obj : $(DEP) $(nwc.dep) nwc.c
 iasm.obj : $(DEP) $(iasm.dep) iasm.h iasm.c
