@@ -27,7 +27,7 @@
 #include        "global.h"
 #include        "token.h"
 #include        "code.h"
-#include        "scdll.h"
+#include        "dmcdll.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -53,8 +53,6 @@ Config config =                 // part of configuration saved in ph
 
 Configv configv;                // non-ph part of configuration
 EEcontext eecontext;
-
-unsigned long netspawn_flags = 0;
 
 #if __DMC__
 char __cdecl switch_E = 0;              // for LINRECOR.ASM
@@ -149,20 +147,7 @@ void getcmd(int argc,char **argv)
 #endif
     configv.verbose = 1;
     configv.errmax = 5;
-#if USEDLLSHELL
-    {   static tToolData tooldata;
-
-        // Set these at runtime to avoid DGROUP segment fixups
-        // (DGROUP fixups screw us up because DS is switched for DLLs)
-        tooldata.Activity = ACTIVITY;
-        tooldata.Title = "Digital Mars " COMPILER " Version " VERSION;
-        tooldata.Copyright = copyright;
-        tooldata.ToolVersion = VERSIONINT;
-
-        NetSpawnCmdline1(argc,argv);    // report command line
-        NetSpawnActivity(&tooldata);    // report activity
-    }
-#endif
+    dmcdll_command_line(argc,argv,copyright);
     for (i = 1; i < argc; i++)          // for each argument
     {   int on;
 
@@ -1310,11 +1295,8 @@ void getcmd(int argc,char **argv)
        )
         config.flags3 |= CFG3autoproto; // turn on autoprototyping
 
-#if _WIN32 && _WINDLL
-    netspawn_flags = NetSpawnGetCompilerFlags();
-    if (!(netspawn_flags & NETSPAWN_FIRST_COMPILE))
+    if (!dmcdll_first_compile())
         config.flags2 &= ~CFG2phautoy;
-#endif
 
 #if !SPP
     ph_init(mmfiobase, reservesize);    // reinitialize heaps taking ph options

@@ -171,7 +171,7 @@ debppnd:
 
 OBJ1a=blklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj file.obj filename.obj func.obj adl.obj
-OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj
+OBJ1c=getcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj token.obj type.obj dt.obj dth.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj dlist.obj
@@ -290,18 +290,18 @@ msgsx.exe : msgsx.c
 RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 
 # Front end only
-FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di nspace.d dinit.d \
+FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d dinit.d \
 	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
 	dstruct.d func.d dcpp.d speller.di dtemplate.d dexp2.d castab.d
 
-FRONTSRC= allocast.h cpp.h html.h parser.h scdll.h scope.h \
+FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
 	\
         ini.c errmsgs2.c tdbx.c util.c \
         iasm.c err.c blklst.c \
         msgsx.c scope.c \
-        trace.c file.c \
+        trace.c file.c dmcdll.c \
         msc.c ph.c token.c \
         pragma.c nwc.c getcmd.c tk.c \
         htod.c speller.c
@@ -393,7 +393,8 @@ gitback: detab tolf $(BACKSRC)
 
 ##################### SPECIAL BUILDS #####################
 
-total.sym : $(CCH) token.h parser.h el.h scope.h global.h obj.h type.h oper.h cpp.h $(TK)\filespec.h dt.h msgs2.h bcomplex.h total.h
+total.sym : $(CCH) token.h parser.h el.h scope.h global.h obj.h type.h oper.h cpp.h dmcdll.h \
+ $(TK)\filespec.h dt.h msgs2.h bcomplex.h total.h
         $(CC) -c $(CFLAGS) -HFtotal.sym total.h
 
 os.obj : os.c
@@ -539,6 +540,7 @@ util.obj : $(DEP) $(util.dep) util.c
 cgcv.obj : $(DEP) $(cgcv.dep) cgcv.c
 cgelem.obj : $(DEP) $(cgelem.dep) cgelem.c
 gdag.obj : $(DEP) $(gdag.dep) gdag.c
+dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 getcmd.obj : $(DEP) $(getcmd.dep) getcmd.c
 gother.obj : $(DEP) $(gother.dep) gother.c
 gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
