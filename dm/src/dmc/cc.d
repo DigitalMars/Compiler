@@ -64,16 +64,6 @@ enum WM
     WM_undefined_inline = 30, // static inline not expanded or defined
 }
 
-// Language for error messages
-enum LANG
-{
-    LANGenglish,
-    LANGgerman,
-    LANGfrench,
-    LANGjapanese,
-}
-
-
 static if (MEMMODELS == 1)
 {
     enum LARGEDATA = 0;     // don't want 48 bit pointers
@@ -97,16 +87,21 @@ else
 //#include        "list.h"
 //#include        "vec.h"
 
-//#if SPP
-//#define COMPILER "Preprocessor"
-//#define ACTIVITY "preprocessing..."
-//#elif HTOD
-//#define COMPILER ".h to D Migration Tool"
-//#define ACTIVITY "migrating..."
-//#else
-//#define COMPILER "C/C++ Compiler"
-//#define ACTIVITY "compiling..."
-//#endif
+version (SPP)
+{
+    enum COMPILER = "Preprocessor";
+    enum ACTIVITY = "preprocessing...";
+}
+else version (HTOD)
+{
+    enum COMPILER = ".h to D Migration Tool";
+    enum ACTIVITY = "migrating...";
+}
+else version (SCPP)
+{
+    enum COMPILER = "C/C++ Compiler";
+    enum ACTIVITY = "compiling...";
+}
 
 //#ifdef DEBUG
 //#   define debug(a)     (a)

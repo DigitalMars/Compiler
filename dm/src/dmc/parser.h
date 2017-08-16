@@ -385,6 +385,8 @@ int paramlstmatch(param_t *,param_t *);
 int template_paramlstmatch(type *, type *);
 
 /* from file.c */
+extern "C"
+{
 extern char ext_obj[];
 extern char ext_i[];
 extern char ext_dep[];
@@ -394,9 +396,13 @@ extern char ext_c[];
 extern char ext_cpp[];
 extern char ext_sym[];
 extern char ext_tdb[];
+}
 
 // htod
+extern "C"
+{
 extern char ext_dmodule[];
+}
 extern int includenest;
 
 int file_qualify(char **pfilename,int flag,phstring_t pathlist, int *next_path);

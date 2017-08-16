@@ -2,48 +2,75 @@
  * Implementation of the
  * $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ Compiler).
  *
- * Copyright:   Copyright (c) 1985-1998 by Symantec, All Rights Reserved
+ * Copyright:   Copyright (c) 1991-1998 by Symantec, All Rights Reserved
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/getcmd.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/dgetcmd.d
  */
 
 // Routines to get and process the command string
 
-#include        <stdio.h>
-#include        <time.h>
-#include        <ctype.h>
-#include        <string.h>
-#include        <stdlib.h>
+module dgetcmd;
 
-#define INC_ENV "INCLUDE"
+import core.stdc.ctype;
+import core.stdc.stdio;
+import core.stdc.string;
+import core.stdc.stdlib;
+import core.stdc.time;
 
-#include        "cc.h"
-#include        "parser.h"
-#include        "type.h"
-#include        "filespec.h"
-#include        "global.h"
-#include        "token.h"
-#include        "code.h"
-#include        "dmcdll.h"
+extern (Pascal) int response_expand(int*, char***);     // from dmc dos.h
+extern (C) char* strupr(char*);                         // from dmc string.h
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import ddmd.backend.cdef;
+import ddmd.backend.cc;
+import ddmd.backend.code;
+import ddmd.backend.global;
+import ddmd.backend.ty;
+import ddmd.backend.type;
 
-#undef STATIC
-#define STATIC
+import tk.dlist;
+import tk.filespec;
+import tk.mem;
 
-STATIC void predefine(const char *name);
-STATIC void sw_d(char *);
-STATIC void addpath(phstring_t *, const char *);
-static phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist);
-STATIC void getcmd_cflags(int *,char ***);
+import dtoken;
+import msgs2;
+import parser;
+import precomp;
+import dmcdll;
 
-static char one[] = "1";
 
-Config config =                 // part of configuration saved in ph
+extern (C++):
+
+alias dbg_printf = printf;
+alias MEM_PH_MALLOC = mem_malloc;
+alias MEM_PH_CALLOC = mem_calloc;
+alias MEM_PH_FREE = mem_free;
+alias MEM_PH_STRDUP = mem_strdup;
+alias MEM_PARF_MALLOC = mem_malloc;
+alias MEM_PARF_CALLOC = mem_calloc;
+alias MEM_PARF_REALLOC = mem_realloc;
+alias MEM_PARF_FREE = mem_free;
+alias MEM_PARF_STRDUP = mem_strdup;
+
+enum INC_ENV = "INCLUDE";
+
+/+
+/*private*/ void predefine(const char *name);
+/*private*/ void sw_d(char *);
+/*private*/ void addpath(phstring_t *, const char *);
+/*private*/ phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist);
+/*private*/ void getcmd_cflags(int *,char ***);
++/
+
+version (none)
+{
+__gshared
+{
+private __gshared char[2] one = "1";
+
+__gshared Config config =                 // part of configuration saved in ph
 {
                 'D',            // compile for C++
                 VERSION,
@@ -57,35 +84,37 @@ Config config =                 // part of configuration saved in ph
 Configv configv;                // non-ph part of configuration
 EEcontext eecontext;
 
-#if __DMC__
-char __cdecl switch_E = 0;              // for LINRECOR.ASM
-int  __cdecl _version = VERSIONINT;
-#else
-char switch_E = 0;
-int  _version = VERSIONINT;
-#endif
-
-char version[] = "(SCVersion)@" COMPILER " " VERSION SUFFIX;
-char copyright[] = COPYRIGHT;
-
-#if !_WINDLL
-static void notice()
+extern (C)
 {
-    printf("Digital Mars %s Version %s\n%s\nhttp://www.digitalmars.com\n",
-        COMPILER,VERSION SUFFIX,copyright);
+char switch_E = 0;              // for LINRECOR.ASM
+int  _version = VERSIONINT;
 }
 
-static void usage()
+const(char)* versionString = "(SCVersion)@" ~ COMPILER ~ " " ~ VERSION ~ SUFFIX;
+const(char)* copyright = COPYRIGHT;
+}
+
+version (none)
+{
+
+}
+version (_WINDLL)
+{
+}
+else
+{
+private void notice()
+{
+    printf("Digital Mars %s Version %s\n%s\nhttp://www.digitalmars.com\n",
+        COMPILER.ptr,(VERSION ~ SUFFIX).ptr,copyright);
+}
+
+private void usage()
 {
     printf("%s\n",dlcmsgs(EM_usage));
 }
-#endif
+}
 
-#if linux
-#undef TARGET_LINUX
-#undef TARGET_WINDOS
-#define TARGET_LINUX 1
-#endif
 
 /******************************************************
  * Get & parse the command line. Open necessary files.
@@ -99,27 +128,26 @@ void getcmd(int argc,char **argv)
     char *p;
     char *q;
     char *finname2;
-    char switch_U = FALSE;
+    char switch_U = false;
     char target = 0;
     char scheduler = 0;
-    char switch_a = FALSE;              // saw a -a switch
-    //static char model = 'S';
-    static char model = 'N';
+    char switch_a = false;              // saw a -a switch
+    __gshared char model = 'N';
     int switchalign = 1;                // default alignment
     int n;
-    unsigned long flags;
-    unsigned long *pflags;
+    uint flags;
+    uint *pflags;
     int defalign;
-    void *mmfiobase = 0;
-    unsigned reservesize = 0;
+    void *mmfiobase = null;
+    uint reservesize = 0;
     int cvtype = CV4;
     phstring_t pathsyslist;
 
-#if __OS2__
+version (__OS2__)
     config.exe = EX_OS1;
-#else
+else
     config.exe = EX_MZ;
-#endif
+
     config.objfmt = OBJ_OMF;
     config.threshold = THRESHMAX;       // default to near data
     config.flags4 |= CFG4anew;
@@ -128,31 +156,38 @@ void getcmd(int argc,char **argv)
     config.flags4 |= CFG4enumoverload;
     config.flags4 |= CFG4underscore;
 
-#if HTOD
-    fdmodulename = (char*)"";
-#else
-    foutname = (char*)"";
-#endif
+version (HTOD)
+    fdmodulename = cast(char*)"";
+else
+    foutname = cast(char*)"";
+
     if (argc <= 1)
     {
-#if !_WINDLL
+version (_WINDLL)
+{
+}
+else
+{
         notice();
         //usage();
-#endif
+}
         err_exit();
     }
-#if SPP
+version (SPP)
     getcmd_cflags(&argc,&argv);         // handle CFLAGS
-#endif
-#if __DMC__ && _WIN32
+
+version (Windows)
+{
     if (response_expand(&argc,&argv))   /* expand response files        */
         cmderr(EM_response_file);       // can't open response file
-#endif
+}
     configv.verbose = 1;
     configv.errmax = 5;
     dmcdll_command_line(argc,argv,copyright);
+
+    int on;
     for (i = 1; i < argc; i++)          // for each argument
-    {   int on;
+    {
 
         p = argv[i];                    /* p -> argument string         */
         //dbg_printf("arg[%d] = '%s'\n",i,p);
@@ -166,15 +201,17 @@ void getcmd(int argc,char **argv)
          */
         switch (*p)
         {
-#if !M_UNIX
+version (Windows)
             case '/':
-#endif
-#if SPP
+version (SPP)
+{
             case '-':
                 break;
             case '+':
                 continue;
-#else
+}
+else
+{
             case '-':
                 if (go_flag(p))
                     continue;
@@ -183,10 +220,11 @@ void getcmd(int argc,char **argv)
                 if (go_flag(p))
                     continue;
                 goto badflag;
-#endif
+}
             default:
             {   // Assume argument is a file name or directory name
 
+version(all){
                 char *dotext;
 
                 if (file_isdir(p))
@@ -194,47 +232,57 @@ void getcmd(int argc,char **argv)
                     continue;
                 }
                 dotext = filespecdotext(p);
-#if SPP
+version (SPP)
+{
                 if (filespeccmp(dotext,ext_i) == 0)
                     foutname = p;
                 else if (filespeccmp(dotext,ext_dep) == 0)
                     fdepname = p;
-#elif HTOD
+                else
+                    finname = p;
+}
+else version (HTOD)
+{
                 if (filespeccmp(dotext,ext_dmodule) == 0)
                     fdmodulename = p;
-#else
+                else
+                    finname = p;
+}
+else
+{
 
-                if (filespeccmp(dotext,ext_obj) == 0)
+                if (filespeccmp(dotext,ext_obj.ptr) == 0)
                     foutname = p;
-                else if (filespeccmp(dotext,ext_dep) == 0)
+                else if (filespeccmp(dotext,ext_dep.ptr) == 0)
                     fdepname = p;
-                else if (filespeccmp(dotext,ext_lst) == 0)
+                else if (filespeccmp(dotext,ext_lst.ptr) == 0)
                     flstname = p;
-                else if (filespeccmp(dotext,ext_sym) == 0)
+                else if (filespeccmp(dotext,ext_sym.ptr) == 0)
                     goto case_HF;       // equivalent to -HF being thrown
-                else if (filespeccmp(dotext,ext_tdb) == 0)
+                else if (filespeccmp(dotext,ext_tdb.ptr) == 0)
                 {   p--;
                     goto case_g6;       // equivalent to -g6
                 }
                 else if (*dotext &&
-                        (filespeccmp(dotext,ext_cpp) == 0 ||
+                        (filespeccmp(dotext,ext_cpp.ptr) == 0 ||
                          filespeccmp(dotext,".cxx") == 0))
                 {   config.flags3 |= CFG3cpp;   // ".cpp" extension, assume C++
                     finname = p;
                 }
-#endif
                 else
                     finname = p;
+}
+}
                 continue;
             }
         }
 
         p++;
-        on = strchr(p,'-') == NULL;
+        on = strchr(p,'-') == null;
         switch (*p++)
         {
             case 'a':
-                switch_a = TRUE;
+                switch_a = true;
                 switchalign = 0;
                 if (isdigit(*p))
                 {
@@ -246,29 +294,29 @@ void getcmd(int argc,char **argv)
                 break;
             case 'A':
                 if (*p == 0)
-                {   ANSI = 99;
+                {   config.ansi_c = 99;
                     break;
                 }
                 if (p[0] == '8' && p[1] == '9' && p[2] == 0)
-                {   ANSI = 89;
+                {   config.ansi_c = 89;
                     break;
                 }
                 if (p[0] == '9')
                 {
                     if (p[1] == '0' && p[2] == 0)
-                    {   ANSI = 89;
+                    {   config.ansi_c = 89;
                         break;
                     }
                     if (p[1] == '4' && p[2] == 0)
-                    {   ANSI = 95;
+                    {   config.ansi_c = 95;
                         break;
                     }
                     if (p[1] == '5' && p[2] == 0)
-                    {   ANSI = 95;
+                    {   config.ansi_c = 95;
                         break;
                     }
                     if (p[1] == '9' && p[2] == 0)
-                    {   ANSI = 99;
+                    {   config.ansi_c = 99;
                         break;
                     }
                 }
@@ -303,6 +351,8 @@ void getcmd(int argc,char **argv)
                     case 'f':   configv.language = LANGfrench;  break;
                     case 'g':   configv.language = LANGgerman;  break;
                     case 'j':   configv.language = LANGjapanese;        break;
+                    default:
+                        break; // goto badflag ?
                 }
                 break;
 
@@ -317,7 +367,7 @@ void getcmd(int argc,char **argv)
                         goto Lflags1;
 
             case 'd':
-                        fdepname = (on || strcmp(p,"-")) ? p : NULL;
+                        fdepname = (on || strcmp(p,"-")) ? p : null;
                         break;
 
             case 'D':   // do sw_d(p) later
@@ -338,11 +388,10 @@ void getcmd(int argc,char **argv)
                 }
                 break;
 
-#if TX86
             case 'f':
                 switch (*p)
                 {   case 0:
-                        config.inline8087 = on;
+                        config.inline8087 = cast(ubyte)on;
                         break;
                     case 'a':
                         config.flags4 |= CFG4stackalign;
@@ -358,12 +407,14 @@ void getcmd(int argc,char **argv)
                     case 'w':                   // weak floating point
                         config.flags3 |= CFG3wkfloat;
                         break;
+                    default:
+                        break;
                 }
                 break;
-#endif
-#if TX86
+
             case 'g':
-#if SCPP && !HTOD
+version (SCPP)
+{
                 for (q = p; 1; p++)
                 {
                     switch (*p)
@@ -390,7 +441,7 @@ void getcmd(int argc,char **argv)
                         case 0:     if (p == q)         // -g by itself
                                     {   configv.addlinenumbers = 1;
                                         config.flags2 |= CFG2dyntyping;
-                                        config.fulltypes = cvtype;
+                                        config.fulltypes = cast(byte)cvtype;
                                         config.flags |= CFGalwaysframe;
                                     }
                                     goto case_g_done;
@@ -403,30 +454,33 @@ void getcmd(int argc,char **argv)
 
                         case 's':
                         case_s:
-                                    config.fulltypes = cvtype;
+                                    config.fulltypes = cast(byte)cvtype;
                                     config.flags |= CFGalwaysframe;
                                     break;
 
                         case '3':
-#if CV3
+static if (CV3)
+{
                                     cvtype = CVOLD;
                                     goto case_s;
-#else
+}
+else
+{
                                     tx86err(EM_no_CV3); // CV3 is obsolete
                                     break;
-#endif
+}
                         case '4':   cvtype = CV4;
                                     goto case_s;
                         case '5':   cvtype = CVSYM;
                                     goto case_s;
                         case '6':
                         case_g6:
-#if _WIN32
+version (Win32)
                                     cvtype = CVTDB;
-#else
+else
                                     cvtype = CVSYM;     // type database not supported
-#endif
-                                    config.fulltypes = cvtype;
+
+                                    config.fulltypes = cast(byte)cvtype;
                                     config.flags |= CFGalwaysframe;
                                     ftdbname = p + 1;
                                     if (p[1])
@@ -439,11 +493,12 @@ void getcmd(int argc,char **argv)
                     }
                 }
             case_g_done:
-#endif
+}
                 break;
 
             case 'G':
-#if SCPP
+version (SCPP)
+{
                     switch (*p)
                     {
                         case 'T':               // set data threshold
@@ -456,10 +511,11 @@ void getcmd(int argc,char **argv)
                         default:
                             goto badflag;
                     }
-#endif
+}
                     break;
-#endif
-#if HTOD
+
+version (HTOD)
+{
             case 'h':
                 switch (*p)
                 {
@@ -479,7 +535,7 @@ void getcmd(int argc,char **argv)
                         goto badflag;
                 }
                 break;
-#endif
+}
             case 'H':                   /* precompiled headers          */
                     switch (*p)
                     {
@@ -492,7 +548,8 @@ void getcmd(int argc,char **argv)
                             p++;
                             flags = CFG3igninc;
                             goto Lflags3;
-                #if !SPP && !HTOD
+                version (SCPP)
+                {
                         case 'C':       // don't cache precompiled headers in memory
                             p++;
                             flags = CFG4cacheph;
@@ -529,21 +586,23 @@ void getcmd(int argc,char **argv)
                             break;
 
                         case 'M':
-                #if MMFIO
+                static if (MMFIO)
+                {
                             if (isxdigit(p[1]))
-                                mmfiobase = (void *) strtoul(p + 1,NULL,16);
+                                mmfiobase = cast(void *) strtoul(p + 1,null,16);
                             else
-                                mmfiobase = 0;          // use default
-                #endif
+                                mmfiobase = null;          // use default
+                }
                             break;
 
                         case 'P':
-                #if MMFIO
+                static if (MMFIO)
+                {
                             if (isxdigit(p[1]))
-                                reservesize = strtoul(p + 1,NULL,10);
+                                reservesize = strtoul(p + 1,null,10);
                             else
                                 reservesize = 0;                // use default
-                #endif
+                }
                             break;
 
                         case 'O':
@@ -561,7 +620,7 @@ void getcmd(int argc,char **argv)
                             p++;
                             config.hxversion = 0;
                             if (isdigit(*p))
-                            {   config.hxversion = atoi(p);
+                            {   config.hxversion = cast(short)atoi(p);
                                 config.flags2 |= flags;
                                 break;
                             }
@@ -571,7 +630,7 @@ void getcmd(int argc,char **argv)
                         default:        /* ignore invalid flags         */
                             config.flags2 &= ~(CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy | CFG2once);
                             break;
-                #endif
+                }
                     }
                 break;
 
@@ -601,7 +660,7 @@ void getcmd(int argc,char **argv)
                 if (!*p)
                     config.asian_char = 1;
                 else
-                    config.asian_char = *p - '0' + 1;
+                    config.asian_char = cast(ubyte)(*p - '0' + 1);
                 if (config.asian_char > 3)
                     goto badflag;               /* unrecognized parameter */
                 break;
@@ -609,13 +668,10 @@ void getcmd(int argc,char **argv)
             case 'J':
                 switch (*p)
                 {   case 'u':                   /* chars are unsigned chars */
-#if 1
                         flags = CFG3ju;
                         p++;
-                        warerr(WM_obsolete, "-Ju", "unsigned char type");
+                        warerr(WM.WM_obsolete, "-Ju".ptr, "unsigned char type".ptr);
                         goto Lflags3;
-#endif
-                        break;
                     case 'm':                   /* relaxed type checking */
                         flags = CFG3autoproto | CFG3relax;      // turn off auto prototyping
                         p++;
@@ -632,12 +688,12 @@ void getcmd(int argc,char **argv)
                 break;
 
             case 'l':
-#if !SPP
-                flstname = on ? p : NULL;
-#endif
+version (SCPP)
+                flstname = on ? p : null;
+version (HTOD)
+                flstname = on ? p : null;
                 break;
 
-#if TX86
             case 'm':
                 model = *p++;
                 if (model == '3' && *p == '2')
@@ -650,7 +706,7 @@ void getcmd(int argc,char **argv)
                     model = 'A';
                     ++p;
                 }
-                model = toupper(model);
+                model = cast(char)toupper(model);
                 if (!strchr("TSMCRZLVFNPXA",model))
                     cmderr(EM_memmodels);               // bad memory model
                 for (;; p++)
@@ -736,29 +792,30 @@ void getcmd(int argc,char **argv)
                         goto badflag;
                 }
                 break;
-#endif
 
             case 'o':
-#if SPP
+version (SPP)
+{
                 if (!*p)
-                {   foutname = NULL;            // send output to stdout
+                {   foutname = null;            // send output to stdout
                     break;
                 }
                 if (*p == '+' || *p == '-')     // if optimizer switch
                     break;
-#endif
-#if HTOD
+}
+version (HTOD)
                 fdmodulename = p;
-#else
+else
                 foutname = p;
-#endif
+
                 break;
 
-#if 0
+static if (0)
+{
             case 'O':
                 flags = CFGeasyomf;
                 goto Lflags1;
-#endif
+}
 
             case 'p':   flags = CFG3autoproto;  goto Lflags3;
 
@@ -780,6 +837,9 @@ void getcmd(int argc,char **argv)
                         flags = CFG4stdcall;
                         p++;
                         goto Lflags4;
+
+                    default:
+                        break;
                 }
                 goto badflag;
 
@@ -800,7 +860,7 @@ void getcmd(int argc,char **argv)
                 goto Lflags1;
 
             case 'u':
-                switch_U = on;
+                switch_U = cast(char)on;
                 goto Lonec;
 
             case 'v':                   /* suppress non-essential msgs  */
@@ -815,6 +875,8 @@ void getcmd(int argc,char **argv)
                     case '1':
                     case '-':
                         configv.verbose = 1;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -838,12 +900,11 @@ void getcmd(int argc,char **argv)
                 err_warning_enable(n,on);
                 break;
 
-#if TX86
             case 'W':                   /* generate Windows prolog/epilog */
             {
-#               define WFCOMMON (WFwindows|WFthunk|WFincbp|WFexpdef|WFmacros)
-                static int wftable[] =
-                {   /* 1 */     WFCOMMON | WFds,
+                enum WFCOMMON = (WFwindows|WFthunk|WFincbp|WFexpdef|WFmacros);
+                __gshared int[18] wftable =
+                [   /* 1 */     WFCOMMON | WFds,
                     /* 2 */     WFCOMMON | WFds | WFreduced,
                     /* 3 */     WFCOMMON | WFss,
                     /* A */     WFwindows | WFthunk | WFmacros | WFreduced |
@@ -853,12 +914,12 @@ void getcmd(int argc,char **argv)
                     /* abdef */ WFds, WFdsnedgroup, WFdgroup, WFexpdef, WFexport,
                     /* mrstu */ WFincbp, WFreduced, WFss, WFthunk, WFloadds,
                     /* vwx  */  WFsaveds, WFssneds, WFwindows,
-                };
-                static char wfopts[] = "123ADabdefmrstuvwx";
-                char on;
+                ];
+                __gshared char[18+1] wfopts = "123ADabdefmrstuvwx";
+                char onx;
                 char c;
 
-                (void) assert(arraysize(wftable) == sizeof(wfopts) - 1);
+                static assert(wftable.length == wfopts.length - 1);
                 switch (*p)
                 {
                     case 0:             // -W is same as -W1
@@ -869,28 +930,27 @@ void getcmd(int argc,char **argv)
                         {   config.wflags = 0;
                             break;
                         }
+                    goto default;
                     default:
-                        on = 1;
+                        onx = 1;
                         for (; (c = *p) != 0; p++)
-                        {   char *q;
-                            int i;
-
+                        {
                             if (c == '+')
-                            {   on = 1;
+                            {   onx = 1;
                                 continue;
                             }
                             else if (c == '-')
-                            {   on = 0;
+                            {   onx = 0;
                                 continue;
                             }
-                            q = strchr(wfopts,c);
-                            if (!q)
+                            char* qx = strchr(wfopts.ptr,c);
+                            if (!qx)
                                 goto badflag;
-                            i = q - wfopts;
-                            if (i < 5)                  // if 123AD
+                            int j = qx - wfopts.ptr;
+                            if (j < 5)                  // if 123AD
                                 config.wflags = 0;      // no previous baggage
-                            if (on)
-                            {   config.wflags |= wftable[i];
+                            if (onx)
+                            {   config.wflags |= wftable[j];
                                 switch (c)
                                 {   case 'a':
                                         config.wflags &= ~(WFdgroup | WFss);
@@ -901,27 +961,32 @@ void getcmd(int argc,char **argv)
                                     case 's':
                                         config.wflags &= ~(WFdgroup | WFds);
                                         break;
+                                    default:
+                                        break;
                                 }
                             }
                             else
-                                config.wflags &= ~wftable[i];
+                                config.wflags &= ~wftable[j];
                         }
                         break;
                 }
                 break;
             }
-#endif
+
             case 'x':
-#if 0
+static if (0)
+{
                 flags = CFG2noerrmax;
                 goto Lflags2;
-#else
+}
+else
+{
                 if (!isdigit(*p))
                     configv.errmax = 10000;
                 else
                     configv.errmax = atoi(p);
                 break;
-#endif
+}
 
             case 'X':
                 switch (*p++)
@@ -949,7 +1014,6 @@ void getcmd(int argc,char **argv)
                 }
                 break;
 
-#if TX86
             case '0':
             case '2':
             case '3':
@@ -958,9 +1022,9 @@ void getcmd(int argc,char **argv)
             case '6':   target = p[-1];
                         scheduler = *p;
                         break;
-#endif
 
-#ifdef DEBUG
+debug
+{
             case '-':
                 switch (*p)
                 {
@@ -976,15 +1040,17 @@ void getcmd(int argc,char **argv)
                     case 'w':   debugw = 1; break; // watch progress of cg
                     case 'x':   debugx = 1; break; // echo input to stderr
                     case 'y':   debugy = 1; break; // watch output, common subs
+                    default:
+                        break;
                 }
                 p++;
                 break;
-#endif
+}
 
             default:
-#if SPP
+version (SPP)
                 break;                  // ignore unrecognized flags
-#endif
+
             badflag:
                 cmderr(EM_bad_parameter,argv[i]);       // unrecognized parameter
                 break;                  // ignore other switches
@@ -992,25 +1058,25 @@ void getcmd(int argc,char **argv)
             Lflags1x:
                 p++;
             Lflags1:
-                pflags = (unsigned long *)&config.flags;
+                pflags = cast(uint *)&config.flags;
                 goto Lflags;
 
             Lflags2x:
                 p++;
             Lflags2:
-                pflags = (unsigned long *)&config.flags2;
+                pflags = cast(uint *)&config.flags2;
                 goto Lflags;
 
             Lflags3x:
                 p++;
             Lflags3:
-                pflags = (unsigned long *)&config.flags3;
+                pflags = cast(uint *)&config.flags3;
                 goto Lflags;
 
             Lflags4x:
                 p++;
             Lflags4:
-                pflags = (unsigned long *)&config.flags4;
+                pflags = cast(uint *)&config.flags4;
                 goto Lflags;
 
             Lflags:
@@ -1030,16 +1096,15 @@ void getcmd(int argc,char **argv)
     finname2 = finname;
     finname = file_getsource(finname);
     char *dotext = filespecdotext(finname);
-    if (filespeccmp(dotext,ext_cpp) == 0 ||
+    if (filespeccmp(dotext,ext_cpp.ptr) == 0 ||
         filespeccmp(dotext,".cxx") == 0)
     {
         config.flags3 |= CFG3cpp;       // ".cpp" extension, assume C++
     }
-#ifdef DEBUG
-    printf("Compiling for %s\n",CPP ? "C++" : "C");
-#endif
+    debug printf("Compiling for %s\n",CPP ? "C++".ptr : "C".ptr);
 
-#if SCPP
+version (SCPP)
+{
     if (eecontext.EEcompile)
     {   configv.addlinenumbers = 0;
         config.flags2 |= CFG2nodeflib;
@@ -1053,7 +1118,7 @@ void getcmd(int argc,char **argv)
             cmderr(EM_nodebexp);        // can't compile debugger expression
         }
     }
-#endif
+}
     config.flags2 ^= CFG2comdat;        // toggle state of flag
     config.flags3 ^= CFG3autoproto;     // toggle state of flag
     config.flags4 ^= CFG4cacheph | CFG4dependent;
@@ -1068,7 +1133,7 @@ void getcmd(int argc,char **argv)
         config.flags4 |= CFG4bool | CFG4wchar_t;        // default it to on
         config.flags4 |= CFG4alternate;                 // alternate keywords
         //config.flags4 |= CFG4dependent;               // dependent name lookup
-        if (ANSI)
+        if (config.ansi_c)
         {   config.flags3 |= CFG3eh | CFG3rtti; // these are part of ANSI C++
             config.flags4 |= CFG4anew | CFG4alternate | CFG4forscope | CFG4adl |
                              CFG4dependent;
@@ -1084,22 +1149,23 @@ void getcmd(int argc,char **argv)
         config.flags3 |= CFG3cppcomment;        // new for C99
         config.flags4 |= CFG4forscope;          // new for C99
         config.flags4 |= CFG4implicitfromvoid;
-        if (!ANSI)
+        if (!config.ansi_c)
             config.flags3 |= CFG3digraphs;
     }
     if (config.flags4 & CFG4pascal)     // if default to __pascal linkage
     {
         if (CPP)
         {
-#if MEMMODELS == 1
+static if (MEMMODELS == 1)
             functypetab[LINK_CPP] = TYnpfunc;
-#else
+else
+{
             functypetab[LINK_CPP][Smodel] = TYnpfunc;
             functypetab[LINK_CPP][Mmodel] = TYfpfunc;
             functypetab[LINK_CPP][Cmodel] = TYnpfunc;
             functypetab[LINK_CPP][Lmodel] = TYfpfunc;
             functypetab[LINK_CPP][Vmodel] = TYfpfunc;
-#endif
+}
         }
         else
             config.linkage = LINK_PASCAL;
@@ -1108,33 +1174,38 @@ void getcmd(int argc,char **argv)
     {
         if (CPP)
         {
-#if MEMMODELS == 1
+static if (MEMMODELS == 1)
             functypetab[LINK_CPP] = TYnsfunc;
-#else
+else
+{
             functypetab[LINK_CPP][Smodel] = TYnsfunc;
             functypetab[LINK_CPP][Mmodel] = TYfsfunc;
             functypetab[LINK_CPP][Cmodel] = TYnsfunc;
             functypetab[LINK_CPP][Lmodel] = TYfsfunc;
             functypetab[LINK_CPP][Vmodel] = TYfsfunc;
-#endif
+}
         }
         else
             config.linkage = LINK_STDCALL;
     }
 
-#if !_WINDLL
+version (_WINDLL)
+{
+}
+else
+{
     if (configv.verbose == 2)
         notice();
-#endif
+}
 
     switch (model)
     {
             case 'N':
-#if TARGET_LINUX
+static if (TARGET_LINUX)
                       config.exe = EX_LINUX;
-#else
+else
                       config.exe = EX_WIN32;
-#endif
+
                       config.defstructalign = 8 - 1; // NT uses 8 byte alignment
             Lx2:
                       config.memmodel = Smodel;
@@ -1143,18 +1214,18 @@ void getcmd(int argc,char **argv)
                       else if (target < '3')
                             cmderr(EM_bad_iset,target,model);   // invalid instruction set
                       util_set32();
-#if SCPP
+version (SCPP)
                       cod3_set32();
-#endif
+
                       break;
 
             case 'A':
-#if TARGET_LINUX
+static if (TARGET_LINUX)
                       config.exe = EX_LINUX64;
-#else
+else
                       config.exe = EX_WIN64;
-#endif
-                      config.fpxmmregs = TRUE;
+
+                      config.fpxmmregs = true;
                       config.defstructalign = 8 - 1; // NT uses 8 byte alignment
                       config.flags |= CFGnoebp;
                       config.flags |= CFGalwaysframe;
@@ -1167,12 +1238,13 @@ void getcmd(int argc,char **argv)
                       if (config.fulltypes == CV4)
                         config.fulltypes = CV8;
                       util_set64();
-#if SCPP
+version (SCPP)
                       cod3_set64();
-#endif
+
                       break;
 
-#if MEMMODELS > 1
+static if (MEMMODELS > 1)
+{
             case 'F': config.exe = EX_OS2;
                       goto Lx;
 
@@ -1217,24 +1289,26 @@ void getcmd(int argc,char **argv)
                       util_set16();
                       util_set16();
                       break;
-#endif
+}
             default:  assert(0);
     }
 
     if (!target)
         target = '0';
-    config.target_cpu = (target == '6') ? TARGET_PentiumPro : target - '0';
+    config.target_cpu = cast(byte)((target == '6') ? TARGET_PentiumPro : target - '0');
     if (scheduler)
-        config.target_scheduler = (scheduler == '6') ? TARGET_PentiumPro : scheduler - '0';
+        config.target_scheduler = cast(byte)((scheduler == '6') ? TARGET_PentiumPro : scheduler - '0');
     else
         config.target_scheduler = config.target_cpu;
 
-#if SPP
+version (SPP)
+{
     config.flags2 |= CFG2expand;        // doing "expanded" listing
     switch_E = 1;
-#else
+}
+else
     switch_E = (config.flags2 & CFG2expand) != 0;
-#endif
+
 
     defalign = config.defstructalign;
     if (!switch_a)              // if no alignment specified
@@ -1248,10 +1322,11 @@ void getcmd(int argc,char **argv)
     {
         if (!(config.wflags & (WFss | WFwindows)))
             config.wflags |= WFssneds;
-#if MEMMODELS > 1
+static if (MEMMODELS > 1)
+{
         if (config.memmodel == Vmodel)
             config.wflags |= WFincbp | WFthunk;
-#endif
+}
     }
     if (!(config.wflags & WFwindows))
         config.wflags |= WFexpdef;
@@ -1273,16 +1348,16 @@ void getcmd(int argc,char **argv)
     {
         if (config.exe == EX_WIN32)
         {
-            config.ehmethod = EH_WIN32;
+            config.ehmethod = EHmethod.EH_WIN32;
         }
         else
         {
-            config.ehmethod = EH_DM;
+            config.ehmethod = EHmethod.EH_DM;
         config.flags |= CFGalwaysframe;
         }
     }
     else
-        config.ehmethod = EH_NONE;
+        config.ehmethod = EHmethod.EH_NONE;
 
     if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64))
         config.flags4 |= CFG4wchar_is_long;
@@ -1301,20 +1376,23 @@ void getcmd(int argc,char **argv)
     if (!dmcdll_first_compile())
         config.flags2 &= ~CFG2phautoy;
 
-#if !SPP
+version (SPP)
+{
+}
+else
+{
     ph_init(mmfiobase, reservesize);    // reinitialize heaps taking ph options
                                         // into account
     pragma_init();
-#endif
+}
 
     if (config.flags3 & CFG3rtti && !(config.flags2 & CFG2phuse))
-        list_append(&headers,(void*)"typeinfo.h");
+        list_append(&headers,cast(void*)"typeinfo.h".ptr);
 
     // Go back through argument list and handle arguments that allocate
     // memory in the PH.
     for (i = 1; i < argc; i++)          // for each argument
-    {   int on;
-
+    {
         p = argv[i];                    // p -> argument string
         if (*p != '-' && *p != '/')
             continue;
@@ -1334,7 +1412,7 @@ void getcmd(int argc,char **argv)
                 addpath(&pathlist, p);
                 break;
             case 'i':
-                if (memcmp(p, "system=", 7))
+                if (memcmp(p, "system=".ptr, 7))
                     goto badflag;
                 addpath(&pathsyslist, p + 7);
                 break;
@@ -1342,11 +1420,13 @@ void getcmd(int argc,char **argv)
                 if (CPP && template_getcmd(p))
                     goto badflag;
                 break;
+            default:
+                break;
         }
     }
 
     if (!(config.flags2 & CFG2phgen))   // if not generating PH
-        fsymname = NULL;                // then no sym output file
+        fsymname = null;                // then no sym output file
     if (!(config.flags3 & CFG3igninc))  // if not ignored
     {
         /* To see what paths gcc uses on linux,
@@ -1358,27 +1438,28 @@ void getcmd(int argc,char **argv)
 
     if (!switch_U)                      /* if didn't turn them off      */
     {
-#if TX86
-        {   static char i8086[] = "_M_I86?M";
-            static char modelc[6] = "SMCLV";
-            static char m86[] = "_M_I86";
+        {   const(char)* i8086  = "_M_I86?M";
+            const(char)* modelc = "SMCLV";
+            const(char)* m86    = "_M_I86";
 
             /* For compatibility with MSC       */
             predefine(m86);
             predefine(m86 + 1);
 
-            i8086[6] = (model == 'T') ? 'T' : modelc[config.memmodel];
-            predefine(i8086);
-            predefine(i8086 + 1);
+            char[9] i86 = void;
+            strcpy(i86.ptr, i8086);
+            i86[6] = (model == 'T') ? 'T' : modelc[config.memmodel];
+            predefine(i86.ptr);
+            predefine(i86.ptr + 1);
 
             if (target == '0')
-            {   static char m8086[] = "_M_I8086";
+            {   const(char)* m8086 = "_M_I8086";
 
                 predefine(m8086);
                 predefine(m8086 + 1);
             }
             else
-            {   static char cpu[] = "_M_I286";
+            {   const(char)* cpu = "_M_I286";
 
                 predefine(cpu);
                 predefine(cpu + 1);
@@ -1392,25 +1473,26 @@ void getcmd(int argc,char **argv)
         }
 
         if (I32)
-        {   static char cpu[] = "300";
-
+        {
+            char[4] cpu = void;
+            cpu[] = "300";
             if (target >= '4')
                 cpu[0] = target;
-            defmac("_M_IX86",cpu);
+            defmac("_M_IX86",cpu.ptr);
         }
-#endif
+
         defmac("__SC__",VERSIONHEX);
         defmac("__ZTC__",VERSIONHEX);
         defmac("__DMC__",VERSIONHEX);
 
-        defmac("__DMC_VERSION_STRING__", "\"Digital Mars C/C++ " VERSION "\"");
+        defmac("__DMC_VERSION_STRING__", "\"Digital Mars C/C++ " ~ VERSION ~ "\"");
     }
 
     // Do operating system #defines
     switch (config.exe)
     {
-        static char msdos[] = "_MSDOS";
-        static char win32[] = "_WIN32";
+        __gshared const(char)* msdos = "_MSDOS";
+        __gshared const(char)* win32 = "_WIN32";
 
         case EX_DOSX:
         case EX_PHARLAP:        predefine("DOS386");    goto case_msdos;
@@ -1481,14 +1563,14 @@ void getcmd(int argc,char **argv)
     predefine("_STDCALL_SUPPORTED");    // supports __stdcall
     predefine("_PUSHPOP_SUPPORTED");    // supports #pragma pack(push)
 
-
-    {   static char isize[] = "2";
-
-        isize[0] = intsize + '0';
-        defmac("__INTSIZE",isize);
-        isize[0] = (defalign + 1) + '0';
-        defmac("__DEFALIGN",isize);
-        defmac("_INTEGRAL_MAX_BITS",(intsize == 4) ? "64" : "32");
+    {
+        char[2] isize = void;
+        isize[0] = cast(char)(_tysize[TYint] + '0');
+        isize[1] = 0;
+        defmac("__INTSIZE".ptr,isize.ptr);
+        isize[0] = cast(char)((defalign + 1) + '0');
+        defmac("__DEFALIGN",isize.ptr);
+        defmac("_INTEGRAL_MAX_BITS",(_tysize[TYint] == 4) ? "64" : "32");
     }
 
     if (config.wflags & WFmacros)
@@ -1498,25 +1580,33 @@ void getcmd(int argc,char **argv)
             predefine("_WINDLL");
     }
 
-#if TX86
     /* ANSI C macros to give memory model and cpu type  */
-    {   static char modelmac[MEMMODELS][12] =
-                {"__SMALL__"
-#if MEMMODELS > 1
-                ,"__MEDIUM__","__COMPACT__","__LARGE__","__VCM__"
-#endif
-                };
-        static char i86[] = "__I86__";
-        static char i86value[] = "0";
+    {
 
-        fixeddefmac(modelmac[config.memmodel],one);
+static if (MEMMODELS == 1)
+{
+       __gshared const(char)*[MEMMODELS] modelmac =
+                ["__SMALL__"
+                ];
+}
+else
+{
+       __gshared const(char)*[MEMMODELS] modelmac =
+                ["__SMALL__"
+                ,"__MEDIUM__","__COMPACT__","__LARGE__","__VCM__"
+                ];
+}
+        const(char)* i86 = "__I86__";
+        char[2] i86value = void;
+
+        fixeddefmac(modelmac[config.memmodel],one.ptr);
         i86value[0] = target;
-        fixeddefmac(i86,i86value);
+        i86value[1] = 0;
+        fixeddefmac(i86,i86value.ptr);
 
         if (config.inline8087)
             predefine("__INLINE_8087");
     }
-#endif
 
     if (CPP || config.flags3 & CFG3cpp)
     {
@@ -1533,34 +1623,38 @@ void getcmd(int argc,char **argv)
          * C99 __STDC_VERSION__ 199901L         ISO/IEC 9899:1999
          */
 
-        if (ANSI == 95)
+        if (config.ansi_c == 95)
             fixeddefmac("__STDC_VERSION__", "199409L");
-        if (!ANSI || ANSI == 99)
+        if (!config.ansi_c || config.ansi_c == 99)
             fixeddefmac("__STDC_VERSION__", "199901L");
 
         if (!(config.flags4 & CFG4fastfloat))   // if not fast floating point
         {
-#if linux
-            defmac("__STDC_IEC_559__", one);
-            defmac("__STDC_IEC_559_COMPLEX__", one);
-#else
-            fixeddefmac("__STDC_IEC_559__", one);
-            fixeddefmac("__STDC_IEC_559_COMPLEX__", one);
-#endif
+version (linux)
+{
+            defmac("__STDC_IEC_559__", one.ptr);
+            defmac("__STDC_IEC_559_COMPLEX__", one.ptr);
+}
+else
+{
+            fixeddefmac("__STDC_IEC_559__", one.ptr);
+            fixeddefmac("__STDC_IEC_559_COMPLEX__", one.ptr);
+}
         }
     }
+
     definedmac();
-    fixeddefmac("__LINE__",(char *)NULL);
-    fixeddefmac("__FILE__",(char *)NULL);
-    fixeddefmac("__FUNC__",(char *)NULL);
-    fixeddefmac("__COUNTER__",(char *)NULL);
+    fixeddefmac("__LINE__",cast(char *)null);
+    fixeddefmac("__FILE__",cast(char *)null);
+    fixeddefmac("__FUNC__",cast(char *)null);
+    fixeddefmac("__COUNTER__",cast(char *)null);
     if (CPP)
     {   fixeddefmac("__FUNCTION__", "__func__");
         fixeddefmac("__PRETTY_FUNCTION__", "__func__");
     }
     else
-    {   fixeddefmac("__FUNCTION__", (char *)NULL);
-        fixeddefmac("__PRETTY_FUNCTION__",(char *)NULL);
+    {   fixeddefmac("__FUNCTION__", cast(char *)null);
+        fixeddefmac("__PRETTY_FUNCTION__",cast(char *)null);
     }
     predefine("__FPCE__");              // NCEG conformance
     fixeddefmac("__BASE_FILE__", filename_stringize(finname2)); // source file as specified on the command line
@@ -1568,41 +1662,42 @@ void getcmd(int argc,char **argv)
     if (!(config.flags4 & CFG4fastfloat))       // if not fast floating point
         predefine("__FPCE_IEEE__");     // IEEE conformance
 
-    {   char date[1+26+1];
+    {   char[1+26+1] date = void;
         time_t t;
-        char *p;
+        char *px;
 
         time(&t);
-        if ((long) t < 0)               // if bug in library
+        if (cast(int) t < 0)               // if bug in library
             t = 852152259;              // Jan 1, 1995
-        p = ctime(&t);
-        assert(p);
-        sprintf(date,"\"%.6s %.4s\"",p+4,p+20);
-        fixeddefmac("__DATE__",date);
-        sprintf(date,"\"%.8s\"",p+11);
-        fixeddefmac("__TIME__",date);
-        sprintf(date,"\"%.24s\"",p);
-        fixeddefmac("__TIMESTAMP__",date);
+        px = ctime(&t);
+        assert(px);
+        sprintf(date.ptr,"\"%.6s %.4s\"",px+4,px+20);
+        fixeddefmac("__DATE__",date.ptr);
+        sprintf(date.ptr,"\"%.8s\"",px+11);
+        fixeddefmac("__TIME__",date.ptr);
+        sprintf(date.ptr,"\"%.24s\"",px);
+        fixeddefmac("__TIMESTAMP__",date.ptr);
     }
 
 
-    if (ANSI)                           // if strict ANSI C/C++
-        fixeddefmac("__STDC__",one);
+    if (config.ansi_c)                           // if strict ANSI C/C++
+        fixeddefmac("__STDC__",one.ptr);
 
     if (htod_running())
-        fixeddefmac("__HTOD__", one);
+        fixeddefmac("__HTOD__", one.ptr);
 
     linkage = config.linkage;
 }
-
+
+
 /*****************************
  * Predefine a macro to 1
  */
 
-STATIC void predefine(const char *name)
+/*private*/ void predefine(const(char)* name)
 {
-    if (*name == '_' || !ANSI)
-        defmac(name,one);
+    if (*name == '_' || !config.ansi_c)
+        defmac(name,one.ptr);
 }
 
 /*****************************
@@ -1613,18 +1708,18 @@ STATIC void predefine(const char *name)
  *      -Dmacro=string
  */
 
-STATIC void sw_d(char *p)
+/*private*/ void sw_d(char *p)
 { char *pstart;
 
   if (!*p)
-  {     defmac("DEBUG",one);
+  {     defmac("DEBUG",one.ptr);
         config.flags5 |= CFG5debug | CFG5in | CFG5out | CFG5invariant;
         return;
   }
   pstart = p;
   while (isidchar(*p)) p++;
   if (p == pstart || p - pstart > IDMAX)
-        cmderr(EM_dashD,"invalid identifier");
+        cmderr(EM_dashD,"invalid identifier".ptr);
 
     switch (*p)
     {   case '=':
@@ -1634,10 +1729,10 @@ STATIC void sw_d(char *p)
             defmac(pstart,p);
             break;
         case 0:
-            defmac(pstart,one);
+            defmac(pstart,one.ptr);
             break;
         default:
-            cmderr(EM_dashD,"need '=' after macro name");
+            cmderr(EM_dashD,"need '=' after macro name".ptr);
     }
 }
 
@@ -1646,14 +1741,14 @@ STATIC void sw_d(char *p)
  * and append to *ppathlist
  */
 
-#if _WIN32
-#define PATH_SEP ';'
-#else
-#define PATH_SEP ':'
-#endif
+version (Windows)
+    enum PATH_SEP = ';';
+else
+    enum PATH_SEP = ':';
 
-STATIC void addpath(phstring_t *ppathlist, const char *q)
-{   char *t,c;
+/*private*/ void addpath(phstring_t *ppathlist, const(char)* q)
+{   char *t;
+    char  c;
     char *buf;
     char *s;
     char *p;
@@ -1690,12 +1785,13 @@ STATIC void addpath(phstring_t *ppathlist, const char *q)
                     case '\r':
                         continue;       // ignore carriage returns
 
-#if 0
+static if (0)
+{
                     case ' ':
                     case '\t':          // tabs in filenames?
                         if (!instring)  // if not in string
                             break;      // treat as end of path
-#endif
+}
                     default:
                         *s++ = c;
                         continue;
@@ -1704,7 +1800,7 @@ STATIC void addpath(phstring_t *ppathlist, const char *q)
             }
             *s = 0;
             if (*t)                     // if path is not blank
-                ppathlist->push(mem_strdup(t));
+                ppathlist.push(mem_strdup(t));
         } while (c);
         mem_free(buf);
     }
@@ -1717,7 +1813,7 @@ STATIC void addpath(phstring_t *ppathlist, const char *q)
  *      pathsysi
  */
 
-static phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist)
+/*private*/ phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist)
 {
     if (pathsyslist.length() == 0)
     {
@@ -1741,23 +1837,24 @@ static phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist)
     for (size_t j = 0; j < pathsyslist.length(); ++j)
         result.push(mem_strdup(pathsyslist[j]));
 
-    pathlist.free(mem_freefp);
-    pathsyslist.free(mem_freefp);
+    pathlist.free(&mem_freefp);
+    pathsyslist.free(&mem_freefp);
 
     return result;
+}
 }
 
 /*********************************
  * Handle expansion of CFLAGS like SC driver does.
  */
 
-#if 0
-#if SPP
+version (SPP)
+{
 
-static char *cflags;
-static char **newargv;
+__gshared char *cflags;
+__gshared char **newargv;
 
-STATIC void getcmd_cflags(int *pargc,char ***pargv)
+/*private*/ void getcmd_cflags(int *pargc,char ***pargv)
 {
     cflags = getenv("CFLAGS");
     if (!cflags)
@@ -1767,14 +1864,15 @@ STATIC void getcmd_cflags(int *pargc,char ***pargv)
     if (cflags)
     {
         char **argv;
-        list_t arglist = NULL;
+        list_t arglist = null;
         int nitems = 0;
         int i;
 
         // Create our own copy since we can't modify environment
         // BUG: doesn't handle quoted arguments
         cflags = mem_strdup(cflags);
-#if 0
+static if (0)
+{
         for (p1 = cflags; 1; p1 = p2 + 1)
         {   while (isspace(*p1))
                 p1++;
@@ -1790,7 +1888,9 @@ STATIC void getcmd_cflags(int *pargc,char ***pargv)
             if (!c)
                 break;
         }
-#else
+}
+else
+{
         /* The logic of this should match that in setargv()
          * and it's taken from response_expand()
          */
@@ -1800,7 +1900,7 @@ STATIC void getcmd_cflags(int *pargc,char ***pargv)
         {
             char *d;
             char c,lastc;
-            unsigned char instring;
+            ubyte instring;
             int num_slashes,non_slashes;
 
             switch (*p)
@@ -1871,6 +1971,7 @@ STATIC void getcmd_cflags(int *pargc,char ***pargv)
                                     *d = 0;      // terminate argument
                                     goto Lnextarg;
                                 }
+                                goto default;
                             default:
                             Ladd:
                                 if (c == '\\')
@@ -1880,7 +1981,8 @@ STATIC void getcmd_cflags(int *pargc,char ***pargv)
                                 *d++ = c;
                                 break;
                         }
-#ifdef _MBCS
+static if (0) // _MBCS
+{
                         if (_istlead (c)) {
                             *d++ = *++p;
                             if (*(d - 1) == '\0') {
@@ -1888,7 +1990,7 @@ STATIC void getcmd_cflags(int *pargc,char ***pargv)
                                 goto Lnextarg;
                             }
                         }
-#endif
+}
                     }
                 break;
             }
@@ -1898,23 +2000,22 @@ STATIC void getcmd_cflags(int *pargc,char ***pargv)
     L2:
         ;
 
-#endif
-        argv = (char **) mem_malloc(sizeof(char *) * (1 + nitems + *pargc));
+}
+        argv = cast(char **) mem_malloc((char *).sizeof * (1 + nitems + *pargc));
         argv[0] = (*pargv)[0];
         for (i = 1; i <= nitems; i++)
-            argv[i] = (char *)list_pop(&arglist);
-        assert(arglist == NULL);
+            argv[i] = cast(char *)list_pop(&arglist);
+        assert(arglist == null);
         for (; i < nitems + *pargc; i++)
             argv[i] = (*pargv)[i - nitems];
         *pargc += nitems;
         *pargv = argv;
-#if TERMCODE
+static if (TERMCODE)
         newargv = argv;
-#endif
     }
 }
 
-#endif
+}
 
 /***************************************
  * Terminate getcmd package.
@@ -1922,23 +2023,26 @@ STATIC void getcmd_cflags(int *pargc,char ***pargv)
 
 void getcmd_term()
 {
-#if TERMCODE
-#if SPP
+static if (TERMCODE)
+{
+version (SPP)
+{
     mem_free(cflags);
     mem_free(newargv);
     mem_free(fdepname);
-#else
+}
+else
+{
     mem_free(fdepname);
     mem_free(flstname);
-    mem_free(fsymname); fsymname = NULL;
-    mem_free(ftdbname); ftdbname = NULL;
-#endif
+    mem_free(fsymname); fsymname = null;
+    mem_free(ftdbname); ftdbname = null;
+}
     mem_free(fdmodulename);
     mem_free(finname);
-    list_free(&pathlist,mem_freefp);
-    list_free(&pathsyslist,mem_freefp);
+    list_free(&pathlist,&mem_freefp);
+    list_free(&pathsyslist,&mem_freefp);
     list_free(&headers,FPNULL);
-#endif
+}
 }
 
-#endif

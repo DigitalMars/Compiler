@@ -398,6 +398,8 @@ int paramlstmatch(param_t *,param_t *);
 int template_paramlstmatch(type *, type *);
 
 /* from file.c */
+extern (C)
+{
 extern __gshared char[] ext_obj;
 extern __gshared char[] ext_i;
 extern __gshared char[] ext_dep;
@@ -407,9 +409,10 @@ extern __gshared char[] ext_c;
 extern __gshared char[] ext_cpp;
 extern __gshared char[] ext_sym;
 extern __gshared char[] ext_tdb;
+}
 
 // htod
-extern __gshared char[] ext_dmodule;
+extern (C) extern __gshared char[] ext_dmodule;
 extern __gshared int includenest;
 
 int file_qualify(char **pfilename,int flag,phstring_t pathlist, int *next_path);

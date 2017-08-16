@@ -22,6 +22,10 @@ extern (C++):
 @nogc:
 nothrow:
 
+enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
+enum VERSIONHEX = "0x900";      // for __DMC__ macro
+enum VERSIONINT = 0x900;        // for precompiled headers and DLL version
+
 version (SCPP)
     version = XVERSION;
 version (SPP)
@@ -76,6 +80,15 @@ enum
 //#define ATTR_LINK_MODIFIERS (mTYconst|mTYvolatile|mTYcdecl|mTYstdcall)
 //#define ATTR_CAN_IGNORE(a) (((a) & (ATTR_LINKMOD|ATTR_TYPEMOD|ATTR_FUNCINFO|ATTR_DATAINFO|ATTR_TRANSU)) == 0)
 //#define LNX_CHECK_ATTRIBUTES(a,x) assert(((a) & ~(x|ATTR_IGNORED|ATTR_WARNING)) == 0)
+
+version (_WINDLL)
+    enum SUFFIX = "nd";
+else version (_WIN64)
+    enum SUFFIX = "a";
+else version (Win32)
+    enum SUFFIX = "n";
+else
+    enum SUFFIX = "";
 
 // Generate cleanup code
 enum TERMCODE = 0;
@@ -347,32 +360,45 @@ enum REGMAX = 29;      // registers are numbered 0..10
 alias tym_t = uint;    // data type big enough for type masks
 alias SYMIDX = int;    // symbol table index
 
-//#define _chkstack()     (void)0
 
-//#if _WINDLL
-///* We reference the required Windows-1252 encoding of the copyright symbol
-//   by escaping its character code (0xA9) rather than directly embedding it in
-//   the source text. The character code is invalid in UTF-8, which causes some
-//   of our source-code preprocessing tools (e.g. tolf) to choke. */
-//#ifndef COPYRIGHT_SYMBOL
-//#define COPYRIGHT_SYMBOL "\xA9"
-//#endif
-//#define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001 Digital Mars"
-//#else
-//#ifdef DEBUG
-//#define COPYRIGHT "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.\n\
-//Written by Walter Bright\n\
-//*****BETA TEST VERSION*****"
-//#else
-//#if __linux__
-//#define COPYRIGHT "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.\n\
-//Written by Walter Bright, Linux version by Pat Nelson"
-//#else
-//#define COPYRIGHT "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.\n\
-//Written by Walter Bright"
-//#endif
-//#endif
-//#endif
+version (MARS)
+{
+}
+else
+{
+version (_WINDLL)
+{
+/* We reference the required Windows-1252 encoding of the copyright symbol
+   by escaping its character code (0xA9) rather than directly embedding it in
+   the source text. The character code is invalid in UTF-8, which causes some
+   of our source-code preprocessing tools (e.g. tolf) to choke.
+ */
+    enum COPYRIGHT_SYMBOL = "\xA9";
+    enum COPYRIGHT = "Copyright " ~ COPYRIGHT_SYMBOL ~ " 2001 Digital Mars";
+}
+else
+{
+    debug
+    {
+        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+Written by Walter Bright
+*****BETA TEST VERSION*****";
+    }
+    else
+    {
+        version (linux)
+        {
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+Written by Walter Bright, Linux version by Pat Nelson";
+        }
+        else
+        {
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+Written by Walter Bright";
+        }
+    }
+}
+}
 
 /**********************************
  * Configuration
@@ -699,7 +725,8 @@ struct Config
 enum THRESHMAX = 0xFFFF;
 
 // Language for error messages
-enum LANG
+alias LANG = int;
+enum
 {       LANGenglish,
         LANGgerman,
         LANGfrench,
