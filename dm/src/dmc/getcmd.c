@@ -38,10 +38,11 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 STATIC void predefine(const char *name);
 STATIC void sw_d(char *);
 STATIC void addpath(phstring_t *, const char *);
-static phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist);
+STATIC void mergepaths(phstring_t pathlist, phstring_t pathsyslist, phstring_t& result);
 STATIC void getcmd_cflags(int *,char ***);
 
-static char one[] = "1";
+#if 0
+STATIC char one[2] = "1";
 
 Config config =                 // part of configuration saved in ph
 {
@@ -1354,7 +1355,7 @@ void getcmd(int argc,char **argv)
          */
         addpath(&pathlist, getenv(INC_ENV));       // get path from environment
     }
-    pathlist = mergepaths(pathlist, pathsyslist);
+    mergepaths(pathlist, pathsyslist, pathlist);
 
     if (!switch_U)                      /* if didn't turn them off      */
     {
@@ -1717,12 +1718,13 @@ STATIC void addpath(phstring_t *ppathlist, const char *q)
  *      pathsysi
  */
 
-static phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist)
+STATIC void mergepaths(phstring_t pathlist, phstring_t pathsyslist, phstring_t& res)
 {
     if (pathsyslist.length() == 0)
     {
         pathsysi = pathlist.length();
-        return pathlist;
+        res = pathlist;
+        return;
     }
 
     phstring_t result;
@@ -1744,14 +1746,13 @@ static phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist)
     pathlist.free(mem_freefp);
     pathsyslist.free(mem_freefp);
 
-    return result;
+    res = result;
 }
 
 /*********************************
  * Handle expansion of CFLAGS like SC driver does.
  */
 
-#if 0
 #if SPP
 
 static char *cflags;

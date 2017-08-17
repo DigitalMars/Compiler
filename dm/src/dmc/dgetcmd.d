@@ -60,16 +60,14 @@ enum INC_ENV = "INCLUDE";
 /*private*/ void predefine(const char *name);
 /*private*/ void sw_d(char *);
 /*private*/ void addpath(phstring_t *, const char *);
-/*private*/ phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist);
+/*private*/ void mergepaths(phstring_t pathlist, phstring_t pathsyslist, ref phstring_t result);
 /*private*/ void getcmd_cflags(int *,char ***);
 +/
 
-version (none)
-{
 __gshared
 {
-private __gshared char[2] one = "1";
 
+private __gshared char[2] one = "1";
 __gshared Config config =                 // part of configuration saved in ph
 {
                 'D',            // compile for C++
@@ -84,9 +82,9 @@ __gshared Config config =                 // part of configuration saved in ph
 Configv configv;                // non-ph part of configuration
 EEcontext eecontext;
 
+char switch_E = 0;              // for LINRECOR.ASM
 extern (C)
 {
-char switch_E = 0;              // for LINRECOR.ASM
 int  _version = VERSIONINT;
 }
 
@@ -94,10 +92,8 @@ const(char)* versionString = "(SCVersion)@" ~ COMPILER ~ " " ~ VERSION ~ SUFFIX;
 const(char)* copyright = COPYRIGHT;
 }
 
-version (none)
-{
+version (all){
 
-}
 version (_WINDLL)
 {
 }
@@ -234,23 +230,22 @@ version(all){
                 dotext = filespecdotext(p);
 version (SPP)
 {
-                if (filespeccmp(dotext,ext_i) == 0)
+                if (filespeccmp(dotext,ext_i.ptr) == 0)
                     foutname = p;
-                else if (filespeccmp(dotext,ext_dep) == 0)
+                else if (filespeccmp(dotext,ext_dep.ptr) == 0)
                     fdepname = p;
                 else
                     finname = p;
 }
 else version (HTOD)
 {
-                if (filespeccmp(dotext,ext_dmodule) == 0)
+                if (filespeccmp(dotext,ext_dmodule.ptr) == 0)
                     fdmodulename = p;
                 else
                     finname = p;
 }
 else
 {
-
                 if (filespeccmp(dotext,ext_obj.ptr) == 0)
                     foutname = p;
                 else if (filespeccmp(dotext,ext_dep.ptr) == 0)
@@ -629,6 +624,11 @@ version (HTOD)
                         case '-':       /* do not use PH                */
                         default:        /* ignore invalid flags         */
                             config.flags2 &= ~(CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy | CFG2once);
+                            break;
+                }
+                else
+                {
+                        default:
                             break;
                 }
                     }
@@ -1417,8 +1417,11 @@ else
                 addpath(&pathsyslist, p + 7);
                 break;
             case 'X':
+version (SCPP)
+{
                 if (CPP && template_getcmd(p))
                     goto badflag;
+}
                 break;
             default:
                 break;
@@ -1434,7 +1437,7 @@ else
          */
         addpath(&pathlist, getenv(INC_ENV));       // get path from environment
     }
-    pathlist = mergepaths(pathlist, pathsyslist);
+    mergepaths(pathlist, pathsyslist, pathlist);
 
     if (!switch_U)                      /* if didn't turn them off      */
     {
@@ -1688,6 +1691,7 @@ else
 
     linkage = config.linkage;
 }
+}
 
 
 /*****************************
@@ -1696,6 +1700,7 @@ else
 
 /*private*/ void predefine(const(char)* name)
 {
+    __gshared char[2] one = "1";
     if (*name == '_' || !config.ansi_c)
         defmac(name,one.ptr);
 }
@@ -1710,6 +1715,8 @@ else
 
 /*private*/ void sw_d(char *p)
 { char *pstart;
+
+    __gshared char[2] one = "1";
 
   if (!*p)
   {     defmac("DEBUG",one.ptr);
@@ -1813,15 +1820,17 @@ static if (0)
  *      pathsysi
  */
 
-/*private*/ phstring_t mergepaths(phstring_t pathlist, phstring_t pathsyslist)
+/*private*/ void mergepaths(phstring_t pathlist, phstring_t pathsyslist, ref phstring_t res)
 {
     if (pathsyslist.length() == 0)
     {
         pathsysi = pathlist.length();
-        return pathlist;
+        res = pathlist;
+        return;
     }
 
-    phstring_t result;
+    phstring_t result = void;
+    result.dim = 0;
 
     for (size_t i = 0; i < pathlist.length(); ++i)
     {
@@ -1840,8 +1849,7 @@ static if (0)
     pathlist.free(&mem_freefp);
     pathsyslist.free(&mem_freefp);
 
-    return result;
-}
+    res = result;
 }
 
 /*********************************

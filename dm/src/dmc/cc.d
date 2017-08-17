@@ -1645,10 +1645,10 @@ struct EEcontext
     uint EElinnum;              // line number to insert expression
     char *EEexpr;               // expression
     char *EEtypedef;            // typedef identifier
-    char EEpending;             // !=0 means we haven't compiled it yet
-    char EEimminent;            // we've installed it in the source text
-    char EEcompile;             // we're compiling for the EE expression
-    char EEin;                  // we are parsing an EE expression
+    byte EEpending;             // !=0 means we haven't compiled it yet
+    byte EEimminent;            // we've installed it in the source text
+    byte EEcompile;             // we're compiling for the EE expression
+    byte EEin;                  // we are parsing an EE expression
     elem *EEelem;               // compiled version of EEexpr
     Symbol *EEfunc;             // function expression is in
     code *EEcode;               // generated code

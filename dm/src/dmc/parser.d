@@ -126,7 +126,7 @@ struct phstring_t
 
     void free(list_free_fp freeptr);
 
-  private:
+//  private:
     size_t dim;
     char** data;
 }
@@ -400,15 +400,15 @@ int template_paramlstmatch(type *, type *);
 /* from file.c */
 extern (C)
 {
-extern __gshared char[] ext_obj;
-extern __gshared char[] ext_i;
-extern __gshared char[] ext_dep;
-extern __gshared char[] ext_lst;
-extern __gshared char[] ext_hpp;
-extern __gshared char[] ext_c;
-extern __gshared char[] ext_cpp;
-extern __gshared char[] ext_sym;
-extern __gshared char[] ext_tdb;
+extern __gshared char[5] ext_obj; // or [3] for ".o"
+extern __gshared char[3] ext_i;
+extern __gshared char[5] ext_dep;
+extern __gshared char[5] ext_lst;
+extern __gshared char[5] ext_hpp;
+extern __gshared char[3] ext_c;
+extern __gshared char[5] ext_cpp;
+extern __gshared char[5] ext_sym;
+extern __gshared char[5] ext_tdb;
 }
 
 // htod
