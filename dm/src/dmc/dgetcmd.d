@@ -56,14 +56,6 @@ alias MEM_PARF_STRDUP = mem_strdup;
 
 enum INC_ENV = "INCLUDE";
 
-/+
-/*private*/ void predefine(const char *name);
-/*private*/ void sw_d(char *);
-/*private*/ void addpath(phstring_t *, const char *);
-/*private*/ void mergepaths(phstring_t pathlist, phstring_t pathsyslist, ref phstring_t result);
-/*private*/ void getcmd_cflags(int *,char ***);
-+/
-
 __gshared
 {
 
@@ -91,8 +83,6 @@ int  _version = VERSIONINT;
 const(char)* versionString = "(SCVersion)@" ~ COMPILER ~ " " ~ VERSION ~ SUFFIX;
 const(char)* copyright = COPYRIGHT;
 }
-
-version (all){
 
 version (_WINDLL)
 {
@@ -1691,14 +1681,13 @@ else
 
     linkage = config.linkage;
 }
-}
 
 
 /*****************************
  * Predefine a macro to 1
  */
 
-/*private*/ void predefine(const(char)* name)
+private void predefine(const(char)* name)
 {
     __gshared char[2] one = "1";
     if (*name == '_' || !config.ansi_c)
@@ -1713,7 +1702,7 @@ else
  *      -Dmacro=string
  */
 
-/*private*/ void sw_d(char *p)
+private void sw_d(char *p)
 { char *pstart;
 
     __gshared char[2] one = "1";
@@ -1753,7 +1742,7 @@ version (Windows)
 else
     enum PATH_SEP = ':';
 
-/*private*/ void addpath(phstring_t *ppathlist, const(char)* q)
+private void addpath(phstring_t *ppathlist, const(char)* q)
 {   char *t;
     char  c;
     char *buf;
@@ -1820,7 +1809,7 @@ static if (0)
  *      pathsysi
  */
 
-/*private*/ void mergepaths(phstring_t pathlist, phstring_t pathsyslist, ref phstring_t res)
+private void mergepaths(phstring_t pathlist, phstring_t pathsyslist, ref phstring_t res)
 {
     if (pathsyslist.length() == 0)
     {
@@ -1862,7 +1851,7 @@ version (SPP)
 __gshared char *cflags;
 __gshared char **newargv;
 
-/*private*/ void getcmd_cflags(int *pargc,char ***pargv)
+private void getcmd_cflags(int *pargc,char ***pargv)
 {
     cflags = getenv("CFLAGS");
     if (!cflags)
