@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cgcod.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cgcod.c, backend/cgcod.c)
  */
 
 #if !SPP
@@ -2142,7 +2141,7 @@ static void cse_save(CodeBuilder& cdb, regm_t ms)
                 csextab[i].flags |= CSEsimple;
             else
             {
-                cdb.append(gensavereg(reg, i));
+                gensavereg(cdb, reg, i);
                 reflocal = TRUE;
             }
         }
@@ -2831,8 +2830,8 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
                 {   regm_t mj = mask[j];
 
                     if (touse & mj)
-                    {   cs1 = genmovreg(cs1,j,i);
-                        cs2 = cat(genmovreg(CNIL,i,j),cs2);
+                    {   cs1 = cat(cs1,genmovreg(j,i));
+                        cs2 = cat(genmovreg(i,j),cs2);
                         touse &= ~mj;
                         mfuncreg &= ~mj;
                         regcon.used |= mj;
@@ -2875,16 +2874,16 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
                                         // because c hasn't been executed yet
             cod3_stackadj(cdbs1, sz);
             regcon.immed.mval = mval_save;
-            cdbs1.append(genadjesp(CNIL, sz));
+            cdbs1.genadjesp(sz);
 
             cod3_stackadj(cdbs2, -sz);
-            cdbs2.append(genadjesp(CNIL, -sz));
+            cdbs2.genadjesp(-sz);
         }
         cdbs2.append(cs2);
 
 
-        cdbs1.append(genadjesp(CNIL,adjesp));
-        cdbs2.append(genadjesp(CNIL,-adjesp));
+        cdbs1.genadjesp(adjesp);
+        cdbs2.genadjesp(-adjesp);
   }
   else
         cdbs2.append(cs2);

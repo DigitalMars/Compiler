@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1994-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cod3.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cod3.c, backend/cod3.c)
  */
 
 #if !SPP
@@ -1222,7 +1221,7 @@ static void cmpval(CodeBuilder& cdb, targ_llong val, unsigned sz, unsigned reg, 
         {
             assert(sreg != NOREG);
             movregconst(cdb,sreg,val,64);  // MOV sreg,val64
-            cdb.append(genregs(CNIL,0x3B,reg,sreg));    // CMP reg,sreg
+            genregs(cdb,0x3B,reg,sreg);    // CMP reg,sreg
             code_orrex(cdb.last(), REX_W);
             getregsNoSave(mask[sreg]);                  // don't remember we loaded this constant
         }
@@ -1460,7 +1459,7 @@ void doswitch(CodeBuilder& cdb, block *b)
             }
         }
         else if (dword)
-        {   cdb.append(gentstreg(CNIL,reg2));              // TEST reg2,reg2
+        {   gentstreg(cdb,reg2);              // TEST reg2,reg2
             genjmp(cdb,JNE,FLblock,b->nthSucc(0)); // JNE default
         }
         if (vmax - vmin != REGMASK)     // if there is a maximum
@@ -1474,7 +1473,7 @@ void doswitch(CodeBuilder& cdb, block *b)
         {
             if (!vmin)
             {   // Need to clear out high 32 bits of reg
-                cdb.append(genmovreg(CNIL,reg,reg));                       // MOV reg,reg
+                genmovreg(cdb,reg,reg);                       // MOV reg,reg
             }
             if (config.flags3 & CFG3pic || config.exe == EX_WIN64)
             {
@@ -1586,7 +1585,7 @@ void doswitch(CodeBuilder& cdb, block *b)
                 unsigned r1;
                 allocreg(cdb,&scratchm,&r1,TYint);
 
-                cdb.append(genmovreg(CNIL,r1,BX));              // MOV R1,EBX
+                genmovreg(cdb,r1,BX);              // MOV R1,EBX
                 cdb.genc1(0x2B,modregxrm(2,r1,4),FLswitch,0);   // SUB R1,disp[reg*4][EBX]
                 cdb.last()->IEV1.Vswitch = b;
                 cdb.last()->Isib = modregrm(2,reg,BX);
@@ -1649,7 +1648,7 @@ void doswitch(CodeBuilder& cdb, block *b)
 
             makeitextern(gotsym);
 
-            cdb.append(genmovreg(CNIL, DX, DI));    // MOV EDX, EDI
+            genmovreg(cdb, DX, DI);    // MOV EDX, EDI
                                         // ADD EDI,offset of switch table
             cdb.gencs(0x81,modregrm(3,0,DI),FLswitch,NULL);
             cdb.last()->IEV2.Vswitch = b;
@@ -2420,36 +2419,33 @@ STATIC int obj_namestring(char *p,const char *name)
 }
 #endif
 
-code *genregs(code *c,unsigned op,unsigned dstreg,unsigned srcreg)
-{ return gen2(c,op,modregxrmx(3,dstreg,srcreg)); }
+void genregs(CodeBuilder& cdb,unsigned op,unsigned dstreg,unsigned srcreg)
+{ return cdb.gen2(op,modregxrmx(3,dstreg,srcreg)); }
 
-code *gentstreg(code *c,unsigned t)
+void gentstreg(CodeBuilder& cdb, unsigned t)
 {
-    c = gen2(c,0x85,modregxrmx(3,t,t));   // TEST t,t
-    code_orflag(c,CFpsw);
-    return c;
+    cdb.gen2(0x85,modregxrmx(3,t,t));   // TEST t,t
+    code_orflag(cdb.last(),CFpsw);
 }
 
-code *genpush(code *c, unsigned reg)
+void genpush(CodeBuilder& cdb, unsigned reg)
 {
-    c = gen1(c, 0x50 + (reg & 7));
+    cdb.gen1(0x50 + (reg & 7));
     if (reg & 8)
-        code_orrex(c, REX_B);
-    return c;
+        code_orrex(cdb.last(), REX_B);
 }
 
-code *genpop(code *c, unsigned reg)
+void genpop(CodeBuilder& cdb, unsigned reg)
 {
-    c = gen1(c, 0x58 + (reg & 7));
+    cdb.gen1(0x58 + (reg & 7));
     if (reg & 8)
-        code_orrex(c, REX_B);
-    return c;
+        code_orrex(cdb.last(), REX_B);
 }
 
 /**************************
  * Generate a MOV to save a register to a stack slot
  */
-code *gensavereg(unsigned& reg, targ_uns slot)
+void gensavereg(CodeBuilder& cdb, unsigned& reg, targ_uns slot)
 {
     // MOV i[BP],reg
     unsigned op = 0x89;              // normal mov
@@ -2457,11 +2453,9 @@ code *gensavereg(unsigned& reg, targ_uns slot)
     {   reg = 0;            // the real reg number
         op = 0x8C;          // segment reg mov
     }
-    code *c = genc1(NULL,op,modregxrm(2, reg, BPRM),FLcs,slot);
+    cdb.genc1(op,modregxrm(2, reg, BPRM),FLcs,slot);
     if (I64)
-        code_orrex(c, REX_W);
-
-    return c;
+        code_orrex(cdb.last(), REX_W);
 }
 
 /**************************
@@ -2470,7 +2464,14 @@ code *gensavereg(unsigned& reg, targ_uns slot)
  * register moves.
  */
 
-code *genmovreg(code *c,unsigned to,unsigned from)
+code *genmovreg(unsigned to,unsigned from)
+{
+    CodeBuilder cdb;
+    genmovreg(cdb, to, from);
+    return cdb.finish();
+}
+
+void genmovreg(CodeBuilder& cdb,unsigned to,unsigned from)
 {
 #if DEBUG
         if (to > ES || from > ES)
@@ -2480,15 +2481,14 @@ code *genmovreg(code *c,unsigned to,unsigned from)
         if (to != from)
         {
                 if (to == ES)
-                        c = genregs(c,0x8E,0,from);
+                        genregs(cdb,0x8E,0,from);
                 else if (from == ES)
-                        c = genregs(c,0x8C,0,to);
+                        genregs(cdb,0x8C,0,to);
                 else
-                        c = genregs(c,0x89,from,to);
+                        genregs(cdb,0x89,from,to);
                 if (I64)
-                        code_orrex(c, REX_W);
+                        code_orrex(cdb.last(), REX_W);
         }
-        return c;
 }
 
 /***************************************
@@ -2502,7 +2502,7 @@ void genmulimm(CodeBuilder& cdb,unsigned r1,unsigned r2,targ_int imm)
     switch (imm)
     {
         case 1:
-            cdb.append(genmovreg(CNIL,r1,r2));
+            genmovreg(cdb,r1,r2);
             break;
 
         case 5:
@@ -2562,7 +2562,6 @@ void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags)
     regm_t mreg;
 
     //printf("movregconst(reg=%s, value= %lld (%llx), flags=%x)\n", regm_str(mask[reg]), value, value, flags);
-#define genclrreg(a,r) genregs(a,0x31,r,r)
 
     regm_t regm = regcon.immed.mval & mask[reg];
     targ_size_t regv = regcon.immed.value[reg];
@@ -2595,14 +2594,14 @@ void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags)
             if (mreg & 1)
             {
                 if ((regcon.immed.value[r] & 0xFF) == value)
-                {   cdb.append(genregs(CNIL,0x8A,reg,r));          // MOV regL,rL
+                {   genregs(cdb,0x8A,reg,r);          // MOV regL,rL
                     if (I64 && reg >= 4 || r >= 4)
                         code_orrex(cdb.last(), REX);
                     goto L2;
                 }
                 if (!(I64 && reg >= 4) &&
                     r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)
-                {   cdb.append(genregs(CNIL,0x8A,reg,r | 4));      // MOV regL,rH
+                {   genregs(cdb,0x8A,reg,r | 4);      // MOV regL,rH
                     goto L2;
                 }
             }
@@ -2613,12 +2612,12 @@ void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags)
         {
             if (!(flags & 4) &&                 // if we can set the whole register
                 !(flags & 16 && reg & 4))       // and reg is not an H register
-            {   cdb.append(genregs(CNIL,0x31,reg,reg));      // XOR reg,reg
+            {   genregs(cdb,0x31,reg,reg);      // XOR reg,reg
                 regimmed_set(reg,value);
                 regv = 0;
             }
             else
-                cdb.append(genregs(CNIL,0x30,reg,reg));      // XOR regL,regL
+                genregs(cdb,0x30,reg,reg);      // XOR regL,regL
             flags &= ~mPSW;                     // flags already set by XOR
         }
         else
@@ -2630,7 +2629,7 @@ void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags)
         }
     L2:
         if (flags & mPSW)
-            cdb.append(genregs(CNIL,0x84,reg,reg));            // TEST regL,regL
+            genregs(cdb,0x84,reg,reg);            // TEST regL,regL
 
         if (regm)
             // Set just the 'L' part of the register value
@@ -2668,13 +2667,13 @@ L1:
     // If we already have the right value in the right register
     if (regm && (regv & 0xFFFFFFFF) == (value & 0xFFFFFFFF) && !(flags & 64))
     {   if (flags & mPSW)
-            cdb.append(gentstreg(CNIL,reg));
+            gentstreg(cdb,reg);
     }
     else if (flags & 64 && regm && regv == value)
     {   // Look at the full 64 bits
         if (flags & mPSW)
         {
-            cdb.append(gentstreg(CNIL,reg));
+            gentstreg(cdb,reg);
             code_orrex(cdb.last(), REX_W);
         }
     }
@@ -2684,31 +2683,31 @@ L1:
         {
             switch (value)
             {   case 0:
-                    cdb.append(genclrreg(CNIL,reg));
+                    genregs(cdb,0x31,reg,reg);
                     break;
                 case 1:
                     if (I64)
                         goto L4;
-                    cdb.append(genclrreg(CNIL,reg));
+                    genregs(cdb,0x31,reg,reg);
                     goto inc;
                 case -1:
                     if (I64)
                         goto L4;
-                    cdb.append(genclrreg(CNIL,reg));
+                    genregs(cdb,0x31,reg,reg);
                     goto dec;
                 default:
                 L4:
                     if (flags & 64)
                     {
                         cdb.genc2(0xB8 + (reg&7),REX_W << 16 | (reg&8) << 13,value); // MOV reg,value64
-                        cdb.append(gentstreg(CNIL,reg));
+                        gentstreg(cdb,reg);
                         code_orrex(cdb.last(), REX_W);
                     }
                     else
                     {
                         value &= 0xFFFFFFFF;
                         cdb.genc2(0xB8 + (reg&7),(reg&8) << 13,value); // MOV reg,value
-                        cdb.append(gentstreg(CNIL,reg));
+                        gentstreg(cdb,reg);
                     }
                     break;
             }
@@ -2749,7 +2748,8 @@ L1:
                 }
             }
             if (value == 0 && !(flags & 8) && config.target_cpu >= TARGET_80486)
-            {   cdb.append(genclrreg(CNIL,reg));           // CLR reg
+            {
+                genregs(cdb,0x31,reg,reg);              // XOR reg,reg
                 goto done;
             }
 
@@ -2778,14 +2778,15 @@ L1:
                 assert(!I16 || regcon.immed.value[r] == (targ_short)regcon.immed.value[r]);
 #endif
                 if (mreg & 1 && regcon.immed.value[r] == value)
-                {   cdb.append(genmovreg(CNIL,reg,r));
+                {   genmovreg(cdb,reg,r);
                     goto done;
                 }
                 r++;
             }
 
             if (value == 0 && !(flags & 8))
-            {   cdb.append(genclrreg(CNIL,reg));           // CLR reg
+            {
+                genregs(cdb,0x31,reg,reg);              // XOR reg,reg
             }
             else
             {   // See if we can just load a byte
@@ -2885,7 +2886,7 @@ void prolog_ifunc(CodeBuilder& cdb, tym_t* tyf)
         cdb.gen1(*p);
     while (*++p);
 
-    cdb.append(genregs(CNIL,0x8B,BP,SP));     // MOV BP,SP
+    genregs(cdb,0x8B,BP,SP);     // MOV BP,SP
     if (localsize)
         cod3_stackadj(cdb, localsize);
 
@@ -2955,7 +2956,7 @@ void prolog_16bit_windows_farfunc(CodeBuilder& cdb, tym_t* tyf, bool* pushds)
     if (wflags & WFincbp)
         cdb.gen1(0x40 + BP);              // INC  BP
     cdb.gen1(0x50 + BP);                  // PUSH BP
-    cdb.append(genregs(CNIL,0x8B,BP,SP)); // MOV  BP,SP
+    genregs(cdb,0x8B,BP,SP); // MOV  BP,SP
     if (wflags & (WFsaveds | WFds | WFss | WFdgroup))
     {   cdb.gen1(0x1E);                       // PUSH DS
         *pushds = true;
@@ -3007,7 +3008,7 @@ void prolog_frame(CodeBuilder& cdb, unsigned farfunc, unsigned* xlocalsize, bool
        )
     {
         cdb.gen1(0x50 + BP);      // PUSH BP
-        cdb.append(genregs(CNIL,0x8B,BP,SP));      // MOV  BP,SP
+        genregs(cdb,0x8B,BP,SP);      // MOV  BP,SP
         if (I64)
             code_orrex(cdb.last(), REX_W);   // MOV RBP,RSP
         if ((config.objfmt & (OBJ_ELF | OBJ_MACH)) && config.fulltypes)
@@ -3224,7 +3225,7 @@ void prolog_saveregs(CodeBuilder& cdb, regm_t topush, int cfa_offset)
             }
             else
             {
-                cdb.append(genpush(CNIL, reg));
+                genpush(cdb, reg);
                 EBPtoESP += REGSIZE;
                 spoff += REGSIZE;
                 if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
@@ -3434,7 +3435,7 @@ void prolog_genvarargs(CodeBuilder& cdb, symbol* sv, regm_t* namedargs)
         }
     }
 
-    cdb.append(genregs(CNIL,0x0FB6,AX,AX));                 // MOVZX EAX,AL
+    genregs(cdb,0x0FB6,AX,AX);                 // MOVZX EAX,AL
     cdb.genc2(0xC1,modregrm(3,4,AX),2);                     // SHL EAX,2
     int raxoff = voff+6*8+0x7F;
     unsigned L2offset = (raxoff < -0x7F) ? 0x2D : 0x2A;
@@ -3442,7 +3443,7 @@ void prolog_genvarargs(CodeBuilder& cdb, symbol* sv, regm_t* namedargs)
         L2offset += 1;                                      // +1 for sib byte
     // LEA R11,offset L2[RIP]
     cdb.genc1(LEA,(REX_W << 16) | modregxrm(0,R11,5),FLconst,L2offset);
-    cdb.append(genregs(CNIL,0x29,AX,R11));                  // SUB R11,RAX
+    genregs(cdb,0x29,AX,R11);                  // SUB R11,RAX
     code_orrex(cdb.last(), REX_W);
     // LEA RAX,voff+vsize-6*8-16+0x7F[RBP]
     unsigned ea = (REX_W << 16) | modregrm(2,AX,BPRM);
@@ -3697,7 +3698,7 @@ void prolog_loadparams(CodeBuilder& cdb, tym_t tyf, bool pushalloc, regm_t* name
                 }
                 else
                 {
-                    cdb.append(genmovreg(CNIL,r,preg));
+                    genmovreg(cdb,r,preg);
                     if (I64 && sz == 8)
                         code_orrex(cdb.last(), REX_W);
                 }
@@ -3815,7 +3816,7 @@ void epilog(block *b)
                                         0x59,0x58,0xCF,0 };
         unsigned char *p;
 
-        cdbx.append(genregs(CNIL,0x8B,SP,BP));              // MOV SP,BP
+        genregs(cdbx,0x8B,SP,BP);              // MOV SP,BP
         p = (config.target_cpu >= TARGET_80286) ? ops2 : ops0;
         do
             cdbx.gen1(*p);
@@ -3924,7 +3925,7 @@ void epilog(block *b)
                     cdbx.gen2sib(0x89,grex | modregrm(0,reg,4),modregrm(0,4,SP)); // MOV [ESP],reg
                     code *c1 = cdbx.last();
                     cdbx.genc2(0x81,grex | modregrm(3,0,SP),REGSIZE);     // ADD ESP,REGSIZE
-                    cdbx.append(genregs(CNIL,0x39,SP,BP));                // CMP EBP,ESP
+                    genregs(cdbx,0x39,SP,BP);                             // CMP EBP,ESP
                     if (I64)
                         code_orrex(cdbx.last(),REX_W);
                     genjmp(cdbx,JNE,FLcode,(block *)c1);                  // JNE L1
@@ -3949,7 +3950,7 @@ void epilog(block *b)
                     cdbx.gen1(0x58 + BP);      // POP BP
                 }
                 else
-                {   cdbx.append(genregs(CNIL,0x8B,SP,BP));  // MOV SP,BP
+                {   genregs(cdbx,0x8B,SP,BP);  // MOV SP,BP
                     if (I64)
                         code_orrex(cdbx.last(), REX_W);   // MOV RSP,RBP
                     cdbx.gen1(0x58 + BP);      // POP BP
@@ -4190,7 +4191,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
             JMP i[BX]                           jump to virtual function
          */
 
-        cdb.append(genregs(CNIL,0x89,SP,BX));           // MOV BX,SP
+        genregs(cdb,0x89,SP,BX);           // MOV BX,SP
         cdb.genc(0x81,modregrm(2,0,7),
             FLconst,p,                                  // to this
             FLconst,d);                                 // ADD p[BX],d

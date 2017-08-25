@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1987-1995 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cg87.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cg87.c, backend/cg87.c)
  */
 
 #if !SPP
@@ -3221,10 +3220,10 @@ void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             if (szoff > REGSIZE)
             {   szpush -= REGSIZE;
-                cdb.append(genpop(CNIL,findreglsw(retregs)));       // POP lsw
+                genpop(cdb,findreglsw(retregs));       // POP lsw
             }
             szpush -= REGSIZE;
-            cdb.append(genpop(CNIL,reg));                           // POP reg
+            genpop(cdb,reg);                           // POP reg
 
             if (szpush)
                 cod3_stackadj(cdb, -szpush);
