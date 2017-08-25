@@ -29,9 +29,18 @@ class Obj
 {
   public:
     static Obj init(Outbuffer *, const(char)* filename, const(char)* csegname);
-    void initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
-    void termfile();
-    void term(const(char)* objfilename);
+    version (SCPP)
+    {
+        static void initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
+        static void termfile();
+        static void term(const(char)* objfilename);
+    }
+    else
+    {
+        void initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
+        void termfile();
+        void term(const(char)* objfilename);
+    }
 
     size_t mangle(Symbol *s,char *dest);
     version (SCPP)
@@ -117,9 +126,18 @@ class MsCoffObj : Obj
 {
   public:
     static MsCoffObj init(Outbuffer *, const(char)* filename, const(char)* csegname);
-    override void initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
-    override void termfile();
-    override void term(const(char)* objfilename);
+    version (SCPP)
+    {
+        static void initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
+        static void termfile();
+        static void term(const(char)* objfilename);
+    }
+    else
+    {
+        override void initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
+        override void termfile();
+        override void term(const(char)* objfilename);
+    }
 
 //    size_t mangle(Symbol *s,char *dest);
 //    void _import(elem *e);

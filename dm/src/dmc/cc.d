@@ -138,7 +138,14 @@ enum STRMAX = 65000;           // max length of string (determined by
                                // max ph size)
 
 //enum SC;
-struct Thunk;
+struct Thunk
+{   Symbol *sfunc;
+    Symbol *sthunk;
+    targ_size_t d;
+    targ_size_t d2;
+    int i;
+}
+
 
 version (MARS)
     struct token_t;
@@ -1472,13 +1479,8 @@ enum
 
 struct param_t
 {
-//#ifdef DEBUG
     debug ushort      id;
-//#define IDparam 0x7050
-//#define param_debug(s) assert((s)->id == IDparam)
-//#else
-//#define param_debug(s)
-//#endif
+    enum IDparam = 0x7050;
 
     char* Pident;               // identifier
     type* Ptype;                // type of parameter (NULL if not known yet)
@@ -1500,6 +1502,11 @@ struct param_t
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == param_t.sizeof); }
+}
+
+void param_debug(param_t *p)
+{
+    debug assert(p.id == p.IDparam);
 }
 
 /**************************************

@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cgen.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cgen.c, backend/cgen.c)
  */
 
 #if !SPP
@@ -556,19 +555,6 @@ void cgen_prelinnum(code **pc,Srcpos srcpos)
  * Generate 'instruction' which tells the address resolver that the stack has
  * changed.
  */
-
-code *genadjesp(code *c, int offset)
-{   code cs;
-
-    if (!I16 && offset)
-    {
-        cs.Iop = ESCAPE | ESCadjesp;
-        cs.IEV1.Vint = offset;
-        return gen(c,&cs);
-    }
-    else
-        return c;
-}
 
 void CodeBuilder::genadjesp(int offset)
 {

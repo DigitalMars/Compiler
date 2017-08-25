@@ -7,12 +7,12 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/template.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/dtemplate.d
  */
 
-// C++ specific routines
+// C++ Templates
 
-module dcpp;
+module dtemplate;
 
 version (SPP)
 {

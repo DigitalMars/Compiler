@@ -1,3 +1,6 @@
+
+// C++ specific routines
+
 /**
  * Implementation of the
  * $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ Compiler).
@@ -7,107 +10,147 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/nwc.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/dnwc.d
  */
 
 // Main program for compiler
 
-#include        <stdio.h>
-#include        <time.h>
-#include        <string.h>
-#include        <stdlib.h>
-#ifdef __I86__
-#include        <float.h>
-#endif
-#include        "cc.h"
-#include        "token.h"
-#include        "parser.h"
-#include        "global.h"
-#include        "el.h"
-#include        "type.h"
-#include        "code.h"
-#include        "oper.h"
-#include        "cpp.h"
-#include        "exh.h"
-#include        "cgcv.h"
-#include        "scope.h"
-#include        "outbuf.h"
+module dnwc;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import core.stdc.stdio;
+import core.stdc.string;
+import core.stdc.stdlib;
+import core.stdc.time;
 
-static char xyzzy[] = "written by Walter Bright";
+import ddmd.backend.cdef;
+import ddmd.backend.cc;
+import ddmd.backend.cgcv;
+import ddmd.backend.code;
+import ddmd.backend.dt;
+import ddmd.backend.el;
+import ddmd.backend.global;
+import ddmd.backend.iasm;
+import ddmd.backend.obj;
+import ddmd.backend.oper;
+import ddmd.backend.outbuf;
+import ddmd.backend.ty;
+import ddmd.backend.type;
 
-static void nwc_outstatics();
-STATIC void nwc_predefine();
-STATIC type * getprototype(const char *,type *);
-STATIC void getparamlst(type *,type *);
-STATIC symbol * anonymous(Classsym *,int);
-STATIC void nwc_based(void);
-void output_func(void);
+import tk.dlist;
+import tk.mem;
+import tk.vec;
 
+import cpp;
+import dtoken;
+import eh;
+import msgs2;
+import parser;
+import precomp;
+import scopeh;
+import speller;
+
+
+extern (C++):
+
+alias dbg_printf = printf;
+alias MEM_PH_MALLOC = mem_malloc;
+alias MEM_PH_CALLOC = mem_calloc;
+alias MEM_PH_FREE = mem_free;
+alias MEM_PH_STRDUP = mem_strdup;
+alias MEM_PARF_MALLOC = mem_malloc;
+alias MEM_PARF_CALLOC = mem_calloc;
+alias MEM_PARF_REALLOC = mem_realloc;
+alias MEM_PARF_FREE = mem_free;
+alias MEM_PARF_STRDUP = mem_strdup;
+
+version (none)
+{
+private __gshared const(char)* xyzzy = "written by Walter Bright";
+
+/*private*/ void nwc_outstatics();
+/*private*/ void nwc_predefine();
+/*private*/ type * getprototype(const char *,type *);
+/*private*/ void getparamlst(type *,type *);
+/*private*/ Symbol * anonymous(Classsym *,int);
+/*private*/ void nwc_based();
+void output_func();
+
+__gshared
+{
 Declar gdeclar;
 
-static long linkage_kwd;
-static int msbug;               // used to emulate MS C++ bug
+/*private*/ long linkage_kwd;
+/*private*/ int msbug;               // used to emulate MS C++ bug
+}
 
 int readini(char *argv0,char *ini);
+type* tserr();
 
-#if TX86
+static if (TX86)
+{
 /*******************************
  * Main program.
  */
 
-int main(int argc,char *argv[])
+extern (C) int main(int argc,char** argv)
 { list_t headerlist;
 
   argv0 = argv[0];                      // save program name
-#if SPP
+version (SPP)
+{
   mem_init();
   mem_setexception(MEM_CALLFP,err_nomem);
-#if !_WINDLL && _WIN32
+version (_WINDLL)
+{
+}
+else
+{
     readini(argv0,"sc.ini");            // read initialization file
-#endif
+}
   list_init();
   pragma_init();
   getcmd(argc,argv);                    /* process command line         */
   file_iofiles();
   token_init();                         // initialize tokenizer tables
-  insblk((unsigned char *)finname,BLfile,NULL,FQtop,NULL);      // install top level block
+  insblk(cast(char*)finname,BLfile,null,FQtop,null);      // install top level block
   if (headers)
-  {     insblk((unsigned char *)list_ptr(headers),BLfile,NULL,FQcwd | FQpath,NULL);
+  {     insblk(cast(char*)list_ptr(headers),BLfile,null,FQcwd | FQpath,null);
         list_pop(&headers);
   }
 
   while (stoken() != TKeof)
-        ;
+  { }
 
   pragma_term();
   file_term();
   fclose(fout);
-#if TERMCODE                            /* dump this to speed up compile */
+static if (TERMCODE)                            /* dump this to speed up compile */
+{
   blklst_term();
   token_term();
   mem_free(eline);
   getcmd_term();
   list_term();
-#endif
+}
 
-#else
+}
+else
+{
 
-#if __I86__ && __DMC__
-  {     extern int __cdecl _8087;
+version (DigitalMars)
+  {     extern (C) extern int _8087;
         _8087 = 0;                      /* no fuzzy floating point      */
                                         /* (use emulation only)         */
   }
-#endif
-#if _WIN32 && !_WINDOWS
+version (Windows)
+{
     // Set unbuffered output in case output is redirected to a file
     // and we need to see how far it got before a crash.
-    stdout->_flag |= _IONBF;
-#endif
+    //stdout._flag |= _IONBF;
+    core.stdc.stdio.setvbuf(stdout, null, _IONBF, 0);
+}
   mem_init();
-  mem_setexception(MEM_CALLFP,err_nomem);
+  mem_setexception(MEM_CALLFP,&err_nomem);
   list_init();
   vec_init();
   cod3_setdefault();
@@ -123,89 +166,107 @@ int main(int argc,char *argv[])
   pstate.STgclass = SCglobal;
   except_init();                        // exception handling code
   Outbuffer *objbuf = new Outbuffer();
-#if HTOD
+version (HTOD)
+{
   htod_init(fdmodulename);
-#else
-#if _WIN32
-  char *p = (config.exe & EX_dos) ? file_8dot3name(finname) : NULL;
+}
+else
+{
+version (Win32)
+{
+  char *p = (config.exe & EX_dos) ? file_8dot3name(finname) : null;
   if (!p || !*p)
         p = finname;
-  objmod = Obj::init(objbuf, p, configv.csegname);
-  Obj::initfile(p, configv.csegname, NULL);
+  objmod = Obj.init(objbuf, p, configv.csegname);
+  Obj.initfile(p, configv.csegname, null);
 //  free(p);
-#else
-  objmod = Obj::init(objbuf, finname, configv.csegname);
-  Obj::initfile(finname,configv.csegname);
-#endif
-#endif
+}
+else
+{
+  objmod = Obj.init(objbuf, finname, configv.csegname);
+  Obj.initfile(finname,configv.csegname);
+}
+}
   PARSER = 1;
   el_init();
   block_init();
   type_init();
   rtlsym_init();
-  insblk((unsigned char *)finname,BLfile,NULL,FQtop,NULL);      // install top level block
+  insblk(cast(char *)finname,BLfile,null,FQtop,null);      // install top level block
 
   cstate.CSpsymtab = &globsym;
   createglobalsymtab();                 // create top level symbol table
   headerlist = headers;
   if (headers)
-  {     pragma_include((char *)list_ptr(headers),FQcwd | FQpath);
+  {     pragma_include(cast(char *)list_ptr(headers),FQcwd | FQpath);
         headers = list_next(headers);
   }
   nwc_predefine();                      // any initial declarations
   stoken();
   ext_def(0);                           // do external_definitions
-#if !HTOD
+version (HTOD)
+{
+}
+else
+{
   if (pstate.STflags & PFLhxgen)
       ph_autowrite();
   template_instantiate();
   cpp_build_STI_STD();                  // do static ctors/dtors
   output_func();                        /* write out any more functions */
   nwc_outstatics();
-  if (ANSI && !CPP &&
+  if (config.ansi_c && !CPP &&
       !(pstate.STflags & (PFLextdef | PFLcomdef)) &&
       !(config.flags2 & CFG2phgen))     // and not generating precompiled header
         synerr(EM_no_ext_def);          // need external definition
   if ((config.flags2 & (CFG2hdrdebug | CFG2noobj)) == CFG2hdrdebug)
         symbol_gendebuginfo();          // generate debug info for global symbols
-  Obj::termfile();                       // fix up and terminate object file
-  Obj::term(NULL);
+  Obj.termfile();                       // fix up and terminate object file
+  Obj.term(null);
   if (!errcnt)
   {
-        objfile_close(objbuf->buf, objbuf->p - objbuf->buf);
+        objfile_close(objbuf.buf, objbuf.p - objbuf.buf);
   }
   if (fsymname)
   {
         assert(config.flags2 & CFG2phgen);
-        symboltable_clean((symbol *)scope_find(SCTglobal)->root);
-        symboltable_balance((symbol **)&scope_find(SCTglobal)->root);
+        symboltable_clean(cast(Symbol *)scope_find(SCTglobal).root);
+        symboltable_balance(cast(Symbol **)&scope_find(SCTglobal).root);
         if (!CPP)
-        {   symboltable_clean((symbol *)scope_find(SCTglobaltag)->root);
-            symboltable_balance((symbol **)&scope_find(SCTglobaltag)->root);
+        {   symboltable_clean(cast(Symbol *)scope_find(SCTglobaltag).root);
+            symboltable_balance(cast(Symbol **)&scope_find(SCTglobaltag).root);
         }
         ph_write(fsymname,2);           // write precompiled header
   }
-#endif
+}
   pragma_term();
   file_term();
-#if HTOD
+version (HTOD)
+{
   htod_term();
   if (fdmodule)
+  {
         fclose(fdmodule);
-#else
+  }
+}
+else
+{
   if (flst)
+  {
         fclose(flst);
-#endif
+  }
+}
 
-#if TERMCODE                            /* dump this to speed up compile */
+static if (TERMCODE)                    /* dump this to speed up compile */
+{
   assert(pstate.STinparamlist == 0);
   if (!(config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy)))
   {
-        debug(printf("deletesymtab\n"));
+        debug printf("deletesymtab\n");
         deletesymtab();                 /* for drill & error checking   */
         file_progress();
         symbol_free(cstate.CSlinkage);
-        debug(printf("freesymtab\n"));
+        debug printf("freesymtab\n");
         freesymtab(globsym.tab,0,globsym.top); /* free symbol table     */
         symtab_free(globsym.tab);
         except_term();
@@ -233,85 +294,107 @@ int main(int argc,char *argv[])
         scope_term();
         block_term();
   }
-#endif /* TERMCODE */
-#endif /* SPP */
+} /* TERMCODE */
+} /* SPP */
 
   if (errcnt)                           /* if any errors occurred       */
         err_exit();
 
-#if TERMCODE
-#if SPP
+static if (TERMCODE)
+{
+version (SPP)
+{
   mem_free(foutname);
   mem_term();
-#else
+}
+else
+{
   objfile_term();
   if (!(config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy)))
         mem_term();
-#endif
-#endif
+}
+}
 
-#if !SPP
+version (SPP)
+{
+}
+else
+{
     ph_term();
-#endif
+}
 
-#if !_WINDLL
+version (_WINDLL)
+{
+}
+else
+{
     if (configv.verbose == 2)
     {
         clock_t stime = clock();
 
-#if SPP
+version (SPP)
+{
         printf("SPP complete. Time: %ld.%02ld seconds\n",
                 stime/100,stime%100);
-#else
+}
+else
+{
         printf("%s complete. Time: %ld.%02ld seconds\n",
-                COMPILER, stime/100, stime%100);
-#if 0
+                COMPILER.ptr, stime/100, stime%100);
+static if (0)
+{
         Offset(DATA) += UDoffset; // + TDoffset;
         printf(
             "%s complete. Code: 0x%04lx (%lu) Data: 0x%04lx (%lu) Time: %ld.%02ld seconds\n",
             COMPILER,
-            (long)Offset(cseg),(long)Offset(cseg),
-            (long)Offset(DATA),(long)Offset(DATA),
+            cast(int)Offset(cseg),cast(int)Offset(cseg),
+            cast(int)Offset(DATA),cast(int)Offset(DATA),
             stime / 100,stime % 100);
-#endif
-#endif
+}
+}
     }
-#endif
+}
     errmsgs_term();
-#if _WIN32
+version (Windows)
     os_term();
-#endif
+
     return EXIT_SUCCESS;
 }
 
-#else
-
-void _cdecl main_parser(int argc,char **argv)
+}
+else
 {
-#if SPP
+
+extern (C) void main_parser(int argc,char **argv)
+{
+version (SPP)
+{
   list_init();
   pragma_init();
   getcmd(argc,argv);                    /* process command line         */
   file_iofiles();
-  insblk((unsigned char *)finname,BLfile,NULL,FQtop,NULL);      // install top level block
+  insblk(cast(char *)finname,BLfile,null,FQtop,null);      // install top level block
   if (headers)
-  {     insblk(list_ptr(headers),BLfile,NULL,FQcwd | FQpath,NULL);
+  {     insblk(list_ptr(headers),BLfile,null,FQcwd | FQpath,null);
         list_pop(&headers);
   }
 
   while (stoken() != TKeof)
-        ;
+        { }
 
   pragma_term();
 
-#else
+}
+else
+{
 
   ph_init();                            /* assume precompiled header memory */
   list_init();
   vec_init();
-#if DEMO
+
+version (DEMO)
   dbg_printf("Digital Mars C/C++ Demo Compiler\n");
-#endif
+
   pragma_init();
   pstate.STgclass = SCglobal;
   getcmd(argc,argv);                    /* process command line         */
@@ -319,16 +402,16 @@ void _cdecl main_parser(int argc,char **argv)
   el_init();
   PARSER = 1;
   type_init();
-  insblk((unsigned char *)finname,BLfile,NULL,FQtop,NULL);      // install top level block
+  insblk(cast(char *)finname,BLfile,null,FQtop,null);      // install top level block
 
   cstate.CSpsymtab = &globsym;
   createglobalsymtab();                 /* create top level symbol table */
-#if TX86
+
   if (config.flags2 & (CFG2phauto | CFG2phautoy))       // if automatic precompiled headers
         ph_auto();
-#endif
+
   if (headers)
-  {     pragma_include((char *)list_ptr(headers),FQcwd | FQpath);
+  {     pragma_include(cast(char *)list_ptr(headers),FQcwd | FQpath);
         list_pop(&headers);
   }
   nwc_predefine();                      /* any initial declarations     */
@@ -339,82 +422,88 @@ void _cdecl main_parser(int argc,char **argv)
   template_instantiate();
   cpp_build_STI_STD();                  // do static ctors/dtors
   output_func();                        /* write out any more functions */
-#endif /* SPP */
+} /* SPP */
   if (errcnt)                           /* if any errors occurred       */
         err_exit();
 }
-#endif
+}
 
+version (SPP)
+{
+}
+else
+{
 
-#if !SPP
-
-#if TX86
 /***********************************
  * 'Predefine' a number of symbols.
  */
 
-STATIC void nwc_predefine()
+/*private*/ void nwc_predefine()
 {
-    static char text[] =
-"extern \"C++\"\
-{ void  * __cdecl operator new(unsigned),\
-        __cdecl operator delete(void *),"
-        "* __cdecl __vec_new(void *,unsigned,int,void *(__pascal *)(void),int (__pascal *)(void)),"
-        "* __cdecl __vec_ctor(void *,unsigned,int,void *(__pascal *)(void),int (__pascal *)(void)),"
-        "* __cdecl __vec_cpct(void *,unsigned,int,void *(__pascal *)(void),int (__pascal *)(void),void *),"
-        "__cdecl __vec_delete(void *,int,unsigned,int (__pascal *)(void)),\
-        __cdecl __vec_dtor(void *,unsigned,int,int (__pascal*)(void)),\
-        __cdecl __vec_invariant(void *,unsigned,int,int (__pascal*)(void)),\
-        __cdecl __eh_throw(const char *,int(__pascal*)(),unsigned,...),\
-        __cdecl __eh_rethrow(void);\
-extern  void * (__cdecl * __eh_newp)(unsigned);\
-typedef int (*__mptr)();\
-__mptr __cdecl __genthunk(unsigned,unsigned,__mptr);\
-"
-"struct __eh_cv { volatile void *p; ~__eh_cv(); };"
-"void * __cdecl __rtti_cast(void *,void *,const char *,const char *,int);"
-"}"
-"\n";
+    string text =
+"extern \"C++\"
+{ void  * __cdecl operator new(unsigned),
+        __cdecl operator delete(void *),
+        * __cdecl __vec_new(void *,unsigned,int,void *(__pascal *)(void),int (__pascal *)(void)),
+        * __cdecl __vec_ctor(void *,unsigned,int,void *(__pascal *)(void),int (__pascal *)(void)),
+        * __cdecl __vec_cpct(void *,unsigned,int,void *(__pascal *)(void),int (__pascal *)(void),void *),
+        __cdecl __vec_delete(void *,int,unsigned,int (__pascal *)(void)),
+        __cdecl __vec_dtor(void *,unsigned,int,int (__pascal*)(void)),
+        __cdecl __vec_invariant(void *,unsigned,int,int (__pascal*)(void)),
+        __cdecl __eh_throw(const char *,int(__pascal*)(),unsigned,...),
+        __cdecl __eh_rethrow(void);
+extern  void * (__cdecl * __eh_newp)(unsigned);
+typedef int (*__mptr)();
+__mptr __cdecl __genthunk(unsigned,unsigned,__mptr);
+
+struct __eh_cv { volatile void *p; ~__eh_cv(); };
+void * __cdecl __rtti_cast(void *,void *,const char *,const char *,int);
+}";
 /*struct __mptr { short d; short i; int (*f)(); };\n"; */
 
-#ifdef DEBUG
+debug
+{
     if (!debugu)
-#endif
+        return;
+}
     {
         if (CPP)
         {
-            static unsigned char text2[] = "extern \"C\" { int __cdecl __far _fatexit(void(__cdecl __far *)());}\n";
-            static unsigned char text3[] = "extern \"C\" { int __cdecl _fatexit(void(__cdecl *)());}\n";
+            string text2 = "extern \"C\" { int __cdecl __far _fatexit(void(__cdecl __far *)());}\n";
+            string text3 = "extern \"C\" { int __cdecl _fatexit(void(__cdecl *)());}\n";
 
-            insblk2((intsize == 4) ? text3 : text2,BLrtext);
-            insblk2((unsigned char *) text,BLrtext);
+            insblk2(cast(ubyte*)((_tysize[TYint] == 4) ? text3.ptr : text2.ptr),BLrtext);
+            insblk2(cast(ubyte*) text.ptr,BLrtext);
         }
-#if NTEXCEPTIONS
+static if (NTEXCEPTIONS)
+{
         if (config.exe == EX_WIN32)
         {
-#if NTEXCEPTIONS == 1
-            static char text4[] =
+static if (NTEXCEPTIONS == 1)
+{
+            string text4 =
                 "struct __nt_context { int prev; int handler; int stable; int sindex; int ebp; int info; int esp; };\n";
-#else
-            static char text4[] =
+}
+else
+{
+            string text4 =
                 "struct __nt_context { int esp; int info; int prev; int handler; int stable; int sindex; int ebp; };\n";
-#endif
+}
 
-            insblk2((unsigned char *)text4,BLrtext);
+            insblk2(cast(ubyte*)text4.ptr,BLrtext);
         }
-#endif
+}
         if (config.flags4 & CFG4anew)
-        {   static char text5[] =
-                "extern \"C++\" { void * __cdecl operator new[](unsigned),"
+        {   string text5 =
+                "extern \"C++\" { void * __cdecl operator new[](unsigned)," ~
                 "__cdecl operator delete[](void *); }";
 
-            insblk2((unsigned char *)text5,BLrtext);
+            insblk2(cast(ubyte*)text5.ptr,BLrtext);
         }
     }
 }
 
-#endif
-
+
 /***************************
  * Evaluate external_definitions.
  * This is called once for C, and recursively for C++ (to implement
@@ -432,7 +521,7 @@ L1:
     while (tok.TKval != TKeof)
     {   int flag;
 
-        pstate.STlastfunc = NULL;
+        pstate.STlastfunc = null;
         if (tok.TKval == TKrcur)
         {   if (nest)
                 break;
@@ -450,7 +539,8 @@ L1:
             if (config.flags5 & CFG5debug)
             {
                 stoken();
-#if 0 // disallow __debug { declarations }
+static if (0) // disallow __debug { declarations }
+{
                 if (tok.TKval == TKlcur)        // if start of scope
                 {   linkage_t save;
 
@@ -461,11 +551,11 @@ L1:
                     chktok(TKrcur,EM_rcur);
                     continue;
                 }
-#endif
+}
             }
             else
             {
-                token_free(token_funcbody(TRUE));
+                token_free(token_funcbody(true));
                 stoken();
                 continue;
             }
@@ -475,7 +565,7 @@ L1:
         {
             if (tok.TKval == TKtemplate)
             {
-                template_declaration(NULL, SFLnone);    // not a member template
+                template_declaration(null, SFLnone);    // not a member template
                 continue;
             }
 
@@ -492,22 +582,18 @@ L1:
                 stoken();
                 if (tok.TKval == TKstring)
                 {
-                    static char *linkagetab[] =
-                    {
-    #if TX86
+                    __gshared const(char)*[7] linkagetab =
+                    [
                           "C","C++","Pascal","FORTRAN","syscall","stdcall",
                           "D"
-    #else
-                          TARGET_LINKAGETAB
-    #endif
-                    };
+                    ];
                     linkage_t i;
                     targ_size_t len;
                     char *p;
 
                     p = combinestrings(&len);
-                    assert(arraysize(linkagetab) == LINK_MAXDIM);
-                    for (i = LINK_C; 1; i = (linkage_t) (i + 1))
+                    assert(linkagetab.length == LINK_MAXDIM);
+                    for (i = LINK_C; 1; i = cast(linkage_t) (i + 1))
                     {   if (i == LINK_MAXDIM)
                         {   cpperr(EM_linkage_specs,p); // undefined linkage specification
                             i = LINK_CPP;
@@ -517,7 +603,7 @@ L1:
                             break;
                     }
                     mem_free(p);
-    #if TX86
+
                     // If -P switch used, then extern "C" is treated
                     // as if it was extern "Pascal"
                     if (i == LINK_C)
@@ -526,7 +612,7 @@ L1:
                         if (config.flags4 & CFG4stdcall)
                             i = LINK_STDCALL;
                     }
-    #endif
+
                     if (tok.TKval == TKlcur)    /* if start of scope            */
                     {   linkage_t save;
 
@@ -568,31 +654,25 @@ L1:
 
 /******************* THUNKS *************************/
 
-typedef struct Thunk
-{   symbol *sfunc;
-    symbol *sthunk;
-    targ_size_t d;
-    targ_size_t d2;
-    int i;
-} Thunk;
-
 /*********************************
  * Hydrate/dehydrate a thunk.
  */
 
-#if HYDRATE
+static if (HYDRATE)
+{
 void thunk_hydrate(Thunk **pt)
 {   Thunk *t;
 
-    t = (Thunk *) ph_hydrate(pt);
+    t = cast(Thunk *) ph_hydrate(cast(void**)pt);
     if (t)
-    {   symbol_hydrate(&t->sfunc);
-        symbol_hydrate(&t->sthunk);
+    {   symbol_hydrate(&t.sfunc);
+        symbol_hydrate(&t.sthunk);
     }
 }
-#endif
+}
 
-#if DEHYDRATE
+static if (DEHYDRATE)
+{
 void thunk_dehydrate(Thunk **pt)
 {   Thunk *t;
 
@@ -600,11 +680,11 @@ void thunk_dehydrate(Thunk **pt)
     if (t && !isdehydrated(t))
     {
         ph_dehydrate(pt);
-        symbol_dehydrate(&t->sfunc);
-        symbol_dehydrate(&t->sthunk);
+        symbol_dehydrate(&t.sfunc);
+        symbol_dehydrate(&t.sthunk);
     }
 }
-#endif
+}
 
 /*********************************
  * Create thunk.
@@ -617,40 +697,38 @@ void thunk_dehydrate(Thunk **pt)
  *      symbol for thunk
  */
 
-symbol *nwc_genthunk(symbol *s,targ_size_t d,int i,targ_size_t d2)
+Symbol *nwc_genthunk(Symbol *s,targ_size_t d,int i,targ_size_t d2)
 {
-    symbol *sthunk;
+    Symbol *sthunk;
     Thunk *t;
     symlist_t sl;
 
-    //dbg_printf("nwc_genthunk('%s', d=x%lx, i=x%x, d2=x%lx)\n",s->Sident,d,i,d2);
+    //dbg_printf("nwc_genthunk('%s', d=x%lx, i=x%x, d2=x%lx)\n",s.Sident,d,i,d2);
 
     // See if we can use an existing thunk
-    for (sl = s->Sfunc->Fthunks; sl; sl = list_next(sl))
+    for (sl = s.Sfunc.Fthunks; sl; sl = list_next(sl))
     {   sthunk = list_symbol(sl);
-        t = sthunk->Sfunc->Fthunk;
-        if (t->sfunc == s &&
-            t->d == d &&
-            t->i == i &&
-            t->d2 == d2)
+        t = sthunk.Sfunc.Fthunk;
+        if (t.sfunc == s &&
+            t.d == d &&
+            t.i == i &&
+            t.d2 == d2)
             return sthunk;
     }
 
-    sthunk = symbol_generate(SCstatic,s->Stype);
-    sthunk->Sflags |= SFLimplem;
-    assert(sthunk->Sfunc);
+    sthunk = symbol_generate(SCstatic,s.Stype);
+    sthunk.Sflags |= SFLimplem;
+    assert(sthunk.Sfunc);
 
-    /*sthunk->Sfunc->Fflags |= Fpending;*/
-    t = (Thunk *) mem_calloc(sizeof(Thunk));
-    t->sfunc = s;
-    t->sthunk = sthunk;
-    t->d = d;
-    t->i = i;
-    t->d2 = d2;
-    sthunk->Sfunc->Fthunk = t;
-#if TX86
-    list_append(&s->Sfunc->Fthunks,sthunk);
-#endif
+    /*sthunk.Sfunc.Fflags |= Fpending;*/
+    t = cast(Thunk *) mem_calloc(Thunk.sizeof);
+    t.sfunc = s;
+    t.sthunk = sthunk;
+    t.d = d;
+    t.i = i;
+    t.d2 = d2;
+    sthunk.Sfunc.Fthunk = t;
+    list_append(&s.Sfunc.Fthunks,sthunk);
     return sthunk;
 }
 
@@ -659,27 +737,27 @@ symbol *nwc_genthunk(symbol *s,targ_size_t d,int i,targ_size_t d2)
  * Write out any functions queued for being output
  */
 
-static list_t nwc_funcstowrite = NULL;  /* list of function symbols to write out */
+/*private*/ __gshared list_t nwc_funcstowrite = null;  /* list of function symbols to write out */
 
 void output_func()
 {
     while (nwc_funcstowrite)
-    {   symbol *s;
+    {   Symbol *s;
         func_t *f;
         Thunk  *t;
 
         s = list_symbol(nwc_funcstowrite);
         symbol_debug(s);
         list_subtract(&nwc_funcstowrite,s);
-        assert(tyfunc(s->Stype->Tty));
-        f = s->Sfunc;
-        t = (f->Fflags & Finstance) ? NULL : f->Fthunk;
+        assert(tyfunc(s.Stype.Tty));
+        f = s.Sfunc;
+        t = (f.Fflags & Finstance) ? null : f.Fthunk;
         if (t)                          /* if this is a thunk           */
         {
-            unsigned p = 0;
-            outthunk(t->sthunk,t->sfunc,p,pointertype,t->d,t->i,t->d2);
+            uint p = 0;
+            outthunk(t.sthunk,t.sfunc,p,pointertype,t.d,t.i,t.d2);
             //mem_free(t);
-            //f->Fthunk = NULL;
+            //f.Fthunk = null;
         }
         else
         {
@@ -692,32 +770,32 @@ void output_func()
  * Write out any remaining statics.
  */
 
-static list_t nwc_staticstowrite = NULL;        // list of statics to write out
+/*private*/ __gshared list_t nwc_staticstowrite = null;        // list of statics to write out
 
-static void nwc_outstatics()
+/*private*/ void nwc_outstatics()
 {
     //printf("nwc_outstatics()\n");
-    for (list_t sl = nwc_staticstowrite; sl; sl = sl->next)
+    for (list_t sl = nwc_staticstowrite; sl; sl = sl.next)
     {
-        symbol *s;
+        Symbol *s;
 
         s = list_symbol(sl);
         symbol_debug(s);
-        //printf("s = '%s', Sdt = %p\n", s->Sident, s->Sdt);
-        if (s->Sxtrnnum == 0 &&
-            s->Sdt ||
-            (s->Sclass != SCstatic &&
-            s->Sflags & SFLwasstatic &&
-            !(s->Sflags & SFLlivexit)))
+        //printf("s = '%s', Sdt = %p\n", s.Sident, s.Sdt);
+        if (s.Sxtrnnum == 0 &&
+            s.Sdt ||
+            (s.Sclass != SCstatic &&
+            s.Sflags & SFLwasstatic &&
+            !(s.Sflags & SFLlivexit)))
         {
             // Put it in BSS
-            s->Sclass = SCstatic;
-            s->Sfl = FLunde;
-            if (!s->Sdt)
+            s.Sclass = SCstatic;
+            s.Sfl = FLunde;
+            if (!s.Sdt)
             {
-                DtBuilder dtb;
-                dtb.nzeros(type_size(s->Stype));
-                s->Sdt = dtb.finish();
+                scope dtb = new DtBuilder();
+                dtb.nzeros(type_size(s.Stype));
+                s.Sdt = dtb.finish();
             }
             outdata(s);
             searchfixlist(s);
@@ -726,9 +804,9 @@ static void nwc_outstatics()
 
 }
 
-void nwc_addstatic(symbol *s)
+void nwc_addstatic(Symbol *s)
 {
-    //dbg_printf("nwc_addstatic('%s')\n",s->Sident);
+    //dbg_printf("nwc_addstatic('%s')\n",s.Sident);
     list_prepend(&nwc_staticstowrite, s);
 }
 
@@ -736,22 +814,23 @@ void nwc_addstatic(symbol *s)
  * We'll need to write out this function when it arrives.
  */
 
-void nwc_mustwrite(symbol *sfunc)
+void nwc_mustwrite(Symbol *sfunc)
 {
-    //dbg_printf("nwc_mustwrite('%s')\n",sfunc->Sident);
+    //dbg_printf("nwc_mustwrite('%s')\n",sfunc.Sident);
     //symbol_print(sfunc);
-    assert(tyfunc(sfunc->Stype->Tty));
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
-        if (sfunc->Sfunc->Fflags3 & Fnowrite)
+    assert(tyfunc(sfunc.Stype.Tty));
+version (Posix)
+{
+        if (sfunc.Sfunc.Fflags3 & Fnowrite)
             return;
-#endif
-    if (sfunc->Sflags & SFLimplem)              /* if body already read in */
+}
+    if (sfunc.Sflags & SFLimplem)              /* if body already read in */
     {
         queue_func(sfunc);                      /* send it out          */
     }
     else
     {
-        sfunc->Sfunc->Fflags |= Fmustoutput;    /* output it when we see it */
+        sfunc.Sfunc.Fflags |= Fmustoutput;    /* output it when we see it */
     }
 }
 
@@ -759,19 +838,19 @@ void nwc_mustwrite(symbol *sfunc)
  * Queue function for output.
  */
 
-void queue_func(symbol *sfunc)
+void queue_func(Symbol *sfunc)
 {   func_t *f;
 
-    //printf("queue_func('%s')\n", sfunc->Sident);
-    assert(sfunc && tyfunc(sfunc->Stype->Tty));
+    //printf("queue_func('%s')\n", sfunc.Sident);
+    assert(sfunc && tyfunc(sfunc.Stype.Tty));
     symbol_debug(sfunc);
-    f = sfunc->Sfunc;
-    f->Fflags &= ~Fmustoutput;
+    f = sfunc.Sfunc;
+    f.Fflags &= ~Fmustoutput;
 
     // If not already output and not on nwc_funcstowrite list
-    if ((f->Fflags & (Foutput | Fpending)) == 0)
+    if ((f.Fflags & (Foutput | Fpending)) == 0)
     {   list_append(&nwc_funcstowrite,sfunc);
-        f->Fflags |= Fpending;
+        f.Fflags |= Fpending;
     }
 }
 
@@ -781,32 +860,34 @@ void queue_func(symbol *sfunc)
 
 void savesymtab(func_t *f)
 {
-  assert(f->Flocsym.symmax == 0);
-  f->Flocsym.top = globsym.top;
+  assert(f.Flocsym.symmax == 0);
+  f.Flocsym.top = globsym.top;
 
-#ifdef DEBUG
+debug
+{
     if (debugy)
         dbg_printf("savesymtab(), globsym.top = %d\n",globsym.top);
-#endif
+}
 
   if (globsym.top)              /* if there are local symbols   */
   {     /* Save local symbol table      */
-        f->Flocsym.symmax = globsym.top;
-        f->Flocsym.tab = symtab_malloc(f->Flocsym.symmax);
-        memcpy(f->Flocsym.tab,&globsym.tab[0],
-            sizeof(symbol *) * f->Flocsym.symmax);
-        memset(&globsym.tab[0],0,sizeof(symbol *) * globsym.top);
+        f.Flocsym.symmax = globsym.top;
+        f.Flocsym.tab = symtab_malloc(f.Flocsym.symmax);
+        memcpy(f.Flocsym.tab,&globsym.tab[0],
+            (Symbol *).sizeof * f.Flocsym.symmax);
+        memset(&globsym.tab[0],0,(Symbol *).sizeof * globsym.top);
         globsym.top = 0;
   }
 }
-
+
+
 /***************************
  * Get the type_specifier.
  * Note:
  *      The Tcounts ARE incremented.
  *
  * Output:
- *      *ptyp_spec -> our data type
+ *      *ptyp_spec . our data type
  * Returns:
  *      0       if we used the default
  *      1       if a type specifier
@@ -816,7 +897,7 @@ void savesymtab(func_t *f)
 
 int type_specifier(type **ptyp_spec)
 {
-    return declaration_specifier(ptyp_spec,NULL,NULL);
+    return declaration_specifier(ptyp_spec,null,null);
 }
 
 /*****************************
@@ -829,7 +910,8 @@ int type_specifier(type **ptyp_spec)
  *      same as type_specifier()
  */
 
-enum TKW
+alias TKW = int;
+enum
 {
     TKWchar     = 1,
     TKWsigned   = 2,
@@ -853,19 +935,19 @@ enum TKW
     TKWdecltype  = 0x100000,
 };
 
-#define SCWstatic       mskl(SCstatic)
-#define SCWextern       mskl(SCextern)
-#define SCWauto         mskl(SCauto)
-#define SCWregister     mskl(SCregister)
-#define SCWtypedef      mskl(SCtypedef)
-#define SCWinline       mskl(SCinline)
-#define SCWoverload     mskl(SCoverload)
-#define SCWthread       mskl(SCthread)
+enum SCWstatic       = 1 << SCstatic;
+enum SCWextern       = 1 << SCextern;
+enum SCWauto         = 1 << SCauto;
+enum SCWregister     = 1 << SCregister;
+enum SCWtypedef      = 1 << SCtypedef;
+enum SCWinline       = 1 << SCinline;
+enum SCWoverload     = 1 << SCoverload;
+enum SCWthread       = 1 << SCthread;
 
-#define SCWvirtual      mskl(SCvirtual)
+enum SCWvirtual      = 1 << SCvirtual;
 
-int declaration_specifier(type **ptyp_spec, int *pclass, unsigned *pclassm)
-{ symbol *s;
+int declaration_specifier(type **ptyp_spec, int *pclass, uint *pclassm)
+{ Symbol *s;
   Classsym *sclass0;
   tym_t modifiers = 0;
   tym_t modifiers2 = 0;
@@ -877,9 +959,9 @@ int declaration_specifier(type **ptyp_spec, int *pclass, unsigned *pclassm)
   int tkwx;
   int sawtypename = 0;
 
-  enum SC sc_specifier;
-  unsigned long scw = pclassm ? *pclassm & SCWtypedef : 0;
-  unsigned long scwx;
+  SC sc_specifier;
+  uint scw = pclassm ? *pclassm & SCWtypedef : 0;
+  uint scwx;
 
   /* Note, setting TkStrtSrcpos here does NOT get the true first line of the function */
   /* header. For the Apple PPC Debugger getting the true first line is very important.*/
@@ -887,22 +969,24 @@ int declaration_specifier(type **ptyp_spec, int *pclass, unsigned *pclassm)
   /* inlines and templates).                                                      ILR */
 
   msbug = 0;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+{
   if (tok.TKval == TK_extension)
       stoken();                         // skip over __extension__ keyword
   else if (tok.TKval == TK_attribute)
   {
       int attrtype;
-      int mod = getattributes(NULL,FALSE,&attrtype);
+      int mod = getattributes(null,false,&attrtype);
       if (attrtype & ATTR_LINKMOD)
           modifiersx = mod & ATTR_LINK_MODIFIERS;
                                         // not sure how precedence works
-#if DEBUG
+debug
+{
       attrtype |= ~ATTR_LINKMOD;
       assert(ATTR_CAN_IGNORE(attrtype));
-#endif
+}
   }
-#endif
+}
 
 L2:
   switch (tok.TKval)
@@ -913,7 +997,7 @@ L2:
         case TKextern:
                                 scwx = SCWextern;
                                 if (CPP && level == -1)         // if class member
-                                    pstate.STclasssym = NULL;   // not at class scope
+                                    pstate.STclasssym = null;   // not at class scope
                                 goto L9;
         case TKauto:            scwx = SCWauto;         goto L9;
         case TKregister:        scwx = SCWregister;     goto L9;
@@ -927,7 +1011,7 @@ L2:
             stoken();
 
             if (scw & scwx)
-                synerr(EM_storage_class,"");            // bad storage class
+                synerr(EM_storage_class,"".ptr);            // bad storage class
             scw |= scwx;
             goto L2;
 
@@ -953,7 +1037,7 @@ L2:
             if (tkw & tkwx & TKWlong)   // recognize "long long"
             {   tkw &= ~TKWlong;
                 tkwx = TKWllong;
-        L11:    if (intsize == 2)
+        L11:    if (_tysize[TYint] == 2)
                     synerr(EM_no_longlong);     // long long not supported
             }
             if (tkw & tkwx)
@@ -971,24 +1055,19 @@ L2:
         case TKvolatile:    modifiersx = mTYvolatile;   goto L3;
         case TKrestrict:    modifiersx = mTYrestrict;   goto L3;
         case TKthread_local:    modifiersx = mTYthread; goto L3;
-#if TX86
+
         case TK_declspec:   modifiersx = nwc_declspec(); goto L3;
-#endif
+
         L3:
             if (modifiers & modifiersx)
-#if TX86
                 synerr(EM_illegal_type_combo);          // illegal combination of types
             else
                 modifiers |= modifiersx;
-#else
-                goto error;             /* illegal combination of types */
-            modifiers |= modifiersx;
-#endif
             stoken();
             goto L2;
 
         case TKsemi:
-            if (ANSI && (tkw | modifiers) && !(tkw & (TKWtag | TKWdecltype)) &&
+            if (config.ansi_c && (tkw | modifiers) && !(tkw & (TKWtag | TKWdecltype)) &&
                 !pstate.STnewtypeid)
                 synerr(EM_empty_decl);          // empty declaration
             break;
@@ -998,22 +1077,22 @@ L2:
         case TKunion:
         {   enum_TK tk;
 
-            tk = (enum_TK)tok.TKval;
+            tk = cast(enum_TK)tok.TKval;
             stoken();
-            t = stunspec(tk,NULL,NULL,NULL);    // do struct or union specifier
+            t = stunspec(tk,null,null,null);    // do struct or union specifier
             type_debug(t);
             if (CPP && type_struct(t))
             {
                 if (tok.TKval == TKcolcol)
                 {   token_unget();
-                    token_setident(t->Ttag->Sident);
+                    token_setident(&t.Ttag.Sident[0]);
                     s = symbol_search(tok.TKid);
                     goto L7;
                 }
                 if (level > 0 && tok.TKval == TKlpar &&
-                        t->Ttag->Sstruct->Sflags & STRanyctor)
+                        t.Ttag.Sstruct.Sflags & STRanyctor)
                 {   token_unget();
-                    token_setident(t->Ttag->Sident);
+                    token_setident(&t.Ttag.Sident[0]);
                     break;
                 }
             }
@@ -1052,7 +1131,7 @@ L2:
             stoken();
             if (tok.TKval == TKcolcol)
             {
-                if (!Scope::inTemplate())
+                if (!Scope.inTemplate())
                     synerr(EM_no_typename);     // typename not allowed here
                 goto L2;
             }
@@ -1061,9 +1140,9 @@ L2:
                 if (tkw)
                     synerr(EM_no_typename);     // typename not allowed here
                 s = symbol_search(tok.TKid);
-                if (s && s->Sclass == SCtemplate)
-                    ;
-                else if (!Scope::inTemplate())
+                if (s && s.Sclass == SCtemplate)
+                { }
+                else if (!Scope.inTemplate())
                     synerr(EM_no_typename);     // typename not allowed here
                 goto L7;
             }
@@ -1088,14 +1167,14 @@ L2:
             if (CPP)
             {
                 if (funcsym_p && isclassmember(funcsym_p))
-                    sclass0 = (Classsym *)funcsym_p->Sscope;
+                    sclass0 = cast(Classsym *)funcsym_p.Sscope;
                 else
-                    sclass0 = NULL;
+                    sclass0 = null;
             }
             if (s)
             {
-                type_debug(s->Stype);
-                switch (s->Sclass)
+                type_debug(s.Stype);
+                switch (s.Sclass)
                 {
                     case SCtypedef:
                         /* Parse the Foo::type of:
@@ -1104,10 +1183,10 @@ L2:
                          *       class Bar = less<typename Foo::type> >
                          *      class priority_queue {};
                          */
-                        dependent |= s->Stype->Tflags & TFdependent;
+                        dependent |= s.Stype.Tflags & TFdependent;
                         if (CPP &&
                             (pstate.STintemplate || sawtypename) &&
-                            tybasic(s->Stype->Tty) == TYident)
+                            tybasic(s.Stype.Tty) == TYident)
                         {
                             stoken();
                             if (tok.TKval == TKcolcol)
@@ -1119,9 +1198,9 @@ L2:
                                 if (tok.TKval == TKident)
                                 {
                                     t = type_alloc(TYident);
-                                    t->Tident = (char *) MEM_PH_STRDUP(tok.TKid);
-                                    t->Tnext = s->Stype;
-                                    t->Tnext->Tcount++;
+                                    t.Tident = cast(char *) MEM_PH_STRDUP(tok.TKid);
+                                    t.Tnext = s.Stype;
+                                    t.Tnext.Tcount++;
 
                                     // If another :: or <>, just skip them
                                     stoken();
@@ -1160,29 +1239,30 @@ L2:
                             else
                                 token_unget();
                         }
-#if TX86
+
                         // If we are past the header, and referencing typedefs,
                         // then output the typedef into the debug info.
                         if (config.fulltypes == CV4 &&
                             pstate.STflags & PFLextdef &&
-                            (!CPP || tybasic(s->Stype->Tty) != TYident) &&
-                            !s->Sxtrnnum
+                            (!CPP || tybasic(s.Stype.Tty) != TYident) &&
+                            !s.Sxtrnnum
                            )
                            cv_outsym(s);
-#endif
-                        if (CPP && tybasic(s->Stype->Tty) == TYstruct)
+
+                        if (CPP && tybasic(s.Stype.Tty) == TYstruct)
                         {
-                            modifiers2 |= s->Stype->Tty & (mTYconst | mTYvolatile);
-                            s = s->Stype->Ttag;
+                            modifiers2 |= s.Stype.Tty & (mTYconst | mTYvolatile);
+                            s = s.Stype.Ttag;
                             goto L7;
                         }
                         msbug = 1;
-                        t = s->Stype;     /* use pre-defined type        */
+                        t = s.Stype;     /* use pre-defined type        */
                         type_debug(t);
-#if HTOD
+version (HTOD)
+{
                         t = type_copy(t);
-                        t->Ttypedef = s;
-#endif
+                        t.Ttypedef = s;
+}
                         tkwx = TKWident;
                         goto L6;
 
@@ -1206,9 +1286,9 @@ L2:
                                     type *tn = t;
 
                                     t = type_alloc(TYident);
-                                    t->Tident = (char *) MEM_PH_STRDUP(tok.TKid);
-                                    t->Tnext = tn;
-                                    t->Tnext->Tcount++;
+                                    t.Tident = cast(char *) MEM_PH_STRDUP(tok.TKid);
+                                    t.Tnext = tn;
+                                    t.Tnext.Tcount++;
                                     // BUG: what if next token is a ::
                                     // or a <>?
                                     stoken();
@@ -1236,7 +1316,7 @@ L2:
                         if (!s)
                             goto L7;
                         symbol_debug(s);
-                        // FALL-THROUGH
+                        goto case SCstruct;
                     case SCstruct:
                     case SCenum:
                         if (!CPP)
@@ -1246,14 +1326,14 @@ L2:
                             stoken();
                             if (tok.TKval == TKtemplate)
                                 stoken();       // BUG: check following ident is a template
-                            if (tok.TKval == TKident && s->Sclass != SCenum)
-                            {   symbol *smem;
+                            if (tok.TKval == TKident && s.Sclass != SCenum)
+                            {   Symbol *smem;
                                 Classsym *sscope;
 
-                                sscope = (Classsym *)s;
-                                smem = cpp_findmember_nest((Classsym **)&s,tok.TKid,FALSE);
+                                sscope = cast(Classsym *)s;
+                                smem = cpp_findmember_nest(cast(Classsym **)&s,tok.TKid,false);
                                 if (smem)
-                                {   switch (smem->Sclass)
+                                {   switch (smem.Sclass)
                                     {
                                         case SCtypedef:
                                         case SCstruct:
@@ -1264,7 +1344,7 @@ L2:
                                                 s = sscope;
                                                 break;
                                             }
-                                            if (!sclass0 || !c1isbaseofc2(NULL,sscope,sclass0))
+                                            if (!sclass0 || !c1isbaseofc2(null,sscope,sclass0))
                                                 sclass0 = sscope;
                                             //if (level != 0)
                                             if ((level != 0 || pstate.STingargs) &&
@@ -1272,6 +1352,9 @@ L2:
                                                 cpp_memberaccess(smem,funcsym_p,sclass0);
                                             s = smem;
                                             goto L7;
+
+                                        default:
+                                            break;
                                     }
                                 }
                             }
@@ -1280,10 +1363,10 @@ L2:
                                 tok.TKval = TKcolcol;
                                 token_unget();
                                 tok.setSymbol(s);
-                            } while ((s = s->Sscope) != NULL && s->Sclass != SCnamespace);
+                            } while ((s = s.Sscope) != null && s.Sclass != SCnamespace);
                         }
                         else
-                        {   t = s->Stype;       // use class type
+                        {   t = s.Stype;       // use class type
                             type_debug(t);
                             tkwx = TKWtag;
                             goto L8;
@@ -1291,21 +1374,21 @@ L2:
                         break;
 
                     case SCnamespace:
-                        s = nspace_qualify((Nspacesym *)s);
+                        s = nspace_qualify(cast(Nspacesym *)s);
                         goto L7;
 
                     case SCalias:
-                        s = ((Aliassym *)s)->Smemalias;
+                        s = (cast(Aliassym *)s).Smemalias;
                         goto L7;
 
                     default:
-                        if (CPP && s->Scover)
+                        if (CPP && s.Scover)
                         {   enum_TK tk;
 
                             tk = stoken();
                             token_unget();
                             if (tk == TKcolcol)
-                            {   s = s->Scover;
+                            {   s = s.Scover;
                                 goto L7;
                             }
                         }
@@ -1373,11 +1456,12 @@ L2:
             sc_specifier = SCtypedef;
             break;
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+version (Posix)
+{
         case SCWinline | SCWextern:
             sc_specifier = SCeinline;
             break;
-#endif
+}
         case SCWinline | SCWstatic:
             sc_specifier = SCsinline;
             break;
@@ -1387,7 +1471,7 @@ L2:
             break;
 
         case SCWoverload:
-            if (ANSI)
+            if (config.ansi_c)
                 goto bad_sc;            // overload keyword is an anachronism
             sc_specifier = SCoverload;
             break;
@@ -1411,7 +1495,7 @@ L2:
 
         default:
         bad_sc:
-            synerr(EM_storage_class,"");                // bad storage class
+            synerr(EM_storage_class,"".ptr);                // bad storage class
             sc_specifier = SCstatic;    // error recovery
             break;
     }
@@ -1421,7 +1505,7 @@ L2:
         *pclassm = scw;
     else if (result & 2)
     {
-        synerr(EM_storage_class,"");                    // bad storage class
+        synerr(EM_storage_class,"".ptr);                    // bad storage class
         result &= ~2;
     }
 
@@ -1429,61 +1513,63 @@ L2:
     switch (tkw)
     {
         case TKWchar:                   t = chartype;   break;
-        case TKWsigned | TKWchar:       t = tsschar;    break;
-        case TKWunsigned | TKWchar:     t = tsuchar;    break;
+        case TKWsigned | TKWchar:       t = tstypes[TYschar];    break;
+        case TKWunsigned | TKWchar:     t = tstypes[TYuchar];    break;
         case 0:                         result &= ~1;
+                                        goto case TKWsigned;
         case TKWsigned:
         case TKWsigned | TKWint:
-        case TKWint:                    t = tsint;      break;
+        case TKWint:                    t = tstypes[TYint];      break;
         case TKWunsigned | TKWint:
-        case TKWunsigned:               t = tsuns;      break;
+        case TKWunsigned:               t = tstypes[TYuint];      break;
         case TKWsigned | TKWshort | TKWint:
         case TKWsigned | TKWshort:
         case TKWshort | TKWint:
-        case TKWshort:                  t = tsshort;    break;
+        case TKWshort:                  t = tstypes[TYshort];    break;
         case TKWunsigned | TKWshort:
-        case TKWunsigned | TKWshort | TKWint:   t = tsushort; break;
+        case TKWunsigned | TKWshort | TKWint:   t = tstypes[TYushort]; break;
         case TKWsigned | TKWlong | TKWint:
         case TKWsigned | TKWlong:
         case TKWlong | TKWint:
-        case TKWlong:                   t = tslong;     break;
+        case TKWlong:                   t = tstypes[TYlong];     break;
         case TKWsigned | TKWllong | TKWint:
         case TKWsigned | TKWllong:
         case TKWllong | TKWint:
-        case TKWllong:                  t = tsllong;    break;
+        case TKWllong:                  t = tstypes[TYllong];    break;
         case TKWunsigned | TKWlong:
-        case TKWunsigned | TKWlong | TKWint:    t = tsulong; break;
+        case TKWunsigned | TKWlong | TKWint:    t = tstypes[TYulong]; break;
         case TKWunsigned | TKWllong:
-        case TKWunsigned | TKWllong | TKWint:   t = tsullong; break;
-        case TKWlong | TKWdouble:       t = LDOUBLE ? tsldouble : tsreal64;     break;
-        case TKWdouble:                 t = tsdouble;   break;
-        case TKWfloat:                  t = tsfloat;    break;
-        case TKWvoid:                   t = tsvoid;     break;
-        case TKWbool:                   t = tsbool;     break;
-        case TKWwchar_t:                t = (config.flags4 & CFG4wchar_is_long) ? tsdchar : tswchar_t;
+        case TKWunsigned | TKWllong | TKWint:   t = tstypes[TYullong]; break;
+        case TKWlong | TKWdouble:       t = LDOUBLE ? tstypes[TYldouble] : tstypes[TYdouble_alias];     break;
+        case TKWdouble:                 t = tstypes[TYdouble];   break;
+        case TKWfloat:                  t = tstypes[TYfloat];    break;
+        case TKWvoid:                   t = tstypes[TYvoid];     break;
+        case TKWbool:                   t = tstypes[TYbool];     break;
+        case TKWwchar_t:                t = (config.flags4 & CFG4wchar_is_long) ? tstypes[TYdchar] : tstypes[TYwchar_t];
                                                         break;
 
-        case TKWimaginary | TKWfloat:            t = tsifloat;   goto Lc99;
-        case TKWimaginary | TKWdouble:           t = tsidouble;  goto Lc99;
-        case TKWimaginary | TKWlong | TKWdouble: t = tsildouble; goto Lc99;
-        case TKWcomplex | TKWfloat:              t = tscfloat;   goto Lc99;
-        case TKWcomplex | TKWdouble:             t = tscdouble;  goto Lc99;
-        case TKWcomplex | TKWlong | TKWdouble:   t = tscldouble; goto Lc99;
+        case TKWimaginary | TKWfloat:            t = tstypes[TYifloat];   goto Lc99;
+        case TKWimaginary | TKWdouble:           t = tstypes[TYidouble];  goto Lc99;
+        case TKWimaginary | TKWlong | TKWdouble: t = tstypes[TYildouble]; goto Lc99;
+        case TKWcomplex | TKWfloat:              t = tstypes[TYcfloat];   goto Lc99;
+        case TKWcomplex | TKWdouble:             t = tstypes[TYcdouble];  goto Lc99;
+        case TKWcomplex | TKWlong | TKWdouble:   t = tstypes[TYcldouble]; goto Lc99;
         Lc99:
-            if (intsize == 2 ||
+            if (_tysize[TYint] == 2 ||
                 !LDOUBLE ||
                 !config.inline8087)
             {
                 synerr(EM_no_complex);          // complex / imaginary not supported
-                t = tsint;
+                t = tstypes[TYint];
             }
+            goto case TKWtag;
 
         case TKWtag:
         case TKWdecltype:
         case TKWident:          type_debug(t); break;   // t is already set
 
-        case TKWchar16:         t = tschar16;   break;
-        case TKWdchar:          t = tsdchar;    break;
+        case TKWchar16:         t = tstypes[TYchar16];   break;
+        case TKWdchar:          t = tstypes[TYdchar];    break;
 
         default:
         error:
@@ -1496,7 +1582,7 @@ L2:
     type_debug(t);
     if (dependent && CPP)
         t = type_setdependent(t);
-    t->Tcount++;                /* usage count                  */
+    t.Tcount++;                /* usage count                  */
     *ptyp_spec = t;
     modifiers |= modifiers2;
     if (modifiers)
@@ -1505,7 +1591,7 @@ L2:
             result |= 4;
         if (modifiers & (mTYconst | mTYvolatile))
             result |= 1;
-        type_setty(ptyp_spec,t->Tty | modifiers);
+        type_setty(ptyp_spec,t.Tty | modifiers);
     }
     return result;
 }
@@ -1536,12 +1622,12 @@ L2:
  *              namespace-name
  * Returns:
  *      resulting symbol
- *      NULL if error
+ *      null if error
  */
 
-symbol *id_expression()
-{   symbol *s;
-    unsigned sct;
+Symbol *id_expression()
+{   Symbol *s;
+    uint sct;
     int gettemplate;
 
     // Parse id-expression
@@ -1569,16 +1655,16 @@ L2:
     {   synerr(EM_undefined, tok.TKid);
         goto Lerr;
     }
-    if (gettemplate && s->Sclass != SCtemplate && s->Sclass != SCfunctempl)
+    if (gettemplate && s.Sclass != SCtemplate && s.Sclass != SCfunctempl)
         synerr(EM_template_expected);
     gettemplate = 0;
     stoken();
 L1:
-    switch (s->Sclass)
+    switch (s.Sclass)
     {
         case SCnamespace:
             token_unget();
-            s = nspace_qualify((Nspacesym *)s);
+            s = nspace_qualify(cast(Nspacesym *)s);
             if (!s)
                 goto Lerr;
             stoken();
@@ -1594,8 +1680,8 @@ L1:
             break;
 
         case SCtypedef:
-            if (tybasic(s->Stype->Tty) == TYstruct)
-            {   s = s->Stype->Ttag;
+            if (tybasic(s.Stype.Tty) == TYstruct)
+            {   s = s.Stype.Ttag;
                 goto L1;
             }
             break;
@@ -1613,18 +1699,18 @@ L1:
                 {   synerr(EM_ident_exp);           // identifier expected
                     goto Lerr;
                 }
-                s = cpp_findmember_nest((Classsym **)&s, tok.TKid, FALSE);
+                s = cpp_findmember_nest(cast(Classsym **)&s, tok.TKid, false);
                 goto L2;
             }
             break;
 
         case SCalias:
-            s = ((Aliassym *)s)->Smemalias;
+            s = (cast(Aliassym *)s).Smemalias;
             goto L1;
 
         default:
-            if (s->Scover && tok.TKval == TKcolcol)
-            {   s = s->Scover;
+            if (s.Scover && tok.TKval == TKcolcol)
+            {   s = s.Scover;
                 goto L1;
             }
             break;
@@ -1632,7 +1718,7 @@ L1:
     return s;
 
 Lerr:
-    return NULL;
+    return null;
 }
 
 
@@ -1646,41 +1732,39 @@ Lerr:
  *      level           declaration level
  * Returns:
  *    (flag & 1):
- *      !=NULL  declaration
- *      NULL    not a declaration
+ *      !=null  declaration
+ *      null    not a declaration
  *    (flag & 4):
  *      e       e is expression to test
  *      pstate.STlastfunc = symbol declared
  */
 
 elem *declaration(int flag)
-{   symbol *s;
+{   Symbol *s;
     type *dt;
     tym_t ty;
-    char vident[2*IDMAX + 1];
+    char[2*IDMAX + 1] vident = null;
     type *tspec;
     int sc_specifier;
     int dss;
-
-    _chkstack();
 
     //dbg_printf("declaration(flag = %d)\n",flag);
 
     if (tok.TKval == TKstatic_assert && !(flag & 4))
     {
         parse_static_assert();
-        return (elem *)1;
+        return cast(elem *)1;
     }
-    dss = declaration_specifier(&tspec,&sc_specifier,NULL);
+    dss = declaration_specifier(&tspec,&sc_specifier,null);
 
     type_debug(tspec);
 
-    s = NULL;
+    s = null;
     if (flag & 1)
     {   assert(!CPP);
         if (!dss)
-        {   pstate.STlastfunc = NULL;
-            return NULL;
+        {   pstate.STlastfunc = null;
+            return null;
         }
     }
     if (flag & 2)
@@ -1691,32 +1775,32 @@ elem *declaration(int flag)
     while (1)
     {
         if (tok.TKval == TKsemi)
-        {   symbol *stag;
+        {   Symbol *stag;
 
-            ty = tybasic(tspec->Tty);
+            ty = tybasic(tspec.Tty);
             if (ty == TYenum)
             {
-                stag = (symbol *)tspec->Ttag;
-                if (stag->Senum->SEflags & SENnotagname && !stag->Senumlist)
+                stag = cast(Symbol *)tspec.Ttag;
+                if (stag.Senum.SEflags & SENnotagname && !stag.Senum.SEenumlist)
                     synerr(EM_ident_exp);
             }
             else if (ty == TYstruct)
             {
-                stag = (symbol *)tspec->Ttag;
-                if (stag->Sstruct->Sflags & STRnotagname && !stag->Sstruct->Sfldlst)
+                stag = cast(Symbol *)tspec.Ttag;
+                if (stag.Sstruct.Sflags & STRnotagname && !stag.Sstruct.Sfldlst)
                     synerr(EM_ident_exp);
             }
         }
 
-        if (ANSI && (tok.TKval == TKcomma /*||
+        if (config.ansi_c && (tok.TKval == TKcomma /*||
             (tok.TKval == TKsemi && ty != TYstruct && ty != TYenum*/))
             synerr(EM_id_or_decl);              // ident or '(' expected
         gdeclar.hasExcSpec = 0;
-        dt = declar_fix(tspec,vident);
-        //printf("vident = '%s'\n", vident);
+        dt = declar_fix(tspec,&vident[0]);
+        //printf("vident = '%s'\n", &vident[0]);
         //type_print(dt);
         if (sc_specifier == SCtypedef && gdeclar.hasExcSpec)
-            cpperr(EM_typedef_exception, vident);
+            cpperr(EM_typedef_exception, &vident[0]);
         if (vident[0] == 0)             /* if there was no identifier   */
         {
             if (dt != tspec || flag & 4)
@@ -1729,51 +1813,51 @@ elem *declaration(int flag)
             // Look for anonymous union declarations
             if (CPP &&
                 type_struct(tspec) &&
-                tspec->Ttag->Sstruct->Sflags & STRunion &&
-                tspec->Ttag->Sstruct->Sflags & STRnotagname &&
+                tspec.Ttag.Sstruct.Sflags & STRunion &&
+                tspec.Ttag.Sstruct.Sflags & STRnotagname &&
                 sc_specifier != SCtypedef
                )
-                s = anonymous(tspec->Ttag,sc_specifier);
+                s = anonymous(tspec.Ttag,sc_specifier);
             goto L1;
         }
         //dbg_printf("declaration('%s')\n",vident);
-        if (gdeclar.constructor || gdeclar.destructor || gdeclar.invariant)
+        if (gdeclar.constructor || gdeclar.destructor || gdeclar._invariant)
         {
-            if (tybasic(tspec->Tty) != TYint ||
+            if (tybasic(tspec.Tty) != TYint ||
                 !gdeclar.class_sym ||
-                ((gdeclar.destructor || gdeclar.invariant) && dt->Tparamtypes)
+                ((gdeclar.destructor || gdeclar._invariant) && dt.Tparamtypes)
                )
                 cpperr(EM_bad_ctor_dtor);       // illegal ctor/dtor/invariant declaration
             else if (gdeclar.constructor)
             {   /* Constructors return <ptr to><class>  */
-                type_free(dt->Tnext);
-                dt->Tnext = newpointer(gdeclar.class_sym->Stype);
-                dt->Tnext->Tcount++;
+                type_free(dt.Tnext);
+                dt.Tnext = newpointer(gdeclar.class_sym.Stype);
+                dt.Tnext.Tcount++;
             }
         }
-        s = symdecl(vident, dt, sc_specifier, NULL);
+        s = symdecl(&vident[0], dt, sc_specifier, null);
         if (!s)
             goto L1;
 
         /* If function returning        */
-        if (tyfunc(s->Stype->Tty))
+        if (tyfunc(s.Stype.Tty))
         {   symbol_func(s);
             if (sc_specifier == SCauto && CPP)
             {
-                symbol *sa;
+                Symbol *sa;
 
-                dt->Tcount++;
-                sa = symdecl(vident, dt, SCfuncalias, NULL);
+                dt.Tcount++;
+                sa = symdecl(&vident[0], dt, SCfuncalias, null);
                 symbol_func(sa);
-                sa->Sfunc->Falias = s;
+                sa.Sfunc.Falias = s;
             }
             if (flag & 4)
-                synerr(EM_datadef,s->Sident);           // expected data def
+                synerr(EM_datadef,&s.Sident[0]);           // expected data def
             if (funcdecl(s,sc_specifier,1,&gdeclar))
             {   /* Function body was present    */
-#if HTOD
+version (HTOD)
                 htod_decl(s);
-#endif
+
                 goto ret;
             }
         }
@@ -1782,9 +1866,9 @@ elem *declaration(int flag)
             if (!dss
                 && (CPP || level != 0)
                )
-                synerr(EM_decl_spec_seq,vident);        // decl-specifier-seq required
+                synerr(EM_decl_spec_seq,&vident[0]);        // decl-specifier-seq required
 
-            if (s->Sclass == SCtypedef)
+            if (s.Sclass == SCtypedef)
             {
               if (CPP)
               {
@@ -1792,54 +1876,54 @@ elem *declaration(int flag)
                 enum_t   *se;
 
                 if (flag & 4)
-                    synerr(EM_storage_class,"typedef"); // illegal storage class
+                    synerr(EM_storage_class,"typedef".ptr); // illegal storage class
 
                 /* Handle: typedef struct { ... } S;    */
-                if (tybasic(s->Stype->Tty) == TYstruct &&
-                    (st = s->Stype->Ttag->Sstruct)->Sflags & STRnotagname)
-                {   st->Sflags &= ~STRnotagname;   /* we have a name now */
-                    st->Salias = s;                /* steal name from typedef */
+                if (tybasic(s.Stype.Tty) == TYstruct &&
+                    (st = s.Stype.Ttag.Sstruct).Sflags & STRnotagname)
+                {   st.Sflags &= ~STRnotagname;   /* we have a name now */
+                    st.Salias = s;                /* steal name from typedef */
                 }
                 /* Handle: typedef enum { ... } E;      */
-                if (tybasic(s->Stype->Tty) == TYenum &&
-                    (se = s->Stype->Ttag->Senum)->SEflags & SENnotagname)
-                {   se->SEflags &= ~SENnotagname;   /* we have a name now */
-                    se->SEalias = s;               /* steal name from typedef */
+                if (tybasic(s.Stype.Tty) == TYenum &&
+                    (se = s.Stype.Ttag.Senum).SEflags & SENnotagname)
+                {   se.SEflags &= ~SENnotagname;   /* we have a name now */
+                    se.SEalias = s;               /* steal name from typedef */
                 }
               }
             }
             else
-            {   tym_t ty;
+            {   tym_t tyx;
                 type *t;
 
-                t = s->Stype;
-                ty = tybasic(t->Tty);
+                t = s.Stype;
+                tyx = tybasic(t.Tty);
             L2:
-                switch (s->Sclass)
+                switch (s.Sclass)
                 {
                     case SCauto:
-                        if (!(t->Tflags & TFsizeunknown) &&
-                            intsize == 2 &&
+                        if (!(t.Tflags & TFsizeunknown) &&
+                            _tysize[TYint] == 2 &&
                             type_size(t) > 30000)
-                            warerr(WM_large_auto);      // local variable is too big
+                            warerr(WM.WM_large_auto);      // local variable is too big
                         break;
                     case SCextern:
                         if (tok.TKval == TKeq || (CPP && tok.TKval == TKlpar))
                         {   if (level != 0)
                                 synerr(EM_ext_block_init);      // no initializer at block scope
-                            s->Sclass = SCglobal;
+                            s.Sclass = SCglobal;
                             goto L2;
                         }
                         goto Lthreshold;
                     case SCinline:
                     case SCsinline:
-                        synerr(EM_storage_class,"inline");      // not allowed in this context
-                        s->Sclass = SCstatic;   // error recovery
+                        synerr(EM_storage_class,"inline".ptr);      // not allowed in this context
+                        s.Sclass = SCstatic;   // error recovery
                         break;
                     case SCoverload:
-                        if (ty != TYint)
-                        {   synerr(EM_storage_class,"overload"); /* not allowed in this context */
-                            s->Sclass = SCstatic;
+                        if (tyx != TYint)
+                        {   synerr(EM_storage_class,"overload".ptr); /* not allowed in this context */
+                            s.Sclass = SCstatic;
                         }
                         else
                             goto L1;
@@ -1848,19 +1932,20 @@ elem *declaration(int flag)
                     case SCcomdat:
                         // Keep as comdat if static member of template struct
                         if (CPP &&
-                            !(isclassmember(s) && s->Sscope->Sstruct->Stempsym))
-                            s->Sclass = SCglobal;
+                            !(isclassmember(s) && s.Sscope.Sstruct.Stempsym))
+                            s.Sclass = SCglobal;
+                        goto case SCglobal;
                     case SCglobal:
                         if (CPP)
                         {
                             // Default const variables to be static
                             // (but not for structs, arrays, or static class members)
-                            if (t->Tty & mTYconst &&
+                            if (t.Tty & mTYconst &&
                                 !type_struct(t) &&
-                                !(tybasic(t->Tty) == TYarray) &&
+                                !(tybasic(t.Tty) == TYarray) &&
                                 !isclassmember(s))
                             {
-                                s->Sclass = SCstatic;
+                                s.Sclass = SCstatic;
                             }
                         }
                         else
@@ -1868,26 +1953,26 @@ elem *declaration(int flag)
                     Lglobal:
                             // Don't output incomplete types
                             if (tok.TKval != TKeq &&
-                                ty == TYarray &&
-                                t->Tflags & TFsizeunknown)
-                                s->Sclass = SCextern;
+                                tyx == TYarray &&
+                                t.Tflags & TFsizeunknown)
+                                s.Sclass = SCextern;
                         }
                         goto Lthreshold;
 
                     case SCpublic:
                         if (!CPP)
                             break;
-                        s->Sclass = SCglobal;   // circumvent above
+                        s.Sclass = SCglobal;   // circumvent above
                         goto Lthreshold;
 
                     case SCstatic:
                         // Do not allow static variables in inline functions
                         if (level > 0 &&
-                            funcsym_p->Sclass == SCinline)
+                            funcsym_p.Sclass == SCinline)
                         {
-                            s->Sclass = SCglobal;
+                            s.Sclass = SCglobal;
                             if (CPP)
-                                s->Sscope = (Classsym *)funcsym_p;
+                                s.Sscope = cast(Classsym *)funcsym_p;
                             else
                                 goto Lglobal;
                         }
@@ -1898,13 +1983,12 @@ elem *declaration(int flag)
                         break;
 
                     Lthreshold:
-#if TX86
-                        if (t->Tty & mTYimport)
+                        if (t.Tty & mTYimport)
                         {
                             if (tok.TKval == TKeq)
                                 tx86err(EM_bad_dllimport);      // initializer not allowed
-                            else if (s->Sclass != SCextern)
-                                s->Sclass = SCextern;
+                            else if (s.Sclass != SCextern)
+                                s.Sclass = SCextern;
                         }
 
                         // Arrays of unknown size get automatically
@@ -1912,73 +1996,77 @@ elem *declaration(int flag)
                         // BUG: what about arrays of near classes?
                         if (config.threshold != THRESHMAX &&
                             LARGEDATA &&
-                            (ty == TYarray ||
-                             (ty == TYstruct
-                              && (!CPP || t->Ttag->Sstruct->ptrtype == TYfptr)
+                            (tyx == TYarray ||
+                             (tyx == TYstruct
+                              && (!CPP || t.Ttag.Sstruct.ptrtype == TYfptr)
                              )) &&
-                            !(t->Tty & mTYLINK) &&
-                            (t->Tflags & TFsizeunknown ||
+                            !(t.Tty & mTYLINK) &&
+                            (t.Tflags & TFsizeunknown ||
                              type_size(t) > config.threshold)
                            )
                         {
-                            s->Stype = type_setty(&t,t->Tty | mTYfar);
+                            s.Stype = type_setty(&t,t.Tty | mTYfar);
                         }
-#endif
+                        break;
+
+                    default:
                         break;
                 }
 
                 if (level == 1)         /* let func_body do this        */
                     goto L1;
 
-                if (ty == TYvoid)
+                if (tyx == TYvoid)
                 {   synerr(EM_void_novalue);    // void has no value
                     type_free(t);
-                    s->Stype = tsint;
-                    tsint->Tcount++;
+                    s.Stype = tstypes[TYint];
+                    tstypes[TYint].Tcount++;
                 }
                 datadef(s);             /* do data def record           */
-                if (level == 0 && s->Sclass != SCextern &&
-                    s->Sclass != SCcomdef && s->Sclass != SCstatic)
+                if (level == 0 && s.Sclass != SCextern &&
+                    s.Sclass != SCcomdef && s.Sclass != SCstatic)
                 {
                     // Don't write out symbol if it is a const
-                    if (s->Sclass != SCstatic ||
-                        (CPP && !(s->Sflags & SFLvalue)))
+                    if (s.Sclass != SCstatic ||
+                        (CPP && !(s.Sflags & SFLvalue)))
                     {
                         outdata(s);     // and write out the symbol
                     }
                 }
                 if (level == 0 && CPP &&
-                    (s->Sclass == SCglobal || s->Sclass == SCcomdat) &&
-                    type_mangle(s->Stype) != mTYman_cpp)
+                    (s.Sclass == SCglobal || s.Sclass == SCcomdat) &&
+                    type_mangle(s.Stype) != mTYman_cpp)
                 {
-                    //printf("defining '%s'\n", s->Sident);
-                    scope_define(s->Sident, SCTcglobal, SCglobal);
+                    //printf("defining '%s'\n", s.Sident);
+                    scope_define(&s.Sident[0], SCTcglobal, SCglobal);
                 }
                 if (flag & 4)           // if declaration in conditional
                 {
-#if HTOD
+version (HTOD)
+{
                     if (level == 0)
                         htod_decl(s);
-#endif
+}
                     goto ret;           // only 1 allowed
                 }
             }
         }
     L1:
-#if HTOD
+version (HTOD)
+{
         if (level == 0)
             htod_decl(s);
-#endif
+}
 
         switch (tok.TKval)
         {
             case TKident:
-                synerr(EM_missing_comma,vident,tok.TKid);       // missing ','
+                synerr(EM_missing_comma,&vident[0],tok.TKid);       // missing ','
                 goto L3;
             default:
 L3:             synerr(EM_punctuation);         // = ; or , expected
                 panic(TKsemi);
-                /* FALL-THROUGH */
+                goto case TKsemi;
             case TKsemi:
                 stoken();
                 goto ret;               /* done with declaration        */
@@ -1992,9 +2080,9 @@ ret:
     pstate.STlastfunc = s;
     type_free(tspec);
     if (flag & 4)
-        return s ? el_var(s) : el_longt(tsint,0);
+        return s ? el_var(s) : el_longt(tstypes[TYint],0);
     else
-        return (elem *)1;
+        return cast(elem *)1;
 }
 
 
@@ -2009,7 +2097,7 @@ ret:
 
 type *declar_abstract(type *t)
 {
-    return declar(t,NULL,3);
+    return declar(t,null,3);
 }
 
 /******************************
@@ -2028,7 +2116,7 @@ type *declar_abstract(type *t)
 
 type *new_declarator(type *t)
 {
-    return declar(t,NULL,1);
+    return declar(t,null,1);
 }
 
 /******************************
@@ -2043,7 +2131,7 @@ type *new_declarator(type *t)
 
 type *ptr_operator(type *t)
 {
-    return declar(t,NULL,2);
+    return declar(t,null,2);
 }
 
 
@@ -2097,28 +2185,26 @@ tym_t type_qualifier_list()
  */
 
 type *declar(type *t,char *vident,int flag)
-{   type *tstart,*t2;
-    long tym;
+{   type* tstart,t2;
+    int tym;
     tym_t ty;
     tym_t tyx;
-    unsigned mangle;
-#if TX86
-    static int inprototype = 0;
-#endif
-    type *tconv = NULL;
+    uint mangle;
+    __gshared int inprototype = 0;
+    type *tconv = null;
     int op = OPunde;
-    bool constructor = FALSE;
-    bool destructor = FALSE;
-    bool invariant = FALSE;
-    bool explicitSpecialization = FALSE;
-    symbol *s = NULL;
-    Nspacesym *sn = NULL;
-    param_t *ptal = NULL;
+    bool constructor = false;
+    bool destructor = false;
+    bool _invariant = false;
+    bool explicitSpecialization = false;
+    Symbol *s = null;
+    Nspacesym *sn = null;
+    param_t *ptal = null;
     Classsym *classsymsave = pstate.STclasssym;
-    unsigned cpushcount = 0;
+    uint cpushcount = 0;
     int global = 0;
     tym_t initial;
-    static long tym_start;
+    __gshared int tym_start;
 
     //printf("declar(flag = %d), level = %d\n", flag, level);
     //type_print(t);
@@ -2127,18 +2213,16 @@ type *declar(type *t,char *vident,int flag)
     if (vident)
         vident[0] = 0;
 
-#if TX86
-    // Irrational MS syntax can have __declspec anywhere
-    initial = t->Tty & (mTYthread | mTYnaked | mTYimport | mTYexport);
-#endif
+    // MS syntax can have __declspec anywhere
+    initial = t.Tty & (mTYthread | mTYnaked | mTYimport | mTYexport);
 
     // See if need to set up enclosing scopes
     if (CPP && tok.TKval == TKsymbol)
     {
-        symbol *s = tok.TKsym;
+        Symbol *sx = tok.TKsym;
 
-        if (s->Sscope && scope_end->sctype & SCTglobal)
-            cpushcount += scope_pushEnclosing(s);
+        if (sx.Sscope && scope_end.sctype & SCTglobal)
+            cpushcount += scope_pushEnclosing(sx);
     }
 
     tym = tym_start;
@@ -2149,7 +2233,8 @@ type *declar(type *t,char *vident,int flag)
         /* Some types we only see in this function, as they only apply to
            pointer types.
          */
-        enum modifier { mTYhandle = 1, mTY_ss = 2, mTY_far16 = 8,
+        alias modifier = int;
+        enum { mTYhandle = 1, mTY_ss = 2, mTY_far16 = 8,
                         mTYhuge = 0x10 };
 
         //tok.print();
@@ -2158,41 +2243,42 @@ type *declar(type *t,char *vident,int flag)
             case TKcom:
                 if (!CPP)
                     goto Ldefault;
+                goto case TKident;
             case TKident:
             case TKsymbol:
             case TKoperator:
             case TK_invariant:
-#if TX86
             case TKrpar:
             Lcase_id:
-                {   tym_t tyx;
+                {   tym_t tyz;
 
-                    tyx = tym & (mTYhandle | mTY_ss | mTYLINK | mTYhuge);
-                    if (tyx)
-                    {   if (tyx & (mTYhandle | mTY_ss) || tyx & (tyx - 1))
+                    tyz = tym & (mTYhandle | mTY_ss | mTYLINK | mTYhuge);
+                    if (tyz)
+                    {   if (tyz & (mTYhandle | mTY_ss) || tyz & (tyz - 1))
                         {   synerr(EM_illegal_type_combo);      // illegal combination of types
-                            tyx = 0;
+                            tyz = 0;
                         }
-                        if (tyx & mTYhuge)
+                        if (tyz & mTYhuge)
                             // Fake 'huge' allocation as 'far'.
                             tym ^= mTYhuge | mTYfar;
                     }
                     if (tok.TKval == TKrpar)
                         goto Ldefault;
                 }
-#endif
               if (CPP)
               {
+                const(char)* id;
                 if (tok.TKval == TKident || tok.TKval == TKsymbol)
                 {
-                    char dident[2*IDMAX + 1];
-                    symbol *stmp;
-                    symbol *st;
+                    char[2*IDMAX + 1] didentb = void;
+                    char* dident = &didentb[0];
+                    Symbol *stmp;
+                    Symbol *st;
 
                     if (tok.TKval == TKident)
                     {
                         strcpy(dident,tok.TKid);        // squirrel away identifier
-                        stmp = NULL;
+                        stmp = null;
                         stoken();
 
                         // look for name<args>::member
@@ -2203,15 +2289,15 @@ type *declar(type *t,char *vident,int flag)
                                 cpperr(EM_not_class_templ,dident);      // %s is not a class template
                             else
                             {
-                                if (st->Sclass == SCalias)
-                                    st = ((Aliassym *)st)->Smemalias;
-                                if (st->Sclass == SCtemplate)
+                                if (st.Sclass == SCalias)
+                                    st = (cast(Aliassym *)st).Smemalias;
+                                if (st.Sclass == SCtemplate)
                                 {
                                     token_unget();
                                     stmp = template_expand(st,0);
                                     stoken();
                                 }
-                                else if (st->Sclass == SCfunctempl)
+                                else if (st.Sclass == SCfunctempl)
                                 {
                                     goto Lfunctempl;
                                 }
@@ -2229,24 +2315,23 @@ type *declar(type *t,char *vident,int flag)
                     else // TKsymbol
                     {
                         stmp = tok.TKsym;
-                        strcpy(dident, stmp->Sident);
+                        strcpy(dident, &stmp.Sident[0]);
                         stoken();
                     }
 
                     // Look for class members
                     while (tok.TKval == TKcolcol)       // if dident::
-                    {   Classsym *stag;
-
+                    {
                         if (stmp)
                         {   s = stmp;
-                            stmp = NULL;
+                            stmp = null;
                         }
                         else if (s)
                             // Look for nested class
-                            s = cpp_findmember_nest((Classsym **)&s,dident,TRUE);
+                            s = cpp_findmember_nest(cast(Classsym **)&s,dident,true);
                         else if (sn)
                         {   s = nspace_searchmember(dident,sn);
-                            sn = NULL;
+                            sn = null;
                         }
                         else
                         {
@@ -2256,52 +2341,52 @@ type *declar(type *t,char *vident,int flag)
                         global = 0;
                         stoken();
                     L23:
-                        if (s && s->Sclass == SCnamespace)
+                        Classsym *stag;
+                        if (s && s.Sclass == SCnamespace)
                         {
-                            sn = (Nspacesym *)s;
+                            sn = cast(Nspacesym *)s;
                             scope_push_symbol(s);
                             cpushcount++;
-                            s = NULL;
+                            s = null;
                             if (tok.TKval == TKident)
                                 goto Lcase_id;
                             if (tok.TKval == TKoperator)
                                 goto Lcase_id;
                         }
-                        if (!s || !type_struct(s->Stype))
+                        if (!s || !type_struct(s.Stype))
                         {
-                            if (s && tybasic(s->Stype->Tty) == TYident &&
+                            if (s && tybasic(s.Stype.Tty) == TYident &&
                                 tok.TKval == TKstar)    // pointer to member
                             {
                                 // So template_deleteargtab() won't free it
-                                s = template_createsym(s->Sident, NULL, NULL);
+                                s = template_createsym(&s.Sident[0], null, null);
                                 symbol_keep(s);
                                 goto Lpm;
                             }
-                            if (s && s->Scover)
-                            {   s = s->Scover;
+                            if (s && s.Scover)
+                            {   s = s.Scover;
                                 goto L23;
                             }
                             cpperr(EM_class_colcol,dident);     // must be a class name
-                            s = NULL;
+                            s = null;
                         }
                         else
                         {
-                            s = s->Stype->Ttag;         // in case s was a typedef'd class
-                            pstate.STclasssym = (Classsym *)s;  // set new scope
+                            s = s.Stype.Ttag;         // in case s was a typedef'd class
+                            pstate.STclasssym = cast(Classsym *)s;  // set new scope
                         Lpm:
-                            sn = NULL;
-                            stag = (Classsym *)s;
+                            sn = null;
+                            stag = cast(Classsym *)s;
                             scope_pushclass(stag);
                             cpushcount++;
                             switch (tok.TKval)
-                            {   const char *id;
-
+                            {
                                 case TKident:
                                     id = tok.TKid;
                                 L16:
                                     strcpy(dident,id);  // squirrel away identifier
                                     stoken();
-                                    stmp = NULL;
+                                    stmp = null;
 
                                     // look for dident<args>::member
                                     if (tok.TKval == TKlt || tok.TKval == TKlg)
@@ -2309,25 +2394,25 @@ type *declar(type *t,char *vident,int flag)
                                         st = scope_search(dident,SCTglobal | SCTclass);
                                         if (!st)
                                             cpperr(EM_not_class_templ,dident);  // %s is not a class template
-                                        else if (st->Sclass == SCtemplate)
+                                        else if (st.Sclass == SCtemplate)
                                         {
                                             token_unget();
                                             stmp = template_expand(st,0);
                                             stoken();
                                             continue;
                                         }
-                                        else if (st->Sclass == SCfunctempl)
+                                        else if (st.Sclass == SCfunctempl)
                                         {
                                           Lfunctempl:
                                             if (!pstate.STexplicitInstantiation &&
                                                 !pstate.STexplicitSpecialization)
                                                 cpperr(EM_not_class_templ,dident);      // %s is not a class template
                                             ptal = template_gargs(st);
-                                            explicitSpecialization = TRUE;
+                                            explicitSpecialization = true;
                                             strcpy(vident, dident);
                                             stoken();
                                             tstart = t;                 // start of type list
-                                            tstart->Tcount++;
+                                            tstart.Tcount++;
                                             goto ret;
                                         }
                                         else
@@ -2335,42 +2420,42 @@ type *declar(type *t,char *vident,int flag)
                                     }
 
                                     if (template_classname(dident,stag))
-                                    {   constructor = TRUE;     // X::X()
+                                    {   constructor = true;     // X::X()
                                         // constructor declaration
-                                        strcpy(dident, cpp_name_ct);
+                                        strcpy(dident, cpp_name_ct.ptr);
                                     }
                                     break;
                                 case TKsymbol:
                                     // we really should use the symbol directly
-                                    id = tok.TKsym->Sident;
+                                    id = &tok.TKsym.Sident[0];
                                     goto L16;
                                 case TKcom:
                                     stoken();
                                     if (tok.TKval == TKident)
                                     {   if (!template_classname(tok.TKid,stag))
-                                            cpperr(EM_tilde_class,stag->Sident);        // X::~X() expected
-                                        destructor = TRUE;
-                                        strcpy(dident,cpp_name_dt);
+                                            cpperr(EM_tilde_class,&stag.Sident[0]);        // X::~X() expected
+                                        destructor = true;
+                                        strcpy(dident,cpp_name_dt.ptr);
                                         stoken();
                                         break;
                                     }
                                     else
-                                        cpperr(EM_tilde_class,stag->Sident);    // X::~X() expected
+                                        cpperr(EM_tilde_class,&stag.Sident[0]);    // X::~X() expected
                                     break;
 
                                 case TK_invariant:
-                                    invariant = TRUE;
-                                    strcpy(dident,cpp_name_invariant);
+                                    _invariant = true;
+                                    strcpy(dident,cpp_name_invariant.ptr);
                                     stoken();
                                     break;
 
                                 case TKstar:    // X::* pointer to member
                                     t = type_allocmemptr(stag,t);
-                                    s = NULL;
+                                    s = null;
                                     if (tym)
-                                        type_setty(&t,t->Tty | tym);
+                                        type_setty(&t,t.Tty | tym);
                                     if (mangle)
-                                        type_setmangle(&t,mangle);
+                                        type_setmangle(&t,cast(ubyte)mangle);
                                     goto L14;
                                 case TKoperator:
                                     goto Loperator;
@@ -2388,23 +2473,22 @@ type *declar(type *t,char *vident,int flag)
                     }
                     else
                         strcpy(vident,dident);  // squirrel away identifier
-#if TX86
+
                     // Determine if linkage was specified with #pragma linkage()
                     if (cstate.CSlinkage && vident)
-                    {   symbol *s;
+                    {   Symbol *sx;
 
-                        s = findsy(vident,cstate.CSlinkage);
-                        if (s)
-                        {   tym = s->Slinkage;
-                            mangle = s->Smangle;
+                        sx = findsy(vident,cstate.CSlinkage);
+                        if (sx)
+                        {   tym = sx.Slinkage;
+                            mangle = sx.Smangle;
                         }
                     }
-#endif
                 }
                 else if (tok.TKval == TKoperator)
-                {   char *p;
-
+                {
                 Loperator:
+                    char *p;
                     p = cpp_operator(&op,&tconv);
                     if (vident)
                     {
@@ -2412,11 +2496,11 @@ type *declar(type *t,char *vident,int flag)
                         if (pstate.STexplicitSpecialization &&
                             (tok.TKval == TKlt || tok.TKval == TKlg))
                         {
-                            symbol *st = scope_search(vident, SCTglobal | SCTnspace);
+                            Symbol *st = scope_search(vident, SCTglobal | SCTnspace);
                             if (st)
                             {
                                 ptal = template_gargs2(st);
-                                explicitSpecialization = TRUE;
+                                explicitSpecialization = true;
                                 stoken();
                             }
                         }
@@ -2427,14 +2511,14 @@ type *declar(type *t,char *vident,int flag)
                 else if (tok.TKval == TK_invariant)
                 {
                     stoken();
-                    invariant = TRUE;
-                    strcpy(vident, cpp_name_invariant);
+                    _invariant = true;
+                    strcpy(vident, cpp_name_invariant.ptr);
                 }
                 else // TKcom
                 {
                     if (flag)
-                        synerr(EM_ident_abstract, "~");         // bad abstract declarator
-                    destructor = TRUE;
+                        synerr(EM_ident_abstract, "~".ptr);         // bad abstract declarator
+                    destructor = true;
                     stoken();
                     if (tok.TKval == TKident)
                     {   if (vident)
@@ -2450,30 +2534,25 @@ type *declar(type *t,char *vident,int flag)
                 else
                     synerr(EM_ident_abstract, tok.TKid);        // bad abstract declarator
                 stoken();
-#if TX86
+
                 // Determine if linkage was specified with #pragma linkage()
                 if (cstate.CSlinkage && vident)
-                {   symbol *s;
+                {   Symbol *sx;
 
-                    s = findsy(vident,cstate.CSlinkage);
-                    if (s)
-                    {   tym = s->Slinkage;
-                        mangle = s->Smangle;
+                    sx = findsy(vident,cstate.CSlinkage);
+                    if (sx)
+                    {   tym = sx.Slinkage;
+                        mangle = sx.Smangle;
                     }
                 }
-#endif
               }
                 tstart = t;                     // start of type list
-                tstart->Tcount++;
+                tstart.Tcount++;
                 goto ret;
 
             case TKlpar:
-#if TX86
                 if (tym && CPP)
                     if (flag == 1 || flag == 2)
-#else
-                if (tym)
-#endif
                 {   synerr(EM_illegal_type_combo);      // illegal combination of types
                     tym = 0;
                 }
@@ -2481,21 +2560,24 @@ type *declar(type *t,char *vident,int flag)
                     goto Lnd;
                 if (flag == 2)          // if ptr-operator
                     goto Ldefault;
-#if TX86
+
                 // This is a hack to support the Borland syntax:
                 //      void __interrupt (__far * _dos_getvect(unsigned intr))()
                 // which should have been written:
                 //      void (__interrupt __far * _dos_getvect(unsigned intr))()
 
-#if 0
+static if (0)
+{
                 if (tym & mTYinterrupt)
                 {   tym &= ~mTYinterrupt;
                     tok.TKval = TK_interrupt;
                 }
                 else
-#endif
-#endif
                     stoken();
+}
+else
+                stoken();
+
                 if (CPP && s)
                     synerr(EM_ident_exp);       // identifier expected
                 switch (tok.TKval)
@@ -2517,17 +2599,17 @@ type *declar(type *t,char *vident,int flag)
                     case TKchar32_t:
                     case TKconst:
                     case TKvolatile:
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+version (Posix)
+{
                     case TK_attribute:
                     case TK_extension:
-#endif
-#if TX86
+}
                         if (tym)
                             synerr(EM_illegal_type_combo);      // illegal combination of types
-#endif
+
                         // It's type <function returning><t> without the identifer
                         tstart = t;
-                        tstart->Tcount++;
+                        tstart.Tcount++;
                         if (CPP)
                         {   token_unget();
                             tok.TKval = TKlpar;
@@ -2614,13 +2696,12 @@ type *declar(type *t,char *vident,int flag)
                             tla.term();
                             token_unget();
                             tok.TKval = TKlpar;
-#if TX86
                             if (tym)
                                 synerr(EM_illegal_type_combo);  // illegal combination of types
-#endif
+
                             // It's type <function returning><t> without the identifer
                             tstart = t;
-                            tstart->Tcount++;
+                            tstart.Tcount++;
                         }
                         else
                         {
@@ -2638,7 +2719,6 @@ type *declar(type *t,char *vident,int flag)
                         {   s = gdeclar.class_sym;
                             sn = gdeclar.namespace_sym;
                         }
-//<<>>
                         chktok(TKrpar,EM_declarator_paren_expected);
                         assert(tstart);
 
@@ -2646,11 +2726,11 @@ type *declar(type *t,char *vident,int flag)
                            void (far f)(unsigned);
                            (t is no longer in tstart, causing declar() to hang)
                          */
-                        for (t2 = tstart; t2 != t; t2 = t2->Tnext)
+                        for (t2 = tstart; t2 != t; t2 = t2.Tnext)
                         {   if (!t2)
                             {
-                                tym |= tstart->Tty & ~mTYbasic;
-                                type_setty(&tstart,tybasic(tstart->Tty));
+                                tym |= tstart.Tty & ~mTYbasic;
+                                type_setty(&tstart,tybasic(tstart.Tty));
                                 t = tstart;
                                 break;
                             }
@@ -2662,9 +2742,8 @@ type *declar(type *t,char *vident,int flag)
             case TKstar:
                 msbug = 0;
                 t = type_allocn(TYptr,t);
-                switch ((tym_t)(tym & ~(mTYTFF | mTYMOD)))
+                switch (cast(tym_t)(tym & ~(mTYTFF | mTYMOD)))
                 {
-#if TX86
                     case mTYnear:       ty = (TYnptr | tym) & ~mTYnear;
                                         break;
                     case mTYfar:        ty = (TYfptr | tym) & ~mTYfar;
@@ -2679,7 +2758,8 @@ type *declar(type *t,char *vident,int flag)
                     L5:
                         if (!(tym & (mTYTFF | mTYMOD)))
                             break;
-#endif
+                        goto default;
+
                     default:
                         synerr(EM_illegal_type_combo);  /* illegal combination of types */
                         tym = 0;
@@ -2688,35 +2768,35 @@ type *declar(type *t,char *vident,int flag)
                     case 0:
                         goto L2;
                 }
-                t->Tty = ty;
+                t.Tty = ty;
               L2:
-                t->Tty |= tym & mTYTFF;
-                t->Tmangle = mangle;
+                t.Tty |= tym & mTYTFF;
+                t.Tmangle = cast(ubyte)mangle;
               L14:
                 tym = 0;
                 mangle = 0;
                 stoken();
                 /* Parse const and volatile postfixes */
                 while (1)
-                {   tym_t tyx;
+                {   tym_t tyz;
 
                     switch (tok.TKval)
-                    {   case TKconst:       tyx = mTYconst;     goto L8;
-                        case TKrestrict:    tyx = mTYrestrict;  goto L8;
-                        case TKvolatile:    tyx = mTYvolatile;  goto L8;
-                        case TK_unaligned:  tyx = mTYunaligned; goto L8;
-                        L8: if (t->Tty & tyx)
+                    {   case TKconst:       tyz = mTYconst;     goto L8;
+                        case TKrestrict:    tyz = mTYrestrict;  goto L8;
+                        case TKvolatile:    tyz = mTYvolatile;  goto L8;
+                        case TK_unaligned:  tyz = mTYunaligned; goto L8;
+                        L8: if (t.Tty & tyz)
                                 synerr(EM_illegal_type_combo);  /* illegal combination of types */
-                            t->Tty |= tyx;
+                            t.Tty |= tyz;
                             break;
-#if TX86
+
                         case TK_Seg16:
                             /* *_Seg16 is equivalent to _far16* */
                             if (tyref(ty))
                                 synerr(EM_illegal_type_combo);  /* illegal combination of types */
                             ty = TYf16ptr;
                             goto L5;
-#endif
+
                         default:
                             goto L6;
                     }
@@ -2732,17 +2812,16 @@ type *declar(type *t,char *vident,int flag)
                 // "&" [cv-qualifier-seq] is not allowed in a new-declarator
                 msbug = 0;
                 t = newref(t);
-#if TX86
                 switch (tym)
                 {   case mTYfar:
                         if (LARGEDATA)
                             break;
-                        t->Tty = TYfref;
+                        t.Tty = TYfref;
                         break;
                     case mTYnear:
                         if (!LARGEDATA)
                             break;
-                        t->Tty = TYnref;
+                        t.Tty = TYnref;
                         break;
 
                     default:
@@ -2755,7 +2834,6 @@ type *declar(type *t,char *vident,int flag)
                     case 0:
                         break;
                 }
-#endif
                 goto L2;
 
             case TKcolcol:
@@ -2766,7 +2844,6 @@ type *declar(type *t,char *vident,int flag)
                 global = 1;             // lookup in global table
                 continue;
 
-#if TX86
             /* Parse extended prefixes  */
             case TK_near:       tym |= mTYnear;
                                 goto L3;
@@ -2825,6 +2902,7 @@ type *declar(type *t,char *vident,int flag)
                                 }
                                 /* For 32 bit compiles, treat as syscall
                                  */
+                                goto case TK_syscall;
             case TK_syscall:
                                 if (linkage != LINK_CPP)
                                     mangle = mTYman_sys;
@@ -2842,7 +2920,7 @@ type *declar(type *t,char *vident,int flag)
                                     mangle = mTYman_d;
                                 tym |= mTYjava;
                                 goto L3;
-#endif
+
             case TK_cdecl:
                                 if (linkage != LINK_CPP)
                                     mangle = mTYman_c;
@@ -2877,42 +2955,41 @@ type *declar(type *t,char *vident,int flag)
             case TK_unaligned:
                 tyx = mTYunaligned;
             Lcvx:
-                t->Tcount++;
-                type_setty(&t,t->Tty | tyx);
-                t->Tcount--;
+                t.Tcount++;
+                type_setty(&t,t.Tty | tyx);
+                t.Tcount--;
                 stoken();
                 continue;
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+version (Posix)
+{
             case TK_attribute:
                 {
                 int attrtype;
-                int mod = getattributes(NULL,FALSE,&attrtype);
+                int mod = getattributes(null,false,&attrtype);
                 if (attrtype & ATTR_LINKMOD)
                 {
                     if (mod & mTYvolatile)
                     {
-                        t->Tcount++;
-                        type_setty(&t,t->Tty | mTYvolatile);
-                        t->Tcount--;
+                        t.Tcount++;
+                        type_setty(&t,t.Tty | mTYvolatile);
+                        t.Tcount--;
                     }
                     if (mod & mTYconst)
                     {
-                        t->Tcount++;
-                        type_setty(&t,t->Tty | mTYconst);
-                        t->Tcount--;
+                        t.Tcount++;
+                        type_setty(&t,t.Tty | mTYconst);
+                        t.Tcount--;
                     }
                     if (mod & (mTYstdcall|mTYcdecl))
                         tym |= (mod & (mTYstdcall|mTYcdecl));
                     mod &= ~(mTYvolatile|mTYconst|mTYstdcall|mTYcdecl);
                     attrtype &= ~ATTR_LINKMOD;
                 }
-#if DEBUG
-                assert(ATTR_CAN_IGNORE(attrtype));
-#endif
+                debug assert(ATTR_CAN_IGNORE(attrtype));
                 continue;
                 }
-#endif
+}
             default:
             Ldefault2:
                 if (tym)
@@ -2920,6 +2997,8 @@ type *declar(type *t,char *vident,int flag)
                     tym = 0;
                     mangle = 0;
                 }
+                goto Ldefault;
+
             case TKcomma:
             Ldefault:
                 if (CPP)
@@ -2928,11 +3007,11 @@ type *declar(type *t,char *vident,int flag)
                         goto Lnd;
                     if (s)                      // if there was an X::
                     {   synerr(EM_ident_exp);   // identifier expected (after ::)
-                        s = NULL;
+                        s = null;
                     }
                 }
                 tstart = t;
-                tstart->Tcount++;
+                tstart.Tcount++;
                 goto ret;
         }
     }
@@ -2940,8 +3019,7 @@ ret:
 
   if (!CPP || flag != 2)                // if not in conversion function
     while (1)
-    {   type **pt;
-
+    {
         if (tok.TKval == TKlpar)        // function returning
         {
             stoken();
@@ -2960,7 +3038,7 @@ ret:
 
                 // Parse const and volatile postfixes
                 if (!(vident && paramlst))
-                    t2->Tty |= type_qualifier_list();
+                    t2.Tty |= type_qualifier_list();
 
                 if (tok.TKval == TKthrow)
                 {   gdeclar.hasExcSpec = 1;
@@ -2972,23 +3050,23 @@ ret:
         {
             stoken();
             t2 = type_alloc(TYarray);   // array of
-            if (!(CPP && ANSI))
+            if (!(CPP && config.ansi_c))
             {   // C99 6.7.5.2 Array declarators
                 if (tok.TKval == TKstatic)
-                {   t2->Tflags |= TFstatic;
+                {   t2.Tflags |= TFstatic;
                     stoken();
                 }
-                t2->Tty |= type_qualifier_list();
-                if (tok.TKval == TKstatic && !(t2->Tflags & TFstatic))
-                {   t2->Tflags |= TFstatic;
+                t2.Tty |= type_qualifier_list();
+                if (tok.TKval == TKstatic && !(t2.Tflags & TFstatic))
+                {   t2.Tflags |= TFstatic;
                     stoken();
                 }
-                if (tok.TKval == TKstar && !(t2->Tflags & TFstatic))
+                if (tok.TKval == TKstar && !(t2.Tflags & TFstatic))
                 {
                     stoken();
                     if (tok.TKval == TKrbra)
                     {
-                        t2->Tflags |= TFvla;
+                        t2.Tflags |= TFvla;
                         goto Lclosebra;
                     }
                     token_unget();
@@ -2998,43 +3076,43 @@ ret:
                 ;
             }
             if (tok.TKval == TKrbra)    // if no dimension
-                t2->Tflags |= TFsizeunknown;
+                t2.Tflags |= TFsizeunknown;
             else
-            {   if (CPP && ANSI && !pstate.STintemplate)
+            {   if (CPP && config.ansi_c && !pstate.STintemplate)
                 {
-                    t2->Tdim = msc_getnum();    // array dimension
-                    if ((int)t2->Tdim < 0 || (ANSI && t2->Tdim == 0))
-                        synerr(EM_array_dim, (int)t2->Tdim);    // array dimension must be > 0
+                    t2.Tdim = cast(uint)msc_getnum();    // array dimension
+                    if (cast(int)t2.Tdim < 0 || (config.ansi_c && t2.Tdim == 0))
+                        synerr(EM_array_dim, cast(int)t2.Tdim);    // array dimension must be > 0
                 }
                 else
                 {   elem *e;
 
                     e = assign_exp();
-                    if (!tyintegral(e->ET->Tty) &&
-                        !(CPP && pstate.STintemplate && tybasic(e->ET->Tty) == TYident))
+                    if (!tyintegral(e.ET.Tty) &&
+                        !(CPP && pstate.STintemplate && tybasic(e.ET.Tty) == TYident))
                         synerr(EM_integral);    // need integral expression
                     e = poptelem(e);
-                    if (e->Eoper == OPsizeof)
-                    {   e->Eoper = OPconst;
-                        e->EV.Vlong = type_size(e->EV.sp.Vsym->Stype);
+                    if (e.Eoper == OPsizeof)
+                    {   e.Eoper = OPconst;
+                        e.EV.Vlong = type_size(e.EV.Vsym.Stype);
                     }
-                    if (e->Eoper == OPconst)    // if fixed dimension
+                    if (e.Eoper == OPconst)    // if fixed dimension
                     {
-                        t2->Tdim = el_tolong(e);        // array dimension
-                        if ((int)t2->Tdim < 0 || (ANSI && t2->Tdim == 0))
-                            synerr(EM_array_dim, (int)t2->Tdim);        // array dimension must be > 0
+                        t2.Tdim = cast(uint)el_tolong(e);        // array dimension
+                        if (cast(int)t2.Tdim < 0 || (config.ansi_c && t2.Tdim == 0))
+                            synerr(EM_array_dim, cast(int)t2.Tdim);        // array dimension must be > 0
                         el_free(e);
                     }
                     else
                     {   // It's a VLA
-                        t2->Tel = e;
-                        t2->Tflags |= TFvla;
+                        t2.Tel = e;
+                        t2.Tflags |= TFvla;
                     }
                 }
             }
             chktok(TKrbra,EM_rbra);     // closing ']'
         }
-        else if (tok.TKval == TKlcur && tyfunc(tstart->Tty))
+        else if (tok.TKval == TKlcur && tyfunc(tstart.Tty))
         {   synerr(EM_explicit_param);          // can't inherit function type
             break;
         }
@@ -3042,11 +3120,12 @@ ret:
             break;
 
         /* Insert t2 into the tstart list just before t                 */
-        t2->Tnext = t;                  /* t is what func is returning  */
-        for (pt = &tstart; *pt != t; pt = &((*pt)->Tnext))
+        t2.Tnext = t;                  /* t is what func is returning  */
+        type **pt;
+        for (pt = &tstart; *pt != t; pt = &((*pt).Tnext))
             type_debug(*pt);
         *pt = t2;                       /* insert t2 into linked list   */
-        t2->Tcount++;
+        t2.Tcount++;
 
         if (tok.TKval == TKlcur)
             break;
@@ -3064,22 +3143,21 @@ ret:
      */
     // For C++ linkage, we *always* use C++ name mangling.
     if ((linkage == LINK_CPP || !mangle) &&
-        !tyfunc(tstart->Tty) && !pstate.STinparamlist &&//!inprototype &&
+        !tyfunc(tstart.Tty) && !pstate.STinparamlist &&//!inprototype &&
         vident && vident[0])
         mangle = varmangletab[linkage];
 
     if (mangle)
-        type_setmangle(&tstart,mangle);
+        type_setmangle(&tstart,cast(ubyte)mangle);
 
-#if TX86
     tym |= initial;
-#endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+version (Posix)
+{
     if (tok.TKval == TK_attribute)
     {
         int attrtype;
-        int mod = getattributes(NULL,FALSE,&attrtype);
+        int mod = getattributes(null,false,&attrtype);
         if (attrtype & ATTR_TYPEMOD)
         {
             tym &= ~mTYbasic;
@@ -3092,25 +3170,23 @@ ret:
             tym |= mTYtransu;
             attrtype &= ~ATTR_TRANSU;
         }
-#if DEBUG
-        assert(mod == 0);
-        assert(ATTR_CAN_IGNORE(attrtype));
-#endif
+        debug assert(mod == 0);
+        debug assert(ATTR_CAN_IGNORE(attrtype));
     }
-#endif
+}
 
     if (tym)
     {
-        tym |= tstart->Tty;
+        tym |= tstart.Tty;
         type_setty(&tstart,tym);
     }
 
   if (CPP)
   {
-    if (tconv != NULL ||                // if user-defined type conversion
+    if (tconv != null ||                // if user-defined type conversion
         op != OPunde)                   // if operator function
     {
-        if (!tyfunc(tstart->Tty))
+        if (!tyfunc(tstart.Tty))
         {   //cpperr(EM_opovl_function);        // must be a function
             if (tconv)
             {   op = OPMAX;
@@ -3118,28 +3194,28 @@ ret:
             }
         }
         else if (tconv)
-        {   if (tybasic(tstart->Tnext->Tty) != TYint)
+        {   if (tybasic(tstart.Tnext.Tty) != TYint)
                 cpperr(EM_conv_ret);    // no return type for conversion function
-            type_free(tstart->Tnext);
-            tstart->Tnext = tconv;
+            type_free(tstart.Tnext);
+            tstart.Tnext = tconv;
             op = OPMAX;
         }
         else if (op == OPnew || op == OPanew)
-            tstart->Tflags |= TFfuncret;        // overload on function return value
+            tstart.Tflags |= TFfuncret;        // overload on function return value
 
         // Force C++ name mangling
         type_setmangle(&tstart, mTYman_cpp);
     }
-    gdeclar.class_sym = (Classsym *)s;
+    gdeclar.class_sym = cast(Classsym *)s;
     gdeclar.namespace_sym = sn;
     gdeclar.oper = op;
     gdeclar.constructor = constructor;
     gdeclar.destructor = destructor;
-    gdeclar.invariant = invariant;
+    gdeclar._invariant = _invariant;
     gdeclar.ptal = ptal;
     gdeclar.explicitSpecialization = explicitSpecialization;
 Lpop:
-    if (constructor | destructor | invariant)
+    if (constructor | destructor | _invariant)
     {
         // Force C++ name mangling
         type_setmangle(&tstart, mTYman_cpp);
@@ -3153,40 +3229,41 @@ Lpop:
 
 Lnd:                            // if new-declarator
     tstart = t;                 // start of type list
-    tstart->Tcount++;
+    tstart.Tcount++;
     goto Lpop;
 }
-
+
+
 /*****************************
  * Get prototype for function or parameter list.
  * Input:
- *      fident  Identifier of the function (NULL if not known)
+ *      fident  Identifier of the function (null if not known)
  *      tret    What the function is returning
  * Returns:
  *      type of function
- *      NULL if not a function
+ *      null if not a function
  */
 
-STATIC type * getprototype(const char *fident,type *tret)
-{   char vident[2*IDMAX + 1];
+/*private*/ type * getprototype(const char *fident,type *tret)
+{   char[2*IDMAX + 1] vident = void;
     type *tfunc;
     type *pt;
 
     //printf("getprototype()\n");
 
     /* Function returning               */
-    tfunc = type_alloc(FUNC_TYPE((int) linkage,config.memmodel));
-    type_setmangle(&tfunc,funcmangletab[(int) linkage]);
+    tfunc = type_alloc(FUNC_TYPE(cast(int) linkage,config.memmodel));
+    type_setmangle(&tfunc,funcmangletab[cast(int) linkage]);
     if (tok.TKval == TKrpar)            /* if () then no prototype      */
     {
         if (config.flags3 & CFG3strictproto)
-            tfunc->Tflags |= TFfixed | TFprototype;     /* make like (void) */
+            tfunc.Tflags |= TFfixed | TFprototype;     /* make like (void) */
         stoken();
         goto ret2;
     }
-    tfunc->Tflags |= TFprototype;       /* there must be a prototype    */
+    tfunc.Tflags |= TFprototype;       /* there must be a prototype    */
     if (tok.TKval == TKellipsis)        // if (...)
-    {   if (ANSI)
+    {   if (config.ansi_c)
             synerr(EM_rpar);            // varargs must have at least one arg
         stoken();
         goto ret;
@@ -3210,85 +3287,87 @@ STATIC type * getprototype(const char *fident,type *tret)
     {   int i = isexpression();
 
         if (i == 1 || i == 2)
-        {   tfunc->Tcount++;
+        {   tfunc.Tcount++;
             type_free(tfunc);
             pstate.STinparamlist--;
-            return NULL;
+            return null;
         }
     }
 
     if (type_specifier(&pt))            /* we are doing a prototype     */
-    {   param_t **pp;
+    {
         //param_t *px;
 
     L4:
-        //px = NULL;
-        pp = &tfunc->Tparamtypes;
-        scope_push(pp, (scope_fp)param_search, SCTparameter);
+        param_t **pp;
+        //px = null;
+        pp = &tfunc.Tparamtypes;
+        scope_push(pp, cast(scope_fp)&param_search, SCTparameter);
         while (1)
         {   type *tparam;
             param_t *p;
 
             /* Watch for special case of (void) */
-            if (tfunc->Tparamtypes == NULL &&   /* if first parameter and */
-                tybasic(pt->Tty) == TYvoid &&   /* it's a void and      */
+            if (tfunc.Tparamtypes == null &&   /* if first parameter and */
+                tybasic(pt.Tty) == TYvoid &&   /* it's a void and      */
                 tok.TKval == TKrpar)            /* closed by )          */
-            {   tfunc->Tflags |= TFfixed;
+            {   tfunc.Tflags |= TFfixed;
                 type_free(pt);
                 break;
             }
 
-            tparam = declar(pt,vident,0);
+            tparam = declar(pt,&vident[0],0);
             type *tp2 = tparam;
-            if (tyref(tp2->Tty))
-                tp2 = tp2->Tnext;
-            if (tybasic(tp2->Tty) == TYarray)
-                tp2->Tflags |= TFfuncparam;
+            if (tyref(tp2.Tty))
+                tp2 = tp2.Tnext;
+            if (tybasic(tp2.Tty) == TYarray)
+                tp2.Tflags |= TFfuncparam;
             fixdeclar(tparam);
-            tp2->Tflags &= ~TFfuncparam;
+            tp2.Tflags &= ~TFfuncparam;
             type_free(pt);
 
             /* Convert function to pointer to function  */
-            if (tyfunc(tparam->Tty))
+            if (tyfunc(tparam.Tty))
             {   tparam = newpointer(tparam);
-                tparam->Tnext->Tcount--;
-                tparam->Tcount++;
+                tparam.Tnext.Tcount--;
+                tparam.Tcount++;
             }
 
             /* Convert <array of> to <pointer to> in prototypes         */
-            else if (tybasic(tparam->Tty) == TYarray)
+            else if (tybasic(tparam.Tty) == TYarray)
                 tparam = topointer(tparam);
 
             if (CPP)
                 chknoabstract(tparam);
 
             p = param_calloc();
-            p->Ptype = tparam;
+            p.Ptype = tparam;
             *pp = p;                    /* append to parameter list     */
-            pp = &p->Pnext;
+            pp = &p.Pnext;
             param_debug(p);
 
             if (vident[0])              /* if there was an identifier   */
-                p->Pident = mem_strdup(vident);
+                p.Pident = mem_strdup(&vident[0]);
 
             // Look for default parameter initializer
             if (CPP && tok.TKval == TKeq)
             {
-#if 0
+static if (0)
+{
                 // Declare existing parameters up to, but not including,
                 // current parameter.
                 if (!px)
-                    px = tfunc->Tparamtypes;
-                for (; px != p; px = px->Pnext)
-                {   symbol *sp;
+                    px = tfunc.Tparamtypes;
+                for (; px != p; px = px.Pnext)
+                {   Symbol *sp;
                     type *t;
 
-                    t = px->Ptype;
-                    sp = symbol_define(px->Pident, SCTlocal, SCparameter);
-                    sp->Stype = t;
-                    t->Tcount++;
+                    t = px.Ptype;
+                    sp = symbol_define(px.Pident, SCTlocal, SCparameter);
+                    sp.Stype = t;
+                    t.Tcount++;
                 }
-#endif
+}
                 stoken();               /* skip over =                  */
                 pstate.STdefertemps++;
                 pstate.STdeferaccesscheck++;
@@ -3319,6 +3398,9 @@ STATIC type * getprototype(const char *fident,type *tret)
                                 if (paren == 0)
                                     goto L6;
                                 break;
+
+                            default:
+                                break;
                         }
                         stoken();
                     }
@@ -3326,18 +3408,18 @@ STATIC type * getprototype(const char *fident,type *tret)
                     /* Provide a dummy so overload resolution will work.
                      * Parse it for real on template instantiation.
                      */
-                    p->Pelem = el_longt(tsint, 1);
+                    p.Pelem = el_longt(tstypes[TYint], 1);
                 }
                 else if (pstate.STdeferDefaultArg)
                 {   int paren = 0;
-                    token_t **ptail = &p->PelemToken;
+                    token_t **ptail = &p.PelemToken;
                     token_t *t;
 
                     while (1)
                     {
                         t = token_copy();
                         *ptail = t;
-                        ptail = &(t->TKnext);
+                        ptail = &(t.TKnext);
                         switch (tok.TKval)
                         {
                             case TKlpar:
@@ -3354,6 +3436,9 @@ STATIC type * getprototype(const char *fident,type *tret)
                                 if (paren == 0)
                                     goto L7;
                                 break;
+
+                            default:
+                                break;
                         }
                         stoken();
                     }
@@ -3361,14 +3446,14 @@ STATIC type * getprototype(const char *fident,type *tret)
                     /* Provide a dummy so overload resolution will work.
                      * Parse it for real on template instantiation.
                      */
-                    p->Pelem = el_longt(tsint, 1);
+                    p.Pelem = el_longt(tstypes[TYint], 1);
                 }
                 else
                 {
                     /* Defer type conversion until we use the parameter
                      * (in case the conversion generates any temporaries)
                      */
-                    p->Pelem = arraytoptr(assign_exp());
+                    p.Pelem = arraytoptr(assign_exp());
                 }
 
                 pstate.STdefaultargumentexpression--;
@@ -3379,7 +3464,7 @@ STATIC type * getprototype(const char *fident,type *tret)
             switch (tok.TKval)
             {
                 case TKrpar:                    // if reached end of prototype
-                    tfunc->Tflags |= TFfixed;
+                    tfunc.Tflags |= TFfixed;
                     break;
 
                 case TKcomma:
@@ -3429,7 +3514,7 @@ STATIC type * getprototype(const char *fident,type *tret)
     else                                /* else a simple parameter list */
     {   //deletesymtab();
         type_free(pt);
-        tfunc->Tflags &= ~TFprototype;  /* which is not a prototype     */
+        tfunc.Tflags &= ~TFprototype;  /* which is not a prototype     */
         if (tok.TKval == TKident)
         {
             if (level != 0 || paramlst || !fident)
@@ -3438,11 +3523,11 @@ STATIC type * getprototype(const char *fident,type *tret)
                 panic(TKrpar);
             }
             else
-            {   symbol *s;
+            {   Symbol *s;
                 type *prevty;
 
                 s = scope_search(fident,SCTglobal);
-                prevty = (s) ? s->Stype : NULL;
+                prevty = (s) ? s.Stype : null;
                 getparamlst(tfunc,prevty);
             }
         }
@@ -3454,58 +3539,61 @@ ret:
     /* to cdecl function type.                                          */
     if (variadic(tfunc))
     {
-        switch (tybasic(tfunc->Tty))
+        switch (tybasic(tfunc.Tty))
         {   case TYnpfunc:
             case TYnsfunc:
-                tfunc->Tty = (tfunc->Tty & ~mTYbasic) | TYnfunc;
+                tfunc.Tty = (tfunc.Tty & ~mTYbasic) | TYnfunc;
                 break;
 
             case TYfsfunc:
             case TYfpfunc:
-                tfunc->Tty = (tfunc->Tty & ~mTYbasic) | TYffunc;
+                tfunc.Tty = (tfunc.Tty & ~mTYbasic) | TYffunc;
                 break;
 
-#if TX86
             case TYf16func:             /* no variable arg list in pascal */
             case TYjfunc:
-#endif
                 synerr(EM_param_context);       // FIX - better error message
-                tfunc->Tty = (tfunc->Tty & ~mTYbasic) | TYffunc;
-                break;                  /* ??? needed for C->pascal interface ??? */
+                tfunc.Tty = (tfunc.Tty & ~mTYbasic) | TYffunc;
+                break;                  /* ??? needed for C.pascal interface ??? */
+
+            default:
+                break;
         }
     }
 
     chktok(TKrpar,EM_param_rpar);       // closing parenthesis
 ret2:
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+version (Posix)
+{
     if (tok.TKval == TK_attribute)
     {
 
         int attrtype;
-        int mod = getattributes(NULL,FALSE,&attrtype);
+        int mod = getattributes(null,false,&attrtype);
         if (attrtype & ATTR_FUNCINFO)
         {
-            tfunc->Tty |= mTYnoret;
+            tfunc.Tty |= mTYnoret;
             attrtype &= ~ATTR_FUNCINFO;
             mod &= ~mTYnoret;
         }
         if (attrtype & ATTR_LINKMOD)
         {
             if(mod & mTYstdcall)
-                tfunc->Tty = (tfunc->Tty & ~mTYbasic) | TYnsfunc;
+                tfunc.Tty = (tfunc.Tty & ~mTYbasic) | TYnsfunc;
             if(mod & mTYcdecl)
-                tfunc->Tty = (tfunc->Tty & ~mTYbasic) | TYnfunc;
+                tfunc.Tty = (tfunc.Tty & ~mTYbasic) | TYnfunc;
             if(mod & mTYconst)
-                tfunc->Tty |= mTYconst;
+                tfunc.Tty |= mTYconst;
             if(mod & mTYvolatile)
-                tfunc->Tty |= mTYvolatile;
+                tfunc.Tty |= mTYvolatile;
         }
-#if DEBUG
+debug
+{
         attrtype &= ~(ATTR_FUNCINFO|ATTR_LINKMOD);
         mod &= ~(mTYstdcall|mTYcdecl|mTYvolatile|mTYconst);
         assert(mod == 0);
         assert(ATTR_CAN_IGNORE(attrtype));
-#endif
+}
     }
     else if (tok.TKval == TK_asm)
     {
@@ -3513,7 +3601,7 @@ ret2:
         // the new name is used for the function name
         lnx_redirect_funcname(fident);
     }
-#endif
+}
     return tfunc;
 }
 
@@ -3526,9 +3614,10 @@ ret2:
  *      tfunc has duplicate of tprev prototype, if any
  */
 
-STATIC void getparamlst(type *tfunc,type *tprev)
+/*private*/ void getparamlst(type *tfunc,type *tprev)
 {
-  param_t *p,**pp;
+  param_t *p;
+  param_t **pp;
   int nparam;
   int nactual;
 
@@ -3536,11 +3625,11 @@ STATIC void getparamlst(type *tfunc,type *tprev)
         param_free(&paramlst);
   nparam = 32767;                       /* random very large integer    */
   if (tprev)
-  {     /*tfunc->Tflags = tprev->Tflags;*/      /* so typematch() won't fail    */
-        /*tfunc->Tparamtypes = list_link(tprev->Tparamtypes);*/
-        if (tfunc->Tflags & TFfixed)
+  {     /*tfunc.Tflags = tprev.Tflags;*/      /* so typematch() won't fail    */
+        /*tfunc.Tparamtypes = list_link(tprev.Tparamtypes);*/
+        if (tfunc.Tflags & TFfixed)
         {       nparam = 0;
-                for (p = tprev->Tparamtypes; p; p = p->Pnext)
+                for (p = tprev.Tparamtypes; p; p = p.Pnext)
                 {       param_debug(p);
                         nparam++;               /* count parameters     */
                 }
@@ -3552,25 +3641,26 @@ STATIC void getparamlst(type *tfunc,type *tprev)
     {
         nactual++;
         p = param_calloc();
-        p->Pident = mem_strdup(tok.TKid);       /* copy in identifier   */
+        p.Pident = mem_strdup(tok.TKid);       /* copy in identifier   */
         *pp = p;
-        pp = &(p->Pnext);               /* append to list               */
+        pp = &(p.Pnext);               /* append to list               */
         if (stoken() != TKcomma)        /* commas mean more idents      */
             break;
         if (stoken() == TKident)
             continue;
         if (tok.TKval == TKellipsis)
         {   stoken();
-            tfunc->Tflags |= TFprototype;
+            tfunc.Tflags |= TFprototype;
             break;
         }
         synerr(EM_ident_exp);                   /* identifier expected          */
         panic(TKrpar);                  /* slurp for ')'                */
     }
     if (nactual > nparam)
-        synerr(EM_num_args,nparam,"function",nactual);
+        synerr(EM_num_args,nparam,"function".ptr,nactual);
 }
-
+
+
 /**********************************
  * Do declaration parsing for identifier.
  * Returns:
@@ -3583,7 +3673,7 @@ type *declar_fix(type *typ_spec,char *vident)
     t = declar(typ_spec,vident,0);
     assert(t);
     type_debug(t);
-    linkage_kwd = t->Tty & (mTYLINK | mTYMOD | mTYTFF);
+    linkage_kwd = t.Tty & (mTYLINK | mTYMOD | mTYTFF);
     fixdeclar(t);
     return t;
 }
@@ -3604,8 +3694,8 @@ void fixdeclar(type *t)
     //type_print(t);
     while (t)
     {   type_debug(t);
-        tn = t->Tnext;
-        tym = t->Tty;
+        tn = t.Tnext;
+        tym = t.Tty;
         switch (newtym = tybasic(tym))
         {
             case TYffunc:
@@ -3616,13 +3706,13 @@ void fixdeclar(type *t)
             case TYfsfunc:
             case TYnsysfunc:
             case TYfsysfunc:
-                switch (tybasic(tn->Tty))
+                switch (tybasic(tn.Tty))
                 {
                     case TYstruct:
                         // Can't return abstract classes
-                        if (!CPP || !(tn->Ttag->Sstruct->Sflags & STRabstract))
+                        if (!CPP || !(tn.Ttag.Sstruct.Sflags & STRabstract))
                             break;
-                        /* FALL-THROUGH */
+                        goto case TYarray;
                     case TYarray:
                     case TYnfunc:
                     case TYffunc:
@@ -3633,6 +3723,9 @@ void fixdeclar(type *t)
                     case TYnsysfunc:
                     case TYfsysfunc:
                         synerr(EM_return_type); // can't return those types
+                        break;
+
+                    default:
                         break;
                 }
                 /* Adjust function type based on modifier keywords      */
@@ -3874,21 +3967,23 @@ void fixdeclar(type *t)
                         case TYfsfunc:
                             newtym = TYffunc;
                             break;
+                        default:
+                            break;
                     }
                 }
                 break;
 
             case TYarray:
-                if (!(t->Tflags & TFfuncparam) && pstate.STinparamlist)
+                if (!(t.Tflags & TFfuncparam) && pstate.STinparamlist)
                 {
-                    if (t->Tty & (mTYconst | mTYvolatile | mTYrestrict | mTYunaligned) ||
-                        t->Tflags & TFstatic)
+                    if (t.Tty & (mTYconst | mTYvolatile | mTYrestrict | mTYunaligned) ||
+                        t.Tflags & TFstatic)
                         synerr(EM_array_qual);
                 }
 
-                if (tyfunc(tn->Tty)
-                    || tyref(tn->Tty)
-                    || tybasic(tn->Tty) == TYvoid
+                if (tyfunc(tn.Tty)
+                    || tyref(tn.Tty)
+                    || tybasic(tn.Tty) == TYvoid
                    )
                     synerr(EM_array_of_funcs);  // array of functions or refs isn't allowed
                 else
@@ -3897,47 +3992,47 @@ void fixdeclar(type *t)
                     fixdeclar(tn);
 
                     // Array of consts is itself const
-                    tym |= tn->Tty & (mTYconst | mTYvolatile | mTYrestrict | mTYLINK);
-                    if (intsize == 2 && !type_isvla(t)) // if we need to worry about large sizes
+                    tym |= tn.Tty & (mTYconst | mTYvolatile | mTYrestrict | mTYLINK);
+                    if (_tysize[TYint] == 2 && !type_isvla(t)) // if we need to worry about large sizes
                     {   type *tx;
                         tym_t tymx;
 
                         for (tx = tn;
-                             (tymx = tybasic(tx->Tty)) == TYarray;
-                             tx = tx->Tnext)
-                            ;
+                             (tymx = tybasic(tx.Tty)) == TYarray;
+                             tx = tx.Tnext)
+                        { }
 
-                        if (tymx == TYstruct && tx->Tflags & TFsizeunknown ||
+                        if (tymx == TYstruct && tx.Tflags & TFsizeunknown ||
                             tymx == TYident)
                             size = 0;   // defer any error message
                         else
                             size = type_size(tn);
-                        if (type_chksize(t->Tdim * (unsigned long) size))
-                            t->Tdim = 1;
+                        if (type_chksize(t.Tdim * cast(uint) size))
+                            t.Tdim = 1;
                     }
-                    t->Tty = newtym |
+                    t.Tty = newtym |
                         (tym & (mTYLINK | mTYconst | mTYvolatile | mTYMOD));
                     return;
                 }
                 break;
-#if TX86
+
             case TYptr:
             {   type *t2;
 
-                if (tyfunc(tn->Tty))
+                if (tyfunc(tn.Tty))
                 {
-                    tn->Tty |= (tym & (mTYTFF | mTYMOD));
+                    tn.Tty |= (tym & (mTYTFF | mTYMOD));
                     tym &= ~((mTYTFF | mTYMOD) & ~(mTYexport | mTYimport));
                 }
-                else if (tyref(tn->Tty))
+                else if (tyref(tn.Tty))
                 {   synerr(EM_ptr_to_ref);
                     tn = tserr;
                 }
                 t2 = newpointer(tn);
-                newtym = t2->Tty;
-                t2->Tcount++;           // so it will free properly
+                newtym = t2.Tty;
+                t2.Tcount++;           // so it will free properly
                 type_free(t2);          // and free it
-                if (t->Tty & mTYinterrupt)
+                if (t.Tty & mTYinterrupt)
                     newtym = (newtym & ~mTYbasic) | TYfptr;
                 break;
             }
@@ -3947,41 +4042,40 @@ void fixdeclar(type *t)
             case TYfptr:
                 nearfar = mTYfar;
             L1:
-                if (tyfunc(tn->Tty))
+                if (tyfunc(tn.Tty))
                 {
-                    tn->Tty |= nearfar | (tym & (mTYMOD
+                    tn.Tty |= nearfar | (tym & (mTYMOD
                                 | mTYTFF));
                 }
-                else if (tyref(tn->Tty))
+                else if (tyref(tn.Tty))
                 {   synerr(EM_ptr_to_ref);
                     tn = tserr;
                 }
                 fixdeclar(tn);  /* make sure func types are correct */
-                t->Tty &= mTYconst | mTYvolatile | mTYLINK | mTYbasic | mTYexport | mTYimport;
+                t.Tty &= mTYconst | mTYvolatile | mTYLINK | mTYbasic | mTYexport | mTYimport;
                 return;
 
             case TYsptr:
-                if (tyfunc(tn->Tty))
+                if (tyfunc(tn.Tty))
                     synerr(EM_illegal_type_combo);      // illegal combination
-                else if (tyref(tn->Tty))
+                else if (tyref(tn.Tty))
                     synerr(EM_ptr_to_ref);      // illegal pointer to reference
                 break;
-#endif
 
             case TYmemptr:
-                if (tyfunc(tn->Tty))
+                if (tyfunc(tn.Tty))
                 {
-                    if (!((tn->Tty | t->Tty) & mTYTFF) &&
+                    if (!((tn.Tty | t.Tty) & mTYTFF) &&
                         // The following is a kludge to get around
                         // a typedef'd stdcall type being rewritten.
-                        tybasic(tn->Tty) != TYnsfunc &&
-                        tybasic(tn->Tty) != TYfsfunc)
+                        tybasic(tn.Tty) != TYnsfunc &&
+                        tybasic(tn.Tty) != TYfsfunc)
                     {   if (MFUNC)
-                            tn->Tty = (tn->Tty & ~mTYbasic) | TYmfunc;
+                            tn.Tty = (tn.Tty & ~mTYbasic) | TYmfunc;
                         else
-                            tn->Tty |= mTYpascal;
+                            tn.Tty |= mTYpascal;
                     }
-                    tn->Tty |= (tym & (mTYTFF | mTYMOD));
+                    tn.Tty |= (tym & (mTYTFF | mTYMOD));
                     tym &= ~(mTYTFF | mTYMOD);
                 }
                 break;
@@ -3989,80 +4083,88 @@ void fixdeclar(type *t)
             case TYnref:
             case TYfref:
             case TYref:
-            {   tym_t tnty = tybasic(tn->Tty);
+            {   tym_t tnty = tybasic(tn.Tty);
 
                 if (tnty == TYvoid)
                     synerr(EM_void_novalue);    // void& is an illegal type
                 else if (tyref(tnty))
                 {   cpperr(EM_ref_to_ref);      // reference to reference
-                    type_settype(&t->Tnext,tserr);
+                    type_settype(&t.Tnext,tserr);
                     return;
                 }
                 break;
             }
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+
+version (Posix)
+{
             case TYstruct:
                 if (tym & mTYtransu)
                 {                               // linux transparent union
                     newtym |= mTYtransu;
                 }
-#endif
+                break;
+}
+
+            default:
+                break;
         }
-        t->Tty = newtym |
+        t.Tty = newtym |
             (tym & (mTYLINK | mTYconst | mTYvolatile | mTYMOD));
         t = tn;                         /* next type                    */
     } /* while */
 }
-
+
+
 /*****************************
  * Generate an instance of the anonymous union given by tspec.
  */
 
-STATIC symbol * anonymous(Classsym *stag,int sc_specifier)
-{   symbol *s;
+/*private*/ Symbol * anonymous(Classsym *stag,int sc_specifier)
+{   Symbol *s;
     list_t list;
-    char *id,*unionid;
-    unsigned sct;
-    static char prefix[] = "_anon_";
+    char* id,unionid;
+    uint sct;
+    const(char)* prefix = "_anon_";
 
     /* Use first member of union as the name of the union variable      */
-    list = stag->Sstruct->Sfldlst;
+    list = stag.Sstruct.Sfldlst;
     if (!list)                          /* if no members                */
-        return NULL;
-    id = list_symbol(list)->Sident;
-    unionid = (char *) alloca(sizeof(prefix) + strlen(id));
+        return null;
+    id = &list_symbol(list).Sident[0];
+    unionid = cast(char *) alloca(strlen(prefix) + strlen(id));
     strcpy(unionid,prefix);
     strcat(unionid,id);
 
     /* Generate the union symbol        */
-    if (ANSI && (sc_specifier == SCextern || sc_specifier == SCglobal))
+    if (config.ansi_c && (sc_specifier == SCextern || sc_specifier == SCglobal))
         cpperr(EM_glbl_ambig_unions);   // anonymous unions must be static
     sct = (sc_specifier == SCextern) ? SCTglobal | SCTnspace : SCTglobal | SCTnspace | SCTlocal;
-    s = scope_define(unionid,sct,sc_specifier);
-    s->Stype = stag->Stype;
-    s->Stype->Tcount++;
-    type_setmangle(&s->Stype,mTYman_c);
+    s = scope_define(unionid,sct,cast(char)sc_specifier);
+    s.Stype = stag.Stype;
+    s.Stype.Tcount++;
+    type_setmangle(&s.Stype,mTYman_c);
 
     /* Generate a symbol for each member        */
     for (; list; list = list_next(list))
-    {   symbol *sm,*sa;
+    {   Symbol* sm,sa;
 
         sm = list_symbol(list);
 
         /* Define the symbol    */
-        sa = scope_define(sm->Sident,sct,SCanon);
-        sa->Smemoff = sm->Smemoff;
-        sa->Stype = sm->Stype;
-        sa->Stype->Tcount++;
-        sa->Sscope = (Classsym *)s;
+        sa = scope_define(&sm.Sident[0],sct,SCanon);
+        sa.Smemoff = sm.Smemoff;
+        sa.Stype = sm.Stype;
+        sa.Stype.Tcount++;
+        sa.Sscope = cast(Classsym *)s;
     }
 
     datadef(s);                 /* handle initializer, if any           */
-    if (level == 0 && s->Sclass != SCextern && s->Sclass != SCcomdef)
+    if (level == 0 && s.Sclass != SCextern && s.Sclass != SCcomdef)
         outdata(s);
     return s;
 }
-
+
+
 /**********************************
  * Given a declaration for a symbol, either declare a new symbol
  * or find which symbol it already is.
@@ -4080,23 +4182,23 @@ STATIC symbol * anonymous(Classsym *stag,int sc_specifier)
  *      gdeclar.class_sym if gdeclar.class_sym::vident
  * Returns:
  *      pointer to symbol for this
- *      NULL don't declare this one
+ *      null don't declare this one
  */
 
-symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
+Symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
 {   type *prevty;
-    symbol *s;
-    enum SC sc2;
+    Symbol *s;
+    SC sc2;
     int sct;
 
     //printf("symdecl('%s', dt = %p, gdeclar.class_sym = %p)\n",vident, dt, gdeclar.class_sym);
     //printf("sc_specifier = "); WRclass(sc_specifier); printf("\n");
-    //printf("dt->Tty = x%x\n", dt->Tty);
+    //printf("dt.Tty = x%x\n", dt.Tty);
     //type_print(dt);
 
     if (CPP)
     {
-      sc2 = (enum SC)sc_specifier;
+      sc2 = cast(SC)sc_specifier;
       if (sc2 == SCfriend)
         sc_specifier = SCextern;
       if (gdeclar.class_sym)            /* if id is a class member      */
@@ -4106,7 +4208,7 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
         stag = gdeclar.class_sym;
         if (sc2 == SCfriend)
         {
-            s = cpp_findmember_nest(&stag,vident,FALSE);
+            s = cpp_findmember_nest(&stag,vident,false);
         }
         else
         {
@@ -4126,22 +4228,22 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
         s = nspace_searchmember(vident,gdeclar.namespace_sym);
         if (s)
             goto L1;
-        cpperr(EM_nspace_undef_id,vident,gdeclar.namespace_sym->Sident);        // id not in namespace
+        cpperr(EM_nspace_undef_id,vident,&gdeclar.namespace_sym.Sident[0]);        // id not in namespace
       }
 
       // Allow redundant things like typedef struct A A;
       if (sc_specifier == SCtypedef &&
-        (tybasic(dt->Tty) == TYstruct || tybasic(dt->Tty) == TYenum) &&
-        strcmp(dt->Ttag->Sident,vident) == 0 &&
-        !isclassmember(dt->Ttag) &&
-        dt->Ttag->Sscope == scope_inNamespace())
+        (tybasic(dt.Tty) == TYstruct || tybasic(dt.Tty) == TYenum) &&
+        strcmp(&dt.Ttag.Sident[0],vident) == 0 &&
+        !isclassmember(dt.Ttag) &&
+        dt.Ttag.Sscope == scope_inNamespace())
       {
         type_free(dt);
-        return NULL;
+        return null;
       }
 
       // Make sure operator overloads are functions
-      if (gdeclar.oper == OPMAX && !tyfunc(dt->Tty))
+      if (gdeclar.oper == OPMAX && !tyfunc(dt.Tty))
         cpperr(EM_opovl_function);      // must be a function
 
       if (scope_search(vident, SCTtempsym))
@@ -4152,57 +4254,59 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
     sct = SCTglobal;
     if (scope_inNamespace())
         sct = SCTnspace;
-    if (sc_specifier == SCfuncalias || (CPP && sc_specifier == SCextern && tyfunc(dt->Tty)))
+    if (sc_specifier == SCfuncalias || (CPP && sc_specifier == SCextern && tyfunc(dt.Tty)))
         sct |= SCTlocal;
     if ((level == 0 || sc_specifier == SCextern ||
-         tyfunc(dt->Tty) && sc_specifier != SCtypedef) &&
-      (s = scope_searchinner(vident,sct)) != 0) // and it's already defined
+         tyfunc(dt.Tty) && sc_specifier != SCtypedef) &&
+      (s = scope_searchinner(vident,sct)) != null) // and it's already defined
     {
       if (CPP)
       {
     L1:
+        Symbol *sp;
         //printf("\talready defined\n");
         /* Allow structs to be redeclared as other variables or */
         /* functions, for struct tag name space stuff.          */
-        switch (s->Sclass)
+        switch (s.Sclass)
         {   case SCstruct:
             case SCenum:
                 goto L6;
             case SCmember:
             case SCfield:
-                err_noinstance(s->Sscope,s);
+                err_noinstance(s.Sscope,s);
                 goto L6;
+            default:
+                break;
         }
 
-        if (tyfunc(dt->Tty))
+        if (tyfunc(dt.Tty))
         {
             if (gdeclar.class_sym)      /* if member function           */
             {
                 /* Member functions are always prototyped               */
                 /* Make it (void) if none                               */
-                if (!(dt->Tflags & TFprototype))
-                    dt->Tflags |= TFprototype | TFfixed;
+                if (!(dt.Tflags & TFprototype))
+                    dt.Tflags |= TFprototype | TFfixed;
             }
 
-            if (s->Sclass == SCoverload)
-            {   type_free(s->Stype);
+            if (s.Sclass == SCoverload)
+            {   type_free(s.Stype);
                 goto L2;
             }
 
             // If overloaded function, look for the right symbol
-            if (tyfunc(s->Stype->Tty))
-            {   symbol *sp;
-
+            if (tyfunc(s.Stype.Tty))
+            {
                 switch (sc_specifier)
                 {
                     case SCfunctempl:
                         sp = cpp_findfunc(dt,ptpl,s,3);
                         break;
                     case SCtypedef:
-                        sp = cpp_findfunc(dt,NULL,s,0);
+                        sp = cpp_findfunc(dt,null,s,0);
                         break;
                     default:
-                        sp = cpp_findfunc(dt,NULL,s,1);
+                        sp = cpp_findfunc(dt,null,s,1);
                         break;
                 }
                 if (sp)
@@ -4210,33 +4314,33 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
                     s = sp;
                     // If this is an expansion of a template member
                     // function that we already have an implementation of
-                    if (pstate.STflags & PFLmftemp && s->Sflags & SFLimplem)
+                    if (pstate.STflags & PFLmftemp && s.Sflags & SFLimplem)
                     {
                      L9:
                         if (tok.TKval != TKsemi && tok.TKval != TKcomma)
-                        {   token_free(token_funcbody(FALSE));
+                        {   token_free(token_funcbody(false));
                             tok.TKval = TKsemi;
                         }
                         type_free(dt);
                         //printf("already have implementation\n");
-                        return NULL;
+                        return null;
                     }
-                    if (s->Sclass == SCfuncalias)
+                    if (s.Sclass == SCfuncalias)
                     {   // Already defined
-                        synerr(EM_multiple_def,cpp_prettyident(s->Sfunc->Falias));
+                        synerr(EM_multiple_def,cpp_prettyident(s.Sfunc.Falias));
                     }
                     goto L3;
                 }
 
                 /* Can only have one function with non-C++ linkage      */
                 if (type_mangle(dt) != mTYman_cpp)
-                {   symbol *so;
+                {   Symbol *so;
 
-                    for (so = s; so; so = so->Sfunc->Foversym)
+                    for (so = s; so; so = so.Sfunc.Foversym)
                     {
-                        if (type_mangle(so->Stype) != mTYman_cpp)
+                        if (type_mangle(so.Stype) != mTYman_cpp)
                         {   //synerr(EM_multiple_def,prettyident(so));
-                            nwc_typematch(so->Stype,dt,so);
+                            nwc_typematch(so.Stype,dt,so);
                             break;
                         }
                     }
@@ -4245,16 +4349,16 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
                 //s = symbol_name(vident,SCunde,dt);
                 s = symbol_name(vident,sc_specifier,dt);
                 type_free(dt);
-                s->Sfunc->Fflags |= Foverload /*| Ftypesafe*/ | Fnotparent;
+                s.Sfunc.Fflags |= Foverload /*| Ftypesafe*/ | Fnotparent;
 
                 // Append to list of overloaded functions
-                {   symbol **ps;
+                {   Symbol **ps;
 
-                    for (ps = &sp->Sfunc->Foversym; *ps; ps = &(*ps)->Sfunc->Foversym)
-                        ;
+                    for (ps = &sp.Sfunc.Foversym; *ps; ps = &(*ps).Sfunc.Foversym)
+                    { }
                     *ps = s;
                 }
-                s->Sscope = scope_inNamespace();
+                s.Sscope = scope_inNamespace();
 
                 ph_add_global_symdef(s, SCTglobal);
 
@@ -4262,16 +4366,16 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
                 if (gdeclar.class_sym)
                 {   char *si;
 
-                    s->Sscope = gdeclar.class_sym;
-                    s->Sfunc->Fclass = gdeclar.class_sym;
+                    s.Sscope = gdeclar.class_sym;
+                    s.Sfunc.Fclass = gdeclar.class_sym;
                     si = mem_strdup(cpp_prettyident(s));
                     err_notamember(si,gdeclar.class_sym);
                     mem_free(si);
                 }
                 /* If overloading a member function, always gen name    */
                 /* for root symbol                                      */
-                if (level == -1 && sp->Sscope)
-                    sp->Sfunc->Fflags |= Ftypesafe;
+                if (level == -1 && sp.Sscope)
+                    sp.Sfunc.Fflags |= Ftypesafe;
 
                 goto L8;
             }
@@ -4280,20 +4384,20 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
         {
             // If this is an expansion of a template member
             // data that we already have an implementation of
-            if (pstate.STflags & PFLmftemp && s->Sflags & SFLimplem)
+            if (pstate.STflags & PFLmftemp && s.Sflags & SFLimplem)
                 goto L9;
         }
     L3: ;
       }
-        prevty = s->Stype;
-        if (tyfunc(prevty->Tty))
+        prevty = s.Stype;
+        if (tyfunc(prevty.Tty))
         {
-            if (tyfunc(dt->Tty))
+            if (tyfunc(dt.Tty))
             {
                 if (CPP
                     ? (!linkage_spec ||
                        // If non-static member func, don't change linkage_spec
-                       (gdeclar.class_sym && !(s->Sfunc->Fflags & Fstatic))
+                       (gdeclar.class_sym && !(s.Sfunc.Fflags & Fstatic))
                       )
                     : !linkage_kwd
                    )
@@ -4301,7 +4405,7 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
                     /* Default to function type from previous symbol
                      * (but pick up __export or __loadds from either source)
                      */
-                    type_setty(&dt,prevty->Tty | (dt->Tty & mTYMOD));
+                    type_setty(&dt,prevty.Tty | (dt.Tty & mTYMOD));
                     type_setmangle(&dt,type_mangle(prevty));
                 }
             }
@@ -4312,9 +4416,9 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
             tym_t ty;
 
             // Inherit stuff from previous declaration
-            if (!(dt->Tty & (mTYLINK | mTYimport | mTYexport)) &&
-                (ty = prevty->Tty & (mTYLINK | mTYimport | mTYexport)) != 0)
-                type_setty(&dt,dt->Tty | ty);
+            if (!(dt.Tty & (mTYLINK | mTYimport | mTYexport)) &&
+                (ty = prevty.Tty & (mTYLINK | mTYimport | mTYexport)) != 0)
+                type_setty(&dt,dt.Tty | ty);
 
             // Inherit mangling from previous declaration
             if (type_mangle(dt) == mTYman_cpp)  // if default
@@ -4329,21 +4433,21 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
                 //  static int k;
                 //  extern int k = 99;
 
-                if (s->Sflags & SFLimplem
-                    /* || s->Sclass == SCstatic */
+                if (s.Sflags & SFLimplem
+                    /* || s.Sclass == SCstatic */
                    )
                 {
                     synerr(EM_multiple_def,prettyident(s));     // already defined
                 }
                 else if (sc_specifier == SCstatic)
                 {
-                    if (s->Sclass == SCextern && !ANSI)
+                    if (s.Sclass == SCextern && !config.ansi_c)
                     {   // Because other compilers allow this, allow:
                         //      extern int x;
                         //      static int x = 3;
                         sc_specifier = SCstatic;
                     }
-                    else if (s->Sclass == SCstatic)
+                    else if (s.Sclass == SCstatic)
                     {   // Allow:
                         //  static int j;
                         //  static int j = -99;
@@ -4355,11 +4459,12 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
                 }
             }
             else
-            {   switch (s->Sclass)
+            {   switch (s.Sclass)
                 {
                     case SCcomdef:
-                        if (!CPP || !s->Sscope)
+                        if (!CPP || !s.Sscope)
                             goto L10;
+                        goto case SCstatic;
                     case SCstatic:
                         if (sc_specifier == SCglobal)
                         {   synerr(EM_multiple_def,prettyident(s));     // already defined
@@ -4374,7 +4479,7 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
                             goto L7;
                     L5:
                         type_free(dt);
-                        return NULL;                    // ignore redeclaration
+                        return null;                    // ignore redeclaration
                     case SCstruct:
                     case SCenum:
                         break;          // allow redeclaration
@@ -4391,14 +4496,14 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
         {
         L7:
             nwc_typematch(prevty,dt,s);
-            if (tybasic(prevty->Tty) == TYstruct)
+            if (tybasic(prevty.Tty) == TYstruct)
             {   /* Can't dump the struct, so create a new symbol        */
-                static int num;
+                __gshared int num;
 
                 sprintf(vident,"_u%d",num++);
                 s = scope_define(vident,SCTglobal | SCTnspace,SCunde);
             }
-            else if (prevty->Tty != dt->Tty)
+            else if (prevty.Tty != dt.Tty)
                 goto useprev;           /* use previous type            */
             else
                 type_free(prevty);
@@ -4409,25 +4514,25 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
         /* definition because it might have a prototype. In any         */
         /* case, we're not worse off.                                   */
         else if (!CPP &&
-                 tyfunc(dt->Tty) &&
-                 !(dt->Tflags & TFprototype) &&
-                 !(prevty->Tflags & TFgenerated))
+                 tyfunc(dt.Tty) &&
+                 !(dt.Tflags & TFprototype) &&
+                 !(prevty.Tflags & TFgenerated))
         {
          useprev:
-            if (dt->Tty & (mTYexport | mTYnaked))
-                type_setty(&prevty,prevty->Tty | (dt->Tty & (mTYexport | mTYnaked)));
+            if (dt.Tty & (mTYexport | mTYnaked))
+                type_setty(&prevty,prevty.Tty | (dt.Tty & (mTYexport | mTYnaked)));
             type_free(dt);
             dt = prevty;                /* use original type            */
             type_debug(dt);
         }
         else
         {
-            if (CPP && tyfunc(dt->Tty))
+            if (CPP && tyfunc(dt.Tty))
                 /* Copy over default parameters */
-                nwc_defaultparams(prevty->Tparamtypes,dt->Tparamtypes);
+                nwc_defaultparams(prevty.Tparamtypes,dt.Tparamtypes);
             // Use "_export" if it occurred on either the previous or current
-            if (prevty->Tty & (mTYexport | mTYnaked))
-                type_setty(&dt,dt->Tty | (prevty->Tty & (mTYexport | mTYnaked)));
+            if (prevty.Tty & (mTYexport | mTYnaked))
+                type_setty(&dt,dt.Tty | (prevty.Tty & (mTYexport | mTYnaked)));
 
             type_debug(dt);
             type_free(prevty);
@@ -4435,20 +4540,26 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
         }
         if (CPP &&
             sc_specifier == SCglobal &&
-            (s->Sclass == SCextern || s->Sclass == SCcomdef) &&
-            dt->Tty & mTYconst)
-            s->Sclass = tyfunc(dt->Tty) ? SCglobal : SCpublic; //type_struct(dt) ? SCpublic : SCextern;
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
-        else if (!CPP && !ClassInline(sc_specifier) && !SymInline(s))
+            (s.Sclass == SCextern || s.Sclass == SCcomdef) &&
+            dt.Tty & mTYconst)
+            s.Sclass = tyfunc(dt.Tty) ? SCglobal : SCpublic; //type_struct(dt) ? SCpublic : SCextern;
+        else
         {
-            s->Sclass = sc_specifier;   /* force current storage class  */
-        }
-#else
-        else if (!CPP || ClassInline(sc_specifier) || !SymInline(s))
+version (Posix)
+{
+        if (!CPP && !ClassInline(sc_specifier) && !SymInline(s))
         {
-            s->Sclass = sc_specifier;   /* force current storage class  */
+            s.Sclass = sc_specifier;   /* force current storage class  */
         }
-#endif
+}
+else
+{
+        if (!CPP || ClassInline(sc_specifier) || !SymInline(s))
+        {
+            s.Sclass = cast(char)sc_specifier;   /* force current storage class  */
+        }
+}
+        }
 
         // If generating a precompiled header, create a copy of the symbol
         // for the header.
@@ -4458,9 +4569,9 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
             !(pstate.STflags & (PFLhxwrote | PFLhxdone)) &&
             cstate.CSfilblk)                    // and there is a source file
         {   Sfile *sf;
-            symbol *s1;
+            Symbol *s1;
 
-            s->Stype = dt;
+            s.Stype = dt;
             s1 = symbol_copy(s);
 
             ph_add_global_symdef(s1, SCTglobal);
@@ -4472,15 +4583,15 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
     L6:
         //printf("\tnot already defined\n");
 
-        if (CPP && tyfunc(dt->Tty))
-            nwc_musthaveinit(dt->Tparamtypes);
+        if (CPP && tyfunc(dt.Tty))
+            nwc_musthaveinit(dt.Tparamtypes);
 
         if (level == 1 && sc_specifier != SCtypedef)
         {   param_t *p;
 
-            p = paramlst->search(vident);       // check against paramlst
+            p = paramlst.search(vident);       // check against paramlst
             if (p)
-            {   if (p->Ptype)                   // if already declared
+            {   if (p.Ptype)                   // if already declared
                 {   synerr(EM_multiple_def, vident);
                     type_free(dt);
                 }
@@ -4488,57 +4599,58 @@ symbol *symdecl(char *vident,type *dt,int sc_specifier, param_t *ptpl)
                 {   param_debug(p);
                     if (CPP)
                         chknoabstract(dt);
-                    if (tybasic(dt->Tty) == TYvoid)
+                    if (tybasic(dt.Tty) == TYvoid)
                     {   synerr(EM_void_novalue);        // void has no value
-                        p->Ptype = tserr;
-                        tserr->Tcount++;
+                        p.Ptype = tserr;
+                        tserr.Tcount++;
                         type_free(dt);
                     }
-                    else if (tyfunc(dt->Tty))
+                    else if (tyfunc(dt.Tty))
                     {   /* Convert function to pointer to function      */
-                        p->Ptype = newpointer(dt);
-                        dt->Tcount--;
-                        p->Ptype->Tcount++;
+                        p.Ptype = newpointer(dt);
+                        dt.Tcount--;
+                        p.Ptype.Tcount++;
                     }
-                    else if (tybasic(dt->Tty) == TYarray)
+                    else if (tybasic(dt.Tty) == TYarray)
                     {   // Convert <array of> to <pointer to> in prototypes
-                        p->Ptype = topointer(dt);
+                        p.Ptype = topointer(dt);
                     }
                     else
-                        p->Ptype = dt;
+                        p.Ptype = dt;
                 }
             }
             else
             {   synerr(EM_not_param, vident);   // not in parameter list
                 type_free(dt);
             }
-            return NULL;
+            return null;
         }
 
         /* Be sure to declare externs or functions at top level */
         sct = SCTglobal | SCTnspace | SCTlocal;
         if ((!CPP && sc_specifier == SCextern) ||
-            (tyfunc(dt->Tty) &&
+            (tyfunc(dt.Tty) &&
              sc_specifier != SCtypedef &&
              (!CPP || sc_specifier != SCextern) &&
              sc_specifier != SCfuncalias))
         {
             sct = SCTglobal | SCTnspace;
         }
-        s = scope_define(vident, sct, sc_specifier);
-        if (sytab[s->Sclass] & SCSS)
-            s->Sscope = funcsym_p;
+        s = scope_define(vident, sct, cast(char)sc_specifier);
+        if (sytab[s.Sclass] & SCSS)
+            s.Sscope = funcsym_p;
     }
 L2:
-    s->Stype = dt;
+    s.Stype = dt;
 L8:
     type_debug(dt);
     if (CPP && sc_specifier != SCtypedef)
         chknoabstract(dt);
-    //printf("s->Sclass = "); WRclass((enum SC)s->Sclass); printf("\n");
+    //printf("s.Sclass = "); WRclass((enum SC)s.Sclass); printf("\n");
     return s;
 }
-
+
+
 /*******************************
  * Fill in symbol table entry for function, once we have determined
  * the correct symbol for it.
@@ -4552,55 +4664,57 @@ L8:
  *              2       this is a template function expansion
  *              4       allow nested function bodies
  * Returns:
- *      TRUE    function body was present
- *      FALSE   no function body
+ *      true    function body was present
+ *      false   no function body
  */
 
-int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
+int funcdecl(Symbol *s,int sc_specifier,int pflags,Declar *decl)
 {
-    char body = FALSE;
+    char _body = false;
     int li;
     func_t *f;
     int nparams;
-    symbol *sclass;
+    Symbol *sclass;
     param_t *tp;
     param_t *p;
     type *tf;
     int opnum;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    enum_SC save_class = s->Sclass;
-#endif
+static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+{
+    enum_SC save_class = s.Sclass;
+}
 
     if (CPP)
     {
         symbol_debug(s);
-        f = s->Sfunc;
+        f = s.Sfunc;
         assert(f);
-        opnum = decl->oper;
-#if 0
-        dbg_printf("funcdecl(s=%p, '%s', pflags=x%x, Sclass=",s,s->Sident,pflags);
-        WRclass((enum SC)s->Sclass);
+        opnum = decl.oper;
+static if (0)
+{
+        dbg_printf("funcdecl(s=%p, '%s', pflags=x%x, Sclass=",s,s.Sident,pflags);
+        WRclass(cast(SC)s.Sclass);
         dbg_printf(", sc_specifier=");
         WRclass(sc_specifier);
         dbg_printf("\n");
-#endif
+}
 
-        if (s->Stype->Tflags & TFemptyexc || s->Stype->Texcspec)
-            f->Fflags3 |= Fcppeh;
+        if (s.Stype.Tflags & TFemptyexc || s.Stype.Texcspec)
+            f.Fflags3 |= Fcppeh;
 
-        sclass = s->Sscope;
+        sclass = s.Sscope;
         if (sclass)                             // if not in global scope
         {
-            if (sclass->Sclass != SCstruct)
-                sclass = NULL;
+            if (sclass.Sclass != SCstruct)
+                sclass = null;
             goto case_def;
         }
     }
 
-    switch (s->Sident[0])
+    switch (s.Sident[0])
     {
         case 'm':
-            if (strcmp(s->Sident,"main"))
+            if (strcmp(&s.Sident[0],"main"))
                 goto case_def;
 
         case_main:
@@ -4608,157 +4722,159 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
             // C99 5.1.2.2.1 and 5.1.2.2.3.
             // For C++, it must be ither int main() or
             // int main(int argc, char* argv[])
-            s->Sfunc->Fflags3 |= Fmain;
+            s.Sfunc.Fflags3 |= Fmain;
 
-            li = (int) LINK_C;
+            li = cast(int) LINK_C;
 
             // Force function type
-            type_setty(&s->Stype,FUNC_TYPE(li,config.memmodel));
+            type_setty(&s.Stype,FUNC_TYPE(li,config.memmodel));
         case_com:
-            type_setmangle(&s->Stype,funcmangletab[li]);
+            type_setmangle(&s.Stype,funcmangletab[li]);
         case_sc:
             if (sc_specifier == SCstatic || ClassInline(sc_specifier))
             {
                 if (CPP)
                     cpperr(EM_main_type);       // invalid storage class for main()
                 else
-                    synerr(EM_storage_class,(sc_specifier == SCstatic) ? "static" : "__inline");                        // storage class illegal
+                    synerr(EM_storage_class,(sc_specifier == SCstatic) ? "static".ptr : "__inline".ptr);                        // storage class illegal
             }
             break;
 
-#if TARGET_WINDOS
+static if (TARGET_WINDOS)
+{
         case 'w':
             if (config.exe == EX_WIN32)
             {
-                if (strcmp(s->Sident,"wmain") == 0)
+                if (strcmp(&s.Sident[0],"wmain".ptr) == 0)
                     goto case_main;
 
-                if (strcmp(s->Sident,"wWinMain") == 0)
+                if (strcmp(&s.Sident[0],"wWinMain".ptr) == 0)
                     goto case_winmain;
             }
             goto case_def;
 
         case 'D':
-            if (config.exe != EX_WIN32 || strcmp(s->Sident,"DllMain") ||
-                type_mangle(s->Stype) != mTYman_cpp)
+            if (config.exe != EX_WIN32 || strcmp(&s.Sident[0],"DllMain") ||
+                type_mangle(s.Stype) != mTYman_cpp)
                 goto case_def;
             // DllMain never gets C++ name mangling
-            switch (tybasic(s->Stype->Tty))
-            {   case TYnfunc:    li = (int) LINK_C;         goto case_com;
-                case TYnpfunc:   li = (int) LINK_PASCAL;    goto case_com;
-                case TYnsfunc:   li = (int) LINK_STDCALL;   goto case_com;
-                case TYnsysfunc: li = (int) LINK_SYSCALL;   goto case_com;
+            switch (tybasic(s.Stype.Tty))
+            {   case TYnfunc:    li = cast(int) LINK_C;         goto case_com;
+                case TYnpfunc:   li = cast(int) LINK_PASCAL;    goto case_com;
+                case TYnsfunc:   li = cast(int) LINK_STDCALL;   goto case_com;
+                case TYnsysfunc: li = cast(int) LINK_SYSCALL;   goto case_com;
+                default:
+                    break;
             }
             goto case_def;
 
         case 'W':
-            if (strcmp(s->Sident,"WinMain"))
+            if (strcmp(&s.Sident[0],"WinMain"))
                 goto case_def;
         case_winmain:
             if (config.exe == EX_WIN32)
             {   // Default to stdcall name mangling for NT version
-                type_setmangle(&s->Stype,mTYman_std);
+                type_setmangle(&s.Stype,mTYman_std);
                 goto case_sc;
             }
-            li = (int) LINK_PASCAL;
-            type_setty(&s->Stype, (s->Stype->Tty & mTYloadds) | FUNC_TYPE(li,config.memmodel));
+            li = cast(int) LINK_PASCAL;
+            type_setty(&s.Stype, (s.Stype.Tty & mTYloadds) | FUNC_TYPE(li,config.memmodel));
             goto case_com;
 
         case 'L':
-            if (config.exe == EX_WIN32 || strcmp(s->Sident,"LibMain"))
+            if (config.exe == EX_WIN32 || strcmp(&s.Sident[0],"LibMain"))
                 goto case_def;
         case_pascal:
-            li = (int) LINK_PASCAL;
-            type_setty(&s->Stype, (s->Stype->Tty & mTYloadds) | FUNC_TYPE(li,I16 ? Lmodel : Smodel));
+            li = cast(int) LINK_PASCAL;
+            type_setty(&s.Stype, (s.Stype.Tty & mTYloadds) | FUNC_TYPE(li,I16 ? Lmodel : Smodel));
             goto case_com;
-#endif
+}
         default:
         case_def:
-            if (CPP && !(f->Fflags & Flinkage))
+            if (CPP && !(f.Fflags & Flinkage))
             {   /* Add in typesafe linkage for C++ functions    */
-                if (type_mangle(s->Stype) == mTYman_cpp)
-                    f->Fflags |= Foverload | Ftypesafe;
+                if (type_mangle(s.Stype) == mTYman_cpp)
+                    f.Fflags |= Foverload | Ftypesafe;
             }
             break;
     }
     if (CPP)
     {
-      f->Fflags |= Flinkage;
+      f.Fflags |= Flinkage;
 
       if (sclass)                               // if member function
       {
-#if TX86
-        if (sclass->Sstruct->Sflags & STRexport)
-            type_setty(&s->Stype,s->Stype->Tty | mTYexport); // add in _export
-        if (sclass->Sstruct->Sflags & STRimport)
-            type_setty(&s->Stype,s->Stype->Tty | mTYimport);
-#endif
-        f->Fflags |= Foverload;         /* it can always be overloaded  */
+        if (sclass.Sstruct.Sflags & STRexport)
+            type_setty(&s.Stype,s.Stype.Tty | mTYexport); // add in _export
+        if (sclass.Sstruct.Sflags & STRimport)
+            type_setty(&s.Stype,s.Stype.Tty | mTYimport);
+
+        f.Fflags |= Foverload;         /* it can always be overloaded  */
 
         // I don't know what this was from
-        if (0 && ANSI && sc_specifier == SCstatic)
+        if (0 && config.ansi_c && sc_specifier == SCstatic)
             cpperr(EM_static_mem_func);         // member functions can't be static
 
         if (linkage_kwd & (mTYpascal | mTYcdecl | mTYstdcall | mTYsyscall | mTYjava))
-            f->Fflags |= Fkeeplink;     // don't change linkage later
+            f.Fflags |= Fkeeplink;     // don't change linkage later
       }
 
-      if (s->Stype->Tty & (mTYconst | mTYvolatile) &&
-        (f->Fflags & Fstatic || !sclass) &&
-        s->Sclass != SCtypedef)
+      if (s.Stype.Tty & (mTYconst | mTYvolatile) &&
+        (f.Fflags & Fstatic || !sclass) &&
+        s.Sclass != SCtypedef)
         cpperr(EM_cv_func);             // can't be const or volatile
 
     /* Mark overloadable functions. Default storage class       */
     /* for overloaded functions is global.                      */
-      if (sc_specifier == SCoverload || s->Sclass == SCoverload)
+      if (sc_specifier == SCoverload || s.Sclass == SCoverload)
       {
-        f->Fflags |= Foverload;
-        if (s->Sclass != SCoverload)
-            sc_specifier = (enum SC) s->Sclass;
+        f.Fflags |= Foverload;
+        if (s.Sclass != SCoverload)
+            sc_specifier = cast(SC) s.Sclass;
         else
         {   if (sc_specifier == SCoverload)
                 sc_specifier = SCglobal;
-            s->Sclass = sc_specifier;
+            s.Sclass = cast(char)sc_specifier;
         }
       }
 
-      tf = s->Stype;
+      tf = s.Stype;
       type_debug(tf);
 
       // Count number of parameters
-      tp = tf->Tparamtypes;
+      tp = tf.Tparamtypes;
       nparams = 0;
-      for (p = tp; p; p = p->Pnext)
+      for (p = tp; p; p = p.Pnext)
       { param_debug(p);
         nparams++;
       }
 
       if (opnum == OPMAX)               // if user-defined type conversion
-      { f->Fflags |= Fcast;
+      { f.Fflags |= Fcast;
         if (!sclass)                    /* if not a member              */
             cpperr(EM_conv_member);     // type conversions must be members
         else if (nparams != 0)          /* 'this' is the only parameter */
-            cpperr(EM_n_op_params,"0"); // incorrect number of parameters
+            cpperr(EM_n_op_params,"0".ptr); // incorrect number of parameters
         else
         {   /* Add to list of type conversions for this class           */
-            //printf("funcdecl: add '%s' to Scastoverload\n", s->Sident);
-            if (!list_inlist(sclass->Sstruct->Scastoverload,s))
-                list_append(&sclass->Sstruct->Scastoverload,s);
+            //printf("funcdecl: add '%s' to Scastoverload\n", &s.Sident[0]);
+            if (!list_inlist(sclass.Sstruct.Scastoverload,s))
+                list_append(&sclass.Sstruct.Scastoverload,s);
         }
       }
       else if (opnum != OPunde)         // if operator overload
       { list_t *plist;
-        tym_t tyret = tf->Tnext->Tty;
+        tym_t tyret = tf.Tnext.Tty;
         param_t *tpp;
 
         if (nparams == 2)
-            tpp = tp->Pnext;
+            tpp = tp.Pnext;
         if (sclass)                     /* if member of a class         */
         {
             if (opnum == OPnew || opnum == OPanew ||
                 opnum == OPdelete || opnum == OPadelete)
-                f->Fflags |= Fstatic;
-            else if (!(f->Fflags & Fstatic))
+                f.Fflags |= Fstatic;
+            else if (!(f.Fflags & Fstatic))
             {   nparams++;              /* the hidden 'this' parameter  */
                 tpp = tp;
             }
@@ -4773,6 +4889,8 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
                 case OPadd:     opnum = OPuadd;         break;
                 case OPpostinc: opnum = OPpreinc;       break;
                 case OPpostdec: opnum = OPpredec;       break;
+                default:
+                    break;
             }
         }
 
@@ -4782,51 +4900,52 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
             {
                 /* Can only be one of these types:
                         pointer to class
-                        object of a class for which -> is defined
-                        ref to object of a class for which -> is defined
-                                (but can't be class of which operator->()
+                        object of a class for which . is defined
+                        ref to object of a class for which . is defined
+                                (but can't be class of which operator.()
                                  is a member)
                  */
 
-                type *tfn = tf->Tnext;
+                type *tfn = tf.Tnext;
 
                 tyret = tybasic(tyret);
                 if (typtr(tyret) &&
-                    tybasic(tfn->Tnext->Tty) == TYstruct)
-                        ;               /* pointer to class             */
+                    tybasic(tfn.Tnext.Tty) == TYstruct)
+                        { }             /* pointer to class             */
                 else
                 {
                     if (tyref(tyret))
-                    {   tfn = tfn->Tnext;
-                        tyret = tybasic(tfn->Tty);
+                    {   tfn = tfn.Tnext;
+                        tyret = tybasic(tfn.Tty);
                     }
 
                     if (tyret == TYstruct &&
-                        tfn->Ttag != sclass &&
-                        n2_searchmember(tfn->Ttag,"?C"))  // should be OParrow from newman.c
+                        tfn.Ttag != sclass &&
+                        n2_searchmember(tfn.Ttag,"?C"))  // should be OParrow from newman.c
                     {
-                            ;           /* object of a class with ->    */
+                            ;           /* object of a class with .    */
                     }
-                    else if (sclass && sclass->Sstruct->Stempsym)
+                    else if (sclass && sclass.Sstruct.Stempsym)
                     {
                         // Don't do return type check for template expansions
-                        f->Fflags3 |= F3badoparrow;
+                        f.Fflags3 |= F3badoparrow;
                     }
                     else
                     {
-#if 0 // This restriction seems to be gone from C++98 13.5.6
+static if (0) // This restriction seems to be gone from C++98 13.5.6
+{
                         Outbuffer buf;
                         char *p1;
 
-                        p1 = type_tostring(&buf, tf->Tnext);
+                        p1 = type_tostring(&buf, tf.Tnext);
                         cpperr(EM_bad_oparrow, p1);     // invalid return type
-#endif
+}
                     }
                 }
-                if (!sclass || f->Fflags & Fstatic)
-                    /* -> () and [] operator functions must be non-static members */
+                if (!sclass || f.Fflags & Fstatic)
+                    /* . () and [] operator functions must be non-static members */
                     cpperr(EM_non_static);
-                /* FALL-THROUGH */
+                goto default;
             }
             default:
                 if (OTbinary(opnum))
@@ -4837,20 +4956,20 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
                 {
             L8:
                     if (nparams != 1)
-                    L5: cpperr(EM_n_op_params,"1");     // incorrect number of parameters
+                    L5: cpperr(EM_n_op_params,"1".ptr);     // incorrect number of parameters
                 }
                 break;
             case OPpostinc:
             case OPpostdec:
                 if (nparams != 2)
                     goto L5;
-                if (tpp->Ptype->Tty != TYint)
+                if (tpp.Ptype.Tty != TYint)
                     cpperr(EM_postfix_arg);     // second parameter must be of type int
                 break;
             case OPcall:
             case OPbrack:
-                if (!sclass || f->Fflags & Fstatic)
-                    /* -> () and [] operator functions must be non-static members */
+                if (!sclass || f.Fflags & Fstatic)
+                    /* . () and [] operator functions must be non-static members */
                     cpperr(EM_non_static);
                 if (opnum == OPbrack && nparams != 2)
                     goto L5;
@@ -4860,10 +4979,10 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
                 /* Verify that it is of type void*()(size_t{,..})       */
                 if (nparams == 0 ||
                     !typtr(tyret) ||
-                    (tf->Tnext->Tnext->Tty & 0xFF) != TYvoid ||
-                    (tp->Ptype->Tty & 0xFF) != TYsize
+                    (tf.Tnext.Tnext.Tty & 0xFF) != TYvoid ||
+                    (tp.Ptype.Tty & 0xFF) != TYsize
                    )
-                    cpperr(EM_opnew_type,(opnum == OPanew) ? "[]" : "");        // wrong type for operator new()
+                    cpperr(EM_opnew_type,(opnum == OPanew) ? "[]".ptr : "".ptr);  // wrong type for operator new()
                 param_debug(tp);
                 goto L7;
             case OPdelete:
@@ -4875,35 +4994,38 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
                 //      void operator delete(void *,void *)
                 type *t;
 
-#if 1
+static if (1)
+{
                 if (nparams == 0 ||
                     tyret != TYvoid ||
-                    !typtr(tp->Ptype->Tty) ||
-                    tp->Ptype->Tnext->Tty != TYvoid
+                    !typtr(tp.Ptype.Tty) ||
+                    tp.Ptype.Tnext.Tty != TYvoid
                    )
-                    cpperr(EM_opdel_type,(opnum == OPadelete) ? "[]" : ""); // wrong type for operator delete()
-#else
+                    cpperr(EM_opdel_type,(opnum == OPadelete) ? "[]".ptr : "".ptr); // wrong type for operator delete()
+}
+else
+{
                 if (nparams == 0 ||
                     nparams > 2 ||
                     tyret != TYvoid ||
-                    !typtr(tp->Ptype->Tty) ||
-                    tp->Ptype->Tnext->Tty != TYvoid ||
+                    !typtr(tp.Ptype.Tty) ||
+                    tp.Ptype.Tnext.Tty != TYvoid ||
                     (nparams == 2 &&
-                        !((t = tp->Pnext->Ptype)->Tty == TYsize ||
-                          (typtr(t->Tty) &&
-                           t->Tnext->Tty == TYvoid)
+                        !((t = tp.Pnext.Ptype).Tty == TYsize ||
+                          (typtr(t.Tty) &&
+                           t.Tnext.Tty == TYvoid)
                          )
                     )
                    )
-                    cpperr(EM_opdel_type,(opnum == OPadelete) ? "[]" : ""); // wrong type for operator delete()
-#endif
+                    cpperr(EM_opdel_type,(opnum == OPadelete) ? "[]".ptr : "".ptr); // wrong type for operator delete()
+}
                 param_debug(tp);
                 if (nparams == 2)
-                    param_debug(tp->Pnext);
+                    param_debug(tp.Pnext);
             }
             L7:
-                if (f->Fflags & Fvirtual)
-                    cpperr(EM_static_virtual,s->Sident); // can't be static and virtual
+                if (f.Fflags & Fvirtual)
+                    cpperr(EM_static_virtual,&s.Sident[0]); // can't be static and virtual
                 goto L6;                  /* skip parameter check       */
         }
 
@@ -4912,25 +5034,24 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
          * non-member function and have at least one parameter whose type is a class,
          * a reference to a class, an enumeration, or a reference to an enumeration."
          */
-        if (!sclass || f->Fflags & Fstatic) // members automatically satisfy this
-        {   param_t *p;
-
+        if (!sclass || f.Fflags & Fstatic) // members automatically satisfy this
+        {
             // Template generated functions don't need to satisfy this
-            if (f->Ftempl)
+            if (f.Ftempl)
                 goto L6;
 
-            for (p = tp; p; p = p->Pnext)
-            {   type *t = p->Ptype;
+            for (param_t* px = tp; px; px = px.Pnext)
+            {   type *t = px.Ptype;
                 tym_t ty;
 
                 param_debug(p);
-                ty = tybasic(t->Tty);
+                ty = tybasic(t.Tty);
                 if (ty == TYstruct ||
                     ty == TYident ||
                     ty == TYtemplate ||
                     (config.flags4 & CFG4enumoverload && ty == TYenum) ||
                     tyref(ty) &&
-                        ((ty = tybasic(t->Tnext->Tty)) == TYstruct ||
+                        ((ty = tybasic(t.Tnext.Tty)) == TYstruct ||
                          ty == TYident ||
                          (config.flags4 & CFG4enumoverload && ty == TYenum) ||
                          ty == TYtemplate)
@@ -4938,31 +5059,32 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
                     goto L6;
             }
             cpperr(EM_param_class);             // one parameter must be a class
-#if 0
-            for (p = tp; p; p = p->Pnext)
-            {   type *t = p->Ptype;
+static if (0)
+{
+            for (param_t* px = tp; px; px = px.Pnext)
+            {   type *t = px.Ptype;
                 type_print(t);
             }
-#endif
+}
         L6: ;
         }
 
-        f->Fflags |= Foverload | Foperator | Ftypesafe;
-        f->Foper = opnum;
+        f.Fflags |= Foverload | Foperator | Ftypesafe;
+        f.Foper = cast(ubyte)opnum;
         if (sclass)             /* if function is a member of a class   */
-        {   plist = &sclass->Sstruct->Sopoverload;
+        {   plist = &sclass.Sstruct.Sopoverload;
             if (!list_inlist(*plist,s))
                 list_append(plist,s);
         }
-        else if (s->Sscope && s->Sscope->Sclass == SCnamespace)
+        else if (s.Sscope && s.Sscope.Sclass == SCnamespace)
         {
-            cpp_operfuncs_nspace[(unsigned)opnum / 32] |= 1 << (opnum & 31);
+            cpp_operfuncs_nspace[cast(uint)opnum / 32] |= 1 << (opnum & 31);
         }
         else
         {   // Thread all global operator functions into one list
-            symbol **ps;
+            Symbol **ps;
 
-            for (ps = &cpp_operfuncs[opnum]; *ps; ps = &(*ps)->Sfunc->Foversym)
+            for (ps = &cpp_operfuncs[opnum]; *ps; ps = &(*ps).Sfunc.Foversym)
             {
                 if (*ps == s)
                     goto L17;
@@ -4974,19 +5096,19 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
       } /* operator overload */
 
       // We could have forced an SCinline to an SCstatic
-      if (s->Sclass == SCunde)
-        s->Sclass = sc_specifier; // storage class
-      if (s->Sclass == SCglobal && sc_specifier == SCcomdat)
-        s->Sclass = SCcomdat;
+      if (s.Sclass == SCunde)
+        s.Sclass = cast(char)sc_specifier; // storage class
+      if (s.Sclass == SCglobal && sc_specifier == SCcomdat)
+        s.Sclass = SCcomdat;
 
     // Cleverly make member functions default to __pascal
       if (sclass &&
-        !(f->Fflags & Fstatic) &&
-        (!(f->Fflags & Fkeeplink) || (MFUNC && f->Fflags & (Fdtor | Finvariant) && tybasic(s->Stype->Tty) == TYnsfunc)) &&
-        !variadic(s->Stype) &&
-        !(f->Fflags & Fcast && !msbug && (typtr(s->Stype->Tnext->Tty) || tyref(s->Stype->Tnext->Tty)))
+        !(f.Fflags & Fstatic) &&
+        (!(f.Fflags & Fkeeplink) || (MFUNC && f.Fflags & (Fdtor | Finvariant) && tybasic(s.Stype.Tty) == TYnsfunc)) &&
+        !variadic(s.Stype) &&
+        !(f.Fflags & Fcast && !msbug && (typtr(s.Stype.Tnext.Tty) || tyref(s.Stype.Tnext.Tty)))
        )
-      { tym_t tym = s->Stype->Tty;
+      { tym_t tym = s.Stype.Tty;
         tym_t newtym;
 
         switch (tybasic(tym))
@@ -5006,7 +5128,10 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
                 newtym = TYfpfunc;
                 goto case_set;
             case_set:
-                type_setty(&s->Stype,(tym & ~mTYbasic) | newtym);
+                type_setty(&s.Stype,(tym & ~mTYbasic) | newtym);
+                break;
+
+            default:
                 break;
         }
       }
@@ -5014,11 +5139,11 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
     }
     else
     {
-        s->Sclass = sc_specifier;       // storage class
+        s.Sclass = cast(char)sc_specifier;       // storage class
     }
 
-    if (config.flags & CFGglobal && s->Sclass == SCstatic)
-        s->Sclass = SCglobal;           /* make static functions global */
+    if (config.flags & CFGglobal && s.Sclass == SCstatic)
+        s.Sclass = SCglobal;           /* make static functions global */
 
     /*if (level == 1) synerr(EM_decl_spec_seq);*/       /* illegal parameter decl       */
     if (sc_specifier == SCtypedef)
@@ -5028,12 +5153,12 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
         {
         L68k:
 
-        if (!(f->Fflags & Fvirtual))
+        if (!(f.Fflags & Fvirtual))
             cpperr(EM_pure_func_virtual);       // pure function must be virtual
         stoken();
-        f->Fflags |= Fpure;
-        /*s->Sflags |= SFLimplem;*/     /* seen the implementation      */
-        n = msc_getnum();
+        f.Fflags |= Fpure;
+        /*s.Sflags |= SFLimplem;*/     /* seen the implementation      */
+        n = cast(uint)msc_getnum();
         if (n != 0)
             cpperr(EM_zero);
         }
@@ -5047,23 +5172,23 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
             param_free(&paramlst);      // free the parameter list
         }
         // Make storage class local or extern
-        if (s->Sclass != SCstatic && !SymInline(s) && s->Sclass != SCfunctempl)
-            s->Sclass = SCextern;
+        if (s.Sclass != SCstatic && !SymInline(s) && s.Sclass != SCfunctempl)
+            s.Sclass = SCextern;
     }
     else if (CPP && !(pflags & 1))
-        body = TRUE;
+        _body = true;
     else                        /* function body                        */
     {
-        if (s->Sclass == SCextern)
-            s->Sclass = SCglobal;
+        if (s.Sclass == SCextern)
+            s.Sclass = SCglobal;
         if (CPP)
         {
             if (level != 0 || pflags & 2)       // if not at global scope
             {
                 if (level == -1)        // if at class scope
                 {   // Read function as a list of tokens
-                    s->Sclass = SCinline;
-                    if (s->Sfunc->Fbody)
+                    s.Sclass = SCinline;
+                    if (s.Sfunc.Fbody)
                         synerr(EM_multiple_def,prettyident(s)); // already defined
                     if (tok.TKval != TKlcur &&
                         tok.TKval != TKcolon &&
@@ -5072,12 +5197,12 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
                         goto done;
                     }
                     else
-                        s->Sfunc->Fbody = token_funcbody(FALSE);
+                        s.Sfunc.Fbody = token_funcbody(false);
                 }
                 else
                 {   if (!(pflags & 4))
                     {   synerr(EM_datadef,prettyident(s)); // expected data def, not func def
-                        s->Sclass = SCstatic;
+                        s.Sclass = SCstatic;
                     }
                     func_nest(s);       // need to nest function definitions
                 }
@@ -5085,29 +5210,30 @@ int funcdecl(symbol *s,int sc_specifier,int pflags,Declar *decl)
             else                        // else save on stack space
             {
                 func_body(s);   // do function body
-                funcsym_p = NULL;
+                funcsym_p = null;
             }
         }
         else
         {
             if (level != 0)             // if not at global scope
-                synerr(EM_datadef,s->Sident); // expected data def, not func def
+                synerr(EM_datadef,&s.Sident[0]); // expected data def, not func def
             func_body(s);               // do function body
-            funcsym_p = NULL;
+            funcsym_p = null;
         }
         stoken();
-        body = TRUE;
+        _body = true;
     }
 done:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    lnx_funcdecl(s,sc_specifier,save_class,body);
-#endif
-    if (body && CPP && type_mangle(s->Stype) != mTYman_cpp)
+static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+{
+    lnx_funcdecl(s,sc_specifier,save_class,_body);
+}
+    if (_body && CPP && type_mangle(s.Stype) != mTYman_cpp)
     {
-        //printf("defining '%s'\n", s->Sident);
-        scope_define(s->Sident, SCTcglobal, SCglobal);
+        //printf("defining '%s'\n", &s.Sident[0]);
+        scope_define(&s.Sident[0], SCTcglobal, SCglobal);
     }
-    return body;
+    return _body;
 }
 
 
@@ -5117,7 +5243,7 @@ done:
  * Print error message if not.
  */
 
-void nwc_typematch(type *t1,type *t2,symbol *s)
+void nwc_typematch(type *t1,type *t2,Symbol *s)
 {
     if (!typematch(t1,t2,4|1))
         err_redeclar(s,t1,t2);
@@ -5129,22 +5255,22 @@ void nwc_typematch(type *t1,type *t2,symbol *s)
  */
 
 void nwc_setlinkage(char *name,int tym,mangle_t mangle)
-{   symbol *s;
+{   Symbol *s;
 
     s = scope_search(name,SCTglobal);
     if (s)
     {   // Symbol is already defined
-        type_setty(&s->Stype,tym | s->Stype->Tty);
-        type_setmangle(&s->Stype,mangle);
-        fixdeclar(s->Stype);
+        type_setty(&s.Stype,tym | s.Stype.Tty);
+        type_setmangle(&s.Stype,mangle);
+        fixdeclar(s.Stype);
     }
     else
     {   // Symbol is not defined, so we have to save name away for
         // future reference.
         s = defsy(name,&cstate.CSlinkage);
-        s->Sclass = SClinkage;
-        s->Slinkage = tym;
-        s->Smangle = mangle;
+        s.Sclass = SClinkage;
+        s.Slinkage = tym;
+        s.Smangle = mangle;
     }
 }
 
@@ -5164,39 +5290,39 @@ void nwc_defaultparams(param_t *pprev,param_t *dnext)
         {   param_debug(pprev);
             if (dnext)
             {
-                char *id = dnext->Pident ? dnext->Pident : NULL;
+                char *id = dnext.Pident ? dnext.Pident : null;
                 int haveinit = 0;
 
                 param_debug(dnext);
-                if (pprev->Pelem)
+                if (pprev.Pelem)
                 {
-                    if (dnext->Pelem)
+                    if (dnext.Pelem)
                         cpperr(EM_default_redef, id);   // default param redefinition
                     else
-                        dnext->Pelem = el_copytree(pprev->Pelem);
+                        dnext.Pelem = el_copytree(pprev.Pelem);
                     mustinit = 1;
                     haveinit = 1;
                 }
-                else if (dnext->Pelem)
+                else if (dnext.Pelem)
                 {
-                    pprev->Pelem = el_copytree(dnext->Pelem);
+                    pprev.Pelem = el_copytree(dnext.Pelem);
                     mustinit = 1;
                     haveinit = 1;
                 }
 
-                if (pprev->Pdeftype)
+                if (pprev.Pdeftype)
                 {
-                    if (dnext->Pdeftype)
+                    if (dnext.Pdeftype)
                         cpperr(EM_default_redef, id);   // default param redefinition
                     else
-                    {   dnext->Pdeftype = pprev->Pdeftype;
-                        dnext->Pdeftype->Tcount++;
+                    {   dnext.Pdeftype = pprev.Pdeftype;
+                        dnext.Pdeftype.Tcount++;
                     }
                     mustinit = 1;
                 }
-                else if (dnext->Pdeftype)
-                {   pprev->Pdeftype = dnext->Pdeftype;
-                    pprev->Pdeftype->Tcount++;
+                else if (dnext.Pdeftype)
+                {   pprev.Pdeftype = dnext.Pdeftype;
+                    pprev.Pdeftype.Tcount++;
                     mustinit = 1;
                 }
                 else if (mustinit && !haveinit)
@@ -5204,9 +5330,9 @@ void nwc_defaultparams(param_t *pprev,param_t *dnext)
                     cpperr(EM_musthaveinit);    // must have initializer
                 }
 
-                dnext = dnext->Pnext;
+                dnext = dnext.Pnext;
             }
-        } while ((pprev = pprev->Pnext) != NULL);
+        } while ((pprev = pprev.Pnext) != null);
     }
 }
 
@@ -5217,9 +5343,9 @@ void nwc_defaultparams(param_t *pprev,param_t *dnext)
 void nwc_musthaveinit(param_t *paramtypes)
 {   int mustinit = 0;
 
-    for (param_t *p = paramtypes; p; p = p->Pnext)
+    for (param_t *p = paramtypes; p; p = p.Pnext)
     {
-        if (p->Pelem || p->Pdeftype || p->Psym)
+        if (p.Pelem || p.Pdeftype || p.Psym)
             mustinit = 1;
         else if (mustinit)
             cpperr(EM_musthaveinit);    // must have initializer
@@ -5245,7 +5371,7 @@ int isexpression()
     int bra;
     enum_TK lasttok;
     int result;
-    symbol *s;
+    Symbol *s;
     Token_lookahead tla;
 
     /*  This function works by looking ahead at tokens until it
@@ -5272,9 +5398,7 @@ Lagain:
         case TKoverload:
         case TKtypename:
         case TKstatic_assert:
-#ifdef DEBUG
-            tla.term();         // skip for speed reasons
-#endif
+            debug tla.term();         // skip for speed reasons
             return 0;
 
         case TKnum:
@@ -5309,17 +5433,14 @@ Lagain:
         case TKtrue:
         case TKfalse:
         case TKnullptr:
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+version (POSIX)
+{
         case TK_bltin_const:
-#endif
+}
         case TKasm:
-#if TX86
         case TK_asm:
         case TK__emit__:
-#endif
-#ifdef DEBUG
-            tla.term();                 // skip for speed reasons
-#endif
+            debug tla.term();                 // skip for speed reasons
             return 2;                   /* obviously it's an expression */
 
     /*  If it's not a simple-type-name (ARM 17.3), then it cannot
@@ -5339,11 +5460,12 @@ Lagain:
         case TKbool:
         case TKwchar_t:
         case TKchar32_t:
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+version (Posix)
+{
         case TK_attribute:
         case TK_extension:
-#endif
-            s = NULL;
+}
+            s = null;
             break;
 
         case TKcolcol:
@@ -5374,16 +5496,17 @@ Lagain:
                 goto ret;
             }
         L4:
-#if 0   // Doesn't work because of ADL, etc.
+static if (0)   // Doesn't work because of ADL, etc.
+{
             // Replace token list with the symbol s so we don't need to
             // look it up again
             token_unget();
             tla.discard();
             tok.setSymbol(s);
-#endif
+}
         L6:
             //symbol_print(s);
-            switch (s->Sclass)
+            switch (s.Sclass)
             {
                 case SCnamespace:
                     tla.lookahead();
@@ -5392,7 +5515,7 @@ Lagain:
                         tla.lookahead();
                         if (tok.TKval != TKident)
                             goto isexpr;        /* actually, a syntax error */
-                        s = nspace_search(tok.TKid,(Nspacesym *)s);
+                        s = nspace_search(tok.TKid,cast(Nspacesym *)s);
                         if (!s)
                             goto isexpr;        /* syntax error         */
                         goto L4;
@@ -5400,21 +5523,22 @@ Lagain:
                     goto L3;
 
                 case SCtypedef:
-                    if (tybasic(s->Stype->Tty) == TYstruct)
+                    if (tybasic(s.Stype.Tty) == TYstruct)
                     {
                         // If no 'typename' in front of dependent type, assume expression
-                        if (s->Stype->Tflags & TFdependent)
+                        if (s.Stype.Tflags & TFdependent)
                         {
                             tla.lookahead();
                             if (tok.TKval == TKcolcol)
                                 goto isexpr;
-                            s = s->Stype->Ttag;
+                            s = s.Stype.Ttag;
                             goto L3;
                         }
-                        s = s->Stype->Ttag;
+                        s = s.Stype.Ttag;
                     }
                     else
                         break;
+                    goto case SCstruct;
                 case SCstruct:
                     tla.lookahead();
                     if (tok.TKval == TKcolcol)
@@ -5424,12 +5548,15 @@ Lagain:
                             tla.lookahead();
                         if (tok.TKval != TKident)
                             goto isexpr;        /* actually, a syntax error */
-#if 1
-                        pstate.STstag = (Classsym *)s;
+static if (1)
+{
+                        pstate.STstag = cast(Classsym *)s;
                         s = cpp_findmember_nest(&pstate.STstag,tok.TKid,0);
-#else
-                        s = struct_searchmember(tok.TKid,(Classsym *)s);
-#endif
+}
+else
+{
+                        s = struct_searchmember(tok.TKid,cast(Classsym *)s);
+}
                         if (!s)
                             goto isexpr;        /* syntax error         */
                         goto L4;
@@ -5445,7 +5572,7 @@ Lagain:
                            and use that for subsequent parsing.
                          */
                         if (pstate.STintemplate ||
-                            (s->Sscope && s->Sscope->Sclass != SCnamespace))
+                            (s.Sscope && s.Sscope.Sclass != SCnamespace))
                             goto isdecl;
 
                         token_unget();
@@ -5464,24 +5591,24 @@ Lagain:
                     break;
 
                 case SCalias:
-                    s = ((Aliassym *)s)->Smemalias;
+                    s = (cast(Aliassym *)s).Smemalias;
                     goto L6;
 
                 case SCfunctempl:
                     goto isexpr;
 
                 default:
-                    if (s->Scover)
+                    if (s.Scover)
                     {
                         tla.lookahead();
                         if (tok.TKval == TKcolcol)
-                        {   s = s->Scover;
+                        {   s = s.Scover;
                             goto L5;
                         }
                     }
                     goto isexpr;
             }
-            s = NULL;
+            s = null;
             break;
 
         case TKdecltype:
@@ -5539,7 +5666,8 @@ L3:
             goto isdecl;        // int() is a declaration
     }
 
-#if 0
+static if (0)
+{
     // Fails with:
     //  char(X::*p)[3];
     if (tok.TKval == TKident || tok.TKval == TKsymbol)
@@ -5548,7 +5676,7 @@ L3:
         if (result != 1)
             goto ret;
     }
-#endif
+}
 
     while (1)
     {
@@ -5575,7 +5703,7 @@ L3:
                     s = symbol_search(tok.TKid);
                 L7:
                     if (s)
-                    {   switch (s->Sclass)
+                    {   switch (s.Sclass)
                         {   case SCtypedef:
                             case SCstruct:
                             case SCenum:
@@ -5593,11 +5721,17 @@ L3:
                                         if (parens == 1)
                                             goto isdecl;
                                         break;
+                                    default:
+                                        break;
                                 }
                                 goto isexpr;
+
+                            default:
+                                break;
                         }
                     }
                 }
+                goto case TKoperator;
             case TKoperator:
                 if (sawident && !bra)
                     goto isexpr;
@@ -5615,7 +5749,7 @@ L3:
                 break;
             case TKstar:
             case TKand:
-#if TX86
+
             /* Parse extended prefixes  */
             case TK_near:
             case TK_far:
@@ -5634,7 +5768,7 @@ L3:
             case TK_syscall:
             case TK_System:
             case TK_Seg16:
-#endif
+
             case TK_cdecl:
             case TK_fortran:
             case TK_pascal:
@@ -5661,19 +5795,22 @@ L3:
             case TKbool:
             case TKwchar_t:
             case TKchar32_t:
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+version (Posix)
+{
             case TK_attribute:
             case TK_extension:
-#endif
+}
                 if (parens == 1)
                     goto isdecl;
+                goto default;
+
             default:
                 if (!bra)
                     goto isexpr;
                 break;
         }
 
-        lasttok = (enum_TK)tok.TKval;
+        lasttok = cast(enum_TK)tok.TKval;
         tla.lookahead();
     }
 
@@ -5736,7 +5873,7 @@ void parse_static_assert()
     stoken();
     chktok(TKlpar, EM_lpar2, "static_assert");
     targ_llong n = msc_getnum();
-    char *p = NULL;
+    char *p = null;
     if (tok.TKval == TKcomma)
     {
         stoken();
@@ -5781,39 +5918,44 @@ void parse_static_assert()
  *              const A* a = new A();
  *              decltype(foo()); // type is const int&&
  *              decltype(i); // type is int
- *              decltype(a->x); // type is double
- *              decltype((a->x)); // type is const double&
+ *              decltype(a.x); // type is double
+ *              decltype((a.x)); // type is const double&
  */
 
 int islvalue(elem *e)
 {
   L1:
-    if (e->PEFflags & PEFnotlvalue)
+    if (e.PEFflags & PEFnotlvalue)
         return 0;
-    switch (e->Eoper)
+    switch (e.Eoper)
     {
         case OPvar:
-            if (ANSI)
+            if (config.ansi_c)
             {
                 /* ANSI 3.3.3.1 lvalue cannot be cast   */
-                if (!typematch(e->EV.sp.Vsym->Stype, e->ET, 0) &&
+                if (!typematch(e.EV.Vsym.Stype, e.ET, 0) &&
                     // Allow anonymous unions
-                    memcmp(e->EV.sp.Vsym->Sident, "_anon_", 6))
+                    memcmp(&e.EV.Vsym.Sident[0], "_anon_".ptr, 6))
                       return 0;
             }
+            goto case OPbit;
+
         case OPbit:
         case OPind:
             return 1;
 
         case OPcond:
             // convert (a ? b : c) to *(a ? &b : &c)
-            if (CPP && islvalue(e->E2->E1) && islvalue(e->E2->E2))
+            if (CPP && islvalue(e.EV.E2.EV.E1) && islvalue(e.EV.E2.EV.E2))
                 return 1;
             break;
 
         case OPcomma:
-            e = e->E2;
+            e = e.EV.E2;
             goto L1;
+
+        default:
+            break;
     }
     return 0;
 }
@@ -5830,18 +5972,18 @@ type *parse_decltype()
     stoken();
     chktok(TKlpar, EM_lpar2, "decltype");
 
-    pstate.STinsizeof = TRUE;
+    pstate.STinsizeof = true;
     int parens = (tok.TKval == TKlpar);
     elem *e = expression();
     pstate.STinsizeof = insave;
     chktok(TKrpar,EM_rpar);     // closing ')'
 
-    type *t = e->ET;
+    type *t = e.ET;
 
-    if (!parens && (e->Eoper == OPvar || e->PEFflags & PEFmember))
+    if (!parens && (e.Eoper == OPvar || e.PEFflags & PEFmember))
     {
-        if (e->PEFflags & PEFmember)
-            t = e->Emember->Stype;
+        if (e.PEFflags & PEFmember)
+            t = e.Emember.Stype;
     }
     else if (islvalue(e))
     {
@@ -5849,9 +5991,9 @@ type *parse_decltype()
         t = newref(t);
     }
 
-    t->Tcount++;
+    t.Tcount++;
     el_free(e);
-    t->Tcount--;
+    t.Tcount--;
 
     /* BUG: should fail on overloaded functions:
      *  void foo(int);
@@ -5860,13 +6002,12 @@ type *parse_decltype()
      */
 
     for (SYMIDX si = marksi; si < globsym.top; si++)
-        globsym.tab[si]->Sflags |= SFLnodtor;
+        globsym.tab[si].Sflags |= SFLnodtor;
 
     pstate.STinarglist = inarglistsave;
     return t;
 }
 
-#if TX86
 /************************************
  * We recognize some special cases of based pointers.
  *      __based(__segname("_DATA"))  => __near
@@ -5879,20 +6020,18 @@ type *parse_decltype()
  *      next token if not recognized
  */
 
-STATIC void nwc_based()
+/*private*/ void nwc_based()
 {
     int i;
-    static const char *basetab[] =
-    {   "CODE",
+    __gshared const(char)*[3] basetab =
+    [   "CODE",
         "DATA",
         "STACK",
-    };
-    static enum_TK subst[arraysize(basetab)] = { TK_cs,TK_near,TK_ss };
+    ];
+    __gshared enum_TK[3] subst = [ TK_cs,TK_near,TK_ss ];
     char *p;
 
-#ifdef DEBUG
-    assert(tok.TKval == TK_based);
-#endif
+    debug assert(tok.TKval == TK_based);
     stoken();
     chktok(TKlpar,EM_lpar);
     if (tok.TKval != TK_segname)
@@ -5905,7 +6044,7 @@ STATIC void nwc_based()
     // Microsoft fails to document it, but the _ on the strings
     // is not necessary.
     p += (*p == '_');
-    i = binary(p,basetab,arraysize(basetab));
+    i = binary(p,basetab.ptr,basetab.length);
     if (i < 0)
         goto err;
     stoken();
@@ -5931,24 +6070,22 @@ err:
 tym_t nwc_declspec()
 {
     int i;
-    long ty;
-    static const char *basetab[] =
-    {
+    uint ty;
+    __gshared const(char)*[4] basetab =
+    [
         "dllexport",
         "dllimport",
         "naked",
         "thread",
-    };
-    static long subst[arraysize(basetab)] = { mTYexport,mTYimport,mTYnaked,mTYthread };
+    ];
+    __gshared int[4] subst = [ mTYexport,mTYimport,mTYnaked,mTYthread ];
 
-#ifdef DEBUG
-    assert(tok.TKval == TK_declspec);
-#endif
+    debug assert(tok.TKval == TK_declspec);
     stoken();
-    chktok(TKlpar,EM_lpar2,"declspec");
+    chktok(TKlpar,EM_lpar2,"declspec".ptr);
     if (tok.TKval != TKident)
         goto err;
-    i = binary(tok.TKid,basetab,arraysize(basetab));
+    i = binary(tok.TKid,basetab.ptr,basetab.length);
     if (i < 0)
         goto err;
     if (stoken() != TKrpar)
@@ -5963,6 +6100,7 @@ err:
     return 0;
 }
 
-#endif
+}
 
-#endif
+}
+

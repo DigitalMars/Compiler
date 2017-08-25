@@ -12,7 +12,7 @@
 
 module ddmd.backend.cdef;
 
-import ddmd.backend.cc: Classsym, Symbol, param_t;
+import ddmd.backend.cc: Classsym, Symbol, param_t, config;
 import ddmd.backend.el;
 import ddmd.backend.ty : I32;
 
@@ -110,11 +110,7 @@ enum bool HEADER_LIST = true;
 //#define TARGET_SEGMENTED     (!MARS && TARGET_WINDOS)
 
 
-//#if __GNUC__
-//#define LDOUBLE                 0       // no support for true long doubles
-//#else
-//#define LDOUBLE         (config.exe == EX_WIN32)   // support true long doubles
-//#endif
+bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
 
 
 // NT structured exception handling

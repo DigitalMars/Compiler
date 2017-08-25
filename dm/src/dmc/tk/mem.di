@@ -13,3 +13,7 @@ void mem_init();
 void mem_term();
 
 alias mem_freefp = mem_free;
+
+enum { MEM_ABORTMSG, MEM_ABORT, MEM_RETNULL, MEM_CALLFP, MEM_RETRY };
+void mem_setexception(int MEM_E,...);
+

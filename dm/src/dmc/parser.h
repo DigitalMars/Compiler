@@ -492,7 +492,7 @@ int funcdecl(symbol *,int,int,Declar *);
 symbol *symdecl(char *,type *,int,param_t *);
 void nwc_typematch(type *,type *,symbol *);
 int isexpression(void);
-void nwc_setlinkage(char *,long,mangle_t);
+void nwc_setlinkage(char *,int,mangle_t);
 tym_t nwc_declspec();
 void parse_static_assert();
 type *parse_decltype();
@@ -723,9 +723,9 @@ extern int colnumber;                   /* current column number                
 extern int xc;                /* character last read                  */
 extern phstring_t fdeplist;
 extern char *fdepname;
-extern FILE *fdep;
+extern "C" extern FILE *fdep;
 extern char *flstname,*fsymname,*fphreadname,*ftdbname;
-extern FILE *flst;
+extern "C" extern FILE *flst;
 
 // htod
 extern char *fdmodulename;

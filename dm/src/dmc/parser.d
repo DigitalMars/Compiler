@@ -436,7 +436,7 @@ elem *func_expr();
 
 /* getcmd.c */
 extern __gshared uint netspawn_flags;
-void getcmd(int,char *[]);
+void getcmd(int,char **);
 void getcmd_term();
 
 /* init.c */
@@ -502,7 +502,7 @@ int funcdecl(Symbol *,int,int,Declar *);
 Symbol *symdecl(char *,type *,SC,param_t *);
 void nwc_typematch(type *,type *,Symbol *);
 int isexpression();
-void nwc_setlinkage(char *,long,mangle_t);
+void nwc_setlinkage(char *,int,mangle_t);
 tym_t nwc_declspec();
 void parse_static_assert();
 type *parse_decltype();
@@ -575,7 +575,7 @@ char *macro_predefined(macro_t *m);
 int macprocess(macro_t *m, phstring_t *pargs, BlklstSave *blsave);
 void pragma_include(char *filename,int flag);
 void pragma_init();
-void pragma_term();
+//void pragma_term();
 macro_t *defmac(const(char)* name , const(char)* text);
 void definedmac();
 macro_t *fixeddefmac(const(char)* name , const(char)* text);
@@ -711,9 +711,9 @@ extern __gshared int colnumber;         // current column number
 extern __gshared int xc;                // character last read
 extern __gshared phstring_t fdeplist;
 extern __gshared char *fdepname;
-extern __gshared FILE *fdep;
+extern (C) extern __gshared FILE *fdep;
 extern __gshared char* flstname,fsymname,fphreadname,ftdbname;
-extern __gshared FILE *flst;
+extern (C) extern __gshared FILE *flst;
 
 // htod
 extern __gshared char *fdmodulename;
