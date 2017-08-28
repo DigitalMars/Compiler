@@ -729,10 +729,10 @@ extern "C" extern FILE *flst;
 
 // htod
 extern char *fdmodulename;
-extern FILE *fdmodule;
+extern "C" extern FILE *fdmodule;
 
 #if SPP
-extern FILE *fout;
+extern "C" extern FILE *fout;
 #endif
 
 extern unsigned idhash;        // hash value of identifier

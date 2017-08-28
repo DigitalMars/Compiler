@@ -38,7 +38,10 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 static char xyzzy[] = "written by Walter Bright";
 
-static void nwc_outstatics();
+#undef STATIC
+#define STATIC
+
+STATIC void nwc_outstatics();
 STATIC void nwc_predefine();
 STATIC type * getprototype(const char *,type *);
 STATIC void getparamlst(type *,type *);
@@ -48,11 +51,14 @@ void output_func(void);
 
 Declar gdeclar;
 
-static long linkage_kwd;
-static int msbug;               // used to emulate MS C++ bug
+STATIC int linkage_kwd;
+STATIC int msbug;               // used to emulate MS C++ bug
+STATIC list_t nwc_staticstowrite = NULL;        // list of statics to write out
+/*static*/ list_t nwc_funcstowrite = NULL;  /* list of function symbols to write out */
 
 int readini(char *argv0,char *ini);
 
+#if 0
 #if TX86
 /*******************************
  * Main program.
@@ -659,8 +665,6 @@ symbol *nwc_genthunk(symbol *s,targ_size_t d,int i,targ_size_t d2)
  * Write out any functions queued for being output
  */
 
-static list_t nwc_funcstowrite = NULL;  /* list of function symbols to write out */
-
 void output_func()
 {
     while (nwc_funcstowrite)
@@ -692,9 +696,8 @@ void output_func()
  * Write out any remaining statics.
  */
 
-static list_t nwc_staticstowrite = NULL;        // list of statics to write out
 
-static void nwc_outstatics()
+STATIC void nwc_outstatics()
 {
     //printf("nwc_outstatics()\n");
     for (list_t sl = nwc_staticstowrite; sl; sl = sl->next)
@@ -5962,7 +5965,9 @@ err:
     tx86err(EM_bad_declspec);                   // unsupported __declspec type
     return 0;
 }
-
 #endif
 
 #endif
+
+#endif
+

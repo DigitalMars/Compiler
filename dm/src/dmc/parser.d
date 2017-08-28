@@ -338,7 +338,7 @@ void wrtexp(FILE *);
 uint egchar2();
 uint egchar();
 
-void insblk(char *text,int typ,list_t aargs,int nargs,macro_t *m);
+void insblk(ubyte *text,int typ,list_t aargs,int nargs,macro_t *m);
 void insblk2(ubyte *text,int typ);
 
 version (__GNUC__)
@@ -717,11 +717,11 @@ extern (C) extern __gshared FILE *flst;
 
 // htod
 extern __gshared char *fdmodulename;
-extern __gshared FILE *fdmodule;
+extern (C) extern __gshared FILE *fdmodule;
 
 version (SPP)
 {
-    extern __gshared FILE *fout;
+    extern (C) extern __gshared FILE *fout;
 }
 
 extern __gshared uint idhash;        // hash value of identifier

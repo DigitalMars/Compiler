@@ -1256,6 +1256,15 @@ struct Symbol
             }
         }
 
+        version (HTOD)
+        {
+            struct               // SClinkage
+            {
+                uint Slinkage;   // tym linkage bits
+                uint Smangle;
+            }
+        }
+
         struct
         {
             ubyte Sbit;         // SCfield: bit position of start of bit field

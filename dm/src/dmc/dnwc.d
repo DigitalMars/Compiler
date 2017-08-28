@@ -22,6 +22,12 @@ import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.time;
 
+version (DigitalMars)
+{
+    extern (C) extern FILE[_NFILE] _iob; // it's private in core.stdc.stdio
+    extern (C) extern __gshared int _8087;
+}
+
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
 import ddmd.backend.cgcv;
@@ -63,8 +69,6 @@ alias MEM_PARF_REALLOC = mem_realloc;
 alias MEM_PARF_FREE = mem_free;
 alias MEM_PARF_STRDUP = mem_strdup;
 
-version (none)
-{
 private __gshared const(char)* xyzzy = "written by Walter Bright";
 
 /*private*/ void nwc_outstatics();
@@ -74,19 +78,26 @@ private __gshared const(char)* xyzzy = "written by Walter Bright";
 /*private*/ Symbol * anonymous(Classsym *,int);
 /*private*/ void nwc_based();
 void output_func();
+int islvalue(elem *e);
 
-__gshared
+extern __gshared
 {
 Declar gdeclar;
 
-/*private*/ long linkage_kwd;
+/*private*/ int linkage_kwd;
 /*private*/ int msbug;               // used to emulate MS C++ bug
+/*private*/ list_t nwc_staticstowrite;        // list of statics to write out
+/*private*/ list_t nwc_funcstowrite;  // list of function symbols to write out
 }
+
 
 int readini(char *argv0,char *ini);
 type* tserr();
 
-static if (TX86)
+version (all)
+{
+
+static if (1)
 {
 /*******************************
  * Main program.
@@ -99,22 +110,22 @@ extern (C) int main(int argc,char** argv)
 version (SPP)
 {
   mem_init();
-  mem_setexception(MEM_CALLFP,err_nomem);
+  mem_setexception(MEM_E.MEM_CALLFP,&err_nomem);
 version (_WINDLL)
 {
 }
 else
 {
-    readini(argv0,"sc.ini");            // read initialization file
+    readini(argv0,cast(char*)"sc.ini".ptr);            // read initialization file
 }
   list_init();
   pragma_init();
   getcmd(argc,argv);                    /* process command line         */
   file_iofiles();
   token_init();                         // initialize tokenizer tables
-  insblk(cast(char*)finname,BLfile,null,FQtop,null);      // install top level block
+  insblk(cast(ubyte*)finname,BLfile,null,FQtop,null);      // install top level block
   if (headers)
-  {     insblk(cast(char*)list_ptr(headers),BLfile,null,FQcwd | FQpath,null);
+  {     insblk(cast(ubyte*)list_ptr(headers),BLfile,null,FQcwd | FQpath,null);
         list_pop(&headers);
   }
 
@@ -138,7 +149,7 @@ else
 {
 
 version (DigitalMars)
-  {     extern (C) extern int _8087;
+  {
         _8087 = 0;                      /* no fuzzy floating point      */
                                         /* (use emulation only)         */
   }
@@ -147,10 +158,11 @@ version (Windows)
     // Set unbuffered output in case output is redirected to a file
     // and we need to see how far it got before a crash.
     //stdout._flag |= _IONBF;
-    core.stdc.stdio.setvbuf(stdout, null, _IONBF, 0);
+    //core.stdc.stdio.setvbuf(stdout, null, _IONBF, 0);
+    core.stdc.stdio.setvbuf(&_iob[1], null, _IONBF, 0);
 }
   mem_init();
-  mem_setexception(MEM_CALLFP,&err_nomem);
+  mem_setexception(MEM_E.MEM_CALLFP,&err_nomem);
   list_init();
   vec_init();
   cod3_setdefault();
@@ -165,7 +177,7 @@ version (Windows)
   cpp_init();
   pstate.STgclass = SCglobal;
   except_init();                        // exception handling code
-  Outbuffer *objbuf = new Outbuffer();
+  Outbuffer objbuf;
 version (HTOD)
 {
   htod_init(fdmodulename);
@@ -177,7 +189,7 @@ version (Win32)
   char *p = (config.exe & EX_dos) ? file_8dot3name(finname) : null;
   if (!p || !*p)
         p = finname;
-  objmod = Obj.init(objbuf, p, configv.csegname);
+  objmod = Obj.init(&objbuf, p, configv.csegname);
   Obj.initfile(p, configv.csegname, null);
 //  free(p);
 }
@@ -192,7 +204,7 @@ else
   block_init();
   type_init();
   rtlsym_init();
-  insblk(cast(char *)finname,BLfile,null,FQtop,null);      // install top level block
+  insblk(cast(ubyte *)finname,BLfile,null,FQtop,null);      // install top level block
 
   cstate.CSpsymtab = &globsym;
   createglobalsymtab();                 // create top level symbol table
@@ -426,6 +438,8 @@ version (DEMO)
   if (errcnt)                           /* if any errors occurred       */
         err_exit();
 }
+}
+
 }
 
 version (SPP)
@@ -737,8 +751,6 @@ Symbol *nwc_genthunk(Symbol *s,targ_size_t d,int i,targ_size_t d2)
  * Write out any functions queued for being output
  */
 
-/*private*/ __gshared list_t nwc_funcstowrite = null;  /* list of function symbols to write out */
-
 void output_func()
 {
     while (nwc_funcstowrite)
@@ -769,8 +781,6 @@ void output_func()
 /******************************************
  * Write out any remaining statics.
  */
-
-/*private*/ __gshared list_t nwc_staticstowrite = null;        // list of statics to write out
 
 /*private*/ void nwc_outstatics()
 {
@@ -1740,15 +1750,16 @@ Lerr:
  */
 
 elem *declaration(int flag)
-{   Symbol *s;
+{
+    Symbol *s;
     type *dt;
     tym_t ty;
-    char[2*IDMAX + 1] vident = null;
+    char[2*IDMAX + 1] vident = void;
     type *tspec;
     int sc_specifier;
     int dss;
 
-    //dbg_printf("declaration(flag = %d)\n",flag);
+    //printf("declaration(flag = %d)\n",flag);
 
     if (tok.TKval == TKstatic_assert && !(flag & 4))
     {
@@ -5237,7 +5248,6 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 }
 
 
-
 /**********************************
  * Determine if types match for symbol s.
  * Print error message if not.
@@ -6102,5 +6112,4 @@ err:
 
 }
 
-}
 
