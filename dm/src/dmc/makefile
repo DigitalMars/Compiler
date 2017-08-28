@@ -172,7 +172,7 @@ debppnd:
 OBJ1a=blklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj dmcdll.obj
-OBJ1d=nspace.obj dnwc.obj nwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
+OBJ1d=nspace.obj dnwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj token.obj type.obj dt.obj dth.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj dlist.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
@@ -304,7 +304,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h \
         msgsx.c scope.c \
         trace.c file.c dmcdll.c \
         msc.c ph.c token.c \
-        pragma.c nwc.c tk.c \
+        pragma.c tk.c \
         htod.c speller.c
 
 # Back end
@@ -551,7 +551,6 @@ dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 gother.obj : $(DEP) $(gother.dep) gother.c
 gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
 err.obj : $(DEP) $(err.dep) err.c
-nwc.obj : $(DEP) $(nwc.dep) nwc.c
 iasm.obj : $(DEP) $(iasm.dep) iasm.h iasm.c
 go.obj : $(DEP) $(go.dep) go.c
 gflow.obj : $(DEP) $(gflow.dep) gflow.c

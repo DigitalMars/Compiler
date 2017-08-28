@@ -71,23 +71,23 @@ alias MEM_PARF_STRDUP = mem_strdup;
 
 private __gshared const(char)* xyzzy = "written by Walter Bright";
 
-/*private*/ void nwc_outstatics();
-/*private*/ void nwc_predefine();
-/*private*/ type * getprototype(const char *,type *);
-/*private*/ void getparamlst(type *,type *);
-/*private*/ Symbol * anonymous(Classsym *,int);
-/*private*/ void nwc_based();
+private void nwc_outstatics();
+private void nwc_predefine();
+private type * getprototype(const char *,type *);
+private void getparamlst(type *,type *);
+private Symbol * anonymous(Classsym *,int);
+private void nwc_based();
 void output_func();
 int islvalue(elem *e);
 
-extern __gshared
+__gshared
 {
 Declar gdeclar;
 
-/*private*/ int linkage_kwd;
-/*private*/ int msbug;               // used to emulate MS C++ bug
-/*private*/ list_t nwc_staticstowrite;        // list of statics to write out
-/*private*/ list_t nwc_funcstowrite;  // list of function symbols to write out
+private int linkage_kwd;
+private int msbug;               // used to emulate MS C++ bug
+private list_t nwc_staticstowrite;        // list of statics to write out
+private list_t nwc_funcstowrite;  // list of function symbols to write out
 }
 
 
@@ -452,7 +452,7 @@ else
  * 'Predefine' a number of symbols.
  */
 
-/*private*/ void nwc_predefine()
+private void nwc_predefine()
 {
     string text =
 "extern \"C++\"
@@ -782,7 +782,7 @@ void output_func()
  * Write out any remaining statics.
  */
 
-/*private*/ void nwc_outstatics()
+private void nwc_outstatics()
 {
     //printf("nwc_outstatics()\n");
     for (list_t sl = nwc_staticstowrite; sl; sl = sl.next)
@@ -3255,7 +3255,7 @@ Lnd:                            // if new-declarator
  *      null if not a function
  */
 
-/*private*/ type * getprototype(const char *fident,type *tret)
+private type * getprototype(const char *fident,type *tret)
 {   char[2*IDMAX + 1] vident = void;
     type *tfunc;
     type *pt;
@@ -3625,7 +3625,7 @@ debug
  *      tfunc has duplicate of tprev prototype, if any
  */
 
-/*private*/ void getparamlst(type *tfunc,type *tprev)
+private void getparamlst(type *tfunc,type *tprev)
 {
   param_t *p;
   param_t **pp;
@@ -4130,7 +4130,7 @@ version (Posix)
  * Generate an instance of the anonymous union given by tspec.
  */
 
-/*private*/ Symbol * anonymous(Classsym *stag,int sc_specifier)
+private Symbol * anonymous(Classsym *stag,int sc_specifier)
 {   Symbol *s;
     list_t list;
     char* id,unionid;
@@ -6030,7 +6030,7 @@ type *parse_decltype()
  *      next token if not recognized
  */
 
-/*private*/ void nwc_based()
+private void nwc_based()
 {
     int i;
     __gshared const(char)*[3] basetab =
