@@ -169,7 +169,7 @@ debppnd:
 
 #########################################
 
-OBJ1a=blklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
+OBJ1a=dblklst.obj blklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
@@ -294,7 +294,7 @@ FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d 
 	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
 	dstruct.d func.d dcpp.d speller.di dtemplate.d dexp2.d castab.d dgetcmd.d \
-	dnwc.d
+	dnwc.d dblklst.d
 
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
@@ -406,6 +406,9 @@ strtold.obj : strtold.c
 
 adl.obj : adl.d
         $(DMD) -c $(DFLAGS) adl.d
+
+dblklst.obj : dblklst.d
+        $(DMD) -c $(DFLAGS) dblklst.d
 
 dcpp.obj : dcpp.d
         $(DMD) -c $(DFLAGS) dcpp.d
