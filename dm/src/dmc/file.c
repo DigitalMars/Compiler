@@ -851,7 +851,7 @@ void wrtpos(FILE *fstream)
  *      bl->            input file data
  */
 
-void wrtlst(FILE *fstream)
+extern "C" void wrtlst(FILE *fstream)
 { blklst *b;
 
   b = cstate.CSfilblk;

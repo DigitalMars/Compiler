@@ -320,7 +320,7 @@ inline void experaseline()
     }
 }
 
-void wrtexp(FILE *);
+extern "C" void wrtexp(FILE *);
 extern unsigned egchar2(void);
 extern unsigned egchar(void);
 
@@ -411,7 +411,7 @@ FILE *file_openwrite(const char *name,const char *mode);
 void file_iofiles(void);
 int readln(void);
 void wrtpos(FILE *);
-void wrtlst(FILE *);
+extern "C" void wrtlst(FILE *);
 
 /* from func.c */
 void func_nest(symbol *);

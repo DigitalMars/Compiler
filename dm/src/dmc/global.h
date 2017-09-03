@@ -151,7 +151,7 @@ char *parc_strdup(const char *s);
 void parc_free(void *p);
 #endif
 
-void crlf(FILE *);
+extern "C" void crlf(FILE *);
 char *unsstr(unsigned);
 int isignore(int);
 int isillegal(int);

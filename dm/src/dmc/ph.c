@@ -266,7 +266,13 @@ void ph_init(void *mmfiobase, unsigned reservesize)
 #endif
 #if MMFIO
     if (reservesize && reservesize > 30 && reservesize < 300)
+    {
+#ifdef DEBUG
+        ph_reservesize = reservesize * 0x10000L;
+#else
         ph_reservesize = reservesize * 0x100000L;
+#endif
+    }
 
     // Pick different base addresses for C and C++,
     // so we don't conflict (can't share PH anyway).

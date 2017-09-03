@@ -312,7 +312,7 @@ extern __gshared int expflag;            // != 0 means not expanding list file
 blklst *blklst_getfileblock();
 void putback(int);
 
-char *macro_replacement_text(macro_t *m, phstring_t args);
+ubyte *macro_replacement_text(macro_t *m, phstring_t args);
 char *macro_rescan(macro_t *m, char *text);
 char *macro_expand(char *text);
 
@@ -334,7 +334,7 @@ void experaseline()
     }
 }
 
-void wrtexp(FILE *);
+extern (C) void wrtexp(FILE *);
 uint egchar2();
 uint egchar();
 
@@ -421,7 +421,7 @@ FILE *file_openwrite(const(char)* name,const(char)* mode);
 void file_iofiles();
 int readln();
 void wrtpos(FILE *);
-void wrtlst(FILE *);
+extern (C) void wrtlst(FILE *);
 
 /* from func.c */
 void func_nest(Symbol *);
@@ -571,7 +571,7 @@ macro_t *macfind();
 macro_t *macdefined(const(char)* id, uint hash);
 void listident();
 char *filename_stringize(char *name);
-char *macro_predefined(macro_t *m);
+ubyte *macro_predefined(macro_t *m);
 int macprocess(macro_t *m, phstring_t *pargs, BlklstSave *blsave);
 void pragma_include(char *filename,int flag);
 void pragma_init();
@@ -745,6 +745,6 @@ struct RawString
     int dchari;
 
     void init();
-    bool inString(char c);
+    bool inString(ubyte c);
 }
 

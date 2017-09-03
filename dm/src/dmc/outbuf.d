@@ -33,8 +33,10 @@ struct Outbuffer
 
     this(size_t incx); // : buf(null), pend(null), p(null), len(0), inc(incx), origbuf(null) { }
 
-    this(ubyte *bufx, size_t bufxlen, uint incx);
-        //: buf(bufx), pend(bufx + bufxlen), p(bufx), len(bufxlen), inc(incx), origbuf(bufx) { }
+    this(ubyte *bufx, size_t bufxlen, uint incx)
+    {
+        buf = bufx; pend = bufx + bufxlen; p = bufx; len = bufxlen; inc = incx; origbuf = bufx;
+    }
 
     //~this();
 

@@ -115,7 +115,7 @@ void util_exit(int exitcode)
  * Send CRLF to stream.
  */
 
-void crlf(FILE *fstream)
+extern "C" void crlf(FILE *fstream)
 { err_fputc(LF,fstream);
 }
 

@@ -31,19 +31,22 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+#undef STATIC
+#define STATIC
+
 #if TX86
 extern char switch_E;
-static blklst * last_blsave;
+/*static*/ blklst * last_blsave;
 #else
 INITIALIZED_STATIC_DEF blklst * last_blsave;
 #endif
 STATIC void freeblk(blklst *);
 
 #if TX86
-static blklst *bl_freelist = NULL;      /* pointer to next free blk     */
+/*static*/ blklst *bl_freelist = NULL;      /* pointer to next free blk     */
 #endif
 
-static Srcpos lastpos = {
+/*static*/ Srcpos lastpos = {
 0,      // line number
 #if TX86
 0,      // file number
@@ -51,8 +54,8 @@ static Srcpos lastpos = {
 -1,     // file number
 #endif
 };      // last filename/line seen
-static unsigned char lastpos_flag;
-static bool uselastpos;
+/*static*/ unsigned char lastpos_flag;
+/*static*/ bool uselastpos;
 
 #if TX86
 blklst * bl = NULL;     /* current block pointer                */
@@ -82,6 +85,7 @@ STATIC unsigned char * stringize(unsigned char *text);
  *      NULL    if no more files
  */
 
+#if 0
 blklst *blklst_getfileblock()
 {   blklst *b;
     int i;
@@ -295,7 +299,7 @@ void expbackup()
  * Make sure we get one and only one carriage return at the end.
  */
 
-void wrtexp(FILE *fstream)
+extern "C" void wrtexp(FILE *fstream)
 {
     if (!eline)
         return;
@@ -1479,3 +1483,4 @@ void blklst::print()
     printf("\n");
 #endif
 }
+#endif

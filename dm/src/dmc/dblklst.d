@@ -56,7 +56,7 @@ alias MEM_PERM_REALLOC = mem_realloc;
 
 enum TX86 = 1;
 
-void crlf(FILE*);
+extern (C) void crlf(FILE*);
 
 extern __gshared
 {
@@ -92,9 +92,13 @@ else
 
 /*private*/ void freeblk(blklst *);
 /*private*/ ubyte * stringize(ubyte *text);
+ubyte *macro_rescan(macro_t *m, ubyte *text);
+ubyte *trimWhiteSpace(ubyte *text);
+ubyte *trimPreWhiteSpace(ubyte *text);
 
 version (none)
 {
+}
 /************************************
  * Get and return current file block pointer.
  * Returns:
@@ -313,7 +317,7 @@ void expbackup()
  * Make sure we get one and only one carriage return at the end.
  */
 
-void wrtexp(FILE *fstream)
+extern (C) void wrtexp(FILE *fstream)
 {
     if (!eline)
         return;
@@ -834,7 +838,7 @@ static if (LOG_MACRO_EXPAND)
                     inident();          // read in identifier
 
 static if (LOG_MACRO_EXPAND)
-                    printf("\ttok_ident[] = '%s'\n", tok_ident);
+                    printf("\ttok_ident[] = '%s'\n", &tok_ident[0]);
 
                     /* Handle case of 1234ULL.
                      * BUG: still regards ABC as a macro in: 0x123.ABC
@@ -876,12 +880,12 @@ static if (LOG_MACRO_EXPAND)
                                 ubyte *q;
                                 ubyte xcnext = cast(ubyte)xc;
                                 ubyte xclast;
-                                immutable ubyte[2] brk = [ PRE_BRK, 0 ];
+                                __gshared immutable ubyte[2] brk = [ PRE_BRK, 0 ];
 
                                 putback(xc);
-                                p = macro_replacement_text(m, args);
+                                p = cast(ubyte*)macro_replacement_text(m, args);
                                 //printf("\texpanded  '%s'\n", p);
-                                q = macro_rescan(m, p);
+                                q = cast(ubyte*)macro_rescan(m, p);
 static if (LOG_MACRO_EXPAND)
                                 printf("\trescanned '%s'\n", q);
 
@@ -915,9 +919,10 @@ static if (LOG_MACRO_EXPAND)
 
     L1:
 static if (LOG_MACRO_EXPAND)
+{
         //printf("\twriteByten('%c', x%02x)\n", xc, xc);
-
-        buffer.writeByten(xc);
+}
+        buffer.writeByten(cast(char)xc);
         egchar();
     }
 
@@ -1343,7 +1348,7 @@ static if (IMPLIED_PRAGMA_ONCE)
                     if ((p.BLflags & BLendif) && (p.BLflags & BLtokens) == 0)
                     {   // Mark file to only include once
                         // If this identifier is defined, don't need to include again
-                        srcpos_sfile(p.BLsrcpos).SFinc_once_id = p.BLinc_once_id;
+                        (**(p.BLsrcpos).Sfilptr).SFinc_once_id = p.BLinc_once_id;
                         p.BLinc_once_id = null;
                         //printf("Setting the once flag %s\n", srcpos_sfile(p.BLsrcpos).SFinc_once_id);
                     }
@@ -1437,4 +1442,4 @@ debug
     printf("\n");
 }
 }
-}
+
