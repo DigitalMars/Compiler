@@ -169,7 +169,7 @@ debppnd:
 
 #########################################
 
-OBJ1a=dblklst.obj blklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
+OBJ1a=dblklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj ph.obj ppexp.obj pragma.obj pseudo.obj
@@ -300,7 +300,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h \
 	speller.h tdb.h total.h utf.h \
 	\
         ini.c errmsgs2.c tdbx.c util.c \
-        iasm.c err.c blklst.c \
+        iasm.c err.c \
         msgsx.c scope.c \
         trace.c file.c dmcdll.c \
         msc.c ph.c token.c \
@@ -510,7 +510,6 @@ DEP=total.sym msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.
 aa.obj : aa.h tinfo.h aa.c
 backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 bcomplex.obj : bcomplex.h bcomplex.c
-blklst.obj : $(DEP) $(blklst.dep) blklst.c
 blockopt.obj : $(DEP) $(blockopt.dep) blockopt.c
 cg.obj : $(DEP) $(cg.dep) cg.c
 cgcs.obj : $(DEP) $(cgcs.dep) cgcs.c

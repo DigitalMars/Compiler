@@ -58,19 +58,19 @@ enum TX86 = 1;
 
 extern (C) void crlf(FILE*);
 
-extern __gshared
+__gshared
 {
 extern char switch_E;
-/*private*/ blklst * last_blsave;
+private blklst * last_blsave;
 
-/*private*/ blklst *bl_freelist;      /* pointer to next free blk     */
+private blklst *bl_freelist;      /* pointer to next free blk     */
 
-/*private*/ Srcpos lastpos /*= {
+private Srcpos lastpos = {
 0,      // line number
 0,      // file number
-}*/;      // last filename/line seen
-/*private*/ ubyte lastpos_flag;
-/*private*/ bool uselastpos;
+};      // last filename/line seen
+private ubyte lastpos_flag;
+private bool uselastpos;
 
 blklst * bl;     /* current block pointer                */
 ubyte * btextp;  // set to bl->BLtextp
@@ -90,15 +90,7 @@ version (linux)
 else
     alias FPUTC = fputc;
 
-/*private*/ void freeblk(blklst *);
-/*private*/ ubyte * stringize(ubyte *text);
-ubyte *macro_rescan(macro_t *m, ubyte *text);
-ubyte *trimWhiteSpace(ubyte *text);
-ubyte *trimPreWhiteSpace(ubyte *text);
 
-version (none)
-{
-}
 /************************************
  * Get and return current file block pointer.
  * Returns:
@@ -474,7 +466,7 @@ ubyte *trimPreWhiteSpace(ubyte *text)
 
 __gshared const(char)* null_arg = "";
 
-/*private*/ ubyte *getIthArg(phstring_t args, int argi)
+private ubyte *getIthArg(phstring_t args, int argi)
 {
     if (args.length() < argi)
         return null;
@@ -963,7 +955,7 @@ static if (LOG_MACRO_EXPAND)
  *      string that must be parc_free'd
  */
 
-/*private*/ ubyte * stringize(ubyte *text)
+private ubyte * stringize(ubyte *text)
 {
     ubyte[128] tmpbuf = void;
     Outbuffer buffer = Outbuffer(tmpbuf.ptr, 128, 100);
@@ -1326,7 +1318,7 @@ debug
  *      bl      pointer to previous block, null if no more blocks.
  */
 
-/*private*/ void freeblk(blklst *p)
+private void freeblk(blklst *p)
 {
     assert(p);
     bl = p.BLprev;
