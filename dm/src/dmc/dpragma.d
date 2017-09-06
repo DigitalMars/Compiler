@@ -35,6 +35,7 @@ import tk.mem;
 import dtoken;
 import msgs2;
 import parser;
+import precomp;
 import scopeh;
 
 extern (C++):
@@ -3981,8 +3982,12 @@ int phstring_t_find(const(char)* s)
     return -1;
 }
 }
+}
 
 version (SPP)
+{
+}
+else
 {
 
 /**********************************
@@ -4001,12 +4006,12 @@ void pragma_hydrate_macdefs(macro_t **pmb,int flag)
     {
         if (dohydrate)
         {
-            mb = cast(macro_t *)ph_hydrate(pmb);
+            mb = cast(macro_t *)ph_hydrate(cast(void**)pmb);
             macro_debug(mb);
             //dbg_printf("macro_hydrate(%p, '%s')\n",mb,mb.Mid.ptr);
             debug assert(!mb.Mtext || isdehydrated(mb.Mtext));
             mb.Marglist.hydrate();
-            ph_hydrate(&mb.Mtext);
+            ph_hydrate(cast(void**)&mb.Mtext);
         }
         else
         {
@@ -4054,8 +4059,8 @@ else
                     break;
                 }
                 macro_debug(m);
-                if ((cmp = c - m.Mid[0]) == 0)
-                {   cmp = memcmp(p + 1,m.Mid.ptr + 1,len); // compare identifiers
+                if ((cmp = cast(byte)(c - m.Mid[0])) == 0)
+                {   cmp = cast(byte)memcmp(p + 1,m.Mid.ptr + 1,len); // compare identifiers
                     if (cmp == 0)                       // already there
                     {
                         if (m.Mflags & mb.Mflags & Mdefined)
@@ -4147,6 +4152,7 @@ static if (DEHYDRATE)
     }
 }
 
+
 /**********************************
  * Rehydrate all the preprocessor symbols, starting from
  * pmactabroot.
@@ -4172,7 +4178,7 @@ debug
 }
         if (pmactabroot[i])
         {   //printf("i = %d, m = %p\n",i,pmactabroot[i]);
-            ph_hydrate(&pmactabroot[i]);
+            ph_hydrate(cast(void**)&pmactabroot[i]);
             macro_hydrate(pmactabroot[i]);
         }
     }
@@ -4237,17 +4243,14 @@ debug
         //dbg_printf("macro_hydrate(%p, '%s')\n",mb,mb.Mid.ptr);
 
         mb.Marglist.hydrate();
-        ph_hydrate(&mb.Mtext);
-        ml = cast(macro_t *)ph_hydrate(&mb.ML);
-        mr = cast(macro_t *)ph_hydrate(&mb.MR);
+        ph_hydrate(cast(void**)&mb.Mtext);
+        ml = cast(macro_t *)ph_hydrate(cast(void**)&mb.ML);
+        mr = cast(macro_t *)ph_hydrate(cast(void**)&mb.MR);
         macro_hydrate(ml);
         mb = mr;
     }
 }
 }
-
-static if (1)
-{
 
 /*
  * Balance our macro tree in place. This is nice for precompiled headers, since they
@@ -4258,7 +4261,7 @@ static if (1)
  * subtree.
  */
 
-extern __gshared
+__gshared
 {
 /*private*/ uint nmacs;
 /*private*/ uint mac_dim;
@@ -4318,6 +4321,11 @@ debug
     return m;
 }
 
+
+/*private*/ void count_macros(macro_t *m);
+/*private*/ void place_in_array(macro_t *m);
+/*private*/ macro_t * create_tree(int i, int lo, int hi);
+
 /*private*/ void macrotable_balance(macro_t **ps)
 {
     nmacs = 0;
@@ -4342,7 +4350,5 @@ debug
     *ps = create_tree(nmacs / 2, 0, nmacs - 1);
 }
 
-}
-} /* !SPP */
 
 }

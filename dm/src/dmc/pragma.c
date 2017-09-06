@@ -53,11 +53,14 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #define hashtoidx(h)    (((h) + ((h)>>16)) & 0x7FF)
 #endif
 
-static macro_t **mactabroot;            // root of macro symbol table
-static macro_t **mac_array;
+#undef STATIC
+#define STATIC
+
+STATIC macro_t **mactabroot;            // root of macro symbol table
+STATIC macro_t **mac_array;
 
 #if TERMCODE
-static macro_t *premacdefs;             // threaded list of predefined macros
+STATIC macro_t *premacdefs;             // threaded list of predefined macros
 #endif
 
 void cppcomment(void);
@@ -3668,6 +3671,7 @@ int phstring_t::find(const char *s)
  *              0       hydrate in place
  */
 
+#if 0
 void pragma_hydrate_macdefs(macro_t **pmb,int flag)
 {   macro_t *mb;
 #ifdef DEBUG
@@ -3915,8 +3919,6 @@ STATIC void macro_hydrate(macro_t *mb)
 }
 #endif
 
-#if 1
-
 /*
  * Balance our macro tree in place. This is nice for precompiled headers, since they
  * will typically be written out once, but read in many times. We balance the tree in
@@ -3926,11 +3928,11 @@ STATIC void macro_hydrate(macro_t *mb)
  * subtree.
  */
 
-static unsigned nmacs;
-static unsigned mac_dim;
-static unsigned mac_index;
+STATIC unsigned nmacs;
+STATIC unsigned mac_dim;
+STATIC unsigned mac_index;
 
-static void count_macros(macro_t *m)
+STATIC void count_macros(macro_t *m)
 {
     while (m)
     {   nmacs++;
@@ -3939,7 +3941,7 @@ static void count_macros(macro_t *m)
     }
 }
 
-static void place_in_array(macro_t *m)
+STATIC void place_in_array(macro_t *m)
 {
     while (m)
     {   place_in_array(m->ML);
@@ -3955,7 +3957,7 @@ static void place_in_array(macro_t *m)
  * between i and lo, and using i-1 as our new hi point. A similar subdivision
  * is created above i.
  */
-static macro_t * create_tree(int i, int lo, int hi)
+STATIC macro_t * create_tree(int i, int lo, int hi)
 {
     macro_t *m;
 
@@ -4005,7 +4007,7 @@ STATIC void macrotable_balance(macro_t **ps)
 
     *ps = create_tree(nmacs / 2, 0, nmacs - 1);
 }
-
 #endif
+
 #endif /* !SPP */
 
