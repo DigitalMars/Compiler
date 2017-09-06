@@ -155,8 +155,6 @@ struct MACRO
 {
     debug ushort id;
     enum IDmacro = 0x614D;
-    //void macro_debug(MACRO* m) { assert(m.id == IDmacro); }
-    //#define macro_debug(m)
 
     char* Mtext;                // replacement text
     phstring_t Marglist;        // list of arguments (as char*'s)
@@ -168,6 +166,14 @@ struct MACRO
     char[1] Mid;                // macro identifier
 }
 
+debug
+{
+    void macro_debug(MACRO* m) { assert(m.id == MACRO.IDmacro); }
+}
+else
+{
+    void macro_debug(MACRO* m) { }
+}
 
 /**********************
  * Flags for #include files.

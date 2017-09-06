@@ -361,10 +361,8 @@ void opttok(enum_TK toknum);
 bool iswhite(int c);
 void token_term();
 
-/+
-#define ptoken()        rtoken(1)
-#define token()         rtoken(0)
-+/
+enum_TK ptoken() { return rtoken(1); }
+enum_TK token()  { return rtoken(0); }
 
 // !MARS
 /* from pragma.c */
