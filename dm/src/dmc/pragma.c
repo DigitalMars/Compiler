@@ -3521,6 +3521,7 @@ void macro_print(macro_t *m)
 
 #endif
 
+#if 0
 int phstring_t::cmp(phstring_t s2, int (*func)(void *,void *))
 {   int result = 0;
     for (int i = 0; 1; ++i)
@@ -3659,7 +3660,7 @@ int phstring_t::find(const char *s)
     }
     return -1;
 }
-
+#endif
 
 #if !SPP
 

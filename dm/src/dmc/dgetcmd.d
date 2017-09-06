@@ -37,6 +37,7 @@ import tk.mem;
 import dtoken;
 import msgs2;
 import parser;
+import phstring;
 import precomp;
 import dmcdll;
 

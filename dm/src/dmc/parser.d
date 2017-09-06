@@ -16,6 +16,7 @@ module parser;
 
 import core.stdc.stdio;
 
+import phstring;
 import scopeh;
 
 import ddmd.backend.cdef;
@@ -101,34 +102,6 @@ enum
     DTORvirtual     = 0x10,    // use virtual destructor, if any
     DTORnoeh        = 0x20,    // do not append eh stuff
     DTORnoaccess    = 0x40,    // do not perform access check
-}
-
-struct phstring_t
-{
-    size_t length() { return dim; }
-
-    int cmp(phstring_t s2, int function(void *,void *) func);
-
-    bool empty() { return dim == 0; }
-
-    char* opIndex(size_t index)
-    {
-        return dim == 1 ? cast(char *)data : data[index];
-    }
-
-    void push(const(char)* s);
-
-    void hydrate();
-
-    void dehydrate();
-
-    int find(const(char)* s);
-
-    void free(list_free_fp freeptr);
-
-//  private:
-    size_t dim;
-    char** data;
 }
 
 

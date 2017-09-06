@@ -36,6 +36,7 @@ import tk.mem;
 
 import dtoken;
 import parser;
+import phstring;
 
 
 extern (C++):
