@@ -1448,10 +1448,16 @@ version (SCPP)
     char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
 }
 
+version (SPP)
+{
+    char *cpp_prettyident (Symbol *s);
+    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+}
+
 version (HTOD)
 {
     char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
+    char *prettyident(Symbol *s) { return &s.Sident[0]; }
 }
 
 version (MARS)

@@ -113,6 +113,7 @@ void cppcomment();
 /*private*/ void prstring(int flag);
 /*private*/ void prident();
 /*private*/ void prcomment();
+/*private*/ void pragma_setstructalign(int flag);
 static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 {
 /*private*/ void prassert();
@@ -141,6 +142,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 /*private*/ void macro_dehydrate(macro_t *m);
 /*private*/ void macro_hydrate(macro_t *mb);
 /*private*/ void macrotable_balance(macro_t **ps);
+char *textbuf_reserve(char *pbuf, int n);
+phstring_t inarglst(macro_t *m, BlklstSave *blsave);
 
 
 /**********************************
@@ -180,8 +183,6 @@ extern __gshared
 /*private*/ int bufmax;              // allocated length of buf[]
 }
 
-version (none)
-{
 void textbuf_init()
 {
     if (bufmax == 0)
@@ -255,7 +256,6 @@ else
  * First arg is pragma name, second is processing function.
  * Use ENUMPRMAC macro to generate parallel data structures.
  */
-
 static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 {
 enum {
@@ -897,7 +897,7 @@ version (SPP)
                 {
                     pastend = 1;
                     bl = blsave.BSbl;
-                    btextp = cast(char*)blsave.BSbtextp;
+                    btextp = blsave.BSbtextp;
                     xc = blsave.BSxc;
                     continue;
                 }
@@ -1421,6 +1421,8 @@ debug
  * Returns:
  *      pointer to arglist
  */
+
+phstring_t gargsx(ubyte *pflags);
 
 /*private*/ phstring_t gargs(ubyte *pflags)
 {
@@ -2551,7 +2553,7 @@ version (SPP)
             if (cstate.CSfilblk)
             {
                 // Mark source file as only being #include'd once
-                srcpos_sfile(cstate.CSfilblk.BLsrcpos).SFflags |= SFonce;
+                (**(cstate.CSfilblk.BLsrcpos).Sfilptr).SFflags |= SFonce;
             }
             // Remove the #pragma once from the expanded listing
             experaseline();
@@ -3173,7 +3175,7 @@ static if (0)
   {
 version (SPP)
 {
-    if (!isidstart(xc))
+    if (!isidstart(cast(char)xc))
         explist(xc);
 }
   }
@@ -3423,6 +3425,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         blankrol();
   }
 }
+
 
 /*private*/ void prline()       { return prlinex(false); }
 /*private*/ void prlinemarker() { return prlinex(true);  }
@@ -3831,7 +3834,6 @@ void macro_print(macro_t *m)
 
 }
 
-}
 
 version (SPP)
 {

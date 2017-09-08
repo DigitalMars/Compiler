@@ -281,7 +281,7 @@ enum
 
 /* from blklst.c */
 extern __gshared blklst *bl;
-extern __gshared char *btextp;
+extern __gshared ubyte *btextp;
 extern __gshared int blklst_deferfree;
 extern __gshared char *eline;
 extern __gshared int elinmax;            // # of chars in buffer eline[]
@@ -326,7 +326,6 @@ version (__GNUC__)
     void getcharnum();
 }
 
-Srcpos getlinnum();
 uint blklst_linnum();
 void blklst_term();
 
@@ -548,7 +547,7 @@ void ph_add_global_symdef(Symbol *s, uint sctype);
 int pragma_search(const(char)* id);
 macro_t *macfind();
 macro_t *macdefined(const(char)* id, uint hash);
-void listident();
+//void listident();
 char *filename_stringize(char *name);
 ubyte *macro_predefined(macro_t *m);
 int macprocess(macro_t *m, phstring_t *pargs, BlklstSave *blsave);

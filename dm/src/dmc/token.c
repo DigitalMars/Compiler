@@ -1255,6 +1255,7 @@ loop1:
                         if (!(blflags & BLexpanded && bl && bl->BLflags & BLexpanded))
                         {   if (m->Mflags & Mdefined && !(flag & 2))
                             {   phstring_t args;
+                                args.dim = 0;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                                 // extension over used, declarations and statements
                                 if (m->Mval == TK_extension)

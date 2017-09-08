@@ -481,9 +481,21 @@ version (SCPP)
     void srcpos_dehydrate(Srcpos *);
 }
 version (SPP)
+{
     extern __gshared Srcfiles srcfiles;
+    Sfile **filename_indirect(Sfile *sf);
+    Sfile  *filename_search(const(char)* name);
+    Sfile *filename_add(const(char)* name);
+    int filename_cmp(const(char)* f1,const(char)* f2);
+}
 version (HTOD)
+{
     extern __gshared Srcfiles srcfiles;
+    Sfile **filename_indirect(Sfile *sf);
+    Sfile  *filename_search(const(char)* name);
+    Sfile *filename_add(const(char)* name);
+    int filename_cmp(const(char)* f1,const(char)* f2);
+}
 
 // tdb.c
 uint tdb_gettimestamp();

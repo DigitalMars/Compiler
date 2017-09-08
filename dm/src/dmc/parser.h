@@ -101,7 +101,7 @@ struct Match
 
 struct phstring_t
 {
-    phstring_t() { dim = 0; }
+//    phstring_t() { dim = 0; }
 
     size_t length() { return dim; }
 
@@ -124,7 +124,7 @@ struct phstring_t
 
     void free(list_free_fp freeptr);
 
-  private:
+//  private:
     size_t dim;
     char** data;
 };

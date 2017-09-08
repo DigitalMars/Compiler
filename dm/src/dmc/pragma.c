@@ -112,7 +112,7 @@ STATIC void macrotable_balance(macro_t **ps);
  * Structure for nesting #ifs.
  */
 
-static struct IFNEST
+STATIC struct IFNEST
 {       char IFseen;
 #define IF_IF           0       // #if, #ifdef or #ifndef
 #define IF_FIRSTIF      1       // first #ifndef
@@ -120,19 +120,20 @@ static struct IFNEST
 #define IF_ELSE         3       // seen #else
 } *ifn;
 
-static unsigned ifnidx = 0;     /* index into ifn[]                     */
-static unsigned ifnmax = 0;     /* # of entries alloced for ifn[]       */
+STATIC unsigned ifnidx = 0;     /* index into ifn[]                     */
+STATIC unsigned ifnmax = 0;     /* # of entries alloced for ifn[]       */
 
-static list_t pack_stack;       // stack of struct packing alignment
-static list_t dbcs_stack;       // stack of dbcs flag
+STATIC list_t pack_stack;       // stack of struct packing alignment
+STATIC list_t dbcs_stack;       // stack of dbcs flag
 
 /************************************************
  */
 
-static char *abuf;              // allocated part of buf[]
-static char *buf;               // macro text buffer
-static int bufmax;              // allocated length of buf[]
+STATIC char *abuf;              // allocated part of buf[]
+STATIC char *buf;               // macro text buffer
+STATIC int bufmax;              // allocated length of buf[]
 
+#if 0
 void textbuf_init()
 {
     if (bufmax == 0)
@@ -158,7 +159,7 @@ void textbuf_term()
 #endif
 }
 
-inline char *textbuf_reserve(char *pbuf, int n)
+char *textbuf_reserve(char *pbuf, int n)
 {
     unsigned buflen;
     unsigned newlen;
@@ -793,6 +794,7 @@ STATIC char * inarg(bool ellipsisit, BlklstSave *blsave)
 phstring_t inarglst(macro_t *m, BlklstSave *blsave)
 {
     phstring_t al;
+    al.dim = 0;
     int n = 0;
     char err = FALSE;
 
@@ -1213,6 +1215,7 @@ STATIC void prdefine()
 
     // Get argument list
     phstring_t al;
+    al.dim = 0;
     if (xc == '(')                      /* then macro has arguments     */
     {
         egchar();                       // next character
@@ -1274,9 +1277,10 @@ STATIC void prdefine()
 
 STATIC phstring_t gargs(unsigned char *pflags)
 {
-    token();
+//    token();
 
     phstring_t al;                          // start out with NULL list
+    al.dim = 0;
     if (tok.TKval != TKrpar)
     {
         while (1)
@@ -3519,6 +3523,7 @@ void macro_print(macro_t *m)
     macro_debug(m);
 }
 
+#endif
 #endif
 
 #if 0

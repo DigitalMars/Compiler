@@ -25,11 +25,23 @@ extern (C++):
 
 version (Windows)
 {
+    version (SCPP)
+    {
+        version = STATIC;
+    }
+    version (HTOD)
+    {
+        version = STATIC;
+    }
+}
+
+version (Windows)
+{
 class Obj
 {
   public:
     static Obj init(Outbuffer *, const(char)* filename, const(char)* csegname);
-    version (SCPP)
+    version (STATIC)
     {
         static void initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
         static void termfile();
@@ -58,9 +70,7 @@ class Obj
         void user(const(char)* p);
     }
 
-    version (SCPP)
-        static void _import(elem *e);
-    else version (HTOD)
+    version (STATIC)
         static void _import(elem *e);
     else
         void _import(elem *e);
@@ -71,13 +81,13 @@ class Obj
     void lzext(Symbol *,Symbol *);
     void theadr(const(char)* modname);
     void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-    version (SCPP)
+    version (STATIC)
         static void staticctor(Symbol *s,int dtor,int seg);
     else
         void staticctor(Symbol *s,int dtor,int seg);
     void staticdtor(Symbol *s);
     void setModuleCtorDtor(Symbol *s, bool isCtor);
-    version (SCPP)
+    version (STATIC)
         static void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     else
         void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
@@ -134,7 +144,7 @@ class MsCoffObj : Obj
 {
   public:
     static MsCoffObj init(Outbuffer *, const(char)* filename, const(char)* csegname);
-    version (SCPP)
+    version (STATIC)
     {
         static void initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
         static void termfile();
@@ -171,13 +181,13 @@ class MsCoffObj : Obj
 //    void lzext(Symbol *,Symbol *);
 //    void theadr(const(char)* modname);
 //    void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-    version (SCPP)
+    version (STATIC)
         static void staticctor(Symbol *s,int dtor,int seg);
     else
         override void staticctor(Symbol *s,int dtor,int seg);
     override void staticdtor(Symbol *s);
     override void setModuleCtorDtor(Symbol *s, bool isCtor);
-    version (SCPP)
+    version (STATIC)
         static void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     else
         override void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);

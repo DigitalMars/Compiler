@@ -318,7 +318,7 @@ extern __gshared
 }
 
 void token_setdbcs(int);
-void token_setlocale(const char *);
+void token_setlocale(const(char)*);
 token_t *token_copy();
 void token_free(token_t *tl);
 void token_hydrate(token_t **ptl);
@@ -332,7 +332,6 @@ void token_unget();
 void token_markfree(token_t *t);
 void token_setident(char *);
 void token_semi();
-Srcpos token_linnum();
 enum_TK token_peek();
 
 enum_TK rtoken(int);
@@ -376,10 +375,12 @@ void pragma_term();
 //macro_t *defmac(const(char)* name , const(char)* text);
 //int pragma_defined();
 
-/+
-#if SPP && TX86
-#define token_linnum()  getlinnum()
-#endif
+Srcpos getlinnum();
+version (SPP)
+    alias token_linnum = getlinnum;
+else
+    Srcpos token_linnum();
+
 
 //      listing control
 //      Listings can be produce via -l and SCpre
@@ -388,6 +389,7 @@ void pragma_term();
 //              SCpre   list only characters to be compiled
 //                      i.e. exclude comments and # preprocess lines
 
+/+
 #if SPP
 #define SCPRE_LISTING_ON()      expflag--; assert(expflag >= 0)
 #define SCPRE_LISTING_OFF()     assert(expflag >= 0); expflag++
