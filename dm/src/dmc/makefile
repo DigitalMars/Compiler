@@ -172,7 +172,7 @@ debppnd:
 OBJ1a=dblklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj
 OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj dmcdll.obj
-OBJ1d=nspace.obj dnwc.obj os.obj out.obj ph.obj ppexp.obj dpragma.obj pragma.obj pseudo.obj
+OBJ1d=nspace.obj dnwc.obj os.obj out.obj ph.obj ppexp.obj dpragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj token.obj type.obj dt.obj dth.obj phstring.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj dlist.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
@@ -304,7 +304,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h \
         msgsx.c scope.c \
         trace.c file.c dmcdll.c \
         msc.c ph.c token.c \
-        pragma.c tk.c \
+        tk.c \
         htod.c speller.c
 
 # Back end
@@ -544,7 +544,6 @@ msc.obj : $(DEP) $(msc.dep) msc.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 out.obj : $(DEP) $(out.dep) out.c
 pdata.obj : $(DEP) $(pdata.dep) pdata.c
-pragma.obj : $(DEP) $(pragma.dep) pragma.c
 ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
 speller.obj : speller.h speller.c
 ti_achar.obj : tinfo.h ti_achar.c

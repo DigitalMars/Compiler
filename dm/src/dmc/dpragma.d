@@ -86,64 +86,18 @@ uint hashtoidx(uint h) { return cast(uint)(h) % MACROHASHSIZE; }
 #define hashtoidx(h)    (((h) + ((h)>>16)) & 0x7FF)
 +/
 
-extern __gshared
+__gshared
 {
-/*private*/ macro_t **mactabroot;            // root of macro symbol table
-/*private*/ macro_t **mac_array;
+private macro_t **mactabroot;            // root of macro symbol table
+private macro_t **mac_array;
 }
 
 static if (TERMCODE)
 {
-/*private*/ macro_t *premacdefs;             // threaded list of predefined macros
+private macro_t *premacdefs;             // threaded list of predefined macros
 }
 
 void cppcomment();
-/*private*/ macro_t ** macinsert(const(char)* p, uint hashval);
-/*private*/ macro_t ** macfindparent(const(char)* p, uint hashval);
-/*private*/ void deletemactab();
-/*private*/ macro_t * macro_calloc(const(char)* p);
-/*private*/ void macro_free(macro_t *m);
-/*private*/ void prdefine();
-/*private*/ char * macrotext(macro_t *m);
-/*private*/ void prundef();
-/*private*/ void princlude();
-/*private*/ void princlude_next();
-/*private*/ void princlude_flag(bool next);
-/*private*/ void prmessage();
-/*private*/ void prstring(int flag);
-/*private*/ void prident();
-/*private*/ void prcomment();
-/*private*/ void pragma_setstructalign(int flag);
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-/*private*/ void prassert();
-/*private*/ void prassertid();
-/*private*/ void prwarning();
-}
-/*private*/ void prpragma();
-/*private*/ void prerror();
-/*private*/ void prexit();
-/*private*/ void prif();
-/*private*/ void prelif();
-/*private*/ void prelseif();
-/*private*/ void prelse();
-/*private*/ void pragma_elif(int seen);
-/*private*/ void prendif();
-/*private*/ void prifdef();
-/*private*/ void prifndef();
-/*private*/ void prline();
-/*private*/ void prlinemarker();
-/*private*/ void scantoelseend();
-/*private*/ void scantodefine();
-/*private*/ void eatrol();
-/*private*/ void blankrol();
-/*private*/ void incifn();
-/*private*/ phstring_t gargs(ubyte *);
-/*private*/ void macro_dehydrate(macro_t *m);
-/*private*/ void macro_hydrate(macro_t *mb);
-/*private*/ void macrotable_balance(macro_t **ps);
-char *textbuf_reserve(char *pbuf, int n);
-phstring_t inarglst(macro_t *m, BlklstSave *blsave);
 
 
 /**********************************
@@ -162,25 +116,25 @@ struct IFNEST
 {       char IFseen;
 }
 
-extern __gshared
+__gshared
 {
-/*private*/ IFNEST *ifn;
+private IFNEST *ifn;
 
-/*private*/ uint ifnidx;     /* index into ifn[]                     */
-/*private*/ uint ifnmax;     /* # of entries alloced for ifn[]       */
+private uint ifnidx;     /* index into ifn[]                     */
+private uint ifnmax;     /* # of entries alloced for ifn[]       */
 
-/*private*/ list_t pack_stack;       // stack of struct packing alignment
-/*private*/ list_t dbcs_stack;       // stack of dbcs flag
+private list_t pack_stack;       // stack of struct packing alignment
+private list_t dbcs_stack;       // stack of dbcs flag
 }
 
 /************************************************
  */
 
-extern __gshared
+__gshared
 {
-/*private*/ char *abuf;              // allocated part of buf[]
-/*private*/ char *buf;               // macro text buffer
-/*private*/ int bufmax;              // allocated length of buf[]
+private char *abuf;              // allocated part of buf[]
+private char *buf;               // macro text buffer
+private int bufmax;              // allocated length of buf[]
 }
 
 void textbuf_init()
@@ -286,7 +240,7 @@ enum {
 };
 
 // String table indexed by enum PR
-/*private*/ const(char)*[PRMAX] pragtab =
+private const(char)*[PRMAX] pragtab =
 [
         "__linemarker",
         "assert",
@@ -314,7 +268,7 @@ enum {
 ];
 
 // Function table indexed by enum PR
-/*private*/ void function()[PRMAX] pragfptab =
+private void function()[PRMAX] pragfptab =
 [
         &prlinemarker,
         &prassert,
@@ -365,7 +319,7 @@ enum {
 };
 
 // String table indexed by enum PR
-/*private*/ __gshared const(char)*[PRMAX] pragtab =
+private __gshared const(char)*[PRMAX] pragtab =
 [
         "__linemarker",
         "define",
@@ -386,7 +340,7 @@ enum {
 ];
 
 // Function table indexed by enum PR
-/*private*/ __gshared void function()[PRMAX] pragfptab =
+private __gshared void function()[PRMAX] pragfptab =
 [
         &prlinemarker,
         &prdefine,
@@ -481,7 +435,7 @@ else
  *      pointer to macro table entry
  */
 
-/*private*/ macro_t ** macinsert(const(char)* p,uint hashval)
+private macro_t ** macinsert(const(char)* p,uint hashval)
 {   macro_t *m;
     macro_t **mp;
 
@@ -600,7 +554,7 @@ else
  * Search for the parent of the macro in the macro symbol table.
  */
 
-/*private*/ macro_t ** macfindparent(const(char)* p,uint hashval)
+private macro_t ** macfindparent(const(char)* p,uint hashval)
 { macro_t* m;
   macro_t** mp;
   byte cmp;
@@ -755,7 +709,7 @@ ubyte *macro_predefined(macro_t *m)
  *      pointer to the argument
  */
 
-/*private*/ char * inarg(bool ellipsisit, BlklstSave *blsave)
+private char * inarg(bool ellipsisit, BlklstSave *blsave)
 {   int i;
     int parencnt = 0;                   // paren nesting count
     int tc;                             // terminating char of string
@@ -1149,7 +1103,7 @@ static if (TX86)
  * Allocate a macro.
  */
 
-/*private*/ macro_t * macro_calloc(const(char)* p)
+private macro_t * macro_calloc(const(char)* p)
 {   size_t len = strlen(p);
     macro_t *m;
     __gshared macro_t mzero;
@@ -1296,7 +1250,7 @@ int pragma_defined()
  * Comparison function for list_cmp().
  */
 
-/*private*/ int pragma_strcmp(void *s1,void *s2)
+private int pragma_strcmp(void *s1,void *s2)
 {
     return strcmp(cast(const(char)*) s1,cast(const(char)*) s2);
 }
@@ -1307,7 +1261,7 @@ int pragma_defined()
  * #define identifier( identifier, ... , identifier) text
  */
 
-/*private*/ void prdefine()
+private void prdefine()
 { macro_t *m;
   macro_t *mold;
   macro_t **pm;
@@ -1424,7 +1378,7 @@ debug
 
 phstring_t gargsx(ubyte *pflags);
 
-/*private*/ phstring_t gargs(ubyte *pflags)
+private phstring_t gargs(ubyte *pflags)
 {
     token();
 
@@ -1513,7 +1467,7 @@ phstring_t gargsx(ubyte *pflags);
  *      pointer to copied macro replacement text string
  */
 
-/*private*/ char * macrotext(macro_t *m)
+private char * macrotext(macro_t *m)
 {   char lastxc;
     char *pbuf;
     int hashidx;
@@ -1906,7 +1860,7 @@ debug
  * #undef identifier
  */
 
-/*private*/ void prundef()
+private void prundef()
 {   macro_t *m;
     macro_t *mold;
     macro_t **pm;
@@ -1962,10 +1916,10 @@ debug
  * #include_next <filename>
  */
 
-/*private*/ void princlude_next() { princlude_flag(true);  }
-/*private*/ void princlude()      { princlude_flag(false); }
+private void princlude_next() { princlude_flag(true);  }
+private void princlude()      { princlude_flag(false); }
 
-/*private*/ void princlude_flag(bool next)
+private void princlude_flag(bool next)
 {
     //printf("princlude_flag(%d)\n", next);
     file_progress();
@@ -2214,7 +2168,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
  * #warning (string)
  */
 
-/*private*/ void prwarning()
+private void prwarning()
 {
     char *p;
     targ_size_t len;
@@ -2244,7 +2198,7 @@ else
  * #pragma message(string)
  */
 
-/*private*/ void prmessage()
+private void prmessage()
 {
     prstring(1);
 }
@@ -2256,7 +2210,7 @@ else
  * #pragma setlocale(string)
  */
 
-/*private*/ void prstring(int flag)
+private void prstring(int flag)
 { char *p;
   targ_size_t len;
   char paren;
@@ -2318,7 +2272,7 @@ static if (TX86)
  * Coded by David Bustin.
  */
 
-/*private*/ void prcomment()
+private void prcomment()
 {
 version (SPP)
 {
@@ -2385,7 +2339,7 @@ Lret:
  * #ident string
  */
 
-/*private*/ void prident()
+private void prident()
 { char *p;
   targ_size_t len;
 
@@ -2414,7 +2368,7 @@ else
 
 version (Posix)
 {
-/*private*/ void prassert()
+private void prassert()
 {
 
   if (config.ansi_c)
@@ -2423,7 +2377,7 @@ version (Posix)
                                 // Simply do nothing
 }
 
-/*private*/ void prassertid()
+private void prassertid()
 {
   char *p;
   targ_int n;
@@ -2444,7 +2398,7 @@ version (Posix)
  *              1       dbcs
  */
 
-/*private*/ void pragma_setstructalign(int flag)
+private void pragma_setstructalign(int flag)
 {   list_t *pstack;
 
     pstack = flag ? &dbcs_stack : &pack_stack;
@@ -2533,7 +2487,7 @@ version (Posix)
  *      #pragma options align=power == #pragma align 4
 */
 
-/*private*/ void prpragma()
+private void prpragma()
 {
 version (SPP)
 {
@@ -3117,7 +3071,7 @@ Ldone:
  * Print diagnostic message and exit.
  */
 
-/*private*/ void prerror()
+private void prerror()
 {
     const(char)* name;
     int line;
@@ -3148,7 +3102,7 @@ Ldone:
 
 static if (0)
 {
-/*private*/ void prexit()
+private void prexit()
 {
   stoken();
   exit(cast(int) msc_getnum());
@@ -3160,7 +3114,7 @@ static if (0)
  * #elif constant_expression
  */
 
-/*private*/ void prif()
+private void prif()
 { targ_int n;
 
   stoken();
@@ -3196,17 +3150,17 @@ version (SPP)
  * #else
  */
 
-/*private*/ void prelif()   { pragma_elif(IF_ELIF); }
-/*private*/ void prelse()   { pragma_elif(IF_ELSE); }
+private void prelif()   { pragma_elif(IF_ELIF); }
+private void prelse()   { pragma_elif(IF_ELSE); }
 
-/*private*/ void prelseif()
+private void prelseif()
 {
     if (config.ansi_c)
         lexerr(EM_preprocess,tok_ident.ptr);        // unrecognized pragma
     pragma_elif(IF_ELIF);               // synonym for #elif
 }
 
-/*private*/ void pragma_elif(int seen)
+private void pragma_elif(int seen)
 {
     eatrol();                           /* scanto to next line          */
     exp_ppon();
@@ -3226,7 +3180,7 @@ version (SPP)
  * #endif
  */
 
-/*private*/ void prendif()
+private void prendif()
 {
   blankrol();                           /* scanto to next line          */
   exp_ppon();
@@ -3267,7 +3221,7 @@ version (SPP)
  * #ifdef identifier
  */
 
-/*private*/ void prifdef()
+private void prifdef()
 { macro_t *m;
 
   token();
@@ -3298,7 +3252,7 @@ version (SPP)
  * #ifndef identifier
  */
 
-/*private*/ void prifndef()
+private void prifndef()
 {
     //printf("prifndef()\n");
     ubyte bfl = 0;
@@ -3349,7 +3303,7 @@ static if (IMPLIED_PRAGMA_ONCE)
  * # constant identifier flags...
  */
 
-/*private*/ void prlinex(bool linemarker)
+private void prlinex(bool linemarker)
 {
     int lLine, savenum = 0;
 version (SPP)
@@ -3427,8 +3381,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 }
 
 
-/*private*/ void prline()       { return prlinex(false); }
-/*private*/ void prlinemarker() { return prlinex(true);  }
+private void prline()       { return prlinex(false); }
+private void prlinemarker() { return prlinex(true);  }
 
 /*************************
  * Skip over tokens, looking for #elif, #else or
@@ -3436,7 +3390,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
  * Note that conditionals can be nested.
  */
 
-/*private*/ void scantoelseend()
+private void scantoelseend()
 {   int ifnidxstart = ifnidx;
 
     //printf("scantoelseend(): expflag = %d\n", expflag);
@@ -3617,7 +3571,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
  *      xc is on EOL
  */
 
-/*private*/ void scantodefine()
+private void scantodefine()
 {   int lastxc;
     int instr;
 
@@ -3697,7 +3651,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
  * Watch out for end of files (xc == 0)!
  */
 
-/*private*/ void eatrol()
+private void eatrol()
 {
     if (config.ansi_c)                   /* elide comments and strings   */
     {
@@ -3756,7 +3710,7 @@ else
  * Eat rest of line, but gripe if there is anything on it except whitespace.
  */
 
-/*private*/ void blankrol()
+private void blankrol()
 {
     while (1)
     {
@@ -3804,7 +3758,7 @@ rol:
 
 enum IFNEST_INC = 30;
 
-/*private*/ void incifn()
+private void incifn()
 {
         if (++ifnidx >= ifnmax)
         {   ifnmax += IFNEST_INC;
@@ -3987,7 +3941,7 @@ static if (DEHYDRATE)
 /**********************************
  */
 
-/*private*/ void pragma_insert(macro_t *m)
+private void pragma_insert(macro_t *m)
 {
     while (m)
     {
@@ -4051,7 +4005,7 @@ debug
 
 static if (DEHYDRATE)
 {
-/*private*/ void macro_dehydrate(macro_t *m)
+private void macro_dehydrate(macro_t *m)
 {
     while (m)
     {   macro_t *ml;
@@ -4079,7 +4033,7 @@ static if (DEHYDRATE)
 
 static if (HYDRATE)
 {
-/*private*/ void macro_hydrate(macro_t *mb)
+private void macro_hydrate(macro_t *mb)
 {
     while (mb)
     {   macro_t* ml,mr;
@@ -4114,12 +4068,12 @@ debug
 
 __gshared
 {
-/*private*/ uint nmacs;
-/*private*/ uint mac_dim;
-/*private*/ uint mac_index;
+private uint nmacs;
+private uint mac_dim;
+private uint mac_index;
 }
 
-/*private*/ void count_macros(macro_t *m)
+private void count_macros(macro_t *m)
 {
     while (m)
     {   nmacs++;
@@ -4128,7 +4082,7 @@ __gshared
     }
 }
 
-/*private*/ void place_in_array(macro_t *m)
+private void place_in_array(macro_t *m)
 {
     while (m)
     {   place_in_array(m.ML);
@@ -4144,7 +4098,7 @@ __gshared
  * between i and lo, and using i-1 as our new hi point. A similar subdivision
  * is created above i.
  */
-/*private*/ macro_t * create_tree(int i, int lo, int hi)
+private macro_t * create_tree(int i, int lo, int hi)
 {
     macro_t *m;
 
@@ -4173,11 +4127,11 @@ debug
 }
 
 
-/*private*/ void count_macros(macro_t *m);
-/*private*/ void place_in_array(macro_t *m);
-/*private*/ macro_t * create_tree(int i, int lo, int hi);
+private void count_macros(macro_t *m);
+private void place_in_array(macro_t *m);
+private macro_t * create_tree(int i, int lo, int hi);
 
-/*private*/ void macrotable_balance(macro_t **ps)
+private void macrotable_balance(macro_t **ps)
 {
     nmacs = 0;
     count_macros(*ps);
