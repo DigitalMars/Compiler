@@ -2906,8 +2906,6 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
  * Turn register mask into a string suitable for printing.
  */
 
-#ifdef DEBUG
-
 const char *regm_str(regm_t rm)
 {
     #define NUM 10
@@ -2946,8 +2944,6 @@ const char *regm_str(regm_t rm)
     assert(strlen(p) <= SMAX);
     return strdup(p);
 }
-
-#endif
 
 /*********************************
  * Scan down comma-expressions.
