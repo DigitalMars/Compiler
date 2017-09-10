@@ -407,6 +407,18 @@ void mem_freefp(void *p)
 {
         mem_free(p);
 }
+
+#undef mem_fmalloc
+void *mem_fmalloc(size_t numbytes)
+{
+    return mem_malloc(numbytes);
+}
+
+#undef mem_fstrdup
+char *mem_fstrdup(const char *s)
+{
+    return mem_strdup(s);
+}
 
 /***********************
  * Debug versions of mem_calloc(), mem_free() and mem_realloc().

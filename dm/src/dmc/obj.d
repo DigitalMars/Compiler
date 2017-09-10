@@ -46,39 +46,42 @@ class Obj
         static void initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
         static void termfile();
         static void term(const(char)* objfilename);
-        static void compiler();
-        static void exestr(const(char)* p);
+        static size_t mangle(Symbol *s,char *dest);
+        static void _import(elem *e);
+        void linnum(Srcpos srcpos, int seg, targ_size_t offset);
+        int codeseg(char *name,int suffix);
         static void dosseg();
         static void startaddress(Symbol *);
         static bool includelib(const(char)* );
-        static size_t mangle(Symbol *s,char *dest);
-        static void _alias(const(char)* n1,const(char)* n2);
+        bool allowZeroSize();
+        static void exestr(const(char)* p);
         static void user(const(char)* p);
+        static void compiler();
+        void wkext(Symbol *,Symbol *);
+        void lzext(Symbol *,Symbol *);
+        static void _alias(const(char)* n1,const(char)* n2);
     }
     else
     {
         void initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
         void termfile();
         void term(const(char)* objfilename);
-        void compiler();
-        void exestr(const(char)* p);
+        size_t mangle(Symbol *s,char *dest);
+        void _import(elem *e);
+        void linnum(Srcpos srcpos, int seg, targ_size_t offset);
+        int codeseg(char *name,int suffix);
         void dosseg();
         void startaddress(Symbol *);
         bool includelib(const(char)* );
-        size_t mangle(Symbol *s,char *dest);
-        void _alias(const(char)* n1,const(char)* n2);
+        bool allowZeroSize();
+        void exestr(const(char)* p);
         void user(const(char)* p);
+        void compiler();
+        void wkext(Symbol *,Symbol *);
+        void lzext(Symbol *,Symbol *);
+        void _alias(const(char)* n1,const(char)* n2);
     }
 
-    version (STATIC)
-        static void _import(elem *e);
-    else
-        void _import(elem *e);
-    void linnum(Srcpos srcpos, int seg, targ_size_t offset);
-    int codeseg(char *name,int suffix);
-    bool allowZeroSize();
-    void wkext(Symbol *,Symbol *);
-    void lzext(Symbol *,Symbol *);
     void theadr(const(char)* modname);
     void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
     version (STATIC)
@@ -165,10 +168,10 @@ class MsCoffObj : Obj
         override void term(const(char)* objfilename);
         override void compiler();
         override void exestr(const(char)* p);
-        override void dosseg();
+        //override void dosseg();
+        //override size_t mangle(Symbol *s,char *dest);
         override void startaddress(Symbol *);
         override bool includelib(const(char)* );
-        override size_t mangle(Symbol *s,char *dest);
         override void _alias(const(char)* n1,const(char)* n2);
         override void user(const(char)* p);
     }
