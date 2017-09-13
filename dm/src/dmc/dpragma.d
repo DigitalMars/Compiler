@@ -37,6 +37,7 @@ import msgs2;
 import parser;
 import phstring;
 import precomp;
+import rawstring;
 import scopeh;
 
 extern (C++):

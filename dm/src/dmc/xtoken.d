@@ -37,6 +37,7 @@ import msgs2;
 import parser;
 import phstring;
 import precomp;
+import rawstring;
 import utf;
 
 extern (C++):
@@ -3745,83 +3746,12 @@ L63:                            ;
 }
 
 }
+}
 
 /******************************************
  */
 static if (0)
 {
-void RawString_init()
-{
-    rawstate = RAWdchar;
-    dchari = 0;
-}
-
-bool RawString_inString(ubyte c)
-{
-    switch (rawstate)
-    {
-        case RAWdchar:
-            if (c == '(')       // end of d-char-string
-            {
-                dcharbuf[dchari] = 0;
-                rawstate = RAWstring;
-            }
-            else if (c == ' '  || c == '('  || c == ')'  ||
-                     c == '\\' || c == '\t' || c == '\v' ||
-                     c == '\f' || c == '\n')
-            {
-                lexerr(EM_invalid_dchar, c);
-                rawstate = RAWerror;
-            }
-            else if (dchari >= dcharbuf.sizeof - 1)
-            {
-                lexerr(EM_string2big, dcharbuf.sizeof - 1);
-                rawstate = RAWerror;
-            }
-            else
-            {
-                dcharbuf[dchari] = c;
-                ++dchari;
-            }
-            break;
-
-        case RAWstring:
-            if (c == ')')
-            {
-                dchari = 0;
-                rawstate = RAWend;
-            }
-            break;
-
-        case RAWend:
-            if (c == dcharbuf[dchari])
-            {
-                ++dchari;
-            }
-            else if (dcharbuf[dchari] == 0)
-            {
-                if (c == '"')
-                    rawstate = RAWdone;
-                else
-                    rawstate = RAWstring;
-            }
-            else if (c == ')')
-            {
-                // Rewind ')' dcharbuf[0..dchari]
-                dchari = 0;
-            }
-            else
-            {
-                // Rewind ')' dcharbuf[0..dchari]
-                rawstate = RAWstring;
-            }
-            break;
-
-        default:
-            assert(0);
-    }
-    return rawstate != RAWdone && rawstate != RAWerror;
-}
 }
 
 /**********************************
@@ -3849,6 +3779,7 @@ else
     MEM_PARC_FREE(tok_arg);
 }
 }
+
 
 debug
 {
@@ -3891,7 +3822,7 @@ void token_print(token_t* t)
         case TKfilespec:
             dbg_printf("string = '");
             for (i = 0; i < t.TKlenstr; i++)
-                dbg_fputc(t.TKstr[i],stdout);
+                dbg_printf("%.*s", cast(int)t.TKlenstr, t.TKstr);
             break;
         case TKdouble:
         case TKreal_da:
@@ -3919,4 +3850,3 @@ void token_funcbody_print(token_t *t)
 
 }
 
-}

@@ -723,14 +723,3 @@ extern __gshared int level;     // declaration level
 extern __gshared Symbol *symlinkage;              // symbol linkage table
 extern __gshared param_t *paramlst;               // function parameter list
 
-struct RawString
-{
-    enum { RAWdchar, RAWstring, RAWend, RAWdone, RAWerror }
-    int rawstate;
-    char[16 + 1] dcharbuf;
-    int dchari;
-
-    void init();
-    bool inString(ubyte c);
-}
-

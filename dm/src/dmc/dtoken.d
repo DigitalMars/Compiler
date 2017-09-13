@@ -280,8 +280,10 @@ struct token_t
     enum IDtoken = 0xA745;
 
     void setSymbol(Symbol *s);
-    void print();
+    void print() { token_print(&this); }
 }
+
+void token_print(token_t *);
 
 debug
 {

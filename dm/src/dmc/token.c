@@ -3451,6 +3451,7 @@ L63:
 
 /******************************************
  */
+#if 0
 void RawString::init()
 {
     rawstate = RAWdchar;
@@ -3523,11 +3524,13 @@ bool RawString::inString(unsigned char c)
     }
     return rawstate != RAWdone && rawstate != RAWerror;
 }
+#endif
 
 /**********************************
  * Terminate use of scanner
  */
 
+#if 0
 #if TERMCODE
 void token_term()
 {
@@ -3587,7 +3590,9 @@ void token_t::print()
         case TKfilespec:
             dbg_printf("string = '");
             for (i = 0; i < this->TKlenstr; i++)
+            {
                 dbg_fputc(this->TKstr[i],stdout);
+            }
             break;
         case TKdouble:
         case TKreal_da:
@@ -3613,4 +3618,5 @@ void token_funcbody_print(token_t *t)
     }
 }
 
+#endif
 #endif
