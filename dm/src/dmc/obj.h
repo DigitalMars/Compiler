@@ -18,7 +18,7 @@
 
 struct seg_data;
 
-#if MARS && TARGET_WINDOS
+#if MARS && TARGET_WINDOS && !HTOD
 #define VIRTUAL virtual
 #else
 #define VIRTUAL static

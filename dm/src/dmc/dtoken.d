@@ -278,10 +278,18 @@ struct token_t
 
     debug ushort id;
     enum IDtoken = 0xA745;
-    debug void token_debug() { debug { assert(id == IDtoken); } }
 
     void setSymbol(Symbol *s);
     void print();
+}
+
+debug
+{
+    void token_debug(token_t* t) { assert(t.id == token_t.IDtoken); }
+}
+else
+{
+    void token_debug(token_t* t) { }
 }
 
 // Use this for fast scans
@@ -367,7 +375,7 @@ enum_TK token()  { return rtoken(0); }
 /* from pragma.c */
 //enum_TK ptoken();
 void pragma_process();
-int pragma_search(const(char)* id);
+//int pragma_search(const(char)* id);
 //macro_t * macfind();
 //macro_t *macdefined(const(char)* id, uint hash);
 void listident();

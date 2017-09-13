@@ -13,10 +13,10 @@ alias dchar_t = uint;
 
 int utf_isValidDchar(dchar_t c);
 
-const char *utf_decodeChar(ubyte* s, size_t len, size_t *pidx, dchar_t *presult);
-const char *utf_decodeWchar(ushort* s, size_t len, size_t *pidx, dchar_t *presult);
+const(char)* utf_decodeChar(ubyte* s, size_t len, size_t *pidx, dchar_t *presult);
+const(char)* utf_decodeWchar(ushort* s, size_t len, size_t *pidx, dchar_t *presult);
 
-const char *utf_validateString(ubyte* s, size_t len);
+const(char)* utf_validateString(ubyte* s, size_t len);
 
 int isUniAlpha(dchar_t);
 

@@ -1282,7 +1282,9 @@ STATIC void writefunc2(symbol *sfunc)
                                         // generate new code segment
             }
         cod3_align(cseg);               // align start of function
+#if !HTOD
         objmod->func_start(sfunc);
+#endif
         searchfixlist(sfunc);           // backpatch any refs to this function
     }
 
@@ -1296,7 +1298,9 @@ STATIC void writefunc2(symbol *sfunc)
 #if SCPP
     PARSER = 1;
 #endif
+#if !HTOD
     objmod->func_term(sfunc);
+#endif
     if (eecontext.EEcompile == 1)
         goto Ldone;
     if (sfunc->Sclass == SCglobal)

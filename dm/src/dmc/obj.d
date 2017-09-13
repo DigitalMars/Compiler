@@ -130,8 +130,16 @@ class Obj
     int data_readonly(char *p, int len);
     int string_literal_segment(uint sz);
     Symbol *sym_cdata(tym_t, char *, int);
-    void func_start(Symbol *sfunc);
-    void func_term(Symbol *sfunc);
+    version (STATIC)
+    {
+        static void func_start(Symbol *sfunc);
+        static void func_term(Symbol *sfunc);
+    }
+    else
+    {
+        void func_start(Symbol *sfunc);
+        void func_term(Symbol *sfunc);
+    }
     void write_pointerRef(Symbol* s, uint off);
     int jmpTableSegment(Symbol* s);
 
@@ -231,8 +239,16 @@ class MsCoffObj : Obj
     override int string_literal_segment(uint sz);
     override Symbol *sym_cdata(tym_t, char *, int);
     static  uint addstr(Outbuffer *strtab, const(char)* );
-    override void func_start(Symbol *sfunc);
-    override void func_term(Symbol *sfunc);
+    version (STATIC)
+    {
+        static void func_start(Symbol *sfunc);
+        static void func_term(Symbol *sfunc);
+    }
+    else
+    {
+        override void func_start(Symbol *sfunc);
+        override void func_term(Symbol *sfunc);
+    }
     override void write_pointerRef(Symbol* s, uint off);
     override int jmpTableSegment(Symbol* s);
 

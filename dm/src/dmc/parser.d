@@ -253,18 +253,26 @@ enum
     PRE_ARGMAX = 0xFB // maximum number of arguments to a macro
 }
 
-/+
-#if 1
-#define EGCHAR()                                                \
-        ((((xc = *btextp) != PRE_EOB && xc != PRE_ARG)  \
-        ?   (btextp++,(config.flags2 & CFG2expand && (explist(xc),1)),1) \
-        :   egchar2()                                           \
-        ),xc)
-#else
-#define EGCHAR() egchar()
-#endif
-+/
-
+static if (1)
+{
+    int EGCHAR()
+    {
+        xc = *btextp;
+        if (xc != PRE_EOB && xc != PRE_ARG)
+        {
+            btextp++;
+            if (config.flags2 & CFG2expand)
+                explist(xc);
+        }
+        else
+            egchar2();
+        return xc;
+    }
+}
+else
+{
+    alias EGCHAR = egchar;
+}
 
 /**********************************
  * Function return value methods.
