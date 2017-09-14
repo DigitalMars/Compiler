@@ -297,7 +297,7 @@ FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d 
 	dnwc.d dblklst.d dpragma.d phstring.di phstring.d xtoken.d rawstring.di rawstring.d
 
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h \
-	speller.h tdb.h total.h utf.h \
+	speller.h tdb.h total.h \
 	\
         ini.c errmsgs2.c tdbx.c util.c \
         iasm.c err.c \
