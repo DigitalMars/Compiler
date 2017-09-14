@@ -88,12 +88,12 @@ else
     bool ishex(char x) { return isxdigit(x) || isdigit(x); }
 }
 
-/*private*/ enum_TK innum();
-/*private*/ enum_TK inchar(int flags);
-/*private*/ int escape();
-/*private*/ int instring(int tc, int flags);
-/*private*/ enum_TK inreal(const(char)*);
-/*private*/ void checkAllowedUniversal(uint uc);
+private enum_TK innum();
+private enum_TK inchar(int flags);
+private int escape();
+private int instring(int tc, int flags);
+private enum_TK inreal(const(char)*);
+private void checkAllowedUniversal(uint uc);
 void stringToUTF16(ubyte* string, uint len);
 void stringToUTF32(ubyte* string, uint len);
 void tok_string_reserve(uint nbytes);
@@ -114,17 +114,17 @@ enum
 enum LOCALE         =       0;       // locale support for Unicode conversion
 enum PASCAL_STRINGS =       0;
 
-extern __gshared
+__gshared
 {
-char[2*IDMAX + 1] tok_ident /*= void*/;  /* identifier                   */
-/*private*/ char *tok_string;        /* for strings (not null terminated)    */
-/*private*/ int tok_strmax;          /* length of tok_string buffer          */
+char[2*IDMAX + 1] tok_ident = void;  /* identifier                   */
+private char *tok_string;        /* for strings (not null terminated)    */
+private int tok_strmax;          /* length of tok_string buffer          */
 
 Outbuffer *utfbuf;
 
 static if ( PASCAL_STRINGS)
 {
-/*private*/ char tok_passtr;         /* pascal string in tok_string          */
+private char tok_passtr;         /* pascal string in tok_string          */
 }
 
 token_t tok /*= { TKnone }*/;       /* last token scanned                   */
@@ -135,28 +135,25 @@ char *tok_arg;                  /* argument buffer                      */
 uint argmax;                /* length of argument buffer            */
 }
 
-extern __gshared
+__gshared
 {
 token_t *toklist;
-/*private*/ list_t toksrclist;
+private list_t toksrclist;
 }
 
-extern __gshared
-/*private*/ token_t *token_freelist;
+ __gshared
+private token_t *token_freelist;
 
 
 int isUniAlpha(uint u);
 void cppcomment();
-/*private*/ bool inpragma();
+private bool inpragma();
 
 /* This is so the isless(), etc., macros in math.h work even with -A99
  */
 enum EXTENDED_FP_OPERATORS = 1;
 //enum EXTENDED_FP_OPERATORS = !ANSI_STRICT;
 
-version (none)
-{
-}
 
 /********************************
  * This table is very similar to _ctype[] in the library.
@@ -972,7 +969,7 @@ __gshared Keyword[3] kwtab4 =
     { "false",        TKfalse },
 ];
 
-/*private*/ void token_defkwds(Keyword *k,uint dim)
+private void token_defkwds(Keyword *k,uint dim)
 {   uint u;
 
     for (u = 0; u < dim; u++)
@@ -2099,7 +2096,7 @@ void tok_string_reserve(uint nbytes)
  */
 
 
-/*private*/ int instring(int tc,int flags)
+private int instring(int tc,int flags)
 {
   int c;
   int i = 0;                            // can't be unsigned!!!
@@ -2507,7 +2504,7 @@ char *combinestrings(targ_size_t *plen, tym_t *ptym)
  *      TKnum   integer constant
  */
 
-/*private*/ enum_TK inchar(int flags)
+private enum_TK inchar(int flags)
 {   int len;
 
     len = instring('\'',flags) - 1;     /* get the character string     */
@@ -2603,7 +2600,7 @@ else
  *      character value
  */
 
-/*private*/ int escape()
+private int escape()
 {   int n;
     uint i;
 
@@ -2688,7 +2685,7 @@ else
  * Check for allowed universal characters.
  */
 
-/*private*/ void checkAllowedUniversal(uint uc)
+private void checkAllowedUniversal(uint uc)
 {
     if (0)
     {
@@ -2880,7 +2877,7 @@ uint comphash(const(char)* p)
  *      TKdouble,...
  */
 
-/*private*/ enum_TK innum()
+private enum_TK innum()
 {
     /* We use a state machine to collect numbers        */
     enum { STATE_initial, STATE_0, STATE_decimal, STATE_octal, STATE_octale,
@@ -3371,7 +3368,7 @@ static if (TX86)
  *      Too much requested precision is not detected.
  */
 
-/*private*/ enum_TK inreal(const(char)* p)
+private enum_TK inreal(const(char)* p)
 { int dblstate;
   int chrstate;
   int i;
@@ -3529,7 +3526,7 @@ version (Win32)
  *      false   it's just # followed by whitespace
  */
 
-/*private*/ bool inpragma()
+private bool inpragma()
 {
 
     while (1)

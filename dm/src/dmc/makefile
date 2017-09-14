@@ -173,7 +173,7 @@ OBJ1a=dblklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.ob
 OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj msc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj ph.obj ppexp.obj dpragma.obj pseudo.obj
-OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj token.obj xtoken.obj type.obj dt.obj dth.obj phstring.obj
+OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj type.obj dt.obj dth.obj phstring.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj scope.obj tdbx.obj util.obj html.obj dlist.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
@@ -303,7 +303,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h \
         iasm.c err.c \
         msgsx.c scope.c \
         trace.c file.c dmcdll.c \
-        msc.c ph.c token.c \
+        msc.c ph.c \
         tk.c \
         htod.c speller.c
 
@@ -570,7 +570,6 @@ gflow.obj : $(DEP) $(gflow.dep) gflow.c
 cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
 cgen.obj : $(DEP) $(cgen.dep) cgen.c
 ph.obj : $(DEP) $(ph.dep) ph.c
-token.obj : $(DEP) $(token.dep) token.c
 rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 symbol.obj : $(DEP) $(symbol.dep) symbol.c
 cg87.obj : $(DEP) $(cg87.dep) cg87.c
