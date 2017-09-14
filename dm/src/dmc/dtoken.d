@@ -279,7 +279,12 @@ struct token_t
     debug ushort id;
     enum IDtoken = 0xA745;
 
-    void setSymbol(Symbol *s);
+    void setSymbol(Symbol *s)
+    {
+        TKval = TKsymbol;
+        TKsym = s;
+    }
+
     void print() { token_print(&this); }
 }
 

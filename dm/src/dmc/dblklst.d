@@ -723,7 +723,7 @@ static if (LOG_MACRO_EXPAND)
     ubyte blflags = 0;
 
     bool israwstring = false;
-    RawString rs;
+    RawString rs = void;
 
     // ==========
     // Save the state of the scanner
@@ -980,7 +980,7 @@ private ubyte * stringize(ubyte *text)
     buffer.reserve(len + 2 + 1);
     buffer.writeByten('"');
 
-    RawString rs;
+    RawString rs = void;
     bool israwstring = false;
 
     int tc = 0;

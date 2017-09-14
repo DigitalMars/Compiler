@@ -300,7 +300,7 @@ blklst *blklst_getfileblock();
 void putback(int);
 
 ubyte *macro_replacement_text(macro_t *m, phstring_t args);
-char *macro_rescan(macro_t *m, char *text);
+ubyte *macro_rescan(macro_t *m, ubyte *text);
 char *macro_expand(char *text);
 
 void explist(int);

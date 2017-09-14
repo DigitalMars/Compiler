@@ -487,6 +487,7 @@ version (SPP)
     Sfile  *filename_search(const(char)* name);
     Sfile *filename_add(const(char)* name);
     int filename_cmp(const(char)* f1,const(char)* f2);
+    void filename_translate(Srcpos *);
 }
 version (HTOD)
 {
@@ -495,6 +496,9 @@ version (HTOD)
     Sfile  *filename_search(const(char)* name);
     Sfile *filename_add(const(char)* name);
     int filename_cmp(const(char)* f1,const(char)* f2);
+    void filename_translate(Srcpos *);
+    void srcpos_hydrate(Srcpos *);
+    void srcpos_dehydrate(Srcpos *);
 }
 
 // tdb.c

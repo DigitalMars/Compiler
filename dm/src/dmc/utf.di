@@ -9,6 +9,10 @@
  * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/utf.di
  */
 
+module utf;
+
+extern (C++):
+
 alias dchar_t = uint;
 
 int utf_isValidDchar(dchar_t c);

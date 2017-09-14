@@ -719,7 +719,7 @@ private char * inarg(bool ellipsisit, BlklstSave *blsave)
     int pastend = 0;                    // if past end of input
     bool israwstring = false;
 
-    RawString rs;
+    RawString rs = void;
 
     //printf("+inarg()\n");
 
@@ -1475,7 +1475,7 @@ private char * macrotext(macro_t *m)
     int buflen;
     int instr;                  // if " or ', we are in a string
     int stringize;              // if next parameter is to be ##
-    RawString rs;
+    RawString rs = void;
     bool israwstring;
     phstring_t al = m.Marglist;
 
@@ -3613,7 +3613,7 @@ private void scantodefine()
             case '"':                   /* string delimiters            */
                 if (lastxc == 'R' && !instr)
                 {
-                    RawString rs;
+                    RawString rs = void;
                     rs.init();
                     while (1)
                     {

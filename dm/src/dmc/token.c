@@ -45,6 +45,9 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #define ishex(x)        (isxdigit(x) || isdigit(x))
 #endif
 
+#undef STATIC
+#define STATIC
+
 STATIC enum_TK innum(void);
 STATIC enum_TK inchar(int flags);
 STATIC int escape(void);
@@ -65,8 +68,8 @@ void stringToUTF32(unsigned char *string, unsigned len);
 #define INSraw          0x20    // R
 
 char tok_ident[2*IDMAX + 1];    /* identifier                   */
-static char *tok_string;        /* for strings (not null terminated)    */
-static int tok_strmax;          /* length of tok_string buffer          */
+/*static*/ char *tok_string;        /* for strings (not null terminated)    */
+/*static*/ int tok_strmax;          /* length of tok_string buffer          */
 
 Outbuffer *utfbuf;
 
@@ -84,6 +87,10 @@ int igncomment;                 // 1 if ignore comment in preprocessed output
 
 char *tok_arg;                  /* argument buffer                      */
 unsigned argmax;                /* length of argument buffer            */
+
+token_t *toklist;
+/*static*/ list_t toksrclist;
+/*static*/ token_t *token_freelist;
 
 int isUniAlpha(unsigned u);
 void cppcomment(void);
@@ -112,6 +119,7 @@ STATIC bool inpragma();
 */
 
 
+#if 0
 unsigned char _chartype[257] =
 {       0,                      // in case we use EOF as an index
         _ZFF,0,0,0,0,0,0,0,0,0,_EOL,_EOL,_EOL,0,0,0,
@@ -136,7 +144,6 @@ unsigned char _chartype[257] =
  * Make a copy of the current token.
  */
 
-static token_t *token_freelist;
 
 #if !SPP
 
@@ -433,9 +440,6 @@ Lret:
  * Set scanner to read from list of tokens rather than source.
  */
 
-token_t *toklist;
-static list_t toksrclist;
-
 void token_setlist(token_t *t)
 {
     if (t)
@@ -566,10 +570,11 @@ enum_TK token_peek()
 }
 
 #endif
+#endif
 
 #if TX86
 
-#if !SPP
+#if 0 && !SPP
 
 struct Keyword
 {       char *id;
@@ -814,6 +819,7 @@ STATIC void token_defkwds(struct Keyword *k,unsigned dim)
  * Initialize tables for tokenizer.
  */
 
+#if 0
 void token_init()
 {
 #if SPP
@@ -890,6 +896,7 @@ void token_init()
 
     utfbuf = new Outbuffer();
 }
+#endif
 
 /***********************************************
  * Top level token parser.
@@ -905,6 +912,7 @@ void token_init()
 
 #if !SPP
 
+#if 0
 enum_TK stokenx()
 {
     if (!toklist)
@@ -942,6 +950,7 @@ enum_TK stokenx()
         return tok.TKval;
     }
 }
+#endif
 
 #endif
 
@@ -949,6 +958,7 @@ enum_TK stokenx()
  * Set dbcs support.
  */
 
+#if 0
 void token_setdbcs(int db)
 {   unsigned c;
 #if LOCALE
@@ -1007,6 +1017,7 @@ void token_setdbcs(int db)
         }
     }
 }
+#endif
 
 #endif // TX86
 
@@ -1014,6 +1025,7 @@ void token_setdbcs(int db)
  * Set locale.
  */
 
+#if 0
 void token_setlocale(const char *string)
 {   unsigned c;
 
@@ -1821,7 +1833,7 @@ void comment()
  * Make sure tok_string has at least nbytes of space
  */
 
-inline void tok_string_reserve(unsigned nbytes)
+/*inline*/ void tok_string_reserve(unsigned nbytes)
 {
     if (nbytes > tok_strmax)            // if string buffer overflow
     {
@@ -2072,7 +2084,6 @@ STATIC int instring(int tc,int flags)
 /*************************************
  * Convert string[0..len] to UTF-16/32 and append it to utfbuf.
  */
-
 
 void stringToUTF16(unsigned char *string, unsigned len)
 {
@@ -3449,88 +3460,11 @@ L63:
 
 #endif
 
-/******************************************
- */
-#if 0
-void RawString::init()
-{
-    rawstate = RAWdchar;
-    dchari = 0;
-}
-
-bool RawString::inString(unsigned char c)
-{
-    switch (rawstate)
-    {
-        case RAWdchar:
-            if (c == '(')       // end of d-char-string
-            {
-                dcharbuf[dchari] = 0;
-                rawstate = RAWstring;
-            }
-            else if (c == ' '  || c == '('  || c == ')'  ||
-                     c == '\\' || c == '\t' || c == '\v' ||
-                     c == '\f' || c == '\n')
-            {
-                lexerr(EM_invalid_dchar, c);
-                rawstate = RAWerror;
-            }
-            else if (dchari >= sizeof(dcharbuf) - 1)
-            {
-                lexerr(EM_string2big, sizeof(dcharbuf) - 1);
-                rawstate = RAWerror;
-            }
-            else
-            {
-                dcharbuf[dchari] = c;
-                ++dchari;
-            }
-            break;
-
-        case RAWstring:
-            if (c == ')')
-            {
-                dchari = 0;
-                rawstate = RAWend;
-            }
-            break;
-
-        case RAWend:
-            if (c == dcharbuf[dchari])
-            {
-                ++dchari;
-            }
-            else if (dcharbuf[dchari] == 0)
-            {
-                if (c == '"')
-                    rawstate = RAWdone;
-                else
-                    rawstate = RAWstring;
-            }
-            else if (c == ')')
-            {
-                // Rewind ')' dcharbuf[0..dchari]
-                dchari = 0;
-            }
-            else
-            {
-                // Rewind ')' dcharbuf[0..dchari]
-                rawstate = RAWstring;
-            }
-            break;
-
-        default:
-            assert(0);
-    }
-    return rawstate != RAWdone && rawstate != RAWerror;
-}
-#endif
 
 /**********************************
  * Terminate use of scanner
  */
 
-#if 0
 #if TERMCODE
 void token_term()
 {

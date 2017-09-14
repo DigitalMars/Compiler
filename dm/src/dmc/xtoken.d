@@ -19,6 +19,10 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.errno;
+version (Win32)
+{
+    extern (C) int* _errno();   // not the multi-threaded version
+}
 import core.stdc.locale;
 
 import ddmd.backend.cdef;
@@ -65,7 +69,7 @@ enum TX86 = 1;
 version (Win32)
 {
 // from \sc\src\include\setlocal.h
-extern (C) extern char* __locale_decpoint;
+extern (C) extern __gshared char* __locale_decpoint;
 }
 
 enum FASTKWD = 1;               // use fast instead of small kwd lookup
@@ -92,6 +96,7 @@ else
 /*private*/ void checkAllowedUniversal(uint uc);
 void stringToUTF16(ubyte* string, uint len);
 void stringToUTF32(ubyte* string, uint len);
+void tok_string_reserve(uint nbytes);
 
 // Flags for instring()
 enum
@@ -130,6 +135,16 @@ char *tok_arg;                  /* argument buffer                      */
 uint argmax;                /* length of argument buffer            */
 }
 
+extern __gshared
+{
+token_t *toklist;
+/*private*/ list_t toksrclist;
+}
+
+extern __gshared
+/*private*/ token_t *token_freelist;
+
+
 int isUniAlpha(uint u);
 void cppcomment();
 /*private*/ bool inpragma();
@@ -141,6 +156,7 @@ enum EXTENDED_FP_OPERATORS = 1;
 
 version (none)
 {
+}
 
 /********************************
  * This table is very similar to _ctype[] in the library.
@@ -184,9 +200,6 @@ __gshared ubyte[257] _chartype =
 /*********************************
  * Make a copy of the current token.
  */
-
-extern __gshared
-/*private*/ token_t *token_freelist;
 
 version (SPP)
 {
@@ -522,12 +535,6 @@ Lret:
  * Set scanner to read from list of tokens rather than source.
  */
 
-extern __gshared
-{
-token_t *toklist;
-/*private*/ list_t toksrclist;
-}
-
 void token_setlist(token_t *t)
 {
     if (t)
@@ -633,22 +640,18 @@ void token_semi()
  * Get current line number.
  */
 
-static if (0)
+version (SPP)
+{
+}
+else
 {
 
 Srcpos token_linnum()
-{
-static if (SPP)
-{
-    return getlinnum();
-}
-else
 {
     return toklist
         ?
           tok.TKsrcpos
         : getlinnum();
-}
 }
 
 }
@@ -977,6 +980,10 @@ __gshared Keyword[3] kwtab4 =
 }
 
 }
+}
+
+static if (TX86)
+{
 
 /***********************************************
  * Initialize tables for tokenizer.
@@ -1061,7 +1068,9 @@ version (Win32)
     _chartype[0xFF + 1] |= _ZFF;
     token_setdbcs(config.asian_char);
 
-    utfbuf = new Outbuffer();
+    __gshared Outbuffer ob;
+    utfbuf = &ob;
+    memset(utfbuf, 0, ob.sizeof);
 }
 
 /***********************************************
@@ -1479,7 +1488,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                                     putback(xc);
                                     p = macro_replacement_text(m, args);
                                     //printf("macro replacement text is '%s'\n", p);
-                                    q = cast(ubyte*)macro_rescan(m, cast(char*)p);
+                                    q = cast(ubyte*)macro_rescan(m, p);
                                     //printf("final expansion is '%s'\n", q);
                                     parc_free(p);
 
@@ -2324,7 +2333,6 @@ static if (PASCAL_STRINGS)
  * Convert string[0..len] to UTF-16/32 and append it to utfbuf.
  */
 
-
 void stringToUTF16(ubyte* string, uint len)
 {
     for (size_t j = 0; j < len; j++)
@@ -3096,12 +3104,12 @@ else
         lexerr(EM_octal_digit);         // octal digit expected
 }
 
-    errno = 0;
+    *_errno() = 0;
     if (i == 1 && (state == STATE_decimal || state == STATE_0))
         tok.Vllong = tok_string[0] - '0';
     else
         tok.Vllong = strtoull(tok_string,null,base); /* convert string to integer    */
-    if (errno == ERANGE)                /* if overflow                  */
+    if (*_errno() == ERANGE)                /* if overflow                  */
         lexerr(EM_badnumber);           // overflow
 
         /* Parse trailing 'u', 'U', 'l' or 'L' in any combination       */
@@ -3459,7 +3467,7 @@ static if (TX86)
   }
 done:
     tok_string[i] = 0;
-    errno = 0;
+    *_errno() = 0;
 version (Win32)
 {
     char *save = __locale_decpoint;
@@ -3504,7 +3512,7 @@ version (Win32)
     __locale_decpoint = save;
 }
     // ANSI C99 says let it slide
-    if (errno == ERANGE && !config.ansi_c)
+    if (*_errno() == ERANGE && !config.ansi_c)
         warerr(WM.WM_badnumber);           // number is not representable
     return result;
 }
@@ -3597,6 +3605,7 @@ else
 }
 }
 
+
 /*********************
  * Panic mode. Discard tokens until a specified
  * one is encountered. Watch out for end of file!
@@ -3651,7 +3660,9 @@ void opttok(enum_TK toknum)
  */
 
 bool iswhite(int c)                     /* is c white space?            */
-{ return((c == ' ') || (c == '\t') || (!preprocessor && c == LF)); }
+{
+    return((c == ' ') || (c == '\t') || (!preprocessor && c == LF));
+}
 
 
 /**********************************
@@ -3746,13 +3757,7 @@ L63:                            ;
 }
 
 }
-}
 
-/******************************************
- */
-static if (0)
-{
-}
 
 /**********************************
  * Terminate use of scanner
