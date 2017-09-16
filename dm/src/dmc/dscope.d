@@ -48,17 +48,9 @@ alias MEM_PARF_STRDUP = mem_strdup;
 
 enum TX86 = 1;
 
-extern __gshared Scope *scope_end;                       // pointer to innermost scope
-extern __gshared Scope *scope_freelist;
+__gshared Scope *scope_end;                       // pointer to innermost scope
+__gshared Scope *scope_freelist;
 
-/*private*/ Scope * scope_calloc();
-void scope_free(Scope *sc);
-Symbol *scope_findReal(Scope* sc, Symbol *s, uint sct);
-Symbol *scope_checkSequence(Scope *sc, Symbol *s);
-
-version (none)
-{
-}
 /**********************************
  */
 
