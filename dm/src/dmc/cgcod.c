@@ -2963,7 +2963,7 @@ void docommas(CodeBuilder& cdb,elem **pe)
     {
         if (configv.addlinenumbers && e->Esrcpos.Slinnum)
         {
-                cdb.append(genlinnum(CNIL,e->Esrcpos));
+                cdb.genlinnum(e->Esrcpos);
                 //e->Esrcpos.Slinnum = 0;               // don't do it twice
         }
         if (e->Eoper != OPcomma)
