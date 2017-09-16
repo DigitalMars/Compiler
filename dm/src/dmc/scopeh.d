@@ -55,7 +55,6 @@ struct Scope
 {
     debug ushort id;
     enum IDscope = 0xDEAF;
-    //void scope_debug(Scope* s) { assert(s.id == IDscope); }
 
     Scope* next;               // enclosing scope
     void *root;                // root of Symbol table
@@ -66,6 +65,15 @@ struct Scope
     list_t using_list;          // cleanup list
 
     symlist_t friends;          // SCTlocal: hidden friend class symbols
+}
+
+debug
+{
+    void scope_debug(Scope* s) { assert(s.id == Scope.IDscope); }
+}
+else
+{
+    void scope_debug(Scope* s) { }
 }
 
 extern __gshared Scope *scope_end;        // pointer to innermost scope
