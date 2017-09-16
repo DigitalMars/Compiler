@@ -33,9 +33,12 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 Scope *scope_end;                       // pointer to innermost scope
 #endif
 
+/*static*/ Scope *scope_freelist;
+
 /**********************************
  */
 
+#if 0
 void scope_print()
 {
     printf("scope_print()\n");
@@ -69,7 +72,7 @@ int scope_inTemplate()
 //      s       findable
 //
 
-inline Symbol *scope_checkSequence(Scope *sc, Symbol *s)
+Symbol *scope_checkSequence(Scope *sc, Symbol *s)
 {
     symbol_debug(s);
     //printf("scope_checkSequence('%s') s->Ssequence = x%x, pstate = x%x\n", s->Sident, s->Ssequence, pstate.STmaxsequence);
@@ -93,7 +96,7 @@ inline Symbol *scope_checkSequence(Scope *sc, Symbol *s)
 // Sort through covered symbols and aliases to find the real symbol.
 //
 
-inline symbol *scope_findReal(Scope* sc, symbol *s, unsigned sct)
+symbol *scope_findReal(Scope* sc, symbol *s, unsigned sct)
 {
     //printf("findReal('%s')\n", symbol_ident(s));
     if (s)
@@ -540,9 +543,7 @@ void scope_push_symbol(symbol *s)
 ///////////////////////////////
 // Storage allocator
 
-static Scope *scope_freelist;
-
-STATIC Scope * scope_calloc()
+/*STATIC*/ Scope * scope_calloc()
 {   Scope *sc;
 
 #if TX86
@@ -566,7 +567,7 @@ STATIC Scope * scope_calloc()
     return sc;
 }
 
-__inline void scope_free(Scope *sc)
+void scope_free(Scope *sc)
 {
     if (CPP)
     {
@@ -812,5 +813,6 @@ void scope_term()
     }
 #endif
 }
+#endif
 
 #endif // !SPP

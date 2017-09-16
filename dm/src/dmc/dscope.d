@@ -49,9 +49,16 @@ alias MEM_PARF_STRDUP = mem_strdup;
 enum TX86 = 1;
 
 extern __gshared Scope *scope_end;                       // pointer to innermost scope
+extern __gshared Scope *scope_freelist;
+
+/*private*/ Scope * scope_calloc();
+void scope_free(Scope *sc);
+Symbol *scope_findReal(Scope* sc, Symbol *s, uint sct);
+Symbol *scope_checkSequence(Scope *sc, Symbol *s);
 
 version (none)
 {
+}
 /**********************************
  */
 
@@ -429,7 +436,18 @@ Symbol *scope_add(Symbol *s, uint sct)
     symbol_debug(s);
     for (sc = scope_end; 1; sc = sc.next)
     {
-        assert(sc);
+        if (!sc)
+        {
+            /* From fail14.5-1xb.cpp:
+             *    template<class T1, int I> void sort<T1, I>(T1 data[I]){}  // error: 'sort' is not a class template
+             *    int main() {
+             *      int arr[7];
+             *      sort(arr);
+             *    }
+             * The error is not recovered from properly, resulting in coming here.
+             */
+            exit(1);
+        }
         //printf("sc.sctype %x\n",sc.sctype);
         scope_debug(sc);
         if (sc.sctype & sct)
@@ -563,7 +581,6 @@ void scope_push_symbol(Symbol *s)
 ///////////////////////////////
 // Storage allocator
 
-extern __gshared Scope *scope_freelist;
 
 /*private*/ Scope * scope_calloc()
 {   Scope *sc;
@@ -844,5 +861,4 @@ else
 }
 }
 
-}
 }
