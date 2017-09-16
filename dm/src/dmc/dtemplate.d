@@ -3483,7 +3483,7 @@ void template_instantiate_forward(Classsym *stag)
 
         int nscopes = 0;
         scsave = scope_end;
-        Scope.setScopeEnd(scope_find(SCTglobal));
+        scope_setScopeEnd(scope_find(SCTglobal));
 
         nscopes = scope_pushEnclosing(stempl);
 
@@ -3498,7 +3498,7 @@ void template_instantiate_forward(Classsym *stag)
         // Unwind scope back to global
         scope_unwind(nscopes);
 
-        Scope.setScopeEnd(scsave);
+        scope_setScopeEnd(scsave);
         funcsym_p = funcsym_save;
         linkage = linkagesave;
         level = levelsave;
@@ -3538,7 +3538,7 @@ private Classsym * template_parsebody(Classsym *stag, Symbol *stempl, param_t *a
     //printf("template_parsebody(stempl = %p)\n", stempl);
     //dbg_printf("generating instantiation from template\n");
 //    scsave = scope_end;
-//    Scope.setScopeEnd(scope_find(SCTglobal | SCTnspace));
+//    scope_setScopeEnd(scope_find(SCTglobal | SCTnspace));
 
     /* Turn arglist into symbol table   */
     template_createsymtab(stempl.Stemplate.TMptpl,arglist);
@@ -3552,7 +3552,7 @@ private Classsym * template_parsebody(Classsym *stag, Symbol *stempl, param_t *a
     token_setlist(stempl.Stemplate.TMbody);
     t = stunspec(stempl.Stemplate.TMtk,stag,stempl,arglist);  // parse class declaration
     template_deletesymtab();    /* remove temporary symbol table */
-//    Scope.setScopeEnd(scsave);
+//    scope_setScopeEnd(scsave);
 
     pstate.STmaxsequence = pstatesave.STmaxsequence;
     pstate.STinparamlist = pstatesave.STinparamlist;
@@ -3989,7 +3989,7 @@ static if (LOG_MATCHFUNC)
 
     scsave = scope_end;
     if (!(parsebody & 4))
-        Scope.setScopeEnd(scope_find(SCTglobal));
+        scope_setScopeEnd(scope_find(SCTglobal));
 
     // Generate list of all the scopes
     list_t scopelist = scope_getList(stemp);
@@ -4269,7 +4269,7 @@ else
     scope_unwind(nscopes);
 
     // Reset scope chain back to what it was before template instantiation
-    Scope.setScopeEnd(scsave);
+    scope_setScopeEnd(scsave);
 
     param_free(&ptal);
     if (LOG_MATCHFUNC)

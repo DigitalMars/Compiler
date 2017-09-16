@@ -66,15 +66,12 @@ struct Scope
     list_t using_list;          // cleanup list
 
     symlist_t friends;          // SCTlocal: hidden friend class symbols
-
-    static void setScopeEnd(Scope *s_end);
-    static int inTemplate();
-    Symbol *findReal(Symbol *s, uint sct);
-    Symbol *checkSequence(Symbol *s);
 }
 
 extern __gshared Scope *scope_end;        // pointer to innermost scope
 
+void scope_setScopeEnd(Scope *s_end);
+int scope_inTemplate();
 void scope_print();
 Scope *scope_find(uint sct);
 Nspacesym *scope_inNamespace();

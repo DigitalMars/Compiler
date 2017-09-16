@@ -2116,7 +2116,7 @@ Lret:
 
         nscopes = 0;
         scsave = scope_end;
-        Scope.setScopeEnd(scope_find(SCTglobal));
+        scope_setScopeEnd(scope_find(SCTglobal));
 
         nscopes = scope_pushEnclosing(st.Stempsym);
 
@@ -2159,7 +2159,7 @@ Lret:
     {
         // Unwind scope back to global
         scope_unwind(nscopes);
-        Scope.setScopeEnd(scsave);
+        scope_setScopeEnd(scsave);
     }
 }
 
@@ -2185,7 +2185,7 @@ void n2_instantiate_memfunc(Symbol *s)
         token_unget();
 
         scsave = scope_end;
-        Scope.setScopeEnd(scope_find(SCTglobal));
+        scope_setScopeEnd(scope_find(SCTglobal));
 
         nscopes = scope_pushEnclosing(stempl);
 
@@ -2202,7 +2202,7 @@ void n2_instantiate_memfunc(Symbol *s)
         // Unwind scope back to global
         scope_unwind(nscopes);
 
-        Scope.setScopeEnd(scsave);
+        scope_setScopeEnd(scsave);
         pstate.STmaxsequence = pstatesave.STmaxsequence;
         //dbg_printf("-n2_instantiate_memfunc('%s')\n", &s.Sident[0]);
         stoken();

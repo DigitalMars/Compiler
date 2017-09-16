@@ -560,7 +560,7 @@ void func_body(Symbol *s)
     if (CPP)
     {
         scope_unwind(nscopes);
-        Scope.setScopeEnd(scsave);
+        scope_setScopeEnd(scsave);
 
         tfunc = funcsym_p.Stype;       // in case type changed (possible if
                                         // redeclared within function body)

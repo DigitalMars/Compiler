@@ -110,7 +110,7 @@ private __gshared int cpp_usertypecmp_nest;
  *      1       visible
  */
 
-int checkSequence(Symbol *s)
+private int checkSequence(Symbol *s)
 {
     if (s.Ssequence > pstate.STmaxsequence &&
         config.flags4 & CFG4dependent &&

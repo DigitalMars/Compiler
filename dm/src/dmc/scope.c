@@ -48,7 +48,7 @@ void scope_print()
 /////////////////////////////////
 //
 
-void Scope::setScopeEnd(Scope *s_end)
+void scope_setScopeEnd(Scope *s_end)
 {
     scope_end = s_end;
 }
@@ -56,7 +56,7 @@ void Scope::setScopeEnd(Scope *s_end)
 /////////////////////////////////
 //
 
-int Scope::inTemplate()
+int scope_inTemplate()
 {
     return scope_find(SCTtempsym | SCTtemparg) != 0;
 }
@@ -69,11 +69,10 @@ int Scope::inTemplate()
 //      s       findable
 //
 
-inline Symbol *Scope::checkSequence(Symbol *s)
+inline Symbol *scope_checkSequence(Scope *sc, Symbol *s)
 {
-#if 1
     symbol_debug(s);
-    //printf("Scope::checkSequence('%s') s->Ssequence = x%x, pstate = x%x\n", s->Sident, s->Ssequence, pstate.STmaxsequence);
+    //printf("scope_checkSequence('%s') s->Ssequence = x%x, pstate = x%x\n", s->Sident, s->Ssequence, pstate.STmaxsequence);
     if (s->Ssequence > pstate.STmaxsequence)
     {
         //printf("Scope::checkSequence('%s') s->Ssequence = x%x, pstate = x%x\n", s->Sident, s->Ssequence, pstate.STmaxsequence);
@@ -82,12 +81,11 @@ inline Symbol *Scope::checkSequence(Symbol *s)
 
         if (config.flags4 & CFG4dependent &&
             // Only applies to global or namespace scoped Symbols
-            sctype & (SCTglobal | SCTnspace) &&
+            sc->sctype & (SCTglobal | SCTnspace) &&
             // Check functions during function overloading
             !tyfunc(s->Stype->Tty))
             s = NULL;
     }
-#endif
     return s;
 }
 
@@ -95,20 +93,20 @@ inline Symbol *Scope::checkSequence(Symbol *s)
 // Sort through covered symbols and aliases to find the real symbol.
 //
 
-inline symbol *Scope::findReal(symbol *s, unsigned sct)
+inline symbol *scope_findReal(Scope* sc, symbol *s, unsigned sct)
 {
     //printf("findReal('%s')\n", symbol_ident(s));
     if (s)
     {
         symbol_debug(s);
-        if (sct & SCTcover && s->Scover /*&& checkSequence(s->Scover)*/)
+        if (sct & SCTcover && s->Scover /*&& scope_checkSequence(sc, s->Scover)*/)
         {
             s = s->Scover;
             symbol_debug(s);
             assert(s->Sclass != SCalias);
         }
         else
-        {   s = checkSequence(s);
+        {   s = scope_checkSequence(sc, s);
             if (s && s->Sclass == SCalias)
             {   s = s->Smemalias;
                 symbol_debug(s);
@@ -234,7 +232,7 @@ symbol *scope_searchx(const char *id,unsigned sct,Scope **psc)
                 {
                     s2 = (*scn->fpsearch)(id,scn->root);
                     if (s2 &&                           // if in that table
-                        (s2 = sc->findReal(s2, sct)) != NULL)
+                        (s2 = scope_findReal(sc, s2, sct)) != NULL)
                     {   symbol_debug(s2);
                         //printf("found symbol\n");
                         if (s)
@@ -350,7 +348,7 @@ symbol *scope_searchinner(const char *id,unsigned sct)
             {   symbol_debug(s);
                 if (CPP && !(sct & SCTnoalias)) // if in that table
                 {
-                    s = sc->findReal(s, sct);
+                    s = scope_findReal(sc, s, sct);
                 }
             }
             break;
@@ -376,7 +374,7 @@ symbol *scope_searchouter(const char *id,unsigned sct,Scope **psc)
             {   symbol_debug(s);
                 if (CPP)
                 {
-                    s = sc->findReal(s, sct);
+                    s = scope_findReal(sc, s, sct);
                     if (!s)
                         continue;
                 }

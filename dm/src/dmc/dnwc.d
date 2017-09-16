@@ -1141,7 +1141,7 @@ L2:
             stoken();
             if (tok.TKval == TKcolcol)
             {
-                if (!Scope.inTemplate())
+                if (!scope_inTemplate())
                     synerr(EM_no_typename);     // typename not allowed here
                 goto L2;
             }
@@ -1152,7 +1152,7 @@ L2:
                 s = symbol_search(tok.TKid);
                 if (s && s.Sclass == SCtemplate)
                 { }
-                else if (!Scope.inTemplate())
+                else if (!scope_inTemplate())
                     synerr(EM_no_typename);     // typename not allowed here
                 goto L7;
             }
