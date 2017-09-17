@@ -34,6 +34,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
  * Compute size of type in bytes.
  */
 
+#if 0
 targ_size_t size(tym_t ty)
 {       int s;
 
@@ -50,6 +51,7 @@ targ_size_t size(tym_t ty)
         assert(s != -1);
         return s;
 }
+#endif
 
 #if !SPP
 
@@ -58,6 +60,7 @@ targ_size_t size(tym_t ty)
  * at offset.
  */
 
+#if 0
 symbol *symboldata(targ_size_t offset,tym_t ty)
 {   symbol *s;
 
@@ -699,6 +702,8 @@ void list_dehydrate_d(list_t *plist)
         plist = &list_next(l);
     }
 }
+#endif
+
 #endif
 
 #endif // !SPP

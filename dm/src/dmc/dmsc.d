@@ -40,9 +40,6 @@ int REGSIZE(); //{ return _tysize[TYnptr]; }
 
 /*********************** COMMON FUNCTIONS ********************/
 
-version (none)
-{
-
 /*******************************
  * Compute size of type in bytes.
  */
@@ -75,6 +72,10 @@ version (SPP)
 }
 else
 {
+
+version (none)
+{
+}
 
 /****************************
  * Add symbol to the symbol table referring to the DATA segment
@@ -735,6 +736,5 @@ version (DEBUG_XSYMGEN)
 }
 }
 
-}
 
 }
