@@ -41,6 +41,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
  * Alternative assert failure.
  */
 
+#if 0
 void util_assert(const char *file,int line)
 {
     //if (!(configv.verbose == 2))
@@ -57,6 +58,7 @@ void util_assert(const char *file,int line)
 #endif
     err_exit();
 }
+#endif
 
 #endif /* TX86 */
 
@@ -64,6 +66,7 @@ void util_assert(const char *file,int line)
  * Clean up and exit program.
  */
 
+#if 0
 void err_exit()
 {
     util_exit(EXIT_FAILURE);
@@ -373,4 +376,5 @@ char *strupr(char *buf)
         buf[i] = toupper(buf[i]);
     return buf;
 }
+#endif
 #endif

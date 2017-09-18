@@ -43,8 +43,6 @@ enum TX86 = 1;
 
 alias err_fputc = fputc;
 
-version (none)
-{
 static if (TX86)
 {
 
@@ -52,7 +50,7 @@ static if (TX86)
  * Alternative assert failure.
  */
 
-void util_assert(const char *file,int line)
+void util_assert(const(char)* file,int line)
 {
     //if (!(configv.verbose == 2))
         //*strchr(file,'.') = 0;
@@ -71,6 +69,9 @@ else
 
 }
 
+version (none)
+{
+}
 /****************************
  * Clean up and exit program.
  */
@@ -333,7 +334,7 @@ void *parc_realloc(void *oldp,size_t len)
     return p;
 }
 
-char *parc_strdup(const char *s)
+char *parc_strdup(const(char)* s)
 {   char *p;
 
     p = strdup(s);
@@ -361,4 +362,3 @@ char *strupr(char *buf)
 }
 }
 
-}
