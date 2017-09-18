@@ -12,7 +12,7 @@
 
 // Utility subroutines
 
-module dmsc;
+module dutil;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
@@ -69,9 +69,6 @@ else
 
 }
 
-version (none)
-{
-}
 /****************************
  * Clean up and exit program.
  */
