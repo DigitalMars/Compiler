@@ -73,10 +73,6 @@ version (SPP)
 else
 {
 
-version (none)
-{
-}
-
 /****************************
  * Add symbol to the symbol table referring to the DATA segment
  * at offset.
