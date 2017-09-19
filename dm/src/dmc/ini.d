@@ -7,33 +7,42 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/ini.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/ini.d
  */
 
-#if SPP
+module ini;
 
-#include        <stdio.h>
-#include        <ctype.h>
-#include        <string.h>
-#include        <stdlib.h>
+version (SPP)
+{
 
-#include        "filespec.h"
-#include        "mem.h"
+import core.stdc.ctype;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 
-int readinix(char *file);
-int readline(FILE *f);
-char *expandline(char *buf, int domacros);
-char *searchformacro(char *name);
-char *skipspace(const char *p);
-char *skipname(const char *p);
+import tk.filespec;
+import tk.mem;
 
-static char *buf = NULL;        // input line buffer
-static int bufmax = 0;          // max size of line buffer
-static int curline = 0;         // ini file line counter
-static char *path = NULL;       // path to ini file
+extern (C++):
 
-#if __GNUC__ || __clang__
-int memicmp(const char *s1, const char *s2, int n)
+struct IniGlobals
+{
+    char *buf;        // input line buffer
+    int bufmax;       // max size of line buffer
+    int curline;      // ini file line counter
+    char *path;       // path to ini file
+}
+
+private __gshared IniGlobals iniglobals;
+
+version (DigitalMars)
+{
+    import core.stdc.string : memicmp;
+    extern (C) int putenv(const(char)*);
+}
+else
+{
+int memicmp(const(char)* s1, const(char)* s2, int n)
 {
     int result = 0;
 
@@ -55,7 +64,7 @@ int memicmp(const char *s1, const char *s2, int n)
     }
     return result;
 }
-#endif
+}
 
 /***************************
  * Read and parse ini file.
@@ -73,11 +82,11 @@ int readini(char *argv0,char *ini)
         status = readinix(ini);
     else
     {
-        path = mem_strdup(argv0);
-        *filespecname(path) = 0;
-        file = filespecaddpath(path,ini);
+        iniglobals.path = mem_strdup(argv0);
+        *filespecname(iniglobals.path) = 0;
+        file = filespecaddpath(iniglobals.path,ini);
         status = readinix(file);
-        mem_free(path);
+        mem_free(iniglobals.path);
         mem_free(file);
     }
     return status;
@@ -93,7 +102,7 @@ int readini(char *argv0,char *ini)
 
 int readinix(char *file)
 {   FILE *f;
-    char *line,*p,*pn;
+    char* line,p,pn;
     int env;
 
     //printf("readinx('%s')\n",file);
@@ -102,7 +111,7 @@ int readinix(char *file)
         return 1;
     env = 0;
     while (readline(f))
-    {   line = expandline(buf, 1);      // expand macros
+    {   line = expandline(iniglobals.buf, 1);      // expand macros
         p = skipspace(line);
         switch (*p)
         {   case '[':           // look for [Environment]
@@ -159,29 +168,29 @@ int readinix(char *file)
         }
         mem_free(line);
     }
-    mem_free(buf);
-    buf = NULL;
-    bufmax = 0;
+    mem_free(iniglobals.buf);
+    iniglobals.buf = null;
+    iniglobals.bufmax = 0;
     fclose(f);
     return 0;
 }
 
 /*************************
- * Read line from file f into buf.
+ * Read line from file f into iniglobals.buf.
  * Returns:
  *      0 if end of file
  */
 
-int readline(FILE *fp)
+extern (C) int readline(FILE *fp)
 {   int i,c;
     int result;
 
     i = 0;
     while (1)
     {
-        if (i >= bufmax)
-        {   bufmax += 100;
-            buf = (char *)mem_realloc(buf,bufmax);
+        if (i >= iniglobals.bufmax)
+        {   iniglobals.bufmax += 100;
+            iniglobals.buf = cast(char *)mem_realloc(iniglobals.buf,iniglobals.bufmax);
         }
         c = fgetc(fp);
 
@@ -201,36 +210,36 @@ int readline(FILE *fp)
                 break;
 
             default:
-                buf[i++] = c;
+                iniglobals.buf[i++] = cast(char)c;
                 continue;
         }
         break;
     }
-    buf[i] = 0;                 /* terminate string             */
-    curline++;
+    iniglobals.buf[i] = 0;                 /* terminate string             */
+    iniglobals.curline++;
     return result;
 }
 
 /************************
- * Perform macro expansion on the line pointed to by buf.
+ * Perform macro expansion on the line pointed to by iniglobals.buf.
  * Return pointer to created string.
  */
 
 char *expandline(char *buf, int domacros)
 {
-    unsigned i;                 /* where in buf we have expanded up to  */
-    unsigned b;                 /* start of macro name                  */
-    unsigned t;                 /* start of text following macro call   */
-    unsigned p;                 /* 1 past end of macro name             */
-    unsigned textlen;           /* length of replacement text (excl. 0) */
-    unsigned buflen;            /* length of buffer (excluding 0)       */
+    uint i;                 /* where in buf we have expanded up to  */
+    uint b;                 /* start of macro name                  */
+    uint t;                 /* start of text following macro call   */
+    uint p;                 /* 1 past end of macro name             */
+    uint textlen;           /* length of replacement text (excl. 0) */
+    uint buflen;            /* length of buffer (excluding 0)       */
 
     buf = mem_strdup(buf);
     i = 0;
     while (buf[i])
     {
         char c;
-        const char *text;
+        const(char)* text;
         if (buf[i] == '%')      /* if start of macro            */
         {   b = i + 1;
             p = b;
@@ -252,12 +261,12 @@ char *expandline(char *buf, int domacros)
             else
             {
                 buflen = strlen(buf);
-                buf = (char *)mem_realloc(buf,buflen + textlen + 1);
+                buf = cast(char *)mem_realloc(buf,buflen + textlen + 1);
                 memmove(buf + i + textlen,buf + t,buflen + 1 - t);
                 memmove(buf + i,text,textlen);
             }
             if (domacros)
-                mem_free ((void *)text);
+                mem_free (cast(void *)text);
         }
         else
         {
@@ -282,7 +291,7 @@ char *searchformacro(char *name)
             *p &= ~0x20;
     if (strcmp(name,"@P") == 0)
     {
-            envstring = mem_strdup (path);
+            envstring = mem_strdup (iniglobals.path);
 
             /* @P should expand to path to sc.ini without \ */
             if (envstring[strlen(envstring)-1] == '\\')
@@ -301,22 +310,22 @@ char *searchformacro(char *name)
  * Skip spaces.
  */
 
-char *skipspace(const char *p)
+char *skipspace(const(char)* p)
 {
     while (isspace(*p))
         p++;
-    return (char *)p;
+    return cast(char *)p;
 }
 
 /********************
  * Skip name.
  */
 
-char *skipname(const char *p)
+char *skipname(const(char)* p)
 {
     while (isalnum(*p))
         p++;
-    return (char *)p;
+    return cast(char *)p;
 }
 
-#endif
+}

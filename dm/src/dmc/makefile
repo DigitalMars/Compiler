@@ -291,7 +291,7 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 
 # Front end only
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d dinit.d \
-	denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
+	ini.d denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
 	dstruct.d func.d dcpp.d speller.di dtemplate.d dexp2.d castab.d dgetcmd.d \
 	dnwc.d dblklst.d dpragma.d phstring.di phstring.d xtoken.d rawstring.di rawstring.d \
@@ -300,7 +300,7 @@ FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d 
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 	speller.h tdb.h total.h \
 	\
-        ini.c errmsgs2.c tdbx.c \
+        errmsgs2.c tdbx.c \
         iasm.c err.c \
         msgsx.c \
         trace.c file.c dmcdll.c \
@@ -440,6 +440,9 @@ dtemplate.obj : dtemplate.d
 
 func.obj : func.d
         $(DMD) -c $(DFLAGS) func.d
+
+ini.obj : ini.d
+        $(DMD) -c $(DFLAGS) ini.d
 
 dinit.obj : dinit.d
         $(DMD) -c $(DFLAGS) dinit.d
