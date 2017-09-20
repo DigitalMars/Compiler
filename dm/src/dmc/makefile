@@ -179,7 +179,7 @@ OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj di
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj code.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj
-OBJ2c= cgobj.obj cgsched.obj objrecor.obj iasm.obj ptrntab.obj newman.obj dwarf.obj
+OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj iasm.obj ptrntab.obj newman.obj dwarf.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj speller.obj utf.obj divcoeff.obj
 
@@ -295,7 +295,7 @@ FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d 
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
 	dstruct.d func.d dcpp.d speller.di dtemplate.d dexp2.d castab.d dgetcmd.d \
 	dnwc.d dblklst.d dpragma.d phstring.di phstring.d xtoken.d rawstring.di rawstring.d \
-	dscope.d dmsc.d dutil.d
+	dscope.d dmsc.d dutil.d diasm.d
 
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 	speller.h tdb.h total.h \
@@ -422,6 +422,9 @@ dexp2.obj : dexp2.d castab.d
 
 dgetcmd.obj : dgetcmd.d
         $(DMD) -c $(DFLAGS) dgetcmd.d
+
+diasm.obj : diasm.d
+        $(DMD) -c $(DFLAGS) diasm.d
 
 dmsc.obj : dmsc.d
         $(DMD) -c $(DFLAGS) dmsc.d

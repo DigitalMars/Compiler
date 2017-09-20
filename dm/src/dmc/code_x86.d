@@ -13,6 +13,7 @@
 module ddmd.backend.code_x86;
 
 import ddmd.backend.cdef;
+import ddmd.backend.cc : config;
 import ddmd.backend.code;
 
 /* Register definitions */
@@ -376,3 +377,6 @@ uint VEX3_B2(code.Svex ivex)
         ivex.l    << 2 |
         ivex.pp;
 }
+
+bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
+
