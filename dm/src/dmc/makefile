@@ -179,7 +179,7 @@ OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj di
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj code.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj
-OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj iasm.obj ptrntab.obj newman.obj dwarf.obj
+OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarf.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj speller.obj utf.obj divcoeff.obj
 
@@ -301,7 +301,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 	speller.h tdb.h total.h \
 	\
         errmsgs2.c tdbx.c \
-        iasm.c err.c \
+        err.c \
         msgsx.c \
         trace.c file.c dmcdll.c \
         ph.c \
@@ -578,7 +578,6 @@ dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 gother.obj : $(DEP) $(gother.dep) gother.c
 gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
 err.obj : $(DEP) $(err.dep) err.c
-iasm.obj : $(DEP) $(iasm.dep) iasm.h iasm.c
 go.obj : $(DEP) $(go.dep) go.c
 gflow.obj : $(DEP) $(gflow.dep) gflow.c
 cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c

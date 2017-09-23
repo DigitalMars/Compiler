@@ -70,10 +70,6 @@ extern (C++):
 //debug = EXTRA_DEBUG;
 //debug = debuga;
 
-/*private*/ void asm_merge_symbol(OPND *o1,Symbol *s);
-/*private*/ OPND * asm_merge_opnds( OPND * o1, OPND * o2 );
-/*private*/ int asm_is_fpreg( char *szReg );
-
 // Additional tokens for the inline assembler
 alias ASMTK = int;
 enum
@@ -138,15 +134,15 @@ struct ASM_STATE
         byte bReturnax;
 }
 
-extern __gshared ASM_STATE asmstate;
-extern __gshared block *curblock;
+__gshared ASM_STATE asmstate;
+__gshared block *curblock;
 
 // From ptrntab.c
 const(char)* asm_opstr(OP *pop);
 OP *asm_op_lookup(const(char)* s);
 void init_optab();
 
-/*private*/ extern __gshared ubyte asm_TKlbra_seen;
+private __gshared ubyte asm_TKlbra_seen;
 
 struct REG
 {
@@ -155,9 +151,9 @@ struct REG
         opflag_t ty;
 }
 
-extern __gshared REG regFp; // =      { "ST", 0, _st };
+__gshared REG regFp =      { "ST", 0, _st };
 
-extern __gshared REG[8] aregFp /+ =
+__gshared REG[8] aregFp =
 [
         { "ST(0)", 0, _sti },
         { "ST(1)", 1, _sti },
@@ -167,7 +163,7 @@ extern __gshared REG[8] aregFp /+ =
         { "ST(5)", 5, _sti },
         { "ST(6)", 6, _sti },
         { "ST(7)", 7, _sti }
-]+/;
+];
 
 enum // the x86 CPU numbers for these registers
 {
@@ -203,7 +199,7 @@ enum // the x86 CPU numbers for these registers
     _FS           = 4,
 }
 
-extern __gshared REG[63] regtab /+ =
+__gshared REG[63] regtab =
 [
     {"AL",   _AL,    _r8 | _al},
     {"AH",   _AH,    _r8},
@@ -268,7 +264,7 @@ extern __gshared REG[63] regtab /+ =
     {"XMM5", 5,      _xmm},
     {"XMM6", 6,      _xmm},
     {"XMM7", 7,      _xmm},
-]+/;
+];
 
 alias ASM_JUMPTYPE = int;
 enum
@@ -303,75 +299,6 @@ struct OPND
         extern (D) size_t toHash() const nothrow @safe { return 0; }
 }
 
-//
-// Exported functions called from the compiler
-//
-int asm_state(int iFlags);
-void iasm_term();
-regm_t iasm_regs( block * bp );
-
-//
-// Local functions defined and only used here
-//
-/*private*/ OPND *asm_add_exp();
-/*private*/ OPND *opnd_calloc();
-/*private*/ void opnd_free(OPND *popnd);
-/*private*/ OPND *asm_and_exp();
-/*private*/ OPND *asm_cond_exp();
-/*private*/ opflag_t asm_determine_operand_flags(OPND *popnd);
-/*private*/ void asm_error();
-//#pragma SC noreturn(asm_error)
-
-/*private*/ void asmerr(int);
-//#pragma SC noreturn(asmerr)
-
-/*private*/ OPND *asm_equal_exp();
-/*private*/ OPND *asm_inc_or_exp();
-/*private*/ OPND *asm_log_and_exp();
-/*private*/ OPND *asm_log_or_exp();
-/*private*/ char asm_length_type_size(OPND *popnd);
-/*private*/ enum_TK asm_token();
-/*private*/ ubyte asm_match_flags(opflag_t usOp , opflag_t usTable );
-/*private*/ ubyte asm_match_float_flags(opflag_t usOp, opflag_t usTable);
-/+
-/*private*/ void asm_make_modrm_byte(
-        byte *puchOpcode, uint *pusIdx,
-        code *pc,
-        uint usFlags,
-        OPND * popnd, OPND * popnd2 );
-+/
-/*private*/ regm_t asm_modify_regs( PTRNTAB ptb, OPND * popnd1, OPND * popnd2 );
-/*private*/ void asm_output_flags( opflag_t usFlags );
-/*private*/ void asm_output_popnd( OPND * popnd );
-/*private*/ uint asm_type_size( type * ptype );
-/*private*/ opflag_t asm_float_type_size( type * ptype, opflag_t *pusFloat );
-/*private*/ OPND *asm_mul_exp();
-/*private*/ OPND *asm_br_exp();
-/*private*/ OPND *asm_primary_exp();
-/*private*/ OPND *asm_prim_post(OPND *);
-/*private*/ REG *asm_reg_lookup(char *);
-/*private*/ OPND *asm_rel_exp();
-/*private*/ OPND *asm_shift_exp();
-/*private*/ OPND *asm_una_exp();
-/*private*/ OPND *asm_xor_exp();
-/*private*/ void *link_alloc(size_t, void *);
-/*private*/ void asm_chktok(enum_TK toknum,uint errnum);
-/*private*/ void asm_db_parse( OP *pop );
-/*private*/ void asm_da_parse( OP *pop );
-/*private*/ int asm_isint( OPND *o);
-/*private*/ void asm_nextblock();
-/*private*/ PTRNTAB asm_classify(OP *pop, OPND * popnd1, OPND * popnd2, OPND * popnd3,
-        uint *pusNumops );
-/*private*/ void asm_emit( Srcpos srcpos,
-        uint usNumops, PTRNTAB ptb,
-        OP *popPrefix, OP *pop,
-        OPND * popnd1, OPND * popnd2, OPND * popnd3 );
-
-uint compute_hashkey(char *);
-
-version (none)
-{
-}
 
 /***************************************
  */
@@ -387,7 +314,7 @@ Symbol *asm_define_label(const(char)* id)
 /*******************************
  */
 
-/*private*/ OPND * opnd_calloc()
+private OPND * opnd_calloc()
 {
     return cast(OPND *)mem_calloc(OPND.sizeof);
 }
@@ -395,7 +322,7 @@ Symbol *asm_define_label(const(char)* id)
 /*******************************
  */
 
-/*private*/ void opnd_free(OPND *popnd)
+private void opnd_free(OPND *popnd)
 {
     if (popnd)
     {
@@ -407,7 +334,7 @@ Symbol *asm_define_label(const(char)* id)
 /*******************************
  */
 
-/*private*/ void asm_chktok(enum_TK toknum,uint errnum)
+private void asm_chktok(enum_TK toknum,uint errnum)
 {
     if (tok.TKval == toknum)
         asm_token();                    // scan past token
@@ -420,7 +347,7 @@ Symbol *asm_define_label(const(char)* id)
  * the successor to the old one.
  */
 
-/*private*/ void asm_nextblock()
+private void asm_nextblock()
 {
     block_goto();
 }
@@ -428,7 +355,7 @@ Symbol *asm_define_label(const(char)* id)
 /*******************************
  */
 
-/*private*/ PTRNTAB asm_classify(OP *pop, OPND * popnd1, OPND * popnd2, OPND * popnd3,
+private PTRNTAB asm_classify(OP *pop, OPND * popnd1, OPND * popnd2, OPND * popnd3,
         uint *pusNumops )
 {
         uint usNumops;
@@ -776,7 +703,7 @@ RETURN_IT:
 /*******************************
  */
 
-/*private*/ opflag_t asm_determine_float_flags(OPND *popnd)
+private opflag_t asm_determine_float_flags(OPND *popnd)
 {
         opflag_t us, usFloat;
         Symbol  * ps;
@@ -831,7 +758,7 @@ static if (0)
 /*******************************
  */
 
-/*private*/ opflag_t asm_determine_operand_flags( OPND * popnd )
+private opflag_t asm_determine_operand_flags( OPND * popnd )
 {
         Symbol  *ps;
         tym_t   ty;
@@ -994,7 +921,7 @@ static if (0)
  * it to the code generated for this block.
  */
 
-/*private*/ void asm_emit( Srcpos srcpos,
+private void asm_emit( Srcpos srcpos,
         uint usNumops, PTRNTAB ptb,
         OP *popPrefix, OP *pop,
         OPND * popnd1, OPND * popnd2, OPND * popnd3 )
@@ -1668,7 +1595,7 @@ L2:
 /*******************************
  */
 
-/*private*/ void asm_error()
+private void asm_error()
 {
     while (1)
     {   switch (tok.TKval)
@@ -1691,7 +1618,7 @@ L2:
 /*******************************
  */
 
-/*private*/ void asmerr(int errnum)
+private void asmerr(int errnum)
 {
     synerr(errnum);
     asm_error();
@@ -1700,7 +1627,7 @@ L2:
 /*******************************
  */
 
-/*private*/ opflag_t asm_float_type_size( type * ptype, opflag_t *pusFloat )
+private opflag_t asm_float_type_size( type * ptype, opflag_t *pusFloat )
 {
     *pusFloat = 0;
 
@@ -1735,7 +1662,7 @@ L2:
 /*******************************
  */
 
-/*private*/ int asm_isint( OPND *o)
+private int asm_isint( OPND *o)
 {
         if (!o || o.base || o.s)
                 return 0;
@@ -1745,7 +1672,7 @@ L2:
 /*******************************
  */
 
-/*private*/ int asm_is_fpreg( char *szReg )
+private int asm_is_fpreg( char *szReg )
 {
         return( szReg[2] == '\0' && (szReg[0] == 's' || szReg[0] == 'S') &&
                 (szReg[1] == 't' || szReg[1] == 'T' ));
@@ -1755,7 +1682,7 @@ L2:
  * Merge operands o1 and o2 into a single operand.
  */
 
-/*private*/ OPND * asm_merge_opnds( OPND * o1, OPND * o2 )
+private OPND * asm_merge_opnds( OPND * o1, OPND * o2 )
 {
     debug char *psz;
     debug (debuga)
@@ -1873,7 +1800,7 @@ debug (EXTRA_DEBUG)
 /***************************************
  */
 
-/*private*/ void asm_merge_symbol(OPND *o1,Symbol *s)
+private void asm_merge_symbol(OPND *o1,Symbol *s)
 {   type *ptype;
 
     switch (s.Sclass)
@@ -1925,7 +1852,7 @@ L3:
  * Fill in the modregrm and sib bytes of code.
  */
 
-/*private*/ void asm_make_modrm_byte(
+private void asm_make_modrm_byte(
         code *pc,
         uint usFlags,
         OPND * popnd, OPND * popnd2 )
@@ -1933,7 +1860,7 @@ L3:
         asm_make_modrm_byte(null, null, pc, usFlags, popnd, popnd2);
 }
 
-/*private*/ void asm_make_modrm_byte(
+private void asm_make_modrm_byte(
         ubyte *puchOpcode, uint *pusIdx,
         code *pc,
         uint usFlags,
@@ -2390,7 +2317,7 @@ DATA_REF:
 /*******************************
  */
 
-/*private*/ regm_t asm_modify_regs( PTRNTAB ptb, OPND * popnd1, OPND * popnd2 )
+private regm_t asm_modify_regs( PTRNTAB ptb, OPND * popnd1, OPND * popnd2 )
 {
     regm_t usRet = 0;
 
@@ -2510,7 +2437,7 @@ DATA_REF:
  *      !=0 if match
  */
 
-/*private*/ ubyte asm_match_flags( opflag_t usOp,
+private ubyte asm_match_flags( opflag_t usOp,
                 opflag_t usTable )
 {
     ASM_OPERAND_TYPE    aoptyTable;
@@ -2650,7 +2577,7 @@ Lmatch:
 /*******************************
  */
 
-/*private*/ ubyte asm_match_float_flags(opflag_t usOp, opflag_t usTable )
+private ubyte asm_match_float_flags(opflag_t usOp, opflag_t usTable )
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -2720,7 +2647,7 @@ debug
 /*******************************
  */
 
-/*private*/ void asm_output_flags( opflag_t usFlags )
+private void asm_output_flags( opflag_t usFlags )
 {
         ASM_OPERAND_TYPE    aopty = ASM_GET_aopty( usFlags );
         ASM_MODIFIERS       amod = ASM_GET_amod( usFlags );
@@ -2813,7 +2740,7 @@ debug
 /*******************************
  */
 
-/*private*/ void asm_output_popnd( OPND * popnd )
+private void asm_output_popnd( OPND * popnd )
 {
         if (popnd.segreg)
                 printf( "%s:", popnd.segreg.regstr.ptr );
@@ -2862,7 +2789,7 @@ debug
 /*******************************
  */
 
-/*private*/ REG * asm_reg_lookup( char *s)
+private REG * asm_reg_lookup( char *s)
 {
     char[12] szBuf = void;
     int i;
@@ -3174,7 +3101,7 @@ AFTER_EMIT:
 /*******************************
  */
 
-/*private*/ enum_TK asm_token()
+private enum_TK asm_token()
 {
     char[20] szBuf = void;
     ASMTK   asmtk;
@@ -3209,7 +3136,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ uint asm_type_size( type * ptype )
+private uint asm_type_size( type * ptype )
 {   uint u;
 
     u = _anysize;
@@ -3246,7 +3173,7 @@ Lret:
  *              for optimizer.
  */
 
-/*private*/ void asm_da_parse( OP *pop )
+private void asm_da_parse( OP *pop )
 {
     CodeBuilder cb;
     cb.ctor();
@@ -3282,7 +3209,7 @@ Lret:
  * Parse DB, DW, DD, DQ and DT expressions.
  */
 
-/*private*/ void asm_db_parse( OP *pop )
+private void asm_db_parse( OP *pop )
 {
     union DT
     {   targ_ullong ul;
@@ -3382,7 +3309,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_cond_exp()
+private OPND * asm_cond_exp()
 {
         OPND* o1,o2,o3;
 
@@ -3402,7 +3329,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_log_or_exp()
+private OPND * asm_log_or_exp()
 {
         OPND* o1,o2;
 
@@ -3424,7 +3351,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_log_and_exp()
+private OPND * asm_log_and_exp()
 {
         OPND* o1,o2;
 
@@ -3447,7 +3374,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_inc_or_exp()
+private OPND * asm_inc_or_exp()
 {
         OPND* o1,o2;
 
@@ -3470,7 +3397,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_xor_exp()
+private OPND * asm_xor_exp()
 {
         OPND* o1,o2;
 
@@ -3493,7 +3420,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_and_exp()
+private OPND * asm_and_exp()
 {
         OPND* o1,o2;
 
@@ -3516,7 +3443,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_equal_exp()
+private OPND * asm_equal_exp()
 {
         OPND* o1,o2;
 
@@ -3554,7 +3481,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_rel_exp()
+private OPND * asm_rel_exp()
 {
         OPND* o1,o2;
 
@@ -3614,7 +3541,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_shift_exp()
+private OPND * asm_shift_exp()
 {
         OPND* o1,o2;
         int op;
@@ -3643,7 +3570,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_add_exp()
+private OPND * asm_add_exp()
 {
         OPND* o1,o2;
 
@@ -3676,7 +3603,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_mul_exp()
+private OPND * asm_mul_exp()
 {
         OPND* o1,o2;
         OPND *  popndTmp;
@@ -3755,7 +3682,7 @@ debug (EXTRA_DEBUG)
 /*******************************
  */
 
-/*private*/ OPND * asm_br_exp()
+private OPND * asm_br_exp()
 {
         OPND* o1,o2;
         Symbol *s;
@@ -3806,7 +3733,7 @@ debug (EXTRA_DEBUG)
 /*******************************
  */
 
-/*private*/ OPND * asm_una_exp()
+private OPND * asm_una_exp()
 {
         OPND *o1;
         int op;
@@ -3973,7 +3900,7 @@ CAST_REF:
 /*******************************
  */
 
-/*private*/ OPND * asm_primary_exp()
+private OPND * asm_primary_exp()
 {
         OPND *o1 = null;
         OPND *o2 = null;
@@ -4196,7 +4123,7 @@ Lret:
 /*******************************
  */
 
-/*private*/ OPND * asm_prim_post( OPND *o1)
+private OPND * asm_prim_post( OPND *o1)
 {
     OPND *o2;
     Symbol *s = o1.s;
