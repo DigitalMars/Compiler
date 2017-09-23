@@ -241,6 +241,8 @@ struct code
     evc IEV2;             // 2nd operand, if any
 
     bool isJumpOP() { return Iop == JMP || Iop == JMPS; }
+
+    extern (C++) void print();               // pretty-printer
 }
 
 /*******************

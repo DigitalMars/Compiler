@@ -42,6 +42,9 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+#undef STATIC
+#define STATIC
+
 #if MARS
 // Error numbers
 enum ASMERRMSGS
@@ -120,7 +123,7 @@ void dolabel (const char *labelident );
 // Determine if identifier is "$"
 #define isdollar(p)     (*(unsigned short *)(p) == '$')
 
-typedef struct _ASM_STATE
+struct ASM_STATE
 {
         unsigned char bAsm_block ;
         unsigned char ucItype;  // Instruction type
@@ -135,7 +138,7 @@ typedef struct _ASM_STATE
         symbol * psLocalsize;
         jmp_buf env;
         unsigned char bReturnax;
-} ASM_STATE;
+};
 
 ASM_STATE asmstate = { 0 };
 extern block *curblock;
@@ -145,7 +148,7 @@ const char *asm_opstr(OP *pop);
 OP *asm_op_lookup(const char *s);
 void init_optab();
 
-static unsigned char asm_TKlbra_seen = FALSE;
+/*static*/ unsigned char asm_TKlbra_seen = FALSE;
 
 typedef struct
 {
@@ -154,9 +157,9 @@ typedef struct
         opflag_t ty;
 } REG;
 
-static REG regFp =      { "ST", 0, _st };
+/*static*/ REG regFp =      { "ST", 0, _st };
 
-static REG aregFp[] = {
+/*static*/ REG aregFp[] = {
         { "ST(0)", 0, _sti },
         { "ST(1)", 1, _sti },
         { "ST(2)", 2, _sti },
@@ -197,7 +200,7 @@ static REG aregFp[] = {
 #define _GS             5
 #define _FS             4
 
-static REG regtab[] =
+/*static*/ REG regtab[] =
 {
 "AL",   _AL,    _r8 | _al,
 "AH",   _AH,    _r8,
@@ -271,7 +274,7 @@ typedef enum {
     ASM_JUMPTYPE_FAR
 } ASM_JUMPTYPE;             // ajt
 
-typedef struct opnd
+struct OPND
 {
         REG *base;              // if plain register
         REG *pregDisp1;         // if [register1]
@@ -290,7 +293,7 @@ typedef struct opnd
         double real;
         type    *ptype;
         ASM_JUMPTYPE    ajt;
-} OPND;
+};
 
 //
 // Exported functions called from the compiler
@@ -321,9 +324,9 @@ STATIC OPND *asm_log_or_exp();
 STATIC char asm_length_type_size(OPND *popnd);
 STATIC enum_TK asm_token();
 STATIC unsigned char asm_match_flags(opflag_t usOp , opflag_t usTable );
-STATIC unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable);
-STATIC void asm_make_modrm_byte(
-#ifdef DEBUG
+/*STATIC*/ unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable);
+/*STATIC*/ void asm_make_modrm_byte(
+#if DEBUG
         unsigned char *puchOpcode, unsigned *pusIdx,
 #endif
         code *pc,
@@ -350,6 +353,7 @@ STATIC void asm_da_parse( OP *pop );
 
 unsigned compute_hashkey(char *);
 
+#if 0
 
 /***************************************
  */
@@ -1111,6 +1115,7 @@ L386_WARNING2:
         switch (usNumops)
         {
             case 0:
+printf("test1 %d\n", sizeof(*ptb.pptb0));
                 if ((I32 && (ptb.pptb0->usFlags & _16_bit)) ||
                         (!I32 && (ptb.pptb0->usFlags & _32_bit)))
                 {
@@ -4280,6 +4285,6 @@ regm_t iasm_regs( block * bp )
     refparam |= bp->bIasmrefparam;
     return( bp->usIasmregs );
 }
-
+#endif
 #endif // !SPP
 

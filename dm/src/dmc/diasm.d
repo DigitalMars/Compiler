@@ -70,6 +70,9 @@ extern (C++):
 //debug = EXTRA_DEBUG;
 //debug = debuga;
 
+/*private*/ void asm_merge_symbol(OPND *o1,Symbol *s);
+/*private*/ OPND * asm_merge_opnds( OPND * o1, OPND * o2 );
+/*private*/ int asm_is_fpreg( char *szReg );
 
 // Additional tokens for the inline assembler
 alias ASMTK = int;
@@ -135,7 +138,7 @@ struct ASM_STATE
         byte bReturnax;
 }
 
-__gshared ASM_STATE asmstate;
+extern __gshared ASM_STATE asmstate;
 extern __gshared block *curblock;
 
 // From ptrntab.c
@@ -143,7 +146,7 @@ const(char)* asm_opstr(OP *pop);
 OP *asm_op_lookup(const(char)* s);
 void init_optab();
 
-/*private*/ extern __gshared byte asm_TKlbra_seen;
+/*private*/ extern __gshared ubyte asm_TKlbra_seen;
 
 struct REG
 {
@@ -328,8 +331,8 @@ regm_t iasm_regs( block * bp );
 /*private*/ OPND *asm_log_or_exp();
 /*private*/ char asm_length_type_size(OPND *popnd);
 /*private*/ enum_TK asm_token();
-/*private*/ byte asm_match_flags(opflag_t usOp , opflag_t usTable );
-/*private*/ byte asm_match_float_flags(opflag_t usOp, opflag_t usTable);
+/*private*/ ubyte asm_match_flags(opflag_t usOp , opflag_t usTable );
+/*private*/ ubyte asm_match_float_flags(opflag_t usOp, opflag_t usTable);
 /+
 /*private*/ void asm_make_modrm_byte(
         byte *puchOpcode, uint *pusIdx,
@@ -355,11 +358,20 @@ regm_t iasm_regs( block * bp );
 /*private*/ void asm_chktok(enum_TK toknum,uint errnum);
 /*private*/ void asm_db_parse( OP *pop );
 /*private*/ void asm_da_parse( OP *pop );
+/*private*/ int asm_isint( OPND *o);
+/*private*/ void asm_nextblock();
+/*private*/ PTRNTAB asm_classify(OP *pop, OPND * popnd1, OPND * popnd2, OPND * popnd3,
+        uint *pusNumops );
+/*private*/ void asm_emit( Srcpos srcpos,
+        uint usNumops, PTRNTAB ptb,
+        OP *popPrefix, OP *pop,
+        OPND * popnd1, OPND * popnd2, OPND * popnd3 );
 
 uint compute_hashkey(char *);
 
 version (none)
 {
+}
 
 /***************************************
  */
@@ -999,7 +1011,7 @@ static if (0)
     }
         char *id;
 //      uint us;
-        byte *puc;
+        ubyte *puc;
         uint usDefaultseg;
         code *pc = null;
         elem *e;
@@ -1082,6 +1094,7 @@ static if (0)
                 case 0xf0:                              // LOCK
                 {
                         CodeBuilder cdb;
+                        cdb.ctor();
                         cdb.gen1(popPrefix.ptb.pptb0.opcode);
                         pcPrefix = cdb.finish();
                         break;
@@ -1278,7 +1291,7 @@ L386_WARNING2:
                 goto L3;
 
             case 0x0F0000:                      // an AMD instruction
-                puc = (cast(byte *) &opcode);
+                puc = (cast(ubyte *) &opcode);
                 if (puc[1] != 0x0F)             // if not AMD instruction 0x0F0F
                     goto L4;
                 emit(puc[2]);
@@ -1290,7 +1303,7 @@ L386_WARNING2:
                 goto L3;
 
             default:
-                puc = (cast(byte *) &opcode);
+                puc = (cast(ubyte *) &opcode);
             L4:
                 emit(puc[2]);
                 emit(puc[1]);
@@ -1301,7 +1314,7 @@ L386_WARNING2:
         }
         if (opcode & 0xff00)
         {
-            puc = (cast(byte *) &(opcode));
+            puc = (cast(ubyte *) &(opcode));
             emit(puc[1]);
             emit(puc[0]);
             pc.Iop = puc[1];
@@ -1643,6 +1656,7 @@ L2:
         }
 
         CodeBuilder cdb;
+        cdb.ctor();
         cdb.append(curblock.Bcode);
         if (configv.addlinenumbers)
             cdb.genlinnum(srcpos);
@@ -1912,6 +1926,14 @@ L3:
  */
 
 /*private*/ void asm_make_modrm_byte(
+        code *pc,
+        uint usFlags,
+        OPND * popnd, OPND * popnd2 )
+{
+        asm_make_modrm_byte(null, null, pc, usFlags, popnd, popnd2);
+}
+
+/*private*/ void asm_make_modrm_byte(
         ubyte *puchOpcode, uint *pusIdx,
         code *pc,
         uint usFlags,
@@ -2088,7 +2110,7 @@ DATA_REF:
                                 break;          // already taken care of
 
                         default:
-                                WRFL(cast(FL)s.Sfl);
+                                //WRFL(cast(FL)s.Sfl);
                                 asmerr( EM_bad_addr_mode );     // illegal addressing mode
                     }
                     break;
@@ -2372,7 +2394,7 @@ DATA_REF:
 {
     regm_t usRet = 0;
 
-    final switch (ptb.pptb0.usFlags & MOD_MASK) {
+    switch (ptb.pptb0.usFlags & MOD_MASK) {
     case _modsi:
         usRet |= mSI;
         break;
@@ -2413,6 +2435,8 @@ DATA_REF:
     case _modsinot1:
         usRet |= mSI;
         popnd1 = null;
+        break;
+    default:
         break;
     }
     if (popnd1 && ASM_GET_aopty(popnd1.usFlags) == _reg) {
@@ -2461,7 +2485,7 @@ DATA_REF:
                         usRet |= mDI;
                         break;
                     default:
-                        assert(0);
+                        break;
                 }
             }
             break;
@@ -2486,7 +2510,7 @@ DATA_REF:
  *      !=0 if match
  */
 
-/*private*/ byte asm_match_flags( opflag_t usOp,
+/*private*/ ubyte asm_match_flags( opflag_t usOp,
                 opflag_t usTable )
 {
     ASM_OPERAND_TYPE    aoptyTable;
@@ -2626,7 +2650,7 @@ Lmatch:
 /*******************************
  */
 
-/*private*/ byte asm_match_float_flags(opflag_t usOp, opflag_t usTable )
+/*private*/ ubyte asm_match_float_flags(opflag_t usOp, opflag_t usTable )
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -3192,11 +3216,13 @@ Lret:
     if (ptype &&
         (tyscalar(ptype.Tty) || tybasic(ptype.Tty) == TYstruct))
     {
-        final switch (type_size(ptype))
+        switch (type_size(ptype))
         {   case 1:     u = _8;         break;
             case 2:     u = _16;        break;
             case 4:     u = _32;        break;
             case 6:     u = _48;        break;
+            default:
+                break;
         }
     }
     return u;
@@ -3223,6 +3249,7 @@ Lret:
 /*private*/ void asm_da_parse( OP *pop )
 {
     CodeBuilder cb;
+    cb.ctor();
     cb.append(curblock.Bcode);
     while (1)
     {
@@ -3340,6 +3367,7 @@ Lret:
     }
 
     CodeBuilder cb;
+    cb.ctor();
     cb.append(curblock.Bcode);
     if (configv.addlinenumbers)
         cb.genlinnum(asmstate.Asrcpos);
@@ -4283,6 +4311,5 @@ regm_t iasm_regs( block * bp )
     return( bp.usIasmregs );
 }
 
-}
 
 }
