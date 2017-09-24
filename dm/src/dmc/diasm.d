@@ -124,14 +124,14 @@ bool isdollar(void* p) { return *cast(ushort *)(p) == '$'; }
 
 struct ASM_STATE
 {
-        byte bAsm_block ;
+        ubyte bAsm_block ;
         ubyte ucItype;  // Instruction type
         Srcpos Asrcpos;
-        byte bInit;
+        ubyte bInit;
         Symbol * psDollar;
         Symbol * psLocalsize;
         jmp_buf env;
-        byte bReturnax;
+        ubyte bReturnax;
 }
 
 __gshared ASM_STATE asmstate;
@@ -147,7 +147,7 @@ private __gshared ubyte asm_TKlbra_seen;
 struct REG
 {
         char[6] regstr;
-        byte val;
+        ubyte val;
         opflag_t ty;
 }
 
@@ -256,7 +256,7 @@ __gshared REG[63] regtab =
     {"MM5",  5,      _mm},
     {"MM6",  6,      _mm},
     {"MM7",  7,      _mm},
-    {"XMM0", 0,      _xmm | _xmm0},
+    {"XMM0", 0,      _xmm},
     {"XMM1", 1,      _xmm},
     {"XMM2", 2,      _xmm},
     {"XMM3", 3,      _xmm},
@@ -285,7 +285,7 @@ struct OPND
         char bOffset;           // if 'offset' keyword
         char bSeg;              // if 'segment' keyword
         char bPtr;              // if 'ptr' keyword
-        byte   uchMultiplier;
+        ubyte   uchMultiplier;
                                 // High bit = 1 if specified with pregdisp1
                                 // otherwise specified with pregDisp2
         opflag_t usFlags;
@@ -779,7 +779,7 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
                 return popnd.base.ty;
 
         debug (debuga)
-            printf( "popnd.base = %s\n, popnd.pregDisp1 = %ld\n", popnd.base ? popnd.base.regstr : "NONE", popnd.pregDisp1 );
+            printf( "popnd.base = %s\n, popnd.pregDisp1 = %ld\n", popnd.base ? popnd.base.regstr.ptr : "NONE".ptr, popnd.pregDisp1 );
 
         ps = popnd.s;
         sz = asm_type_size(popnd.ptype);
@@ -1899,7 +1899,7 @@ private void asm_make_modrm_byte(
         char            bSib = false;
         char            bDisp = false;
         char            b32bit = false;
-        byte *puc;
+        ubyte *puc;
         char            bModset = false;
         Symbol *        s;
 
@@ -1907,7 +1907,7 @@ private void asm_make_modrm_byte(
         ASM_OPERAND_TYPE    aopty;
         ASM_MODIFIERS       amod;
         uint            uRegmask;
-        byte       bOffsetsym = false;
+        ubyte       bOffsetsym = false;
 
         uSizemask = ASM_GET_uSizemask( popnd.usFlags );
         aopty = ASM_GET_aopty(popnd.usFlags );
@@ -2272,7 +2272,7 @@ DATA_REF:
                 {
                     debug
                     {
-                        puc = (cast(byte *) &(popnd.disp));
+                        puc = (cast(ubyte *) &(popnd.disp));
                         puchOpcode[(*pusIdx)++] = puc[1];
                         puchOpcode[(*pusIdx)++] = puc[0];
                     }
@@ -2292,7 +2292,7 @@ DATA_REF:
                 {
                     debug
                     {
-                        puc = (cast(byte *) &(popnd.disp));
+                        puc = (cast(ubyte *) &(popnd.disp));
                         puchOpcode[(*pusIdx)++] = puc[3];
                         puchOpcode[(*pusIdx)++] = puc[2];
                         puchOpcode[(*pusIdx)++] = puc[1];
@@ -2446,8 +2446,8 @@ private ubyte asm_match_flags( opflag_t usOp,
     ASM_MODIFIERS       amodOp;
     uint            uRegmaskTable;
     uint            uRegmaskOp;
-    byte       bRegmatch;
-    byte       bRetval = false;
+    ubyte       bRegmatch;
+    ubyte       bRetval = false;
     uint            uSizemaskOp;
     uint            uSizemaskTable;
     uint            bSizematch;
@@ -2565,7 +2565,7 @@ static if (0)
     asm_output_flags(usOp);
     printf("\nTBL: ");
     asm_output_flags(usTable);
-    printf(": %s\n", bRetval ? "MATCH" : "NOMATCH");
+    printf(": %s\n", bRetval ? "MATCH".ptr : "NOMATCH".ptr);
 }
     return bRetval;
 
@@ -2822,8 +2822,8 @@ int asm_state(int iFlags)
         OPND* o1, o2, o3;
         PTRNTAB ptb;
         uint usNumops;
-        byte uchPrefix = 0;
-        byte   bAsmseen;
+        ubyte uchPrefix = 0;
+        ubyte   bAsmseen;
         char    *pszLabel = null;
         Srcpos srcpos;
 
@@ -3625,7 +3625,7 @@ asm_isint(o1), asm_isint(o2), asm_TKlbra_seen  );
                                 else
                                 if (asm_TKlbra_seen &&
                                         o1.pregDisp1 && asm_isint(o2)) {
-                                    o1.uchMultiplier = cast(byte)o2.disp;
+                                    o1.uchMultiplier = cast(ubyte)o2.disp;
 debug (EXTRA_DEBUG)
 {
                                     printf( "Multiplier: %d\n",
@@ -3638,7 +3638,7 @@ debug (EXTRA_DEBUG)
                                         popndTmp = o2;
                                         o2 = o1;
                                         o1 = popndTmp;
-                                        o1.uchMultiplier = cast(byte)o2.disp;
+                                        o1.uchMultiplier = cast(ubyte)o2.disp;
 debug (EXTRA_DEBUG)
 {
                                     printf( "Multiplier: %d\n",
