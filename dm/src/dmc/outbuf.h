@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1984-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/outbuf.h
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/outbuf.h, backend/outbuf.h)
  */
 
 //#pragma once
@@ -34,16 +33,14 @@ struct Outbuffer
     unsigned char *buf;         // the buffer itself
     unsigned char *pend;        // pointer past the end of the buffer
     unsigned char *p;           // current position in buffer
-    unsigned len;               // size of buffer
-    unsigned inc;               // default increment size
     unsigned char *origbuf;     // external buffer
 
     Outbuffer();
 
-    Outbuffer(d_size_t incx) : buf(NULL), pend(NULL), p(NULL), len(0), inc(incx), origbuf(NULL) { }
+    Outbuffer(d_size_t initialSize);
 
     Outbuffer(unsigned char *bufx, d_size_t bufxlen, unsigned incx) :
-        buf(bufx), pend(bufx + bufxlen), p(bufx), len(bufxlen), inc(incx), origbuf(bufx) { }
+        buf(bufx), pend(bufx + bufxlen), p(bufx), origbuf(bufx) { }
 
     ~Outbuffer();
 

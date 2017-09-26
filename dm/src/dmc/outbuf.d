@@ -5,12 +5,13 @@
  * Copyright:   Copyright (C) 1994-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/outbuf.d
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/outbuf.d, backend/outbuf.d)
  */
 
 module ddmd.backend.outbuf;
+
+// Online documentation: https://dlang.org/phobos/ddmd_backend_outbuf.html
 
 import core.stdc.string;
 
@@ -25,17 +26,15 @@ struct Outbuffer
     ubyte *buf;         // the buffer itself
     ubyte *pend;        // pointer past the end of the buffer
     ubyte *p;           // current position in buffer
-    uint len;           // size of buffer
-    uint inc;           // default increment size
     ubyte *origbuf;     // external buffer
 
     //this();
 
-    this(size_t incx); // : buf(null), pend(null), p(null), len(0), inc(incx), origbuf(null) { }
+    this(size_t initialSize); // : buf(null), pend(null), p(null), origbuf(null) { }
 
     this(ubyte *bufx, size_t bufxlen, uint incx)
     {
-        buf = bufx; pend = bufx + bufxlen; p = bufx; len = bufxlen; inc = incx; origbuf = bufx;
+        buf = bufx; pend = bufx + bufxlen; p = bufx; origbuf = bufx;
     }
 
     //~this();
