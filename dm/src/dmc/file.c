@@ -36,6 +36,7 @@
 #include        "scdll.h"
 #include        "html.h"
 #include        "outbuf.h"
+#include        "dmcdll.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -47,7 +48,7 @@ static int lastlinnum;
 int includenest;
 
 #if _WIN32 && _WINDLL
-static list_t file_list;
+/*static*/ list_t file_list;
 #endif
 
 // File name extensions
@@ -84,7 +85,7 @@ FILE *file_openwrite(const char *name,const char *mode)
     //printf("file_openwrite(name='%s', mode='%s')\n", name, mode);
     if (name)
     {
-        const char *newname = file_nettranslate(name,mode);
+        const char *newname = dmcdll_nettranslate(name,mode);
         stream = fopen(newname,mode);
         if (!stream)
             cmderr(EM_open_output,newname);     // error opening output file
@@ -510,7 +511,7 @@ STATIC void file_openread(const char *name,blklst *b)
 
     //printf("file_openread('%s')\n",name);
 
-    newname = file_nettranslate(name,"rb");
+    newname = dmcdll_nettranslate(name,"rb");
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     fd = open(newname,O_RDONLY,S_IREAD);
 #else
@@ -888,30 +889,6 @@ void file_progress()
 #endif
 }
 
-/***********************************
- * Net translate filename.
- */
-
-#if _WIN32 && _WINDLL
-
-char *file_nettranslate(const char *filename,const char *mode)
-{   char *newname;
-    static int nest;
-
-    nest++;
-    newname = NetSpawnTranslateFileName((char *)filename,(char *)mode);
-    if (!newname)
-    {   if (nest == 1)
-            err_exit();                 // abort without message
-    }
-    else
-        list_append(&file_list,newname);
-    nest--;
-    return newname;
-}
-
-#endif
-
 /************************************
  * Delete file.
  */
@@ -920,37 +897,14 @@ void file_remove(char *fname)
 {   char *newname;
 
     if (fname)
-    {   newname = NetSpawnTranslateFileName(fname,"w");
+    {   newname = dmcdll_TranslateFileName(fname,"w");
         if (newname)
         {   remove(newname);    // delete file
-            NetSpawnDisposeFile(newname);
+            dmcdll_DisposeFile(newname);
         }
     }
 }
 
-/***********************************
- * Do a stat on a file.
- */
-
-int file_stat(const char *fname,struct stat *pbuf)
-{
-    //printf("file_stat(%s)\n", fname);
-#if _WIN32 && _WINDLL
-    int result;
-    char *newname;
-
-    newname = NetSpawnTranslateFileName((char *)fname,"rb");
-    if (newname)
-    {   result = stat(newname,pbuf);
-        NetSpawnDisposeFile(newname);
-    }
-    else
-        result = -1;
-    return result;
-#else
-    return stat(fname,pbuf);
-#endif
-}
 
 /*************************************
  * Determine if fname is a directory.
@@ -983,26 +937,17 @@ int file_isdir(const char *fname)
 int file_exists(const char *fname)
 {
     //printf("file_exists(%s)\n", fname);
-#if _WIN32
     int result;
     char *newname;
 
-    newname = NetSpawnTranslateFileName((char *)fname,"rb");
+    newname = dmcdll_TranslateFileName((char *)fname,"rb");
     if (newname)
     {   result = os_file_exists(newname);
-        NetSpawnDisposeFile(newname);
+        dmcdll_DisposeFile(newname);
     }
     else
         result = 0;
     return result;
-#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    struct stat buf;
-
-    return stat(fname,&buf) == 0;       /* file exists if stat succeeded */
-
-#else
-    return os_file_exists(fname);
-#endif
 }
 
 /***********************************
@@ -1018,10 +963,10 @@ long file_size(const char *fname)
     long result;
     char *newname;
 
-    newname = NetSpawnTranslateFileName((char *)fname,"rb");
+    newname = dmcdll_TranslateFileName((char *)fname,"rb");
     if (newname)
     {   result = filesize(newname);
-        NetSpawnDisposeFile(newname);
+        dmcdll_DisposeFile(newname);
     }
     else
         result = -1L;
@@ -1030,7 +975,7 @@ long file_size(const char *fname)
     long result;
     struct stat buf;
 
-    if (file_stat(fname,&buf) != -1)
+    if (stat(fname,&buf) != -1)
         result = buf.st_size;
     else
         result = -1L;
@@ -1092,13 +1037,7 @@ void file_term()
 {
     if (fdep)
         file_dependency_write();
-#if _WIN32 && _WINDLL
-    list_t fl;
-
-    for (fl = file_list; fl; fl = list_next(fl))
-        NetSpawnDisposeFile((char *)list_ptr(fl));
-    list_free(&file_list,FPNULL);
-#endif
+    dmcdll_file_term();
     //printf("free(%p)\n",cstate.modname);
     free(cstate.modname);
     cstate.modname = NULL;

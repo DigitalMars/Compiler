@@ -231,15 +231,9 @@ char *file_getsource(const char *iname);
 int file_isdir(const char *fname);
 void file_progress();
 void file_remove(char *fname);
-int file_stat(const char *fname,struct stat *pbuf);
 int file_exists(const char *fname);
 long file_size(const char *fname);
 void file_term();
-#if __NT__ && _WINDLL
-char *file_nettranslate(const char *filename,const char *mode);
-#else
-#define file_nettranslate(f,m)  ((char *)(f))
-#endif
 char *file_unique();
 
 /* from msc.c */
@@ -294,6 +288,7 @@ void os_heapterm();
 void os_term();
 unsigned long os_unique();
 int os_file_exists(const char *name);
+long os_file_mtime(const char *name);
 long os_file_size(int fd);
 char *file_8dot3name(const char *filename);
 int file_write(char *name, void *buffer, unsigned len);

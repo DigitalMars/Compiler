@@ -16,4 +16,8 @@ extern (C++):
 
 void dmcdll_command_line(int argc, char **argv, const(char)* copyright);
 bool dmcdll_first_compile();
+void dmcdll_file_term();
+char *dmcdll_nettranslate(const(char)* filename, const(char)* mode);
+char *dmcdll_TranslateFileName(char *filename, char *mode);
+void dmcdll_DisposeFile(char *filename);
 

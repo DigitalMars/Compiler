@@ -658,6 +658,23 @@ long os_file_size(int fd)
 #endif
 }
 
+/******************************************
+ * Get the last modified time of a file.
+ * Params:
+ *      filename = name of file
+ * Returns:
+ *      last modified time, -1L on error
+ */
+long os_file_mtime(const char *filename)
+{
+    struct stat buf;
+    long result;
+    int status = stat(filename, &buf);
+    if (status == -1)
+        return -1L;
+    return buf.st_mtime;
+}
+
 /**************************************************
  * For 16 bit programs, we need the 16 bit filename.
  * Returns:

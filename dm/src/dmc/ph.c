@@ -1536,14 +1536,12 @@ void ph_auto()
 #if MEMORYHX
     mtime = ph_hx->mtime;
 #else
-    {   struct stat buf;
-
-        status = file_stat(p,&buf);
-        if (status == -1)                       // if file doesn't exist
+    {
+        mtime = os_file_mtime(p);
+        if (mtime == -1L)
         {   ph_bufk = ph_bufi;
             goto Lgenfile;
         }
-        mtime = buf.st_mtime;                   // last modified time
     }
 #endif
 
@@ -1568,7 +1566,7 @@ void ph_auto()
     if (dohydrate)
         filename_hydrate(&r->srcfiles);
     for (i = 0; i < r->srcfiles.idx; i++)
-    {   struct stat hbuf;
+    {
         Sfile *sfhx;
 
         sfhx = r->srcfiles.pfiles[i];
@@ -1582,9 +1580,9 @@ void ph_auto()
 
             continue;
         }
-        status = file_stat(sfhx->SFname,&hbuf);
-        //printf("status = %d, mtime = %ld, st_mtime = %ld\n",status,mtime,hbuf.st_mtime);
-        if (status == -1 || mtime < hbuf.st_mtime)
+
+        long ftime = os_file_mtime(sfhx->SFname);
+        if (ftime == -1L || mtime < ftime)
             goto Lgenfile;
     }
 

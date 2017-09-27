@@ -29,6 +29,10 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 unsigned long netspawn_flags = 0;
 
+#if _WIN32 && _WINDLL
+extern /*static*/ list_t file_list;
+#endif
+
 /*********************************
  */
 void dmcdll_command_line(int argc,char **argv, const char *copyright)
@@ -64,3 +68,54 @@ bool dmcdll_first_compile()
     return true;
 #endif
 }
+
+
+/******************************************
+ */
+
+void dmcdll_file_term()
+{
+#if _WIN32 && _WINDLL
+    for (list_t fl = file_list; fl; fl = list_next(fl))
+        NetSpawnDisposeFile((char *)list_ptr(fl));
+    list_free(&file_list,FPNULL);
+#endif
+}
+
+/***********************************
+ * Net translate filename.
+ */
+
+char *dmcdll_nettranslate(const char *filename,const char *mode)
+{
+#if _WIN32 && _WINDLL
+    char *newname;
+    static int nest;
+
+    nest++;
+    newname = NetSpawnTranslateFileName((char *)filename,(char *)mode);
+    if (!newname)
+    {   if (nest == 1)
+            err_exit();                 // abort without message
+    }
+    else
+        list_append(&file_list,newname);
+    nest--;
+    return newname;
+#else
+    return (char *)filename;
+#endif
+}
+
+
+char *dmcdll_TranslateFileName(char *filename, char *mode)
+{
+    return NetSpawnTranslateFileName(filename, mode);
+}
+
+void dmcdll_DisposeFile(char *filename)
+{
+    NetSpawnDisposeFile(filename);
+}
+
+
