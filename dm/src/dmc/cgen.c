@@ -744,7 +744,9 @@ struct FixupArray
         if (dim == cap)
         {
             // 0x800 determined experimentally to minimize reallocations
-            cap = cap ? 2 * cap : 0x800;
+            cap = cap
+                ? (3 * cap) / 2 // use 'Tau' of 1.5
+                : 0x800;
             ptr = (Fixup *)::mem_realloc(ptr, cap * sizeof(Fixup));
         }
         ptr[dim++] = e;
