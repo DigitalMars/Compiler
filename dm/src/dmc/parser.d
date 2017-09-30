@@ -403,10 +403,10 @@ extern __gshared int includenest;
 
 int file_qualify(char **pfilename,int flag,phstring_t pathlist, int *next_path);
 void afopen(char *,blklst *,int);
-FILE *file_openwrite(const(char)* name,const(char)* mode);
+extern (C) FILE *file_openwrite(const(char)* name,const(char)* mode);
 void file_iofiles();
 int readln();
-void wrtpos(FILE *);
+extern (C) void wrtpos(FILE *);
 extern (C) void wrtlst(FILE *);
 
 /* from func.c */

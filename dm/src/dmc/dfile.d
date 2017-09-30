@@ -7,86 +7,96 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/file.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/dfile.d
  */
 
-#include        <stdio.h>
-#include        <string.h>
-#include        <ctype.h>
-#include        <stdlib.h>
-#include        <fcntl.h>
-#include        <time.h>
+module dfile;
 
-#if _WIN32 || _WIN64
-#include        <io.h>
-#include        <share.h>
-#include        <sys\stat.h>
-#endif
+import core.stdc.ctype;
+import core.stdc.limits;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.stdc.time;
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-#include        <sys/stat.h>
-#include        <unistd.h>
-#endif
+extern (C) int read(int,void*,uint);    // io.h
 
-#include        "cc.h"
-#include        "parser.h"
-#include        "global.h"
-#include        "filespec.h"
-#include        "token.h"
-#include        "html.h"
-#include        "outbuf.h"
-#include        "dmcdll.h"
+import ddmd.backend.cc;
+import ddmd.backend.cdef;
+import ddmd.backend.global;
+import ddmd.backend.outbuf;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import tk.dlist;
+import tk.filespec;
+import tk.mem;
 
-STATIC void getcmd_filename (char **pname,const char *ext);
-STATIC void file_openread(const char *f,blklst *b);
+import html;
+import msgs2;
+import parser;
+import phstring;
+import dmcdll;
+import dtoken;
 
-static int lastlinnum;
+extern (C) void crlf(FILE *);
+
+extern (C++):
+
+alias dbg_printf = printf;
+
+// /*private*/ void getcmd_filename (char **pname,const char *ext);
+// /*private*/ void file_openread(const char *f,blklst *b);
+
+extern __gshared
+{
+ /*private*/ int lastlinnum;
 int includenest;
 
 // File name extensions
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-char ext_obj[] = ".o";
-#endif
+version (Posix)
+{
+char[3] ext_obj; // = ".o";
+}
 
-#if _WIN32 || _WIN64
-char ext_obj[] = ".obj";
-#endif
+version (Windows)
+{
+char[5] ext_obj; // = ".obj";
+}
 
-char ext_i[]   = ".i";
-char ext_dep[] = ".dep";
-char ext_lst[] = ".lst";
-char ext_hpp[] = ".hpp";
-char ext_c[]   = ".c";
-char ext_cpp[] = ".cpp";
-char ext_sym[] = ".sym";
-char ext_tdb[] = ".tdb";
-char ext_dmodule[]   = ".d";
+char[3] ext_i; //   = ".i";
+char[5] ext_dep; // = ".dep";
+char[5] ext_lst; // = ".lst";
+char[5] ext_hpp; // = ".hpp";
+char[3] ext_c; //   = ".c";
+char[5] ext_cpp; // = ".cpp";
+char[5] ext_sym; // = ".sym";
+char[5] ext_tdb; // = ".tdb";
+char[3] ext_dmodule; //   = ".d";
+}
 
+version (none)
+{
 /*********************************
  * Open file for writing.
  * Input:
  *      f ->            file name string
  *      mode ->         open mode string
  * Returns:
- *      file stream pointer, or NULL if error
+ *      file stream pointer, or null if error
  */
 
-extern "C" FILE *file_openwrite(const char *name,const char *mode)
+extern (C) FILE *file_openwrite(const(char)* name,const(char)* mode)
 {   FILE *stream;
 
     //printf("file_openwrite(name='%s', mode='%s')\n", name, mode);
     if (name)
     {
-        const char *newname = dmcdll_nettranslate(name,mode);
+        const(char)* newname = dmcdll_nettranslate(name,mode);
         stream = fopen(newname,mode);
         if (!stream)
             cmderr(EM_open_output,newname);     // error opening output file
     }
     else
-        stream = NULL;
+        stream = null;
     return stream;
 }
 
@@ -105,11 +115,12 @@ extern "C" FILE *file_openwrite(const char *name,const char *mode)
  */
 
 
-#define PATHSYSLIST 0
+enum PATHSYSLIST = 0;
 
-#if PATHSYSLIST
-list_t pathsyslist;
-#endif
+static if (PATHSYSLIST)
+{
+extern __gshared list_t pathsyslist;
+}
 
 int file_qualify(char **pfilename, int flag, phstring_t pathlist, int *next_path)
 {
@@ -119,11 +130,12 @@ int file_qualify(char **pfilename, int flag, phstring_t pathlist, int *next_path
     char *p = *pfilename;
     assert(p);
 
-#if 0
+static if (0)
+{
     printf("file_qualify(file='%s',flag=x%x)\n",p,flag);
     for (int i = 0; i < pathlist.length(); ++i)
         printf("[%d] = '%s'\n", i, pathlist[i]);
-#endif
+}
 
     *next_path = -1;
 
@@ -144,7 +156,8 @@ int file_qualify(char **pfilename, int flag, phstring_t pathlist, int *next_path
 
     if (flag & FQqual)                  // if already qualified
         flag = (flag | FQcwd) & ~(FQpath|FQnext);
-#if PATHSYSLIST
+static if (PATHSYSLIST)
+{
     int save_flag;
     if (flag & FQpath)
     {
@@ -152,7 +165,7 @@ int file_qualify(char **pfilename, int flag, phstring_t pathlist, int *next_path
         save_flag = flag;
         flag = FQpath|FQsystem;
     }
-#endif
+}
 
     blklst *b = cstate.CSfilblk;
 
@@ -160,9 +173,9 @@ int file_qualify(char **pfilename, int flag, phstring_t pathlist, int *next_path
     {
         /* Look at the path remaining after the current file was found.
          */
-        if (b && b->BLsearchpath >= 0)
+        if (b && b.BLsearchpath >= 0)
         {
-            for (int i = b->BLsearchpath + 1; i < pathlist.length(); ++i)
+            for (int i = b.BLsearchpath + 1; i < pathlist.length(); ++i)
             {
                 fname = filespecaddpath(pathlist[i],p);
                 int result = file_exists(fname);
@@ -178,12 +191,13 @@ int file_qualify(char **pfilename, int flag, phstring_t pathlist, int *next_path
         return 0;
     }
 
-#if PATHSYSLIST
+static if (PATHSYSLIST)
+{
 retry:
     ;
-#endif
+}
 
-    char *pext = NULL;
+    char *pext = null;
     while (1)
     {
         switch (flag & (FQcwd | FQpath))
@@ -191,18 +205,18 @@ retry:
             case FQpath:
                 if (__searchpath.length())
                     break;
-                /* FALL-THROUGH */
+                goto case FQcwd | FQpath;
             case FQcwd | FQpath:                /* check current directory first */
                 if (cstate.CSfilblk)
                 {
                     /* Look for #include file relative to directory that
                        enclosing file resides in.
                      */
-                    blklst *b = cstate.CSfilblk;
-                    char *p2 = filespecname(blklst_filename(b));
+                    blklst *bx = cstate.CSfilblk;
+                    char *p2 = filespecname(blklst_filename(bx));
                     char c = *p2;
                     *p2 = 0;
-                    fname = filespecaddpath(blklst_filename(b),p);
+                    fname = filespecaddpath(blklst_filename(bx),p);
                     *p2 = c;
                 }
                 else
@@ -240,7 +254,7 @@ retry:
                 mem_free(fname);
             }
         }
-        if (filespeccmp(filespecdotext(p),ext_hpp) == 0)
+        if (filespeccmp(filespecdotext(p),ext_hpp.ptr) == 0)
         {   // Chop off the "pp" and try again
             pext = p + strlen(p) - 2;
             *pext = 0;
@@ -251,22 +265,24 @@ retry:
             break;
         }
     }
-#if PATHSYSLIST
+static if (PATHSYSLIST)
+{
     if (__searchpath == pathsyslist)
     {
         __searchpath = pathlist;
         flag = save_flag;
         goto retry;
     }
-#endif
+}
     return 0;                   // not found
 }
-
+
+
 /*********************************************
  * Open a new file for input.
  * Watch out for open failures!
  * Input:
- *      p ->            filespec string (NULL for fin)
+ *      p ->            filespec string (null for fin)
  *      bl ->           blklst structure to fill in
  *      flag            FQxxxx
  * Output:
@@ -276,21 +292,22 @@ retry:
 void afopen(char *p,blklst *bl,int flag)
 {
     //printf("afopen(%p,'%s',flag=x%x)\n",p,p,flag);
-    assert(bl->BLtyp == BLfile);
-#if HTOD
+    assert(bl.BLtyp == BLfile);
+
+version (HTOD)
     htod_include(p, flag);
-#endif
+
     if (flag & FQqual)
         p = mem_strdup(p);
-    else if (!file_qualify(&p, flag, pathlist, &bl->BLsearchpath))
+    else if (!file_qualify(&p, flag, pathlist, &bl.BLsearchpath))
         err_fatal(EM_open_input,p);             // open failure
-    bl->BLsrcpos.Sfilptr = filename_indirect(filename_add(p));
-    sfile_debug(&srcpos_sfile(bl->BLsrcpos));
-    srcpos_sfile(bl->BLsrcpos).SFflags |= (flag & FQtop) ? SFtop : 0;
+    bl.BLsrcpos.Sfilptr = filename_indirect(filename_add(p));
+    sfile_debug(&(**(bl.BLsrcpos).Sfilptr));
+    srcpos_sfile(bl.BLsrcpos).SFflags |= (flag & FQtop) ? SFtop : 0;
     file_openread(p,bl);
     if (cstate.CSfilblk)
-    {   sfile_debug(&srcpos_sfile(cstate.CSfilblk->BLsrcpos));
-        list_append(&srcpos_sfile(cstate.CSfilblk->BLsrcpos).SFfillist,*bl->BLsrcpos.Sfilptr);
+    {   sfile_debug(&(**(cstate.CSfilblk.BLsrcpos).Sfilptr));
+        list_append(&srcpos_sfile(cstate.CSfilblk.BLsrcpos).SFfillist,*bl.BLsrcpos.Sfilptr);
     }
 
     if (configv.verbose)
@@ -298,12 +315,12 @@ void afopen(char *p,blklst *bl,int flag)
     includenest++;
     if (configv.verbose == 2)
     {   int i;
-        char buffer[32];
+        char[32] buffer = void;
 
-        memset(buffer,' ',sizeof(buffer));
-        i = (includenest < sizeof(buffer)) ? includenest : sizeof(buffer) - 1;
+        memset(buffer.ptr,' ',buffer.sizeof);
+        i = (includenest < buffer.sizeof) ? includenest : buffer.sizeof - 1;
         buffer[i] = 0;
-        dbg_printf("%s'%s'\n",buffer,p);
+        dbg_printf("%s'%s'\n",buffer.ptr,p);
     }
 
     if (fdep && !(flag & FQsystem))
@@ -323,28 +340,27 @@ void afopen(char *p,blklst *bl,int flag)
  *      malloc'd name
  */
 
-char *file_getsource(const char *iname)
+char *file_getsource(const(char)* iname)
 {
-#if M_UNIX
-    static char ext[][4] = { "cpp","cxx","c", "C", "cc", "c++" };
-#else
-    static char ext[][5] = { "cpp","c","cxx","htm","html" };
-#endif
+version (Posix)
+    __gshared char[4][6] ext = [ "cpp","cxx","c", "C", "cc", "c++" ];
+else
+    __gshared char[5][5] ext = [ "cpp","c","cxx","htm","html" ];
 
     // Generate file names
     if (!iname || *iname == 0)
         cmderr(EM_nosource);            // no input file specified
 
     size_t len = strlen(iname);
-    char *n = (char *) malloc(len + 6);       // leave space for .xxxx0
+    char *n = cast(char *) malloc(len + 6);       // leave space for .xxxx0
     assert(n);
     strcpy(n,iname);
     char *p = filespecdotext(n);
     if (!*p)    // if no extension
     {
-        for (int i = 0; i < arraysize(ext); i++)
+        for (int i = 0; i < ext.length; i++)
         {   *p = '.';
-            strcpy(p + 1,ext[i]);
+            strcpy(p + 1,ext[i].ptr);
             if (file_exists(n) & 1)
                 break;
             *p = 0;
@@ -367,24 +383,33 @@ void file_iofiles()
     assert(finname);
     filename_add(finname);
 
-#if SPP
+version (SPP)
+{
     if (!foutname)
         fout = stdout;
     else
     {
         if (filespeccmp(filespecdotext(foutname),ext_obj) == 0)
             // Ignore -o switch if it is a .obj filename
-            foutname = (char*)"";
-#if M_UNIX
+            foutname = cast(char*)"";
+version (Posix)
+{
         // Default to writing preprocessed result to stdout
         if (!*foutname)
             fout = stdout;
         else
-#endif
         {
             getcmd_filename(&foutname,ext_i);
             fout = file_openwrite(foutname,"w");
         }
+}
+else
+{
+        {
+            getcmd_filename(&foutname,ext_i);
+            fout = file_openwrite(foutname,"w");
+        }
+}
     }
 
     /* If writing to a file, increase buffer size
@@ -392,7 +417,7 @@ void file_iofiles()
     if (!isatty(fileno(fout)))
     {
         //printf("writing to a file %d\n", BUFSIZ);
-        setvbuf(fout,NULL,_IOFBF,1024*1024);
+        setvbuf(fout,null,_IOFBF,1024*1024);
         /* Don't check result, don't care if it fails
          */
     }
@@ -402,35 +427,35 @@ void file_iofiles()
     {   // Build entire makefile line
         fprintf(fdep, "%s : ", foutname);
     }
-#else
+}
+else
+{
     // See if silly user specified output file name for -HF with -o
-    if (fsymname && !*fsymname && filespeccmp(filespecdotext(foutname),ext_sym) == 0)
+    if (fsymname && !*fsymname && filespeccmp(filespecdotext(foutname),ext_sym.ptr) == 0)
     {   fsymname = foutname;
-        foutname = (char*)"";
+        foutname = cast(char*)"";
         config.flags2 |= CFG2noobj;
     }
 
-    getcmd_filename(&foutname,ext_obj);
-    getcmd_filename(&fdepname,ext_dep);
-    getcmd_filename(&flstname,ext_lst);
-    getcmd_filename(&fsymname,ext_sym);
-#if HTOD
-    getcmd_filename(&fdmodulename,ext_dmodule);
-#endif
+    getcmd_filename(&foutname,ext_obj.ptr);
+    getcmd_filename(&fdepname,ext_dep.ptr);
+    getcmd_filename(&flstname,ext_lst.ptr);
+    getcmd_filename(&fsymname,ext_sym.ptr);
+version (HTOD)
+    getcmd_filename(&fdmodulename,ext_dmodule.ptr);
 
     if (!ftdbname || !ftdbname[0])
-        ftdbname = (char*)"symc.tdb";
-    getcmd_filename(&ftdbname,ext_tdb);
+        ftdbname = cast(char*)"symc.tdb";
+    getcmd_filename(&ftdbname,ext_tdb.ptr);
 
-#ifdef DEBUG
-    printf("source <= '%s' obj => '%s' dep => '%s' lst => '%s' sym => '%s' tdb => '%s'\n",
+    debug printf("source <= '%s' obj => '%s' dep => '%s' lst => '%s' sym => '%s' tdb => '%s'\n",
         finname,foutname,fdepname,flstname,fsymname,ftdbname);
-#endif
 
     // Now open the files
-#if HTOD
+version (HTOD)
     fdmodule = file_openwrite(fdmodulename,"w");
-#else
+else
+{
     objfile_open(foutname);
     fdep = file_openwrite(fdepname,"w");
     flst = file_openwrite(flstname,"w");
@@ -439,8 +464,8 @@ void file_iofiles()
     {   // Build entire makefile line
         fprintf(fdep, "%s : ", foutname);
     }
-#endif
-#endif
+}
+}
 }
 
 /********************************
@@ -451,12 +476,10 @@ void file_iofiles()
  *      foutdir         output file default directory
  */
 
-STATIC void getcmd_filename(char **pname,const char *ext)
+/*private*/ void getcmd_filename(char **pname,const(char)* ext)
 {   char *p;
 
-#ifdef DEBUG
-    assert(*ext == '.');
-#endif
+    debug assert(*ext == '.');
     ext++;                              // skip over '.'
     p = *pname;
     if (p)
@@ -486,7 +509,7 @@ STATIC void getcmd_filename(char **pname,const char *ext)
 
 
         if (!filename_cmp(finname,p))
-        {   *pname = NULL;
+        {   *pname = null;
             cmderr(EM_mult_files,finname);      // duplicate file names
         }
         *pname = p;
@@ -498,20 +521,21 @@ STATIC void getcmd_filename(char **pname,const char *ext)
  * Read in source file.
  */
 
-STATIC void file_openread(const char *name,blklst *b)
-{   unsigned char *p;
-    unsigned long size;
+/*private*/ void file_openread(const(char)* name,blklst *b)
+{   ubyte *p;
+    uint size;
     char *newname;
     int fd;
 
     //printf("file_openread('%s')\n",name);
 
     newname = dmcdll_nettranslate(name,"rb");
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+
+version (Posix)
     fd = open(newname,O_RDONLY,S_IREAD);
-#else
+else
     fd = _sopen(newname,O_RDONLY | O_BINARY,_SH_DENYWR);
-#endif
+
     if (fd == -1)
         err_fatal(EM_open_input,newname);               // open failure
 
@@ -527,17 +551,17 @@ STATIC void file_openread(const char *name,blklst *b)
     if (filespeccmp(dotext, ".htm") == 0 ||
         filespeccmp(dotext, ".html") == 0)
     {
-        unsigned char *p;
+        ubyte *px;
 
-        p = (unsigned char *) util_malloc(size + 1, 1);
-        if (read(fd,p,size) != size)
+        px = cast(ubyte *) util_malloc(size + 1, 1);
+        if (read(fd,px,size) != size)
             err_fatal(EM_eof);                  // premature end of source file
         close(fd);
-        p[size] = 0;                            // make sure it's terminated
+        px[size] = 0;                            // make sure it's terminated
 
         Outbuffer buf;
         Html h;
-        h.initialize(name, p, size);
+        h.initialize(name, px, size);
 
         buf.reserve(3 + size + 2);
         buf.writeByte(0);
@@ -546,31 +570,31 @@ STATIC void file_openread(const char *name,blklst *b)
         h.extractCode(&buf);                    // preprocess
         size = buf.size() - 3;
 
-        b->BLbuf = buf.buf;
-        b->BLtext = b->BLbuf + 1;
-        b->BLbufp = b->BLbuf + 3;
-#if __DMC__
-        buf.buf = NULL;
-#endif
+        b.BLbuf = cast(char*)buf.buf;
+        b.BLtext = b.BLbuf + 1;
+        b.BLbufp = b.BLbuf + 3;
+
+version (DigitalMars)
+        buf.buf = null;
     }
     else
     {
-        b->BLbuf = (unsigned char *) util_malloc(1 + 2 + size + 2,1);
-        memset(b->BLbuf,0,3);
-        b->BLtext = b->BLbuf + 1;
-        b->BLbufp = b->BLbuf + 3;
+        b.BLbuf = cast(char *) util_malloc(1 + 2 + size + 2,1);
+        memset(b.BLbuf,0,3);
+        b.BLtext = b.BLbuf + 1;
+        b.BLbufp = b.BLbuf + 3;
 
-        if (read(fd,b->BLbufp,size) != size)
+        if (read(fd,b.BLbufp,size) != size)
             err_fatal(EM_eof);                  // premature end of source file
         close(fd);
     }
 
-    p = (unsigned char *)&b->BLbufp[size];
+    p = cast(ubyte *)&b.BLbufp[size];
 
     // File must end in LF. If it doesn't, make it.
     if (p[-1] != LF)
     {
-        if (ANSI && !CPP)
+        if (config.ansi_c && !CPP)
             lexerr(EM_no_nl);   // file must be terminated by '\n'
         p[0] = LF;
         ++p;
@@ -592,97 +616,100 @@ STATIC void file_openread(const char *name,blklst *b)
  */
 
 int readln()
-{   unsigned char c;
-    unsigned char *ps,*p;
+{   ubyte c;
+    ubyte* ps,p;
     int tristart = 0;
     blklst *b = bl;
 
     assert(bl);
-    b->BLsrcpos.Slinnum++;              // line counter
+    b.BLsrcpos.Slinnum++;              // line counter
 
-#if TX86 && !(__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
-        __asm
+version (Win32)
+{
+        asm
         {
-                mov     ESI,b
-                xor     DL,DL
-                mov     EDI,[ESI].BLbuf
-                mov     ECX,0x0D0A      ;CH = CR, CL = LF
-                inc     EDI
-                mov     [ESI].BLtext,EDI
-                mov     btextp,EDI
-                mov     ESI,[ESI].BLbufp
+                mov     ESI,b                   ;
+                xor     DL,DL                   ;
+                mov     EDI,[ESI]BLbuf          ;
+                mov     ECX,0x0D0A              ; //CH = CR, CL = LF
+                inc     EDI                     ;
+                mov     [ESI]BLtext,EDI         ;
+                mov     btextp,EDI              ;
+                mov     ESI,[ESI]BLbufp         ;
         L1:
-                mov     AL,[ESI]
-                cmp     AL,0x1A
-                jnz     L4
+                mov     AL,[ESI]                ;
+                cmp     AL,0x1A                 ;
+                jnz     L4                      ;
         }
                 includenest--;
                 if (configv.verbose)
                     dmcdll_SpawnFile(blklst_filename(b));
-#if HTOD
+version (HTOD)
                 htod_include_pop();
-#endif
-                return FALSE;
-        __asm
+
+                return false;
+        asm
         {
-        L3:     mov     3[EDI],DL
-                mov     AL,4[ESI]
-                add     ESI,4
-                add     EDI,4
+        L3:     mov     3[EDI],DL       ;
+                mov     AL,4[ESI]       ;
+                add     ESI,4           ;
+                add     EDI,4           ;
 
-        L4:     cmp     AL,CL
-                jz      L10
-                mov     DL,1[ESI]
-                mov     [EDI],AL
+        L4:     cmp     AL,CL           ;
+                jz      L10             ;
+                mov     DL,1[ESI]       ;
+                mov     [EDI],AL        ;
 
-                cmp     DL,CL
-                jz      L11
-                mov     AL,2[ESI]
-                mov     1[EDI],DL
+                cmp     DL,CL           ;
+                jz      L11             ;
+                mov     AL,2[ESI]       ;
+                mov     1[EDI],DL       ;
 
-                cmp     AL,CL
-                jz      L12
-                mov     DL,3[ESI]
-                mov     2[EDI],AL
+                cmp     AL,CL           ;
+                jz      L12             ;
+                mov     DL,3[ESI]       ;
+                mov     2[EDI],AL       ;
 
-                cmp     DL,CL
-                jnz     L3
+                cmp     DL,CL           ;
+                jnz     L3              ;
 
-                cmp     AL,CH
-                jnz     L13
-                dec     EDI
-        L13:    add     ESI,4
-                add     EDI,3
-                jmp     Lx
+                cmp     AL,CH           ;
+                jnz     L13             ;
+                dec     EDI             ;
+        L13:    add     ESI,4           ;
+                add     EDI,3           ;
+                jmp     Lx              ;
 
-        L12:    cmp     DL,CH
-                jnz     L14
-                dec     EDI
-        L14:    add     ESI,3
-                add     EDI,2
-                jmp     Lx
+        L12:    cmp     DL,CH           ;
+                jnz     L14             ;
+                dec     EDI             ;
+        L14:    add     ESI,3           ;
+                add     EDI,2           ;
+                jmp     Lx              ;
 
-        L11:    cmp     AL,CH
-                jnz     L15
-                dec     EDI
-        L15:    add     ESI,2
-                inc     EDI
-                jmp     Lx
+        L11:    cmp     AL,CH           ;
+                jnz     L15             ;
+                dec     EDI             ;
+        L15:    add     ESI,2           ;
+                inc     EDI             ;
+                jmp     Lx              ;
 
-        L10:    cmp     DL,CH
-                jnz     L16
-                dec     EDI
-        L16:    inc     ESI
+        L10:    cmp     DL,CH           ;
+                jnz     L16             ;
+                dec     EDI             ;
+        L16:    inc     ESI             ;
 
-        Lx:     mov     p,EDI
-                mov     ps,ESI
+        Lx:     mov     p,EDI           ;
+                mov     ps,ESI          ;
 
         }
-#else
-        b->BLtext = b->BLbuf + 1;               // +1 so we can bl->BLtext[-1]
-        btextp = b->BLtext;             // set to start of line
+}
+else
+{
+        b.BLtext = b.BLbuf + 1;               // +1 so we can bl.BLtext[-1]
+        btextp = b.BLtext;             // set to start of line
         p = btextp;
-        ps = b->BLbufp;
+        ps = b.BLbufp;
     L1:
         c = *ps++;
         if (c == 0x1A)
@@ -690,37 +717,37 @@ int readln()
             includenest--;
             if (configv.verbose)
                 dmcdll_SpawnFile(blklst_filename(b));
-#if HTOD
+version (HTOD)
             htod_include_pop();
-#endif
-            return FALSE;
+
+            return false;
         }
         while (c != LF)
         {   if (c != CR)
                 *p++ = c;               // store char in input buffer
             c = *ps++;
         }
-#endif
+}
         {
-                if (TRIGRAPHS)
+                if (config.ansi_c)
                 {   // Do trigraph translation
                     // BUG: raw string literals do not undergo trigraph translation
-                    static char trigraph[] = "=(/)'<!>-";
-                    static char mongraph[] = "#[\\]^{|}~"; // translation of trigraph
+                    __gshared const(char)* trigraph = "=(/)'<!>-";
+                    __gshared const(char)* mongraph = "#[\\]^{|}~"; // translation of trigraph
                     int len;
-                    unsigned char *s,*sn;
+                    ubyte* s,sn;
 
                     len = p - btextp;
                     // tristart is so we don't scan twice for trigraphs
                     for (s = btextp + tristart;
-                         (sn = (unsigned char *)memchr(s,'?',len)) != NULL; )
-                    {   unsigned char *q;
+                         (sn = cast(ubyte *)memchr(s,'?',len)) != null; )
+                    {   ubyte *q;
 
                         len -= sn - s;          // len = remaining length
                         s = sn;
                         if (*++s == '?' &&
-                            (q = (unsigned char *) strchr(trigraph,s[1])) != NULL)
-                        {   s[-1] = mongraph[q - (unsigned char *) trigraph];
+                            (q = cast(ubyte *) strchr(trigraph,s[1])) != null)
+                        {   s[-1] = mongraph[q - cast(ubyte *) trigraph];
                             len -= 2;
                             p -= 2;
                             memmove(s,s + 2,len);
@@ -739,7 +766,7 @@ int readln()
                     // BUG: backslash line splicing does not happen in raw strings
                     if (ismulti(p[-2]))
                     {   // Backslash may be part of multibyte sequence
-                        unsigned char *s;
+                        ubyte *s;
 
                         for (s = btextp; s < p; s++)
                         {
@@ -751,16 +778,17 @@ int readln()
                         }
                     }
                     p--;
-                    b->BLsrcpos.Slinnum++;
-#if TX86 && __DMC__
-                    _asm
+                    b.BLsrcpos.Slinnum++;
+version (Win32)
+{
+                    asm
                     {
-                        mov     EDI,p
-                        mov     ESI,ps
-                        xor     DL,DL
-                        mov     ECX,0x0D0A      ;CH = CR, CL = LF
+                        mov     EDI,p           ;
+                        mov     ESI,ps          ;
+                        xor     DL,DL           ;
+                        mov     ECX,0x0D0A      ; // CH = CR, CL = LF
                     }
-#endif
+}
                     goto L1;
                 }
                 else
@@ -768,8 +796,8 @@ int readln()
                 L5:
                     p[0] = LF;
                     p[1] = 0;
-                    b->BLbufp = ps;
-                    return TRUE;
+                    b.BLbufp = cast(char*)ps;
+                    return true;
                 }
         }
 }
@@ -783,9 +811,10 @@ int readln()
  *      bl->            input file data
  */
 
-#define line_out TRUE
-extern "C" void wrtpos(FILE *fstream)
-{   char *p,*ptop,*fname;
+enum line_out = true;
+
+extern (C) void wrtpos(FILE *fstream)
+{   char* p,ptop,fname;
     int fline;
     int aline;
     blklst *b;
@@ -805,9 +834,9 @@ extern "C" void wrtpos(FILE *fstream)
     else
     {
         fname = srcpos_name(sp);
-        p = (char *) b->BLtext;
-        ptop = (char *) ((b == bl) ? btextp : b->BLtextp);
-        aline = b->BLsrcpos.Slinnum;    /* actual line number           */
+        p = cast(char *) b.BLtext;
+        ptop = cast(char *) ((b == bl) ? cast(char*)btextp : b.BLtextp);
+        aline = b.BLsrcpos.Slinnum;    /* actual line number           */
     }
     if (line_out && aline == fline)     /* if on right line             */
     {
@@ -817,12 +846,15 @@ extern "C" void wrtpos(FILE *fstream)
             p = eline;
             ptop = p + elini;
         }
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-        else if (fstream == stderr)     /* line already written to .LST */
-#else
-        else if (fstream == stdout)     /* line already written to .LST */
-#endif
-            wrtlst(fstream);            // write listing line
+        else
+        {
+            version (POSIX)
+                enum stream = stderr;
+            else
+                enum stream = stdout;
+            if (fstream == stream)     // line already written to .LST
+                wrtlst(fstream);            // write listing line
+        }
     }
 
     if (fline)
@@ -844,17 +876,18 @@ extern "C" void wrtpos(FILE *fstream)
  * Send current line to stream.
  * Input:
  *      fstream =       output stream pointer
- *      bl->            input file data
+ *      bl.            input file data
  */
 
-extern "C" void wrtlst(FILE *fstream)
+extern (C) void wrtlst(FILE *fstream)
 { blklst *b;
 
   b = cstate.CSfilblk;
   if (b)                                /* if data to read              */
-  {     char c,*p;
+  {     char c;
+        char* p;
 
-        for (p = (char *) b->BLtext; (c = *p) != 0; p++)
+        for (p = cast(char *) b.BLtext; (c = *p) != 0; p++)
         {   if (isillegal(c))
                 c = ' ';
             if (c != '\n' && c != '\r')
@@ -878,10 +911,11 @@ void file_progress()
     {   blklst *b;
 
         b = cstate.CSfilblk;
-        if (dmcdll_Progress(b ? b->BLsrcpos.Slinnum : -1))
+        if (dmcdll_Progress(b ? b.BLsrcpos.Slinnum : -1))
             err_exit();
     }
 }
+
 
 /************************************
  * Delete file.
@@ -891,14 +925,13 @@ void file_remove(char *fname)
 {   char *newname;
 
     if (fname)
-    {   newname = dmcdll_TranslateFileName(fname,"w");
+    {   newname = dmcdll_TranslateFileName(fname,cast(char*)"w".ptr);
         if (newname)
         {   remove(newname);    // delete file
             dmcdll_DisposeFile(newname);
         }
     }
 }
-
 
 /*************************************
  * Determine if fname is a directory.
@@ -907,7 +940,7 @@ void file_remove(char *fname)
  *      !=0     a directory
  */
 
-int file_isdir(const char *fname)
+int file_isdir(const(char)* fname)
 {
     char c;
     int result;
@@ -928,13 +961,13 @@ int file_isdir(const char *fname)
  *      2:      directory
  */
 
-int file_exists(const char *fname)
+int file_exists(const(char)* fname)
 {
     //printf("file_exists(%s)\n", fname);
     int result;
     char *newname;
 
-    newname = dmcdll_TranslateFileName((char *)fname,"rb");
+    newname = dmcdll_TranslateFileName(cast(char *)fname,cast(char*)"rb".ptr);
     if (newname)
     {   result = os_file_exists(newname);
         dmcdll_DisposeFile(newname);
@@ -950,13 +983,13 @@ int file_exists(const char *fname)
  *      -1L     file not found
  */
 
-long file_size(const char *fname)
+int file_size(const(char)* fname)
 {
     //printf("file_size(%s)\n", fname);
-    long result;
+    int result;
     char *newname;
 
-    newname = dmcdll_TranslateFileName((char *)fname,"rb");
+    newname = dmcdll_TranslateFileName(cast(char *)fname,cast(char*)"rb".ptr);
     if (newname)
     {   result = os_file_size(newname);
         dmcdll_DisposeFile(newname);
@@ -977,7 +1010,8 @@ void file_dependency_write()
     for (size_t i = 0; i < dim; i++)
     {
         char *p = fdeplist[i];
-#if SPP
+version (SPP)
+{
         if (i == 0)
         {
             char *q = filespecforceext(p, ext_obj);
@@ -985,7 +1019,7 @@ void file_dependency_write()
             col += strlen(q) + 2;
             mem_free(q);
         }
-#endif
+}
         if (col >= 70)
         {
             fputs(" \\\n ", fdep);
@@ -1001,15 +1035,16 @@ void file_dependency_write()
     }
     if (col > 1)
         fputc('\n', fdep);
-#if SPP
+version (SPP)
+{
     for (size_t i = 1; i < dim; i++)
     {
         char *p = fdeplist[i];
         fprintf(fdep, "\n%s:\n", p);
     }
-#endif
+}
     fclose(fdep);
-    fdeplist.free(mem_freefp);
+    fdeplist.free(&mem_freefp);
 }
 
 /***********************************
@@ -1021,9 +1056,10 @@ void file_term()
     if (fdep)
         file_dependency_write();
     dmcdll_file_term();
+
     //printf("free(%p)\n",cstate.modname);
     free(cstate.modname);
-    cstate.modname = NULL;
+    cstate.modname = null;
 }
 
 /*************************************
@@ -1032,7 +1068,11 @@ void file_term()
  *      pointer to identifier we can use. Caller does not need to free it.
  */
 
-#if !SPP
+version (SPP)
+{
+}
+else
+{
 
 char *file_unique()
 {
@@ -1040,15 +1080,16 @@ char *file_unique()
     {   char *p;
         size_t len;
 
-        len = 2 + strlen(finname) + sizeof(long) * 3 + 1;
-        p = (char *)malloc(len);
+        len = 2 + strlen(finname) + int.sizeof * 3 + 1;
+        p = cast(char *)malloc(len);
         //printf("malloc(%d) = %p\n",len,p);
         cstate.modname = p;
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+
+version (Posix)
         snprintf(p,len,"__%s%lu",finname,getpid());
-#else
+else
         sprintf(p,"?%%%s%lu",finname,os_unique());
-#endif
+
         assert(strlen(p) < len);
         p += 2;
         do
@@ -1059,4 +1100,6 @@ char *file_unique()
     return cstate.modname;
 }
 
-#endif
+}
+
+}

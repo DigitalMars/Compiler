@@ -170,7 +170,7 @@ debppnd:
 #########################################
 
 OBJ1a=dblklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj rawstring.obj
-OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj file.obj filename.obj func.obj adl.obj
+OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj dfile.obj file.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj ph.obj ppexp.obj dpragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj type.obj dt.obj dth.obj phstring.obj
@@ -295,7 +295,7 @@ FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d 
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
 	dstruct.d func.d dcpp.d speller.di dtemplate.d dexp2.d castab.d dgetcmd.d \
 	dnwc.d dblklst.d dpragma.d phstring.di phstring.d xtoken.d rawstring.di rawstring.d \
-	dscope.d dmsc.d dutil.d diasm.d
+	dscope.d dmsc.d dutil.d diasm.d dfile.d
 
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 	speller.h tdb.h total.h \
@@ -419,6 +419,9 @@ denum.obj : denum.d
 
 dexp2.obj : dexp2.d castab.d
         $(DMD) -c $(DFLAGS) -J. dexp2.d
+
+dfile.obj : dfile.d
+        $(DMD) -c $(DFLAGS) -J. dfile.d
 
 dgetcmd.obj : dgetcmd.d
         $(DMD) -c $(DFLAGS) dgetcmd.d
