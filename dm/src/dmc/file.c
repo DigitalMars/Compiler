@@ -33,7 +33,6 @@
 #include        "global.h"
 #include        "filespec.h"
 #include        "token.h"
-#include        "scdll.h"
 #include        "html.h"
 #include        "outbuf.h"
 #include        "dmcdll.h"
@@ -46,10 +45,6 @@ STATIC void file_openread(const char *f,blklst *b);
 
 static int lastlinnum;
 int includenest;
-
-#if _WIN32 && _WINDLL
-/*static*/ list_t file_list;
-#endif
 
 // File name extensions
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
@@ -299,7 +294,7 @@ void afopen(char *p,blklst *bl,int flag)
     }
 
     if (configv.verbose)
-        NetSpawnFile(p,(flag & FQsystem) ? -(includenest + 1) : includenest);
+        dmcdll_SpawnFile(p,(flag & FQsystem) ? -(includenest + 1) : includenest);
     includenest++;
     if (configv.verbose == 2)
     {   int i;
@@ -623,7 +618,7 @@ int readln()
         }
                 includenest--;
                 if (configv.verbose)
-                    NetSpawnFile(blklst_filename(b),kCloseLevel);
+                    dmcdll_SpawnFile(blklst_filename(b));
 #if HTOD
                 htod_include_pop();
 #endif
@@ -694,7 +689,7 @@ int readln()
         {
             includenest--;
             if (configv.verbose)
-                NetSpawnFile(blklst_filename(b),kCloseLevel);
+                dmcdll_SpawnFile(blklst_filename(b));
 #if HTOD
             htod_include_pop();
 #endif
@@ -878,15 +873,14 @@ void file_progress()
 {
     if (controlc_saw)
         util_exit(EXIT_BREAK);
-#if USEDLLSHELL
+
     if (configv.verbose)
     {   blklst *b;
 
         b = cstate.CSfilblk;
-        if (NetSpawnProgress(b ? b->BLsrcpos.Slinnum : kNoLineNumber) != NetSpawnOK)
+        if (dmcdll_Progress(b ? b->BLsrcpos.Slinnum : -1))
             err_exit();
     }
-#endif
 }
 
 /************************************
@@ -959,28 +953,17 @@ int file_exists(const char *fname)
 long file_size(const char *fname)
 {
     //printf("file_size(%s)\n", fname);
-#if __DMC__
     long result;
     char *newname;
 
     newname = dmcdll_TranslateFileName((char *)fname,"rb");
     if (newname)
-    {   result = filesize(newname);
+    {   result = os_file_size(newname);
         dmcdll_DisposeFile(newname);
     }
     else
         result = -1L;
     return result;
-#else
-    long result;
-    struct stat buf;
-
-    if (stat(fname,&buf) != -1)
-        result = buf.st_size;
-    else
-        result = -1L;
-    return result;
-#endif
 }
 
 /***********************************

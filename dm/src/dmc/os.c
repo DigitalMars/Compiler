@@ -658,6 +658,23 @@ long os_file_size(int fd)
 #endif
 }
 
+
+long os_file_size(const char *fname)
+{
+#if __DMC__
+    return filesize(fname);
+#else
+    long result;
+    struct stat buf;
+
+    if (stat(fname,&buf) != -1)
+        result = buf.st_size;
+    else
+        result = -1L;
+    return result;
+#endif
+}
+
 /******************************************
  * Get the last modified time of a file.
  * Params:

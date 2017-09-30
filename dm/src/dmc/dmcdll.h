@@ -16,3 +16,7 @@ void dmcdll_file_term();
 char *dmcdll_nettranslate(const char *filename,const char *mode);
 char *dmcdll_TranslateFileName(char *filename, char *mode);
 void dmcdll_DisposeFile(char *filename);
+void dmcdll_SpawnFile(const char *filename, int includelevel);
+void dmcdll_SpawnFile(const char *filename);
+bool dmcdll_Progress(int linnum);
+

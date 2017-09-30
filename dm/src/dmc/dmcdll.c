@@ -30,7 +30,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 unsigned long netspawn_flags = 0;
 
 #if _WIN32 && _WINDLL
-extern /*static*/ list_t file_list;
+static list_t file_list;
 #endif
 
 /*********************************
@@ -119,3 +119,28 @@ void dmcdll_DisposeFile(char *filename)
 }
 
 
+void dmcdll_SpawnFile(const char *filename, int includelevel)
+{
+    NetSpawnFile(filename, includelevel);
+}
+
+void dmcdll_SpawnFile(const char *filename)
+{
+    NetSpawnFile(filename, kCloseLevel);
+}
+
+/*****************************************
+ * Indicate progress.
+ * Params:
+ *      linnum = increasing value indicating progress, -1 means no indication
+ * Returns:
+ *      TRUE means exit program
+ */
+bool dmcdll_Progress(int linnum)
+{
+#if _WIN32 && _WINDLL
+    return NetSpawnProgress(linnum == -1 ? kNoLineNumber : linnum) != NetSpawnOK;
+#else
+    return FALSE;
+#endif
+}

@@ -298,6 +298,7 @@ uint os_unique();
 int os_file_exists(const(char)* name);
 int os_file_mtime(const(char)* name);
 int os_file_size(int fd);
+int os_file_size(const(char)* filename);
 char *file_8dot3name(const(char)* filename);
 int file_write(char *name, void *buffer, uint len);
 int file_createdirs(char *name);
