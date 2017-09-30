@@ -455,19 +455,6 @@ void CodeBuilder::genc2(unsigned op, unsigned ea, targ_size_t EV2)
  * Generate code.
  */
 
-code *genc1(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1)
-{   code cs;
-
-    assert(FL1 < FLMAX);
-    cs.Iop = op;
-    cs.Iflags = CFoff;
-    cs.Iea = ea;
-    ccheck(&cs);
-    cs.IFL1 = FL1;
-    cs.IEV1.Vsize_t = EV1;
-    return gen(c,&cs);
-}
-
 void CodeBuilder::genc1(unsigned op, unsigned ea, unsigned FL1, targ_size_t EV1)
 {
     code cs;
@@ -624,16 +611,6 @@ void CodeBuilder::genfltreg(unsigned opcode,unsigned reg,targ_size_t offset)
     if ((opcode & ~7) == 0xD8)
         genfwait(*this);
     genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
-}
-
-code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym)
-{
-    assert(xreg >= XMM0);
-    floatreg = TRUE;
-    reflocal = TRUE;
-    code *c1 = genc1(CNIL,opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
-    checkSetVex(c1, tym);
-    return cat(c, c1);
 }
 
 void CodeBuilder::genxmmreg(unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym)
