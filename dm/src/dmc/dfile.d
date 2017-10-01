@@ -44,11 +44,7 @@ extern (C++):
 
 alias dbg_printf = printf;
 
-// /*private*/ void getcmd_filename (char **pname,const char *ext);
-// /*private*/ void file_openread(const char *f,blklst *b);
-void file_dependency_write();
-
-extern __gshared
+__gshared
 {
  /*private*/ int lastlinnum;
 int includenest;
@@ -57,23 +53,23 @@ int includenest;
 extern (C):
 version (Posix)
 {
-const char[3] ext_obj; // = ".o";
+const char[3] ext_obj = ".o";
 }
 
 version (Windows)
 {
-const(char)[5] ext_obj; // = ".obj";
+const(char)[5] ext_obj = ".obj";
 }
 
-char[3] ext_i; //   = ".i";
-char[5] ext_dep; // = ".dep";
-char[5] ext_lst; // = ".lst";
-char[5] ext_hpp; // = ".hpp";
-char[3] ext_c; //   = ".c";
-char[5] ext_cpp; // = ".cpp";
-char[5] ext_sym; // = ".sym";
-char[5] ext_tdb; // = ".tdb";
-char[3] ext_dmodule; //   = ".d";
+char[3] ext_i   = ".i";
+char[5] ext_dep = ".dep";
+char[5] ext_lst = ".lst";
+char[5] ext_hpp = ".hpp";
+char[3] ext_c   = ".c";
+char[5] ext_cpp = ".cpp";
+char[5] ext_sym = ".sym";
+char[5] ext_tdb = ".tdb";
+char[3] ext_dmodule = ".d";
 }
 
 version (none)
