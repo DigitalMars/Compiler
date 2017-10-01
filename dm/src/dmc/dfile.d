@@ -20,6 +20,7 @@ import core.stdc.string;
 import core.stdc.time;
 
 extern (C) int read(int,void*,uint);    // io.h
+extern (C) int isatty(int);             // io.h
 
 import ddmd.backend.cc;
 import ddmd.backend.cdef;
@@ -45,6 +46,7 @@ alias dbg_printf = printf;
 
 // /*private*/ void getcmd_filename (char **pname,const char *ext);
 // /*private*/ void file_openread(const char *f,blklst *b);
+void file_dependency_write();
 
 extern __gshared
 {
@@ -52,14 +54,15 @@ extern __gshared
 int includenest;
 
 // File name extensions
+extern (C):
 version (Posix)
 {
-char[3] ext_obj; // = ".o";
+const char[3] ext_obj; // = ".o";
 }
 
 version (Windows)
 {
-char[5] ext_obj; // = ".obj";
+const(char)[5] ext_obj; // = ".obj";
 }
 
 char[3] ext_i; //   = ".i";
@@ -75,6 +78,7 @@ char[3] ext_dmodule; //   = ".d";
 
 version (none)
 {
+}
 /*********************************
  * Open file for writing.
  * Input:
@@ -389,7 +393,7 @@ version (SPP)
         fout = stdout;
     else
     {
-        if (filespeccmp(filespecdotext(foutname),ext_obj) == 0)
+        if (filespeccmp(filespecdotext(foutname),cast(char*)ext_obj) == 0)
             // Ignore -o switch if it is a .obj filename
             foutname = cast(char*)"";
 version (Posix)
@@ -406,7 +410,7 @@ version (Posix)
 else
 {
         {
-            getcmd_filename(&foutname,ext_i);
+            getcmd_filename(&foutname,cast(char*)ext_i);
             fout = file_openwrite(foutname,"w");
         }
 }
@@ -421,7 +425,7 @@ else
         /* Don't check result, don't care if it fails
          */
     }
-    getcmd_filename(&fdepname,ext_dep);
+    getcmd_filename(&fdepname,cast(char*)ext_dep);
     fdep = file_openwrite(fdepname,"w");
     if (0 && fdep)
     {   // Build entire makefile line
@@ -630,12 +634,12 @@ version (Win32)
         {
                 mov     ESI,b                   ;
                 xor     DL,DL                   ;
-                mov     EDI,[ESI]BLbuf          ;
+                mov     EDI,[ESI]blklst.BLbuf.offsetof   ;
                 mov     ECX,0x0D0A              ; //CH = CR, CL = LF
                 inc     EDI                     ;
-                mov     [ESI]BLtext,EDI         ;
+                mov     [ESI]blklst.BLtext.offsetof,EDI  ;
                 mov     btextp,EDI              ;
-                mov     ESI,[ESI]BLbufp         ;
+                mov     ESI,[ESI]blklst.BLbufp.offsetof  ;
         L1:
                 mov     AL,[ESI]                ;
                 cmp     AL,0x1A                 ;
@@ -707,9 +711,9 @@ version (HTOD)
 else
 {
         b.BLtext = b.BLbuf + 1;               // +1 so we can bl.BLtext[-1]
-        btextp = b.BLtext;             // set to start of line
+        btextp = cast(ubyte*)b.BLtext;             // set to start of line
         p = btextp;
-        ps = b.BLbufp;
+        ps = cast(ubyte*)b.BLbufp;
     L1:
         c = *ps++;
         if (c == 0x1A)
@@ -1014,7 +1018,7 @@ version (SPP)
 {
         if (i == 0)
         {
-            char *q = filespecforceext(p, ext_obj);
+            char *q = filespecforceext(p, cast(char*)ext_obj);
             fprintf(fdep, "%s: ", q);
             col += strlen(q) + 2;
             mem_free(q);
@@ -1102,4 +1106,3 @@ else
 
 }
 
-}

@@ -91,7 +91,7 @@ void util_exit(int exitcode)
 
 #if _WIN32 && !_MSC_VER
 
-volatile int controlc_saw;
+extern "C" volatile int controlc_saw;
 
 /********************************
  * Control C interrupts go here.

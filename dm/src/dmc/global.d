@@ -68,7 +68,7 @@ extern __gshared
 //    Config config;                  // precompiled part of configuration
     char[SCMAX] sytab;
 
-    /*volatile*/ int controlc_saw;    // a control C was seen
+    extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
     uint maxblks;                   // array max for all block stuff
     uint numblks;                   // number of basic blocks (if optimized)
     block* startblock;              // beginning block of function

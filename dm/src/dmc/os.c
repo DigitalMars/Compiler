@@ -598,7 +598,7 @@ void *  __cdecl realloc(void *p,size_t newsize)
 // Return a value that will hopefully be unique every time
 // we call it.
 
-unsigned long os_unique()
+unsigned os_unique()
 {
     unsigned long long x;
 
@@ -647,7 +647,7 @@ int os_file_exists(const char *name)
 extern "C" void * __cdecl _osfhnd[];
 #endif
 
-long os_file_size(int fd)
+int os_file_size(int fd)
 {
 #if _WIN32 && !_MSC_VER
     return GetFileSize(_osfhnd[fd],NULL);
@@ -659,7 +659,7 @@ long os_file_size(int fd)
 }
 
 
-long os_file_size(const char *fname)
+int os_file_size(const char *fname)
 {
 #if __DMC__
     return filesize(fname);
@@ -682,7 +682,7 @@ long os_file_size(const char *fname)
  * Returns:
  *      last modified time, -1L on error
  */
-long os_file_mtime(const char *filename)
+int os_file_mtime(const char *filename)
 {
     struct stat buf;
     long result;

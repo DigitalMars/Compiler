@@ -40,8 +40,8 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-STATIC void getcmd_filename (char **pname,const char *ext);
-STATIC void file_openread(const char *f,blklst *b);
+/*STATIC*/ void getcmd_filename (char **pname,const char *ext);
+/*STATIC*/ void file_openread(const char *f,blklst *b);
 
 static int lastlinnum;
 int includenest;
@@ -74,6 +74,7 @@ char ext_dmodule[]   = ".d";
  *      file stream pointer, or NULL if error
  */
 
+#if 0
 extern "C" FILE *file_openwrite(const char *name,const char *mode)
 {   FILE *stream;
 
@@ -451,7 +452,7 @@ void file_iofiles()
  *      foutdir         output file default directory
  */
 
-STATIC void getcmd_filename(char **pname,const char *ext)
+/*STATIC*/ void getcmd_filename(char **pname,const char *ext)
 {   char *p;
 
 #ifdef DEBUG
@@ -498,7 +499,7 @@ STATIC void getcmd_filename(char **pname,const char *ext)
  * Read in source file.
  */
 
-STATIC void file_openread(const char *name,blklst *b)
+/*STATIC*/ void file_openread(const char *name,blklst *b)
 {   unsigned char *p;
     unsigned long size;
     char *newname;
@@ -950,7 +951,7 @@ int file_exists(const char *fname)
  *      -1L     file not found
  */
 
-long file_size(const char *fname)
+int file_size(const char *fname)
 {
     //printf("file_size(%s)\n", fname);
     long result;
@@ -1059,4 +1060,5 @@ char *file_unique()
     return cstate.modname;
 }
 
+#endif
 #endif

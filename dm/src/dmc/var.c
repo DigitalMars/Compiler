@@ -187,7 +187,7 @@ char sytab[SCMAX] =
 };
 
 #endif /* !SPP */
-volatile int controlc_saw;              /* a control C was seen         */
+extern "C" volatile int controlc_saw = 0;              /* a control C was seen         */
 symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
