@@ -31,15 +31,15 @@ static char __file__[] = __FILE__;      // for tassert.h
 
 int errcnt = 0;                 // error count
 
-#ifdef DEBUG
-#define ERROR_GPF       1       // 1 if cause GPF on error
-#else
-#define ERROR_GPF       0       // 1 if cause GPF on error
-#endif
-
 void prttype (type *);
 void errmsgs_init();
 
+void err_GPF()
+{
+#ifdef DEBUG
+    *(char *)0=0;       // case GPF on error
+#endif
+}
 
 /*********************************
  * Send error message to caller of DLL.
@@ -274,9 +274,7 @@ int synerr(unsigned errnum,...)
     if (result)
         err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
 #endif
-#if ERROR_GPF
-    *(char *)0=0;
-#endif
+    err_GPF();
     va_end(ap);
     return result;
 }
@@ -291,9 +289,7 @@ int cpperr(unsigned errnum,...)
     if (result)
         err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
 #endif
-#if ERROR_GPF
-    *(char *)0=0;
-#endif
+    err_GPF();
     va_end(ap);
     return result;
 }
@@ -309,9 +305,7 @@ int tx86err(unsigned errnum,...)
     if (result)
         err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
 #endif
-#if ERROR_GPF
-    *(char *)0=0;
-#endif
+    err_GPF();
     va_end(ap);
     return result;
 }
@@ -450,9 +444,7 @@ void err_fatal(unsigned errnum,...)
 #if USEDLLSHELL
     err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,ap);
 #endif
-#if ERROR_GPF
-    *(char *)0=0;
-#endif
+    err_GPF();
     va_end(ap);
     err_exit();
 }
@@ -553,9 +545,7 @@ int typerr(int n,type *t1,type *t2,...)
                                 n == EM_no_castaway ||
                                 n == EM_explicitcast ? "to  " : "and",p2);
         }
-#if ERROR_GPF
-        *(char *)0=0;
-#endif
+        err_GPF();
         va_end(ap);
         return 1;
     }
@@ -620,9 +610,7 @@ void err_ambiguous(symbol *s1,symbol *s2)
         else
             // NULL means it's a built-in operator per C++98 13.6
             err_continue("and: Built-in operator");
-#if ERROR_GPF
-        *(char *)0=0;
-#endif
+        err_GPF();
     }
 }
 
@@ -652,9 +640,7 @@ void err_redeclar(symbol *s,type *t1,type *t2)
         p2 = type_tostring(&buf,t2);
         err_continue(dlcmsgs(EM_now_declared),p2);      // It is now declared
     }
-#if ERROR_GPF
-    *(char *)0=0;
-#endif
+    err_GPF();
 }
 
 /************************************
