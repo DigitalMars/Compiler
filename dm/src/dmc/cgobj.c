@@ -1091,7 +1091,11 @@ STATIC void linnum_term()
 #if SCPP
         Sfile *filptr = ln->filptr;
         if (filptr != lastfilptr)
-        {   Obj::theadr(filptr->SFname);
+        {
+            if (lastfilptr == NULL && strcmp(filptr->SFname,obj.modname))
+            {
+                Obj::theadr(filptr->SFname);
+            }
             lastfilptr = filptr;
         }
 #endif
