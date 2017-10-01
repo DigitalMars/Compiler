@@ -45,7 +45,7 @@ import eh;
 import msgs2;
 import parser;
 import scopeh;
-import speller;
+import dspeller;
 
 
 extern (C++):
@@ -3056,11 +3056,6 @@ Symbol *cpp_findmember(Classsym *sclass,const(char)* sident,uint flag)
  *      null    member not found
  */
 
-private void *cpp_findmember_nest_fp(void *arg, const(char)* id)
-{
-    return cpp_findmember_nest(cast(Classsym **)arg, id, 0);
-}
-
 Symbol *cpp_findmember_nest(Classsym **psclass,const(char)* sident,uint flag)
 {   Symbol *svirtual;
     Classsym *sclass;
@@ -3081,7 +3076,13 @@ Symbol *cpp_findmember_nest(Classsym **psclass,const(char)* sident,uint flag)
     }
     if (flag & 1 && !smember && *psclass)
     {
-        Symbol *s = cast(Symbol *)speller.speller(sident, &cpp_findmember_nest_fp, psclass, &idchars[0]);
+
+        extern (D) void *cpp_findmember_nest_fp(const(char)* id, ref int cost)
+        {
+            return cpp_findmember_nest(psclass, id, 0);
+        }
+
+        Symbol *s = cast(Symbol *)speller(sident, &cpp_findmember_nest_fp, &idchars[0]);
         err_notamember(sident, *psclass, s);    // not a member of sclass
     }
     return smember;

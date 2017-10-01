@@ -53,7 +53,6 @@ import msgs2;
 import parser;
 import precomp;
 import scopeh;
-import speller;
 
 
 extern (C++):

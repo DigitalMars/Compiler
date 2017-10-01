@@ -32,7 +32,7 @@ import tk.mem;
 import msgs2;
 import parser;
 import scopeh;
-import speller;
+import dspeller;
 
 
 extern (C++):
@@ -169,26 +169,16 @@ Nspacesym *scope_inNamespace()
 ///////////////////////////////
 // Search all scopes for symbol starting from innermost scope.
 
-struct ScopeSearch
-{
-    uint sct;
-}
-
-/*private*/ void *scope_search_fp(void *arg, const(char)* id)
-{
-    ScopeSearch *ss = cast(ScopeSearch *)arg;
-
-    Scope *sc;
-
-    return scope_searchx(id, ss.sct, &sc);
-}
-
 Symbol *scope_search_correct(const(char)* id, uint sct)
 {
-    ScopeSearch ss;
-    ss.sct = sct;
+    extern (D) void *scope_search_fp(const(char)* id, ref int cost)
+    {
+        Scope *sc;
 
-    return cast(Symbol *)speller.speller(id, &scope_search_fp, &ss, &idchars[0]);
+        return scope_searchx(id, sct, &sc);
+    }
+
+    return cast(Symbol *)speller(id, &scope_search_fp, &idchars[0]);
 }
 
 ///////////////////////////////

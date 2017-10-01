@@ -181,7 +181,7 @@ OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarf.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj
-OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj speller.obj utf.obj divcoeff.obj
+OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj dspeller.obj utf.obj divcoeff.obj
 
 ALLOBJS= $(OBJ1a) $(OBJ1b) $(OBJ1c) $(OBJ1d) $(OBJ1e) $(OBJ1f) $(OBJ1g) \
          $(OBJ2a) $(OBJ2b) $(OBJ2c) $(OBJ2d) $(OBJ2e)
@@ -293,12 +293,12 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d dinit.d \
 	ini.d denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
-	dstruct.d func.d dcpp.d speller.di dtemplate.d dexp2.d castab.d dgetcmd.d \
+	dstruct.d func.d dcpp.d dtemplate.d dexp2.d castab.d dgetcmd.d \
 	dnwc.d dblklst.d dpragma.d phstring.di phstring.d xtoken.d rawstring.di rawstring.d \
-	dscope.d dmsc.d dutil.d diasm.d dfile.d
+	dscope.d dmsc.d dutil.d diasm.d dfile.d dspeller.di dspeller.d
 
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
-	speller.h tdb.h total.h \
+	tdb.h total.h \
 	\
         errmsgs2.c tdbx.c \
         err.c \
@@ -306,7 +306,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
         trace.c dmcdll.c \
         ph.c \
         tk.c \
-        htod.c speller.c
+        htod.c
 
 # Back end
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d \
@@ -441,6 +441,9 @@ dpragma.obj : dpragma.d
 dscope.obj : dscope.d
         $(DMD) -c $(DFLAGS) dscope.d
 
+dspeller.obj : dspeller.d
+        $(DMD) -c $(DFLAGS) dspeller.d
+
 dtemplate.obj : dtemplate.d
         $(DMD) -c $(DFLAGS) dtemplate.d
 
@@ -569,7 +572,6 @@ nteh.obj : $(DEP) $(nteh.dep) nteh.c
 out.obj : $(DEP) $(out.dep) out.c
 pdata.obj : $(DEP) $(pdata.dep) pdata.c
 ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
-speller.obj : speller.h speller.c
 ti_achar.obj : tinfo.h ti_achar.c
 ti_pvoid.obj : tinfo.h ti_pvoid.c
 tk.obj : $(DEP) $(tk.dep) tk.c
