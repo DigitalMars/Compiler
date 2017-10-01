@@ -41,6 +41,41 @@ void err_GPF()
 #endif
 }
 
+/**************************************
+ * Get filename, line number, and column number.
+ * Params:
+ *      filename = set to file name
+ *      line = set to line number, -1 if none
+ *      column = set to column number, -1 if none
+ */
+
+void getLocation(char*& filename, int& line, int& column)
+{
+    Srcpos sp = token_linnum();
+    line = sp.Slinnum;
+
+    blklst *b = cstate.CSfilblk;
+    if (b)
+    {   int col;
+
+        // -2 because scanner is always a bit ahead of the parser
+        col = (b == bl ? btextp : b->BLtextp) - b->BLtext - 2;
+        if (col < 0)
+            col = 0;
+
+        column = col;
+        filename = srcpos_name(sp);
+    }
+    else
+    {
+        column = -1;
+        if (sp.Slinnum)
+            filename = srcpos_name(sp);
+        else
+            filename = finname;              // use original source file name
+    }
+}
+
 /*********************************
  * Send error message to caller of DLL.
  */
@@ -58,64 +93,26 @@ static void err_reportmsg(tToolMsgType msgtype,int msgnum,int errnum,
 
 static void err_reportmsgf(tToolMsgType msgtype,int msgnum,const char *format,
                 va_list args)
-{   tToolMsg tm;
-    blklst *b;
+{
     char buffer[500];
-    int count;
-    Srcpos sp;
 
-    sp = token_linnum();
+    int count = _vsnprintf(buffer,sizeof(buffer),format,args);
+
+    char* filename;
+    int line;
+    int column;
+    getLocation(filename, line, column);
+
+    tToolMsg tm;
     memset(&tm,0,sizeof(tm));
     tm.version = TOOLMSG_VERSION;
-    b = cstate.CSfilblk;
-    if (b)
-    {   int col;
-
-        // -2 because scanner is always a bit ahead of the parser
-        col = (b == bl ? btextp : b->BLtextp) - b->BLtext - 2;
-        if (col < 0)
-            col = 0;
-
-        tm.colNumber = col;
-        tm.fileName = srcpos_name(sp);  //blklst_filename(b);
-        //tm.lineNumber = b->Bsrcpos.Slinnum;
-    }
-    else
-    {
-        tm.colNumber = kNoColNumber;
-        if (sp.Slinnum)
-            tm.fileName = srcpos_name(sp);
-        else
-            tm.fileName = finname;              // use original source file name
-        //tm.lineNumber = getlinnum().Slinnum;  // get last known line number
-    }
-    tm.lineNumber = sp.Slinnum;
-    count = _vsnprintf(buffer,sizeof(buffer),format,args);
+    tm.fileName = filename;
+    tm.lineNumber = line;
+    tm.colNumber = column;
     tm.msgText = buffer;
     tm.msgType = msgtype;
     tm.msgNumber = msgnum;
-    NetSpawnMessage(&tm);
-}
 
-/**********************************
- * Printf for DLLs
- */
-
-void dll_printf(const char *format,...)
-{   tToolMsg tm;
-    char buffer[500];
-    int count;
-
-    memset(&tm,0,sizeof(tm));
-    tm.version = TOOLMSG_VERSION;
-    tm.colNumber = kNoColNumber;
-    tm.fileName = NULL;
-    tm.lineNumber = kNoLineNumber;
-    tm.msgType = eMsgInformational;
-    tm.msgNumber = kNoMsgNumber;
-
-    count = _vsnprintf(buffer,sizeof(buffer),format,(va_list)(&format + 1));
-    tm.msgText = buffer;
     NetSpawnMessage(&tm);
 }
 
@@ -238,14 +235,12 @@ void lexerr(unsigned errnum,...)
 {
     va_list ap;
     va_start(ap, errnum);
-#if USEDLLSHELL
     if (generr(dlcmsgs(EM_lexical_error),errnum,ap))
     {
+#if USEDLLSHELL
         err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
-    }
-#else
-    generr(dlcmsgs(EM_lexical_error),errnum,ap);
 #endif
+    }
     va_end(ap);
 }
 
@@ -253,14 +248,12 @@ void preerr(unsigned errnum,...)
 {
     va_list ap;
     va_start(ap, errnum);
-#if USEDLLSHELL
     if (generr(dlcmsgs(EM_preprocessor_error),errnum,ap))
     {
+#if USEDLLSHELL
         err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
-    }
-#else
-    generr(dlcmsgs(EM_preprocessor_error),errnum,ap);
 #endif
+    }
     va_end(ap);
 }
 
@@ -412,18 +405,14 @@ void warerr(unsigned warnum,...)
         // Convert from warning number to message number
         errnum = war_to_msg[warnum];
 
+        if (generr(msg,-errnum,ap))
+        {
 #if USEDLLSHELL
-        {   int result;
-
-            result = generr(msg,-errnum,ap);
-            if (result)
-                err_reportmsg(
-                    (config.flags2 & CFG2warniserr) ? eMsgError : eMsgWarning,
-                    warnum,errnum,ap);
-        }
-#else
-        generr(msg,-errnum,ap);
+            err_reportmsg(
+                (config.flags2 & CFG2warniserr) ? eMsgError : eMsgWarning,
+                warnum,errnum,ap);
 #endif
+        }
     }
     va_end(ap);
 }
@@ -490,19 +479,20 @@ void html_err(const char *srcname, unsigned linnum, unsigned errnum, ...)
     va_list ap;
     va_start(ap, errnum);
 #if USEDLLSHELL
-    tToolMsg tm;
     char buffer[500];
-    int count;
 
+    int count = _vsnprintf(buffer,sizeof(buffer),dlcmsgs(errnum),ap);
+
+    tToolMsg tm;
     memset(&tm,0,sizeof(tm));
     tm.version = TOOLMSG_VERSION;
     tm.colNumber = kNoColNumber;
     tm.fileName = (char *)srcname;      // use original source file name
     tm.lineNumber = linnum;
-    count = _vsnprintf(buffer,sizeof(buffer),dlcmsgs(errnum),ap);
     tm.msgText = buffer;
     tm.msgType = eMsgError;
     tm.msgNumber = kNoMsgNumber;
+
     NetSpawnMessage(&tm);
 #else
     printf("%s(%d) : HTML error: ", srcname, linnum);
@@ -593,7 +583,8 @@ void err_ambiguous(symbol *s1,symbol *s2)
 {
 
     if (synerr(EM_overload_ambig))
-    {   char *p1,*p2;
+    {   char *p1;
+        char *p2;
         Outbuffer buf;
 
         if (s1->Sclass == SCfuncalias)

@@ -144,3 +144,29 @@ bool dmcdll_Progress(int linnum)
     return FALSE;
 #endif
 }
+
+/**********************************
+ * Printf for DLLs
+ */
+
+void dll_printf(const char *format,...)
+{
+#if _WIN32 && _WINDLL
+    char buffer[500];
+    int count = _vsnprintf(buffer,sizeof(buffer),format,(va_list)(&format + 1));
+
+    tToolMsg tm;
+    memset(&tm,0,sizeof(tm));
+    tm.version = TOOLMSG_VERSION;
+    tm.colNumber = kNoColNumber;
+    tm.fileName = NULL;
+    tm.lineNumber = kNoLineNumber;
+    tm.msgType = eMsgInformational;
+    tm.msgNumber = kNoMsgNumber;
+    tm.msgText = buffer;
+
+    NetSpawnMessage(&tm);
+#endif
+}
+
+
