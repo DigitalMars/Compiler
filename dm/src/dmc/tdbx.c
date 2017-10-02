@@ -74,12 +74,8 @@ void tdb_error(unsigned line)
 void tdb_open()
 {
 #if _WIN32
-    int createflag;
-
     tdb_loaddll();
-    //createflag = 0;                   // open existing
-    //if (config.flags2 & CFG2phgen)    // if generate pch
-        createflag = 1;                 // create new tdb
+    int createflag = 1;                 // create new tdb
     if (OpenDatabase(&h,ftdbname,createflag))
         tdb_error(__LINE__);            // can't open type database
 #endif

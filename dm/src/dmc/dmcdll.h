@@ -10,6 +10,8 @@
  * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/dmcdll.h
  */
 
+#include <stdarg.h>
+
 void dmcdll_command_line(int argc, char **argv, const char *copyright);
 bool dmcdll_first_compile();
 void dmcdll_file_term();
@@ -19,4 +21,10 @@ void dmcdll_DisposeFile(char *filename);
 void dmcdll_SpawnFile(const char *filename, int includelevel);
 void dmcdll_SpawnFile(const char *filename);
 bool dmcdll_Progress(int linnum);
+void dmcdll_html_err(const char *srcname, unsigned linnum, const char *format, va_list ap);
+
+void err_reportmsgf_error(const char *format, va_list args);
+void err_reportmsgf_fatal(const char *format, va_list args);
+void err_reportmsgf_continue(const char *format, va_list args);
+void err_reportmsgf_warning(bool warniserr, int warnum, const char *format, va_list args);
 

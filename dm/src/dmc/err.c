@@ -22,9 +22,9 @@
 #include        "global.h"
 #include        "token.h"
 #include        "type.h"
-#include        "scdll.h"
 #include        "outbuf.h"
 #include        "allocast.h"
+#include        "dmcdll.h"
 
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
@@ -76,48 +76,6 @@ void getLocation(char*& filename, int& line, int& column)
     }
 }
 
-/*********************************
- * Send error message to caller of DLL.
- */
-
-#if USEDLLSHELL
-
-static void err_reportmsgf(tToolMsgType msgtype,int msgnum,const char *format,
-                va_list args);
-
-static void err_reportmsg(tToolMsgType msgtype,int msgnum,int errnum,
-                va_list args)
-{
-    err_reportmsgf(msgtype,msgnum,dlcmsgs(errnum),args);
-}
-
-static void err_reportmsgf(tToolMsgType msgtype,int msgnum,const char *format,
-                va_list args)
-{
-    char buffer[500];
-
-    int count = _vsnprintf(buffer,sizeof(buffer),format,args);
-
-    char* filename;
-    int line;
-    int column;
-    getLocation(filename, line, column);
-
-    tToolMsg tm;
-    memset(&tm,0,sizeof(tm));
-    tm.version = TOOLMSG_VERSION;
-    tm.fileName = filename;
-    tm.lineNumber = line;
-    tm.colNumber = column;
-    tm.msgText = buffer;
-    tm.msgType = msgtype;
-    tm.msgNumber = msgnum;
-
-    NetSpawnMessage(&tm);
-}
-
-#endif
-
 /************************************
  * Do a continuation printf message.
  */
@@ -129,9 +87,7 @@ STATIC void err_continue(const char *format,...)
     err_vprintf(ERRSTREAM,format,ap);
     crlf(ERRSTREAM);
     fflush(ERRSTREAM);
-#if USEDLLSHELL
-    err_reportmsgf(eMsgContinue,kNoMsgNumber,format,ap);
-#endif
+    err_reportmsgf_continue(format,ap);
     va_end(ap);
 }
 
@@ -146,9 +102,7 @@ void err_message(const char *format,...)
     err_vprintf(ERRSTREAM,format,ap);
     crlf(ERRSTREAM);
     fflush(ERRSTREAM);
-#if USEDLLSHELL
-    err_reportmsgf(eMsgFatalError,kNoMsgNumber,format,ap);
-#endif
+    err_reportmsgf_fatal(format,ap);
     va_end(ap);
 }
 
@@ -237,9 +191,7 @@ void lexerr(unsigned errnum,...)
     va_start(ap, errnum);
     if (generr(dlcmsgs(EM_lexical_error),errnum,ap))
     {
-#if USEDLLSHELL
-        err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
-#endif
+        err_reportmsgf_error(dlcmsgs(errnum),ap);
     }
     va_end(ap);
 }
@@ -250,9 +202,7 @@ void preerr(unsigned errnum,...)
     va_start(ap, errnum);
     if (generr(dlcmsgs(EM_preprocessor_error),errnum,ap))
     {
-#if USEDLLSHELL
-        err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
-#endif
+        err_reportmsgf_error(dlcmsgs(errnum),ap);
     }
     va_end(ap);
 }
@@ -263,10 +213,8 @@ int synerr(unsigned errnum,...)
     va_start(ap, errnum);
 
     int result = generr(dlcmsgs(EM_error),errnum,ap);
-#if USEDLLSHELL
     if (result)
-        err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
-#endif
+        err_reportmsgf_error(dlcmsgs(errnum),ap);
     err_GPF();
     va_end(ap);
     return result;
@@ -278,10 +226,8 @@ int cpperr(unsigned errnum,...)
     va_start(ap, errnum);
 
     int result = generr(dlcmsgs(EM_error),errnum,ap);
-#if USEDLLSHELL
     if (result)
-        err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
-#endif
+        err_reportmsgf_error(dlcmsgs(errnum),ap);
     err_GPF();
     va_end(ap);
     return result;
@@ -294,10 +240,8 @@ int tx86err(unsigned errnum,...)
     va_start(ap, errnum);
 
     int result = generr(dlcmsgs(EM_error),errnum,ap);
-#if USEDLLSHELL
     if (result)
-        err_reportmsg(eMsgError,kNoMsgNumber,errnum,ap);
-#endif
+        err_reportmsgf_error(dlcmsgs(errnum),ap);
     err_GPF();
     va_end(ap);
     return result;
@@ -407,11 +351,8 @@ void warerr(unsigned warnum,...)
 
         if (generr(msg,-errnum,ap))
         {
-#if USEDLLSHELL
-            err_reportmsg(
-                (config.flags2 & CFG2warniserr) ? eMsgError : eMsgWarning,
-                warnum,errnum,ap);
-#endif
+            err_reportmsgf_warning((config.flags2 & CFG2warniserr) != 0,
+                warnum,dlcmsgs(errnum),ap);
         }
     }
     va_end(ap);
@@ -430,9 +371,7 @@ void err_fatal(unsigned errnum,...)
     err_vprintf(ERRSTREAM,dlcmsgs(errnum),ap);
     crlf(ERRSTREAM);
 #endif
-#if USEDLLSHELL
-    err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,ap);
-#endif
+    err_reportmsgf_fatal(dlcmsgs(errnum),ap);
     err_GPF();
     va_end(ap);
     err_exit();
@@ -463,9 +402,7 @@ void cmderr(unsigned errnum,...)
     fputs(dlcmsgs(EM_command_line_error), ERRSTREAM);
 #endif
     err_vprintf(ERRSTREAM,dlcmsgs(errnum),ap);
-#if USEDLLSHELL
-    err_reportmsg(eMsgFatalError,kNoMsgNumber,errnum,ap);
-#endif
+    err_reportmsgf_fatal(dlcmsgs(errnum),ap);
     va_end(ap);
     err_exit();
 }
@@ -478,28 +415,8 @@ void html_err(const char *srcname, unsigned linnum, unsigned errnum, ...)
 {
     va_list ap;
     va_start(ap, errnum);
-#if USEDLLSHELL
-    char buffer[500];
-
-    int count = _vsnprintf(buffer,sizeof(buffer),dlcmsgs(errnum),ap);
-
-    tToolMsg tm;
-    memset(&tm,0,sizeof(tm));
-    tm.version = TOOLMSG_VERSION;
-    tm.colNumber = kNoColNumber;
-    tm.fileName = (char *)srcname;      // use original source file name
-    tm.lineNumber = linnum;
-    tm.msgText = buffer;
-    tm.msgType = eMsgError;
-    tm.msgNumber = kNoMsgNumber;
-
-    NetSpawnMessage(&tm);
-#else
-    printf("%s(%d) : HTML error: ", srcname, linnum);
-    vprintf(dlcmsgs(errnum),ap);
-    crlf(stdout);
-    fflush(stdout);
-#endif
+    const char *format = dlcmsgs(errnum);
+    dmcdll_html_err(srcname, linnum, format, ap);
     va_end(ap);
     errcnt++;
 }
@@ -519,9 +436,7 @@ int typerr(int n,type *t1,type *t2,...)
         Outbuffer buf;
         static char format[] = "%s: %s";
 
-#if USEDLLSHELL
-        err_reportmsg(eMsgError,kNoMsgNumber,n,ap);
-#endif
+        err_reportmsgf_error(dlcmsgs(n),ap);
         p1 = type_tostring(&buf,t1);
         err_continue(format,n == EM_explicit_cast ||
                             n == EM_illegal_cast ||

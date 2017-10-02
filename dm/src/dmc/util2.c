@@ -27,7 +27,6 @@
 #endif
 
 #if _WIN32 && __DMC__
-//#include      "scdll.h"
 #include        <controlc.h>
 #endif
 

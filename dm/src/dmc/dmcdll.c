@@ -169,4 +169,107 @@ void dll_printf(const char *format,...)
 #endif
 }
 
+/************************************
+ * Error in HTML source
+ */
+
+void dmcdll_html_err(const char *srcname, unsigned linnum, const char *format, va_list ap)
+{
+#if USEDLLSHELL
+    char buffer[500];
+
+    int count = _vsnprintf(buffer,sizeof(buffer),format,ap);
+
+    tToolMsg tm;
+    memset(&tm,0,sizeof(tm));
+    tm.version = TOOLMSG_VERSION;
+    tm.colNumber = kNoColNumber;
+    tm.fileName = (char *)srcname;      // use original source file name
+    tm.lineNumber = linnum;
+    tm.msgText = buffer;
+    tm.msgType = eMsgError;
+    tm.msgNumber = kNoMsgNumber;
+
+    NetSpawnMessage(&tm);
+#else
+    printf("%s(%d) : HTML error: ", srcname, linnum);
+    vprintf(format,ap);
+    fputc('\n', stdout);
+    fflush(stdout);
+#endif
+}
+
+/*********************************
+ * Send error message to caller of DLL.
+ */
+
+#if USEDLLSHELL
+
+void getLocation(char*& filename, int& line, int& column);
+
+static void err_reportmsgf(tToolMsgType msgtype,int msgnum,const char *format,
+                va_list args)
+{
+    char buffer[500];
+
+    int count = _vsnprintf(buffer,sizeof(buffer),format,args);
+
+    char* filename;
+    int line;
+    int column;
+    getLocation(filename, line, column);
+
+    tToolMsg tm;
+    memset(&tm,0,sizeof(tm));
+    tm.version = TOOLMSG_VERSION;
+    tm.fileName = filename;
+    tm.lineNumber = line;
+    tm.colNumber = column;
+    tm.msgText = buffer;
+    tm.msgType = msgtype;
+    tm.msgNumber = msgnum;
+
+    NetSpawnMessage(&tm);
+}
+
+void err_reportmsgf_error(const char *format, va_list args)
+{
+    err_reportmsgf(eMsgError,kNoMsgNumber,format,args);
+}
+
+void err_reportmsgf_fatal(const char *format, va_list args)
+{
+    err_reportmsgf(eMsgFatalError,kNoMsgNumber,format,args);
+}
+
+void err_reportmsgf_continue(const char *format, va_list args)
+{
+    err_reportmsgf(eMsgContinue,kNoMsgNumber,format,args);
+}
+
+void err_reportmsgf_warning(bool warniserr, int warnum, const char *format, va_list args)
+{
+    err_reportmsgf(warniserr ? eMsgError : eMsgWarning,warnum,format,args);
+}
+
+#else
+
+void err_reportmsgf_error(const char *format, va_list args)
+{
+}
+
+void err_reportmsgf_fatal(const char *format, va_list args)
+{
+}
+
+void err_reportmsgf_continue(const char *format, va_list args)
+{
+}
+
+void err_reportmsgf_warning(bool warniserr, int warnum, const char *format, va_list args)
+{
+}
+
+#endif
+
 
