@@ -7,38 +7,50 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/err.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/derr.d
  */
 
 /* Error handler                                        */
 
+import core.stdc.stdarg;
+import core.stdc.stdio;
+import core.stdc.string;
+import core.stdc.stdlib;
 
-#include        <stdio.h>
-#include        <stdlib.h>
-#include        <string.h>
-#include        <stdarg.h>
-#include        "cc.h"
-#include        "parser.h"
-#include        "global.h"
-#include        "token.h"
-#include        "type.h"
-#include        "outbuf.h"
-#include        "allocast.h"
-#include        "dmcdll.h"
+import ddmd.backend.cdef;
+import ddmd.backend.cc;
+import ddmd.backend.global;
+import ddmd.backend.outbuf;
+import ddmd.backend.ty;
+import ddmd.backend.type;
 
-static char __file__[] = __FILE__;      // for tassert.h
-#include        "tassert.h"
+import tk.dlist;
 
-int errcnt = 0;                 // error count
+import dmcdll;
+import dtoken;
+import msgs2;
+import parser;
 
-void prttype (type *);
+extern (C++):
+
+alias err_vprintf = vfprintf;
+alias dbg_printf = printf;
+alias ERRSTREAM = stdout;
+
+__gshared int errcnt = 0;                 // error count
+
+extern (C) void crlf(FILE*);
+
+void prttype(type *);
 void errmsgs_init();
 
 void err_GPF()
 {
-#ifdef DEBUG
-    *(char *)0=0;       // case GPF on error
-#endif
+    debug
+    {
+        __gshared char* p = null;
+        *p = 0;       // case GPF on error
+    }
 }
 
 /**************************************
@@ -49,7 +61,7 @@ void err_GPF()
  *      column = set to column number, -1 if none
  */
 
-void getLocation(char*& filename, int& line, int& column)
+void getLocation(out char* filename, out int line, out int column)
 {
     Srcpos sp = token_linnum();
     line = sp.Slinnum;
@@ -59,7 +71,7 @@ void getLocation(char*& filename, int& line, int& column)
     {   int col;
 
         // -2 because scanner is always a bit ahead of the parser
-        col = (b == bl ? btextp : b->BLtextp) - b->BLtext - 2;
+        col = (b == bl ? cast(char*)btextp : b.BLtextp) - b.BLtext - 2;
         if (col < 0)
             col = 0;
 
@@ -80,7 +92,7 @@ void getLocation(char*& filename, int& line, int& column)
  * Do a continuation printf message.
  */
 
-STATIC void err_continue(const char *format,...)
+private void err_continue(const(char)* format,...)
 {
     va_list ap;
     va_start(ap, format);
@@ -95,7 +107,7 @@ STATIC void err_continue(const char *format,...)
  * Print error message
  */
 
-void err_message(const char *format,...)
+void err_message(const(char)* format,...)
 {
     va_list ap;
     va_start(ap, format);
@@ -113,27 +125,30 @@ void err_message(const char *format,...)
  *      args            argument list pointer
  */
 
-static void err_print(FILE *fp,const char *q,const char *format,va_list args)
+extern (D) private void err_print(FILE *fp,const(char)* q,const(char)* format,va_list args)
 {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+version (Posix)
+{
     if (format[0] == '#')
     {
-        wrtpos(fp,FALSE);       // don't write line & draw ^ under it
+        wrtpos(fp,false);       // don't write line & draw ^ under it
         format++;
     }
     else
     {
-        wrtpos(fp,TRUE);        // write line & draw ^ under it
+        wrtpos(fp,true);        // write line & draw ^ under it
     }
-#else
+}
+else
+{
     wrtpos(fp); // write line & draw ^ under it
-#endif
+}
     fputs(q,fp);
     vfprintf(fp,format,args);
     crlf(fp);
-#if _WIN32
+
+version (Win32)
     fflush(fp);
-#endif
 }
 
 /********************************************
@@ -147,7 +162,7 @@ static void err_print(FILE *fp,const char *q,const char *format,va_list args)
  *      0       error was not printed
  */
 
-static int generr(const char *q,int errnum,va_list args)
+private int generr(const(char)* q,int errnum,va_list args)
 { char *msg;
 
   if (controlc_saw)                     /* poll for ^C                  */
@@ -157,8 +172,12 @@ static int generr(const char *q,int errnum,va_list args)
         errnum = -errnum;
   else                                  /* else hard error              */
   {
-#ifndef DEBUG
-        static int lastline = -1;       // last line that got an error
+debug
+{
+}
+else
+{
+        __gshared int lastline = -1;       // last line that got an error
         int curline;
 
         // Don't print out more than one error per line
@@ -169,7 +188,7 @@ static int generr(const char *q,int errnum,va_list args)
                 return 0;
             lastline = curline;
         }
-#endif
+}
   }
 
     msg = dlcmsgs(errnum);
@@ -185,7 +204,7 @@ static int generr(const char *q,int errnum,va_list args)
     return 1;
 }
 
-void lexerr(unsigned errnum,...)
+void lexerr(uint errnum,...)
 {
     va_list ap;
     va_start(ap, errnum);
@@ -196,7 +215,7 @@ void lexerr(unsigned errnum,...)
     va_end(ap);
 }
 
-void preerr(unsigned errnum,...)
+void preerr(uint errnum,...)
 {
     va_list ap;
     va_start(ap, errnum);
@@ -207,7 +226,7 @@ void preerr(unsigned errnum,...)
     va_end(ap);
 }
 
-int synerr(unsigned errnum,...)
+int synerr(uint errnum,...)
 {
     va_list ap;
     va_start(ap, errnum);
@@ -220,7 +239,7 @@ int synerr(unsigned errnum,...)
     return result;
 }
 
-int cpperr(unsigned errnum,...)
+int cpperr(uint errnum,...)
 {
     va_list ap;
     va_start(ap, errnum);
@@ -233,8 +252,7 @@ int cpperr(unsigned errnum,...)
     return result;
 }
 
-#if TX86
-int tx86err(unsigned errnum,...)
+int tx86err(uint errnum,...)
 {
     va_list ap;
     va_start(ap, errnum);
@@ -246,12 +264,12 @@ int tx86err(unsigned errnum,...)
     va_end(ap);
     return result;
 }
-#endif
-
+
 /* Translation table from warning number to message number              */
-static short war_to_msg[] =
-{       -1,
-#if SPP
+version (SPP)
+{
+private __gshared short[24] war_to_msg =
+[       -1,
         -1,
         -1,
         EM_nestcomment,
@@ -275,7 +293,12 @@ static short war_to_msg[] =
         -1,
         -1,
         EM_divby0,
-#else
+];
+}
+else
+{
+private __gshared short[31] war_to_msg =
+[       -1,
         EM_no_inline,
         EM_assignment,
         EM_nestcomment,
@@ -302,17 +325,17 @@ static short war_to_msg[] =
         EM_badnumber,
         EM_ccast,
         EM_obsolete,
-    #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        EM_skip_attribute,
+
+    // Posix#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+        /*EM_skip_attribute,
         EM_warning_message,
         EM_bad_vastart,
-        EM_undefined_inline,
-    #endif
-#endif
-};
+        EM_undefined_inline,*/
+];
+}
 
 /* Parallel table that controls the enabling of individual warnings     */
-static unsigned char war_to_msg_enable[arraysize(war_to_msg)];
+private __gshared ubyte[war_to_msg.length] war_to_msg_enable;
 
 /***************************
  * Enable/disable specific warnings.
@@ -321,35 +344,35 @@ static unsigned char war_to_msg_enable[arraysize(war_to_msg)];
  *      on      0 = off, 1 = on
  */
 
-void err_warning_enable(unsigned warnum,int on)
+void err_warning_enable(uint warnum,int on)
 {
     if (warnum == -1)
-        memset(war_to_msg_enable,on,arraysize(war_to_msg_enable));
+        memset(war_to_msg_enable.ptr,on,war_to_msg_enable.sizeof);
     else
     {
-        if (warnum < arraysize(war_to_msg))
-            war_to_msg_enable[warnum] = on;
+        if (warnum < war_to_msg.length)
+            war_to_msg_enable[warnum] = cast(ubyte)on;
     }
 }
 
-void warerr(unsigned warnum,...)
-{   char msg[20];
+void warerr(uint warnum,...)
+{   char[20] msg = void;
 
     va_list ap;
     va_start(ap, warnum);
 
-    assert(warnum < arraysize(war_to_msg));
+    assert(warnum < war_to_msg.length);
     if (!war_to_msg_enable[warnum])     /* if enabled                   */
     {   int errnum;
 
         if (!(config.flags2 & CFG2warniserr))
             errcnt--;                   /* to offset the increment      */
-        sprintf(msg,dlcmsgs(EM_warning),warnum);
+        sprintf(msg.ptr,dlcmsgs(EM_warning),warnum);
 
         // Convert from warning number to message number
         errnum = war_to_msg[warnum];
 
-        if (generr(msg,-errnum,ap))
+        if (generr(msg.ptr,-errnum,ap))
         {
             err_reportmsgf_warning((config.flags2 & CFG2warniserr) != 0,
                 warnum,dlcmsgs(errnum),ap);
@@ -357,20 +380,24 @@ void warerr(unsigned warnum,...)
     }
     va_end(ap);
 }
-
+
 /**************************
  * A non-recoverable error has occurred.
  */
 
-void err_fatal(unsigned errnum,...)
+void err_fatal(uint errnum,...)
 {
     va_list ap;
     va_start(ap, errnum);
-#if !_WINDLL
+version (_WINDLL)
+{
+}
+else
+{
     fputs(dlcmsgs(EM_fatal_error), ERRSTREAM);          // Fatal error:
     err_vprintf(ERRSTREAM,dlcmsgs(errnum),ap);
     crlf(ERRSTREAM);
-#endif
+}
     err_reportmsgf_fatal(dlcmsgs(errnum),ap);
     err_GPF();
     va_end(ap);
@@ -384,7 +411,7 @@ void err_fatal(unsigned errnum,...)
 
 void err_nomem()
 {
-    //*(char*)0=0;
+    //*cast(char*)0=0;
     err_fatal(EM_nomem);
 }
 
@@ -392,15 +419,18 @@ void err_nomem()
  * Error in the command line.
  */
 
-void cmderr(unsigned errnum,...)
+void cmderr(uint errnum,...)
 {
     va_list ap;
     va_start(ap, errnum);
-#if _WINDLL
+version (_WINDLL)
+{
     dll_printf(dlcmsgs(EM_command_line_error));
-#else
+}
+else
+{
     fputs(dlcmsgs(EM_command_line_error), ERRSTREAM);
-#endif
+}
     err_vprintf(ERRSTREAM,dlcmsgs(errnum),ap);
     err_reportmsgf_fatal(dlcmsgs(errnum),ap);
     va_end(ap);
@@ -411,17 +441,21 @@ void cmderr(unsigned errnum,...)
  * Error in HTML source
  */
 
-void html_err(const char *srcname, unsigned linnum, unsigned errnum, ...)
+void html_err(const(char)* srcname, uint linnum, uint errnum, ...)
 {
     va_list ap;
     va_start(ap, errnum);
-    const char *format = dlcmsgs(errnum);
+    const(char)* format = dlcmsgs(errnum);
     dmcdll_html_err(srcname, linnum, format, ap);
     va_end(ap);
     errcnt++;
 }
 
-#if !SPP
+version (SPP)
+{
+}
+else
+{
 
 /**************
  * Type error.
@@ -432,23 +466,24 @@ int typerr(int n,type *t1,type *t2,...)
     va_list ap;
     va_start(ap, t2);
     if (generr(dlcmsgs(EM_error),n,ap))
-    {   char *p1,*p2;
+    {   char *p1;
+        char *p2;
         Outbuffer buf;
-        static char format[] = "%s: %s";
+        const(char)* format = "%s: %s";
 
         err_reportmsgf_error(dlcmsgs(n),ap);
         p1 = type_tostring(&buf,t1);
         err_continue(format,n == EM_explicit_cast ||
                             n == EM_illegal_cast ||
                             n == EM_no_castaway ||
-                            n == EM_explicitcast ? "from" : "Had",p1);
+                            n == EM_explicitcast ? cast(char*)"from" : cast(char*)"Had",p1);
         if (t2)
         {
             p2 = type_tostring(&buf,t2);
             err_continue(format,n == EM_explicit_cast ||
                                 n == EM_illegal_cast ||
                                 n == EM_no_castaway ||
-                                n == EM_explicitcast ? "to  " : "and",p2);
+                                n == EM_explicitcast ? cast(char*)"to  " : cast(char*)"and",p2);
         }
         err_GPF();
         va_end(ap);
@@ -462,7 +497,15 @@ int typerr(int n,type *t1,type *t2,...)
  */
 
 void err_noctor(Classsym *stag,list_t arglist)
-{   char *p = alloca_strdup(cpp_prettyident(stag));
+{
+    char* p;
+    {
+        auto q = cpp_prettyident(stag);
+        const len = strlen(q) + 1;
+        auto s = cast(char *)alloca(len);
+        p = cast(char *)memcpy(s,q,len);
+    }
+
     Outbuffer buf;
     char *a = arglist_tostring(&buf,arglist);
 
@@ -473,7 +516,7 @@ void err_noctor(Classsym *stag,list_t arglist)
  * Could not find a function match.
  */
 
-void err_nomatch(const char *p,list_t arglist)
+void err_nomatch(const(char)* p,list_t arglist)
 {   Outbuffer buf;
     char *a = arglist_tostring(&buf,arglist);
 
@@ -494,7 +537,7 @@ void prttype(type *t)
  * Ambiguous functions. Print out both.
  */
 
-void err_ambiguous(symbol *s1,symbol *s2)
+void err_ambiguous(Symbol *s1,Symbol *s2)
 {
 
     if (synerr(EM_overload_ambig))
@@ -502,15 +545,15 @@ void err_ambiguous(symbol *s1,symbol *s2)
         char *p2;
         Outbuffer buf;
 
-        if (s1->Sclass == SCfuncalias)
-            s1 = s1->Sfunc->Falias;
-        p1 = param_tostring(&buf,s1->Stype);
+        if (s1.Sclass == SCfuncalias)
+            s1 = s1.Sfunc.Falias;
+        p1 = param_tostring(&buf,s1.Stype);
         err_continue("Had: %s%s",prettyident(s1),p1);
         if (s2)
         {
-            if (s2->Sclass == SCfuncalias)
-                s2 = s2->Sfunc->Falias;
-            p2 = param_tostring(&buf,s2->Stype);
+            if (s2.Sclass == SCfuncalias)
+                s2 = s2.Sfunc.Falias;
+            p2 = param_tostring(&buf,s2.Stype);
             err_continue("and: %s%s",prettyident(s2),p2);
         }
         else
@@ -524,9 +567,15 @@ void err_ambiguous(symbol *s1,symbol *s2)
  * No instance.
  */
 
-void err_noinstance(symbol *s1,symbol *s2)
+void err_noinstance(Symbol *s1,Symbol *s2)
 {
-    char *p = alloca_strdup(cpp_prettyident(s1));
+    char* p;
+    {
+        auto q = cpp_prettyident(s1);
+        const len = strlen(q) + 1;
+        auto s = cast(char *)alloca(len);
+        p = cast(char *)memcpy(s,q,len);
+    }
 
     synerr(EM_no_inst_member,p,cpp_prettyident(s2));    // no this for class
 }
@@ -534,11 +583,12 @@ void err_noinstance(symbol *s1,symbol *s2)
 /************************************
  */
 
-void err_redeclar(symbol *s,type *t1,type *t2)
+void err_redeclar(Symbol *s,type *t1,type *t2)
 {
 
     if (synerr(EM_redefined,prettyident(s)))    // types don't match
-    {   char *p1,*p2;
+    {   char *p1;
+        char *p2;
         Outbuffer buf;
 
         p1 = type_tostring(&buf,t1);
@@ -552,18 +602,24 @@ void err_redeclar(symbol *s,type *t1,type *t2)
 /************************************
  */
 
-void err_override(symbol *sfbase,symbol *sfder)
-{   char *p;
+void err_override(Symbol *sfbase,Symbol *sfder)
+{
+    char* p;
+    {
+        auto q = cpp_prettyident(sfder);
+        const len = strlen(q) + 1;
+        auto s = cast(char *)alloca(len);
+        p = cast(char *)memcpy(s,q,len);
+    }
 
-
-    p = alloca_strdup(prettyident(sfder));
     if (synerr(EM_diff_ret_type,prettyident(sfbase),p)) // types don't match
-    {   char *p1,*p2;
+    {   char *p1;
+        char *p2;
         Outbuffer buf;
 
-        p1 = type_tostring(&buf,sfbase->Stype);
+        p1 = type_tostring(&buf,sfbase.Stype);
         err_continue(dlcmsgs(EM_was_declared),p1);      // It was declared as
-        p2 = type_tostring(&buf,sfder->Stype);
+        p2 = type_tostring(&buf,sfder.Stype);
         err_continue(dlcmsgs(EM_now_declared),p2);      // It is now declared
     }
 
@@ -573,19 +629,19 @@ void err_override(symbol *sfbase,symbol *sfder)
  * Not a member.
  */
 
-void err_notamember(const char *id, Classsym *s, symbol *alternate)
+void err_notamember(const(char)* id, Classsym *s, Symbol *alternate)
 {
     symbol_debug(s);
-//    assert(type_struct(s->Stype));
-    unsigned em;
+//    assert(type_struct(s.Stype));
+    uint em;
     if (alternate)
-        em = (s->Stype->Tflags & TFforward) ? EM_not_a_member_alt : EM_notamember_alt;
+        em = (s.Stype.Tflags & TFforward) ? EM_not_a_member_alt : EM_notamember_alt;
     else
-        em = (s->Stype->Tflags & TFforward) ? EM_not_a_member : EM_notamember;
+        em = (s.Stype.Tflags & TFforward) ? EM_not_a_member : EM_notamember;
 
-    synerr(em, id, prettyident(s), alternate ? alternate->Sident : "");         // not a member
+    synerr(em, id, prettyident(s), alternate ? alternate.Sident.ptr : "".ptr);         // not a member
 }
 
-#endif
+}
 
 

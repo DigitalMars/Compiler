@@ -130,7 +130,6 @@ enum NTEXCEPTIONS = 2;
 //#define ERRSTREAM stdout
 //#endif
 //#define err_printf printf
-//#define err_vprintf vfprintf
 //#define err_fputc fputc
 //#define dbg_fputc fputc
 //#define LF '\n'

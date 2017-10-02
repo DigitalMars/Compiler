@@ -295,13 +295,12 @@ FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d 
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
 	dstruct.d func.d dcpp.d dtemplate.d dexp2.d castab.d dgetcmd.d \
 	dnwc.d dblklst.d dpragma.d phstring.di phstring.d xtoken.d rawstring.di rawstring.d \
-	dscope.d dmsc.d dutil.d diasm.d dfile.d dspeller.di dspeller.d
+	dscope.d dmsc.d dutil.d diasm.d dfile.d dspeller.di dspeller.d err.d
 
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 	tdb.h total.h \
 	\
         errmsgs2.c tdbx.c \
-        err.c \
         msgsx.c \
         trace.c dmcdll.c \
         ph.c \
@@ -416,6 +415,9 @@ dcpp.obj : dcpp.d
 
 denum.obj : denum.d
         $(DMD) -c $(DFLAGS) denum.d
+
+err.obj : err.d
+        $(DMD) -c $(DFLAGS) err.d
 
 dexp2.obj : dexp2.d castab.d
         $(DMD) -c $(DFLAGS) -J. dexp2.d
@@ -582,7 +584,6 @@ gdag.obj : $(DEP) $(gdag.dep) gdag.c
 dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 gother.obj : $(DEP) $(gother.dep) gother.c
 gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
-err.obj : $(DEP) $(err.dep) err.c
 go.obj : $(DEP) $(go.dep) go.c
 gflow.obj : $(DEP) $(gflow.dep) gflow.c
 cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
