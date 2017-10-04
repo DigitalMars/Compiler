@@ -34,8 +34,8 @@
 #include        <io.h>
 #include        <fcntl.h>
 #include        <share.h>
-#include        <dos.h>
-#include        <sys\stat.h>
+//#include        <dos.h>
+//#include        <sys\stat.h>
 #include        "page.h"
 #endif
 
@@ -1236,9 +1236,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
     char *p;
     char *newfilename = NULL;
     char *pdata = NULL;
-#if MMFIO
     void *pview = NULL;
-#endif
 
     //dbg_printf("ph_readfile('%s',%d)\n",filename,flag);
     //dbg_printf("ph_hx = %p, ph_hx->pdata = %p, ph_hx->name = '%s'\n",ph_hx,ph_hx->pdata,ph_hx->name);
@@ -1405,11 +1403,9 @@ STATIC Root * ph_readfile(char *filename,int flag)
 
     for (page = 0; page < nbufs; page++)
     {
-#if MMFIO
         if (pview)
             buf = (char *)ph_newbuffer((char *)pview + page * PHBUFSIZE);
         else
-#endif
             buf = (char *)ph_newbuffer(NULL);
         if (!buf)
             err_nomem();                /* out of memory        */
@@ -1421,9 +1417,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
         }
         else
 #endif
-#if MMFIO
         if (!pview)
-#endif
         {
             //file_progress();
             nbytes = read(fd,buf,PHBUFSIZE);
@@ -1458,9 +1452,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
     if (!memoryhx)
 #endif
     {
-#if MMFIO
         if (!pview)
-#endif
             close(fd);
         if (configv.verbose && filename_cmp(filename,ph_hxfilename))
             dmcdll_SpawnFile(filename,-1);
