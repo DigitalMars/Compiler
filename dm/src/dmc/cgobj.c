@@ -936,6 +936,7 @@ void Obj::linnum(Srcpos srcpos,int seg,targ_size_t offset)
                 ln->i < LINNUMMAX - 6)
                 break;
         }
+        //printf("offset = x%x, line = %d\n", (int)offset, linnum);
         TOWORD(&ln->data[ln->i],linnum);
         TOOFFSET(&ln->data[ln->i + 2],offset);
         ln->i += 2 + intsize;

@@ -22,6 +22,13 @@ void dmcdll_SpawnFile(const char *filename, int includelevel);
 void dmcdll_SpawnFile(const char *filename);
 bool dmcdll_Progress(int linnum);
 void dmcdll_html_err(const char *srcname, unsigned linnum, const char *format, va_list ap);
+bool dmcdll_build_server();
+bool dmcdll_dump_compile_context();
+
+typedef void (__cdecl *HookFp)();
+void dmcdll_HookDetach(HookFp fp);
+
+void *dmcdll_PersistentAlloc(int size);
 
 void err_reportmsgf_error(const char *format, va_list args);
 void err_reportmsgf_fatal(const char *format, va_list args);

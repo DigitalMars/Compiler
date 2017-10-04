@@ -51,7 +51,7 @@
 #include        "oper.h"
 #include        "filespec.h"
 #include        "scope.h"
-#include        "scdll.h"
+#include        "dmcdll.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -261,9 +261,7 @@ void ph_init(void *mmfiobase, unsigned reservesize)
 {
 #if !__GNUC__
     ph_inited++;
-#if _WINDLL
-    NetSpawnHookDetach(ph_detach);
-#endif
+    dmcdll_HookDetach(ph_detach);
 #if MMFIO
     if (reservesize && reservesize > 30 && reservesize < 300)
     {
@@ -297,10 +295,9 @@ void ph_init(void *mmfiobase, unsigned reservesize)
     //dbg_printf("Reserving x%lx bytes of virtual address space\n",ph_reservesize);
     if (vmem_physmem() <= 20 * 0x100000L)
         config.flags4 &= ~CFG4cacheph;
-#if _WINDLL
-    if (netspawn_flags & NETSPAWN_BUILD_SERVER)
+
+    if (dmcdll_build_server())
         config.flags4 |= CFG4cacheph;
-#endif
 #if 0
     if (config.flags4 & CFG4cacheph)
         dbg_printf("caching ph in memory\n");
@@ -311,14 +308,14 @@ void ph_init(void *mmfiobase, unsigned reservesize)
 #if MEMORYHX
     if (!ph_hx)
     {   // Allocate block of persistent memory
-        ph_hx = (Hxblock *)NetSpawnPersistentAlloc(sizeof(struct Hxblock));
+        ph_hx = (Hxblock *)dmcdll_PersistentAlloc(sizeof(struct Hxblock));
         assert(ph_hx);
         //dbg_printf("ph_init: ph_hx = %p, ph_hx->pdata = %p, ph_hx->name = '%s'\n",ph_hx,ph_hx->pdata,ph_hx->name);
         if (ph_hx->id)                          // if already existing
             hxblock_debug(ph_hx);               // check for our signature
         ph_hx->id = IDhxblock;
     }
-    if (netspawn_flags & NETSPAWN_DUMP_COMPILE_CONTEXT)
+    if (dmcdll_dump_compile_context())
     {   void *reservesave;
         size_t reservesizesave;
 
@@ -498,13 +495,9 @@ void ph_term()
  * Called when DLL is detached.
  */
 
-#if _WINDLL
 
 STATIC void __cdecl ph_detach()
 {
-#if MMFIO
-    //vmem_unmapfile();
-#endif
 #if MEMORYHX
     if (ph_hx && ph_hx->reserve)
     {
@@ -514,7 +507,6 @@ STATIC void __cdecl ph_detach()
 #endif
 }
 
-#endif
 
 /**************************
  * Initialize existing buffer.
@@ -1280,7 +1272,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
             if (flag == FLAG_SYM)               // if reading .SYM file
             {
                 if (configv.verbose)
-                    NetSpawnFile(filename,0);
+                    dmcdll_SpawnFile(filename,0);
                 if (!pview)
                     pview = ph_reserve(ph_mmfiobase,fsize);
                 if (!pview)
@@ -1305,7 +1297,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
         if (fsize < PHBUFSIZE || fsize & (PHBUFSIZE - 1)) // file doesn't exist or is wrong
             goto ret_null;
 
-        newfilename = NetSpawnTranslateFileName(filename,"rb");
+        newfilename = dmcdll_TranslateFileName(filename,"rb");
         if (!newfilename)
             err_exit();
 
@@ -1320,7 +1312,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
             }
 #endif
             pview = vmem_mapfile(newfilename,ph_mmfiobase,fsize,1);
-            NetSpawnDisposeFile(newfilename);
+            dmcdll_DisposeFile(newfilename);
             newfilename = NULL;
             if (!pview)
                 err_fatal(EM_cant_map_file,filename,ph_mmfiobase);      // can't map file
@@ -1351,7 +1343,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
                 ph_hx->mtime = 0;                       // don't need this
 
                 fd = sopen(newfilename,_O_RDONLY | _O_BINARY,SH_DENYWR);
-                NetSpawnDisposeFile(newfilename);
+                dmcdll_DisposeFile(newfilename);
                 newfilename = NULL;
                 if (fd == -1)                   // couldn't open file
                     goto ret_null;
@@ -1377,7 +1369,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
                 }
 #endif
                 pview = vmem_mapfile(newfilename,ph_mmfiobase,fsize,1);
-                NetSpawnDisposeFile(newfilename);
+                dmcdll_DisposeFile(newfilename);
                 newfilename = NULL;
                 if (!pview)
                     err_fatal(EM_cant_map_file,filename,ph_mmfiobase);  // can't map file
@@ -1387,7 +1379,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
 #endif
         {
             fd = sopen(newfilename,_O_RDONLY | _O_BINARY,SH_DENYWR);
-            NetSpawnDisposeFile(newfilename);
+            dmcdll_DisposeFile(newfilename);
             newfilename = NULL;
             if (fd == -1)                       // couldn't open file
                 goto ret_null;
@@ -1398,7 +1390,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
             dbg_printf(" '%s'\n",filename);
         }
         if (flag == FLAG_SYM && configv.verbose)                // if not HX file
-            NetSpawnFile(filename,0);
+            dmcdll_SpawnFile(filename,0);
     }
 
     // Read file into a sequence of PHBUFSIZE buffers
@@ -1471,7 +1463,7 @@ STATIC Root * ph_readfile(char *filename,int flag)
 #endif
             close(fd);
         if (configv.verbose && filename_cmp(filename,ph_hxfilename))
-            NetSpawnFile(filename,kCloseLevel);
+            dmcdll_SpawnFile(filename,-1);
     }
 Lret:
     //dbg_printf("ph_readfile() done\n");
@@ -1479,7 +1471,7 @@ Lret:
 
 ret_null:
     if (newfilename)
-        NetSpawnDisposeFile(newfilename);
+        dmcdll_DisposeFile(newfilename);
     r = NULL;
     goto Lret;
 #endif

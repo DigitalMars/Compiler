@@ -23,6 +23,7 @@
 #include        "global.h"
 #include        "token.h"
 #include        "scdll.h"
+#include        "dmcdll.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -69,6 +70,23 @@ bool dmcdll_first_compile()
 #endif
 }
 
+bool dmcdll_build_server()
+{
+#if _WIN32 && _WINDLL
+    return (netspawn_flags & NETSPAWN_BUILD_SERVER) != 0;
+#else
+    return false;
+#endif
+}
+
+bool dmcdll_dump_compile_context()
+{
+#if _WIN32 && _WINDLL
+    return (netspawn_flags & NETSPAWN_DUMP_COMPILE_CONTEXT) != 0;
+#else
+    return false;
+#endif
+}
 
 /******************************************
  */
@@ -196,6 +214,22 @@ void dmcdll_html_err(const char *srcname, unsigned linnum, const char *format, v
     vprintf(format,ap);
     fputc('\n', stdout);
     fflush(stdout);
+#endif
+}
+
+void dmcdll_HookDetach(HookFp fp)
+{
+#if USEDLLSHELL
+    NetSpawnHookDetach(fp);
+#endif
+}
+
+void *dmcdll_PersistentAlloc(int size)
+{
+#if USEDLLSHELL
+    return NetSpawnPersistentAlloc(size);
+#else
+    return NULL;
 #endif
 }
 
