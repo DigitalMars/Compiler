@@ -172,7 +172,7 @@ debppnd:
 OBJ1a=dblklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj rawstring.obj
 OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
-OBJ1d=nspace.obj dnwc.obj os.obj out.obj ph.obj ppexp.obj dpragma.obj pseudo.obj
+OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ph.obj ppexp.obj dpragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj type.obj dt.obj dth.obj phstring.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj dlist.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
@@ -294,8 +294,8 @@ FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d 
 	ini.d denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
 	dstruct.d func.d dcpp.d dtemplate.d dexp2.d castab.d dgetcmd.d \
-	dnwc.d dblklst.d dpragma.d phstring.di phstring.d xtoken.d rawstring.di rawstring.d \
-	dscope.d dmsc.d dutil.d diasm.d dfile.d dspeller.di dspeller.d err.d
+	dnwc.d dblklst.d dph.d dpragma.d phstring.di phstring.d xtoken.d rawstring.di rawstring.d \
+	dscope.d dmsc.d dutil.d diasm.d dfile.d dspeller.di dspeller.d err.d page.di
 
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 	tdb.h total.h \
@@ -436,6 +436,9 @@ dmsc.obj : dmsc.d
 
 dnwc.obj : dnwc.d
         $(DMD) -c $(DFLAGS) dnwc.d
+
+dph.obj : dph.d page.di
+        $(DMD) -c $(DFLAGS) dph.d
 
 dpragma.obj : dpragma.d
         $(DMD) -c $(DFLAGS) dpragma.d

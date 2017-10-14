@@ -23,6 +23,8 @@ void dmcdll_DisposeFile(char *filename);
 void dmcdll_SpawnFile(const(char)* filename, int includelevel);
 void dmcdll_SpawnFile(const(char)* filename);
 bool dmcdll_Progress(int linnum);
+bool dmcdll_build_server();
+bool dmcdll_dump_compile_context();
 
 import core.stdc.stdarg;
 void dmcdll_html_err(const(char)* srcname, uint linnum, const(char)* format, va_list ap);
@@ -31,4 +33,7 @@ void err_reportmsgf_error(const(char)* format, va_list args);
 void err_reportmsgf_fatal(const(char)* format, va_list args);
 void err_reportmsgf_continue(const(char)* format, va_list args);
 void err_reportmsgf_warning(bool warniserr, int warnum, const(char)* format, va_list args);
+
+extern (C) alias HookFp = void function();
+void dmcdll_HookDetach(HookFp fp);
 
