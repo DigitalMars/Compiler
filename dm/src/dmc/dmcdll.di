@@ -37,3 +37,5 @@ void err_reportmsgf_warning(bool warniserr, int warnum, const(char)* format, va_
 extern (C) alias HookFp = void function();
 void dmcdll_HookDetach(HookFp fp);
 
+void *dmcdll_PersistentAlloc(int size);
+

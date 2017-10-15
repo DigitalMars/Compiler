@@ -167,7 +167,7 @@ void *globalrealloc(void *oldp,size_t newsize)
  * Functions to manage allocating a single virtual address space.
  */
 
-void *vmem_reserve(void *ptr,unsigned long size)
+void *vmem_reserve(void *ptr,unsigned size)
 {   void *p;
 
 #if 1
@@ -189,7 +189,7 @@ void *vmem_reserve(void *ptr,unsigned long size)
  *      !=0     success
  */
 
-int vmem_commit(void *ptr, unsigned long size)
+int vmem_commit(void *ptr, unsigned size)
 {   int i;
 
     dbg_printf("vmem_commit(ptr = %p,size = x%lx)\n",ptr,size);
@@ -199,7 +199,7 @@ int vmem_commit(void *ptr, unsigned long size)
     return i;
 }
 
-void vmem_decommit(void *ptr,unsigned long size)
+void vmem_decommit(void *ptr,unsigned size)
 {
     dbg_printf("vmem_decommit(ptr = %p, size = x%lx)\n",ptr,size);
     if (ptr)
@@ -208,7 +208,7 @@ void vmem_decommit(void *ptr,unsigned long size)
     }
 }
 
-void vmem_release(void *ptr,unsigned long size)
+void vmem_release(void *ptr,unsigned size)
 {
     dbg_printf("vmem_release(ptr = %p, size = x%lx)\n",ptr,size);
     if (ptr)
@@ -237,7 +237,7 @@ static void *pview;
 static void *preserve;
 static size_t preserve_size;
 
-void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
+void *vmem_mapfile(const char *filename,void *ptr,unsigned size,int flag)
 {
     OSVERSIONINFO OsVerInfo;
 
@@ -329,7 +329,7 @@ L1:
  * Set size of mapped file.
  */
 
-void vmem_setfilesize(unsigned long size)
+void vmem_setfilesize(unsigned size)
 {
     if (hFile != INVALID_HANDLE_VALUE)
     {   if (SetFilePointer(hFile,size,NULL,FILE_BEGIN) == 0xFFFFFFFF)
@@ -420,7 +420,7 @@ void *vmem_baseaddr()
  * *psize downwards.
  */
 
-void vmem_reservesize(unsigned long *psize)
+void vmem_reservesize(unsigned *psize)
 {
     MEMORYSTATUS ms;
     OSVERSIONINFO OsVerInfo;
@@ -466,7 +466,7 @@ void vmem_reservesize(unsigned long *psize)
  * Return amount of physical memory.
  */
 
-unsigned long vmem_physmem()
+unsigned vmem_physmem()
 {
     MEMORYSTATUS ms;
 

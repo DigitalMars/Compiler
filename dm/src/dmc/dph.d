@@ -74,9 +74,6 @@ char[9] ph_hxfilename; // = "scph.sym";
 }
 }
 
-version (none)
-{
-
 static if (MEMORYHX)
 {
 
@@ -184,9 +181,21 @@ void *ph_hdrmaxaddress;         // max address in precompiled header
 Root *hx_r;                     // root for HX file
 }
 
+/*private*/ Root * ph_readfile(char *filename,int flag);
+/*private*/ void * ph_newbuffer(void *prealloc);
+/*private*/ void ph_initbuffer(void *buf);
+/*private*/ void ph_setadjust(Root *r);
+/*private*/ void ph_hydrate_h(Root *r,Sfile *sfh,int flag);
+/*private*/ void ph_load(Sfile *sfhx);
+/*private*/ void ph_release(void *ptr, size_t size);
+/*private*/ void * ph_reserve(void *ptr, size_t size);
+/*private*/ int ph_reservebuf(int i);
 
 void ph_check() { }
 
+version (none)
+{
+}
 
 /*****************************
  * Reserve memory.
@@ -505,7 +514,7 @@ static if (MEMORYHX)
  */
 
 
-/*private*/ extern (C) void ph_detach()
+extern (C) /*private*/ void ph_detach()
 {
 static if (MEMORYHX)
 {
@@ -1107,7 +1116,7 @@ static if (MMFIO)
  *              FLAG_SYM:       write sym file
  */
 
-void ph_write(const char *filename,int flag)
+void ph_write(const(char)* filename,int flag)
 {
     int i;
 
@@ -1216,7 +1225,7 @@ static if (MEMORYHX)
             ph_hx.nbytes = ph_bufi * PHBUFSIZE;
             ph_hx.mtime = time(null);
             assert(strlen(filename) < ph_hx.name.sizeof);
-            strcpy(ph_hx.name,filename.ptr);
+            strcpy(cast(char*)ph_hx.name,cast(char*)filename);
             //dbg_printf("ph_hx = %p, ph_hx.name = '%s'\n",ph_hx,ph_hx.name);
 static if (LINEARALLOC)
 {
@@ -1299,7 +1308,7 @@ static if (MEMORYHX)
 {
     assert(ph_hx);
     hxblock_debug(ph_hx);
-    p = ph_hx.name;
+    p = ph_hx.name.ptr;
     if (*p == '.' && (p[1] == '\\' || p[1] == '/'))
         p += 2;
     if (*filename == '.' && (filename[1] == '\\' || filename[1] == '/'))
@@ -1384,15 +1393,14 @@ static if (MEMORYHX)
             if (config.flags4 & CFG4cacheph)
             {
                 // Read file into persistent memory
-                void *p;
                 int n;
 
                 ph_hx.pdata = globalrealloc(ph_hx.pdata,0);
                 pview = ph_reserve(ph_mmfiobase,fsize);
-                p = globalrealloc(ph_hx.pdata,fsize);
-                if (!p)
+                void* p2 = globalrealloc(ph_hx.pdata,fsize);
+                if (!p2)
                     err_nomem();
-                ph_hx.pdata = p;
+                ph_hx.pdata = p2;
                 ph_hx.nbytes = fsize;
                 ph_hx.mtime = 0;                       // don't need this
 
@@ -1409,7 +1417,7 @@ static if (MEMORYHX)
                 close(fd);
 
                 assert(strlen(filename) < ph_hx.name.sizeof);
-                strcpy(ph_hx.name,filename);
+                strcpy(ph_hx.name.ptr,filename);
                 hxblock_debug(ph_hx);
                 goto Ldata;
             }
@@ -2098,5 +2106,4 @@ void ph_add_global_symdef(Symbol *s, uint sctype)
     }
 }
 
-}
 }

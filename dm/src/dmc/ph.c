@@ -58,10 +58,13 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 //#define err_nomem() (dbg_printf("err_nomem: %d\n",__LINE__),err_nomem())
 
+#undef STATIC
+#define STATIC
+
 #if TX86
 char *ph_directory;             /* directory to read PH files from      */
 
-static char ph_hxfilename[] = "scph.sym";
+/*static*/ char ph_hxfilename[] = "scph.sym";
 #endif
 
 #if MEMORYHX
@@ -71,7 +74,7 @@ static char ph_hxfilename[] = "scph.sym";
    precompiled header is.
  */
 
-static struct Hxblock
+/*static*/ struct Hxblock
 {
     long id;            // for debugging
     void *pdata;        // pointer to data
@@ -91,7 +94,7 @@ static struct Hxblock
  * Data stored as 'root' to give us hooks into the rest.
  */
 
-typedef struct ROOT
+typedef struct Root
 {
     Config config;              /* configuration                        */
     list_t STincalias;          // list of include aliases
@@ -112,7 +115,7 @@ typedef struct ROOT
     int bufk;                   // value of ph_bufk for PH file
 } Root;
 
-static Root *root;
+/*static*/ Root *root;
 
 #if MMFIO
 // Use 64Kb for MMFIO because WIN32S has a page granularity of 64Kb, and to
@@ -126,23 +129,23 @@ static Root *root;
 #define PHADJUST        0
 #endif
 
-static int ph_inited;           // !=0 if initialized
+/*static*/ int ph_inited;           // !=0 if initialized
 
-static void **ph_buf;           /* array of allocated buffers           */
-static int ph_bufmax;           /* allocated dimension of ph_buf[]      */
-static int ph_bufi;             /* max in use                           */
-static int ph_bufk;             /* starting point of precompiled header */
-static unsigned ph_maxsize = PHBUFSIZE - PHADJUST; // max size of any allocation
+/*static*/ void **ph_buf;           /* array of allocated buffers           */
+/*static*/ int ph_bufmax;           /* allocated dimension of ph_buf[]      */
+/*static*/ int ph_bufi;             /* max in use                           */
+/*static*/ int ph_bufk;             /* starting point of precompiled header */
+/*static*/ unsigned ph_maxsize = PHBUFSIZE - PHADJUST; // max size of any allocation
 
 #if LINEARALLOC
 #define VMEM_RESERVESIZE        30 * 0x100000L
-static unsigned long ph_reservesize = VMEM_RESERVESIZE;
-static void *ph_mmfiobase;      // fixed address where we map files in
-static void *ph_baseaddress;    // base address of address space
-static void *ph_resaddress;     // base address of reserved address space
-static size_t ph_resaddress_size;   // size reserved
-static void *ph_resaddress2;    // base address of 2nd reserved address space
-static size_t ph_resaddress2_size; // size reserved
+/*static*/ unsigned ph_reservesize = VMEM_RESERVESIZE;
+/*static*/ void *ph_mmfiobase;      // fixed address where we map files in
+/*static*/ void *ph_baseaddress;    // base address of address space
+/*static*/ void *ph_resaddress;     // base address of reserved address space
+/*static*/ size_t ph_resaddress_size;   // size reserved
+/*static*/ void *ph_resaddress2;    // base address of 2nd reserved address space
+/*static*/ size_t ph_resaddress2_size; // size reserved
 #endif
 
 #if H_STYLE & H_BIT0
@@ -155,7 +158,7 @@ void *ph_hdrbaseaddress;        // precompiled header maps at this address
 void *ph_hdrmaxaddress;         // max address in precompiled header
 #endif
 
-static Root *hx_r;              // root for HX file
+/*static*/ Root *hx_r;              // root for HX file
 
 STATIC void __cdecl ph_detach();
 
@@ -165,6 +168,7 @@ STATIC void __cdecl ph_detach();
  * This routine has intimate knowledge of the page_??? data structures.
  */
 
+#if 0
 #if 0 && DEBUG
 
 void ph_check()
@@ -768,7 +772,7 @@ void *ph_hydrate(void *pp)
 #endif
 
 #if PH_METRICS
-static void hydrate_message(char *s)
+/*static*/ void hydrate_message(char *s)
 {
     if (hydrate_count) {
         dbg_printf("%s: %d pointers dehydrated", s, hydrate_count);
@@ -1986,5 +1990,6 @@ void ph_add_global_symdef(symbol *s, unsigned sctype)
         }
     }
 }
+#endif
 
 #endif // !SPP
