@@ -66,11 +66,11 @@ enum TAGGED_ALLOC = 0;
 
 static if (TX86)
 {
-extern __gshared
+__gshared
 {
 char *ph_directory;             /* directory to read PH files from      */
 
-char[9] ph_hxfilename; // = "scph.sym";
+char[9] ph_hxfilename = "scph.sym";
 }
 }
 
@@ -93,7 +93,7 @@ struct Hxblock
     char[FILENAME_MAX + 1] name;        // name of precompiled header
 }
 
-extern __gshared Hxblock* ph_hx;
+__gshared Hxblock* ph_hx;
 
 enum IDhxblock = ('h' << 24) | ('x' << 16) | ('b' << 8) | 'l';
 void hxblock_debug(Hxblock* s) { assert((s).id == IDhxblock); }
@@ -126,7 +126,7 @@ static if (H_STYLE & (H_NONE | H_BIT0 | H_OFFSET))
     int bufk;                   // value of ph_bufk for PH file
 }
 
-extern __gshared Root *root;
+__gshared Root *root;
 
 static if (MMFIO)
 {
@@ -145,7 +145,7 @@ enum PHADJUST       = 0;
 
 enum VMEM_RESERVESIZE       = 30 * 0x100000;
 
-extern __gshared
+__gshared
 {
 int ph_inited;           // !=0 if initialized
 
@@ -153,11 +153,11 @@ void **ph_buf;           /* array of allocated buffers           */
 int ph_bufmax;           /* allocated dimension of ph_buf[]      */
 int ph_bufi;             /* max in use                           */
 int ph_bufk;             /* starting point of precompiled header */
-uint ph_maxsize; // = PHBUFSIZE - PHADJUST; // max size of any allocation
+uint ph_maxsize = PHBUFSIZE - PHADJUST; // max size of any allocation
 
 static if (LINEARALLOC)
 {
-uint ph_reservesize; // = VMEM_RESERVESIZE;
+uint ph_reservesize = VMEM_RESERVESIZE;
 void *ph_mmfiobase;          // fixed address where we map files in
 void *ph_baseaddress;        // base address of address space
 void *ph_resaddress;         // base address of reserved address space
@@ -181,16 +181,6 @@ void *ph_hdrmaxaddress;         // max address in precompiled header
 Root *hx_r;                     // root for HX file
 }
 
-/*private*/ Root * ph_readfile(char *filename,int flag);
-/*private*/ void * ph_newbuffer(void *prealloc);
-/*private*/ void ph_initbuffer(void *buf);
-/*private*/ void ph_setadjust(Root *r);
-/*private*/ void ph_hydrate_h(Root *r,Sfile *sfh,int flag);
-/*private*/ void ph_load(Sfile *sfhx);
-/*private*/ void ph_release(void *ptr, size_t size);
-/*private*/ void * ph_reserve(void *ptr, size_t size);
-/*private*/ int ph_reservebuf(int i);
-
 void ph_check() { }
 
 version (none)
@@ -204,7 +194,7 @@ version (none)
 static if (MMFIO)
 {
 
-/*private*/ void * ph_reserve(void *ptr, size_t size)
+private void * ph_reserve(void *ptr, size_t size)
 {
 version (__GNUC__) { } else
 {
@@ -226,7 +216,7 @@ else
  * Release memory.
  */
 
-/*private*/ void ph_release(void *ptr, size_t size)
+private void ph_release(void *ptr, size_t size)
 {
 version (__GNUC__) { } else
 {
@@ -514,7 +504,7 @@ static if (MEMORYHX)
  */
 
 
-extern (C) /*private*/ void ph_detach()
+extern (C) private void ph_detach()
 {
 static if (MEMORYHX)
 {
@@ -531,7 +521,7 @@ static if (MEMORYHX)
  * Initialize existing buffer.
  */
 
-/*private*/ void ph_initbuffer(void *buf)
+private void ph_initbuffer(void *buf)
 {
 version (__GNUC__) { } else
 {
@@ -548,7 +538,7 @@ version (__GNUC__) { } else
  *      != 0    success
  */
 
-/*private*/ int ph_reservebuf(int i)
+private int ph_reservebuf(int i)
 {
     void **p;
 
@@ -577,7 +567,7 @@ else
  *      prealloc        buffer to use if != null
  */
 
-/*private*/ void * ph_newbuffer(void *prealloc)
+private void * ph_newbuffer(void *prealloc)
 {   void *buf;
     void **p;
 
@@ -622,7 +612,7 @@ nomem:
  * Set adjustment for hydration.
  */
 
-/*private*/ void ph_setadjust(Root *r)
+private void ph_setadjust(Root *r)
 {
 version (__GNUC__) { } else
 {
@@ -804,7 +794,7 @@ void *ph_hydrate(void *pp)
 
 static if (PH_METRICS)
 {
-/*private*/ void hydrate_message(char *s)
+private void hydrate_message(char *s)
 {
     if (hydrate_count) {
         dbg_printf("%s: %d pointers dehydrated", s, hydrate_count);
@@ -815,7 +805,7 @@ static if (PH_METRICS)
 }
 else
 {
-/*private*/ void hydrate_message(char *s) { }
+private void hydrate_message(char *s) { }
 }
 
 /*************************************
@@ -840,7 +830,7 @@ void ph_comdef(Symbol *s)
  * Go through list of comdef's, and emit comdef records for them.
  */
 
-/*private*/ void ph_comdef_gen(symlist_t sl)
+private void ph_comdef_gen(symlist_t sl)
 {
     for (; sl; sl = list_next(sl))
     {   Symbol *s = list_symbol(sl);
@@ -862,7 +852,7 @@ void ph_comdef(Symbol *s)
  *              FLAG_SYM        rehydrate a .sym file
  */
 
-/*private*/ void ph_hydrate_h(Root *r,Sfile *sfh,int flag)
+private void ph_hydrate_h(Root *r,Sfile *sfh,int flag)
 {   Sfile *sfc;
 
     //assert(sfh >= &r.srcfiles.arr[0] && sfh < &r.srcfiles.arr[r.srcfiles.idx]);
@@ -1285,7 +1275,7 @@ else
  *      Root*   root in ph
  */
 
-/*private*/ Root * ph_readfile(char *filename,int flag)
+private Root * ph_readfile(char *filename,int flag)
 {   char *buf;
     int fd;
     int nbufs;
@@ -1734,7 +1724,7 @@ Lret:
  * Read precompiled header file (filename) from HX ph.
  */
 
-/*private*/ void ph_load(Sfile *sfhx)
+private void ph_load(Sfile *sfhx)
 {   list_t li;
 
     sfile_debug(sfhx);

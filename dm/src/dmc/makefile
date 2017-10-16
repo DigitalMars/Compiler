@@ -172,7 +172,7 @@ debppnd:
 OBJ1a=dblklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj rawstring.obj
 OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
-OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ph.obj ppexp.obj dpragma.obj pseudo.obj
+OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj type.obj dt.obj dth.obj phstring.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj dlist.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
@@ -303,7 +303,6 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
         errmsgs2.c tdbx.c \
         msgsx.c \
         trace.c dmcdll.c \
-        ph.c \
         tk.c \
         htod.c
 
@@ -591,7 +590,6 @@ go.obj : $(DEP) $(go.dep) go.c
 gflow.obj : $(DEP) $(gflow.dep) gflow.c
 cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
 cgen.obj : $(DEP) $(cgen.dep) cgen.c
-ph.obj : $(DEP) $(ph.dep) ph.c
 rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 symbol.obj : $(DEP) $(symbol.dep) symbol.c
 cg87.obj : $(DEP) $(cg87.dep) cg87.c
