@@ -490,7 +490,7 @@ void push87(CodeBuilder& cdb);
 void save87(CodeBuilder& cdb);
 void save87regs(CodeBuilder& cdb, unsigned n);
 void gensaverestore87(regm_t, CodeBuilder& cdbsave, CodeBuilder& cdbrestore);
-code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
+//code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
 void genfwait(CodeBuilder& cdb);
 void comsub87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 void fixresult87(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);

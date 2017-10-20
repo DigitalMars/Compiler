@@ -64,7 +64,7 @@ extern Config config;                  // precompiled part of configuration
 extern Configv configv;                // non-ph part of configuration
 extern char sytab[];
 
-extern "C" extern volatile int controlc_saw;      // a control C was seen
+extern "C" { extern volatile int controlc_saw; }      // a control C was seen
 extern unsigned maxblks;               // array max for all block stuff
 extern unsigned numblks;               // number of basic blocks (if optimized)
 extern block *startblock;              // beginning block of function
