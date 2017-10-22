@@ -18,7 +18,7 @@
 
 #if SCPP
 #ifndef SCOPE_H
-#include        "scope.h"
+//#include        "scope.h"
 #endif
 #endif
 

@@ -23,7 +23,8 @@ extern (C++):
 
 class Obj
 {
-  static:
+  static
+  {
     void termfile() { }
     void term(const(char)* objfilename) { }
     void linnum(Srcpos srcpos,int seg,targ_size_t offset) { }
@@ -42,8 +43,12 @@ class Obj
     void staticctor(Symbol *s,int dtor,int seg) { }
     void setModuleCtorDtor(Symbol *s, bool isCtor) { }
     void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym) { }
-    int comdat(Symbol *s) { return 0; }
-    int comdatsize(Symbol *s, targ_size_t symsize) { return 0; }
+  }
+    final int comdat(Symbol *s) { return 0; }
+    final int comdatsize(Symbol *s, targ_size_t symsize) { return 0; }
+    final int readonly_comdat(Symbol *s) { return 0; }
+  static
+  {
     void setcodeseg(int seg) { }
     int string_literal_segment(uint sz) { return 0; }
     int codeseg(char *name,int suffix) { return 0; }
@@ -77,6 +82,7 @@ class Obj
     void write_bytes(seg_data *pseg, uint nbytes, void *p) { }
     void gotref(Symbol *s) { }
     int jmpTableSegment(Symbol* s) { return 0; }
+  }
 }
 
 }

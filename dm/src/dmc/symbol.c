@@ -31,6 +31,7 @@
 
 #if SCPP
 #include        "parser.h"
+#include        "scope.h"
 #include        "cpp.h"
 #define mBP 0x20
 #else

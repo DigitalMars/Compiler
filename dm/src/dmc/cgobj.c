@@ -30,6 +30,10 @@
 
 #include        "md5.h"
 
+#if SCPP
+#include        "scope.h"
+#endif
+
 #if MARS
 #include        "varstats.h"
 

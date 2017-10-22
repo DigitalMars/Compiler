@@ -293,7 +293,7 @@ RELEASE= sc.exe scppn.exe sppn.exe scd.dll scppnd.dll sppnd.dll
 FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d dinit.d \
 	ini.d denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.di utf.d \
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
-	dstruct.d func.d dcpp.d dtemplate.d dexp2.d castab.d dgetcmd.d \
+	dstruct.d func.d dcpp.d dtemplate.d dexp2.d castab.d dgetcmd.d htod.d \
 	dnwc.d dblklst.d dph.d dpragma.d phstring.di phstring.d xtoken.d rawstring.di rawstring.d \
 	dscope.d dmsc.d dutil.d diasm.d dfile.d dspeller.di dspeller.d err.d page.di stubobj.d
 
@@ -303,8 +303,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
         errmsgs2.c tdbx.c \
         msgsx.c \
         trace.c dmcdll.c \
-        tk.c \
-        htod.c
+        tk.c
 
 # Back end
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d \
@@ -475,6 +474,9 @@ dinline.obj : dinline.d
 html.obj : html.d
         $(DMD) -c $(DFLAGS) html.d
 
+htod.obj : htod.d
+        $(DMD) -c $(DFLAGS) htod.d
+
 oper.obj : oper.d
         $(DMD) -c $(DFLAGS) oper.d
 
@@ -574,7 +576,6 @@ errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 evalu8.obj : $(DEP) $(evalu8.dep) evalu8.c
 glocal.obj : $(DEP) $(glocal.dep) glocal.c
 gloop.obj : $(DEP) $(gloop.dep) gloop.c
-htod.obj : $(DEP) $(htod.dep) htod.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 out.obj : $(DEP) $(out.dep) out.c
 pdata.obj : $(DEP) $(pdata.dep) pdata.c

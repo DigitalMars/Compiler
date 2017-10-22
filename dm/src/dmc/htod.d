@@ -6,35 +6,56 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/htod.c
+ * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/htod.d
  */
 
-#if HTOD
+module htod;
 
-#include        <stdio.h>
-#include        <string.h>
-#include        <stdlib.h>
-#include        <malloc.h>
-#include        <ctype.h>
+version (HTOD)
+{
+import core.stdc.stdio;
+import core.stdc.string;
+import core.stdc.stdlib;
+import core.stdc.ctype;
 
-#include        "total.h"
-#include        "cc.h"
-#include        "global.h"
-#include        "cgcv.h"
-#include        "code.h"
-#include        "type.h"
+import ddmd.backend.cdef;
+import ddmd.backend.cc;
+import ddmd.backend.cgcv;
+import ddmd.backend.code;
+import ddmd.backend.el;
+import ddmd.backend.global;
+import ddmd.backend.oper;
+import ddmd.backend.outbuf;
+import ddmd.backend.ty;
+import ddmd.backend.type;
 
-static char __file__[] = __FILE__;      // for tassert.h
-#include        "tassert.h"
+import parser;
+
+import tk.dlist;
+import tk.filespec;
+import tk.mem;
+
+extern (C) void crlf(FILE*);
+
+extern (C++):
+
+alias dbg_printf = printf;
 
 
 /* ======================= cgobj stub ======================================= */
 
+__gshared
+{
 seg_data **SegData;
+}
 
 /* ======================= cgcv stub ======================================= */
 
-void cv_outsym(symbol *s)
+void cv_func(Funcsym *s)
+{
+}
+
+void cv_outsym(Symbol *s)
 {
 }
 
@@ -45,11 +66,11 @@ idx_t cv4_struct(Classsym *s,int flags)
 
 /* ======================= objrecor stub ==================================== */
 
-void objfile_open(const char *name)
+void objfile_open(const(char)* name)
 {
 }
 
-void objfile_close(void *data, unsigned len)
+void objfile_close(void *data, uint len)
 {
 }
 
@@ -63,21 +84,16 @@ void objfile_term()
 
 /* ======================= htod ==================================== */
 
-char *htod_type_tostring(Outbuffer *buf,type *t);
-char *htod_param_tostring(Outbuffer *buf,type *t);
-char *htod_arglist_tostring(Outbuffer *buf,list_t el);
-char *htod_ptpl_tostring(Outbuffer *buf, param_t *ptpl);
-char *htod_el_tostring(Outbuffer *buf, elem *e);
-const char *htod_typestring(tym_t ty);
-void htod_enum(symbol *s);
-
+__gshared
+{
 mangle_t dlinkage;              // mTYman_xxx
 int anylines;
 int indent;
 int incnest;            // nesting level inside #include's
 int sysincnest;         // nesting level inside system #include's
+}
 
-void htod_init(const char *name)
+void htod_init(const(char)* name)
 {
     fprintf(fdmodule, "/* Converted to D from %s by htod */\n", finname);
 
@@ -115,7 +131,7 @@ void htod_indent(int indent)
         fprintf(fdmodule, " ");
 }
 
-void htod_include(const char *p, int flag)
+void htod_include(const(char)* p, int flag)
 {
     //printf("htod_include('%s', flag = x%x, incnest = %d, sysincnest = %d)\n", p, flag, incnest, sysincnest);
     int inc = htod_output();
@@ -153,7 +169,7 @@ void htod_include_pop()
 
 void htod_writeline()
 {
-    static char prefixstring[] = "//C     ";
+    __gshared const(char)* prefixstring = "//C     ";
 
     if (htod_output())
     {
@@ -163,10 +179,11 @@ void htod_writeline()
 
         b = cstate.CSfilblk;
         if (b)                          /* if data to read              */
-        {   char c,*p;
+        {   char c;
+            char *p;
             int prefix;
-            static int incomment;
-            char *pstart = (char *)b->BLtext;
+            __gshared int incomment;
+            char *pstart = cast(char *)b.BLtext;
 
         Lagain:
             prefix = 0;
@@ -192,9 +209,9 @@ void htod_writeline()
                                 if (!prefix && !(p[1] == 0 || p[1] == '\r' || p[1] == '\n'))
                                 {
                                     for (char *q = pstart; q < p + 1; q++)
-                                    {   char c = *q;
-                                        if (c != '\n' && c != '\r')
-                                            fputc(c, fdmodule);
+                                    {   char c2 = *q;
+                                        if (c2 != '\n' && c2 != '\r')
+                                            fputc(c2, fdmodule);
                                     }
                                     crlf(fdmodule);
                                     fflush(fdmodule);
@@ -224,9 +241,9 @@ void htod_writeline()
                                         {
                                             fputs(prefixstring, fdmodule);
                                             for (char *s = pstart; s < p - 1; s++)
-                                            {   char c = *s;
-                                                if (c != '\n' && c != '\r')
-                                                    fputc(c, fdmodule);
+                                            {   char c2 = *s;
+                                                if (c2 != '\n' && c2 != '\r')
+                                                    fputc(c2, fdmodule);
                                             }
                                             crlf(fdmodule);
                                             fflush(fdmodule);
@@ -276,20 +293,20 @@ void htod_define(macro_t *m)
     if (!htod_output() ||
         anylines == 0)
         return;
-    if (m->Mflags & (Mfixeddef | Mellipsis | Mkeyword))
+    if (m.Mflags & (Mfixeddef | Mellipsis | Mkeyword))
         return;
-    if (!(m->Mflags & Mnoparen) || !*m->Mtext)
+    if (!(m.Mflags & Mnoparen) || !*m.Mtext)
         return;
-    //printf("define %s '%s'\n", m->Mid, m->Mtext);
+    //printf("define %s '%s'\n", m.Mid, m.Mtext);
 
     char *pend;
-    strtoull(m->Mtext, &pend, 0);
+    strtoull(m.Mtext, &pend, 0);
     c = *pend;
     if (c == 0)
     {
-        fprintf(fdmodule, "const %s = %s;\n", m->Mid, m->Mtext);
+        fprintf(fdmodule, "const %s = %s;\n", &m.Mid[0], m.Mtext);
     }
-    else if (pend > m->Mtext && (c == 'u' || c == 'U' || c == 'l' || c == 'L'))
+    else if (pend > m.Mtext && (c == 'u' || c == 'U' || c == 'l' || c == 'L'))
     {   int U = 0;
         int L = 0;
         for (char *p = pend; 1; p++)
@@ -318,16 +335,16 @@ void htod_define(macro_t *m)
             }
             break;
         }
-        fprintf(fdmodule, "const %s = %.*s", m->Mid, pend - m->Mtext, m->Mtext);
+        fprintf(fdmodule, "const %s = %.*s", &m.Mid[0], pend - m.Mtext, m.Mtext);
         if (U == 1)
             fprintf(fdmodule, "U");
         if (L == 2)
             fprintf(fdmodule, "L");
         fprintf(fdmodule, ";\n");
     }
-    else if (isalpha(*m->Mtext) || *m->Mtext == '_')
+    else if (isalpha(*m.Mtext) || *m.Mtext == '_')
     {
-        for (char *p = m->Mtext; 1; p++)
+        for (char *p = m.Mtext; 1; p++)
         {
             c = *p;
             if (!c)
@@ -335,17 +352,17 @@ void htod_define(macro_t *m)
             if (!isalnum(c) && c != '_')
                 goto Lret;
         }
-        fprintf(fdmodule, "alias %s %s;\n", m->Mtext, m->Mid);
+        fprintf(fdmodule, "alias %s %s;\n", m.Mtext, &m.Mid[0]);
     }
     else
     {
-        strtold(m->Mtext, &pend);
+        strtold(m.Mtext, &pend);
         c = *pend;
         if (c == 0 ||
             (pend[1] == 0 &&
              (c == 'f' || c == 'F' || c == 'l' || c == 'L')))
         {
-            fprintf(fdmodule, "const %s = %s;\n", m->Mid, m->Mtext);
+            fprintf(fdmodule, "const %s = %s;\n", &m.Mid[0], m.Mtext);
         }
     }
 Lret:
@@ -359,18 +376,18 @@ void htod_struct(Classsym *s)
     symlist_t sl;
     Outbuffer buf;
 
-    st = s->Sstruct;
+    st = s.Sstruct;
 
-    unsigned attr = SFLpublic;
-    const char *p = "struct";
-    if (st->Sflags & STRunion)
+    uint attr = SFLpublic;
+    const(char)* p = "struct";
+    if (st.Sflags & STRunion)
         p = "union";
-    if (st->Sflags & STRclass)
+    if (st.Sflags & STRclass)
         p = "class";
 
     htod_indent(indent);
-    fprintf(fdmodule, "%s %s", p, s->Sident);
-    if (st->Sbase || st->Svirtbase)
+    fprintf(fdmodule, "%s %s", p, &s.Sident[0]);
+    if (st.Sbase || st.Svirtbase)
     {
         fprintf(fdmodule, ";\n");
         return;
@@ -379,12 +396,12 @@ void htod_struct(Classsym *s)
     fprintf(fdmodule, "\n");
     htod_indent(indent);
     fprintf(fdmodule, "{\n");
-    unsigned memoff = ~0;
-    unsigned bitfieldn = 0;
-    char bf[10 + sizeof(bitfieldn) * 3 + 1];
-    for (sl = st->Sfldlst; sl; sl = list_next(sl))
-    {   symbol *sf = list_symbol(sl);
-        unsigned attribute = sf->Sflags & SFLpmask;
+    uint memoff = ~0;
+    uint bitfieldn = 0;
+    char[10 + bitfieldn.sizeof * 3 + 1] bf = void;
+    for (sl = st.Sfldlst; sl; sl = list_next(sl))
+    {   Symbol *sf = list_symbol(sl);
+        uint attribute = sf.Sflags & SFLpmask;
         char *pt;
         targ_ullong m;
 
@@ -402,67 +419,67 @@ void htod_struct(Classsym *s)
             attr = attribute;
         }
 
-        pt = htod_type_tostring(&buf, sf->Stype);
-        switch (sf->Sclass)
+        pt = htod_type_tostring(&buf, sf.Stype);
+        switch (sf.Sclass)
         {
             case SCmember:
-                memoff = sf->Smemoff;
+                memoff = sf.Smemoff;
                 htod_indent(indent + 4);
-                fprintf(fdmodule, "%s%s;\n", pt, sf->Sident);
+                fprintf(fdmodule, "%s%s;\n", pt, &sf.Sident[0]);
                 break;
 
             case SCfield:
-                if (memoff != sf->Smemoff)
+                if (memoff != sf.Smemoff)
                 {
-                    sprintf(bf, "__bitfield%d", ++bitfieldn);
+                    sprintf(bf.ptr, "__bitfield%d", ++bitfieldn);
                     htod_indent(indent + 4);
-                    fprintf(fdmodule, "%s%s;\n", pt, bf);
-                    memoff = sf->Smemoff;
+                    fprintf(fdmodule, "%s%s;\n", pt, bf.ptr);
+                    memoff = sf.Smemoff;
                 }
                 // Swidth, Sbit
-                m = ((targ_ullong)1 << sf->Swidth) - 1;
+                m = (cast(targ_ullong)1 << sf.Swidth) - 1;
                 htod_indent(indent + 4);
-                if (tyuns(sf->Stype->Tty))
+                if (tyuns(sf.Stype.Tty))
                 {
                     // Getter
                     fprintf(fdmodule, "%s%s() { return (%s >> %d) & 0x%llx; }\n",
-                        pt, sf->Sident,
-                        bf,
-                        sf->Sbit,
+                        pt, &sf.Sident[0],
+                        bf.ptr,
+                        sf.Sbit,
                         m);
 
                     // Setter
                     htod_indent(indent + 4);
-                    fprintf(fdmodule, "\
-%s%s(%svalue) { \
-%s = (%s & 0x%llx) | (value << %d); \
-return value; }\n",
-                        pt, sf->Sident, pt,
-                        bf, bf, ~(m << sf->Sbit), sf->Sbit);
+                    fprintf(fdmodule, "
+%s%s(%svalue) {
+ %s = (%s & 0x%llx) | (value << %d);
+ return value; }\n",
+                        pt, &sf.Sident[0], pt,
+                        bf.ptr, bf.ptr, ~(m << sf.Sbit), sf.Sbit);
                 }
                 else
-                {   unsigned n = tysize(sf->Stype->Tty) * 8;
+                {   uint n = tysize(sf.Stype.Tty) * 8;
                     // Getter
                     fprintf(fdmodule, "%s%s() { return (%s << %d) >> %d; }\n",
-                        htod_type_tostring(&buf, sf->Stype), sf->Sident,
-                        bf,
-                        n - (sf->Sbit + sf->Swidth),
-                        n - sf->Swidth);
+                        htod_type_tostring(&buf, sf.Stype), &sf.Sident[0],
+                        bf.ptr,
+                        n - (sf.Sbit + sf.Swidth),
+                        n - sf.Swidth);
 
                     // Setter
                     htod_indent(indent + 4);
-                    fprintf(fdmodule, "\
-%s%s(%svalue) { \
-%s = (%s & 0x%llx) | ((value & 0x%llx) << %d); \
-return value; }\n",
-                        pt, sf->Sident, pt,
-                        bf, bf, ~(m << sf->Sbit), m, sf->Sbit);
+                    fprintf(fdmodule, "
+%s%s(%svalue) {
+ %s = (%s & 0x%llx) | ((value & 0x%llx) << %d);
+ return value; }\n",
+                        pt, &sf.Sident[0], pt,
+                        bf.ptr, bf.ptr, ~(m << sf.Sbit), m, sf.Sbit);
                 }
                 break;
 
             case SCstruct:
                 indent += 4;
-                htod_struct((Classsym *)sf);
+                htod_struct(cast(Classsym *)sf);
                 indent -= 4;
                 break;
 
@@ -473,12 +490,12 @@ return value; }\n",
                 break;
 
             case SCtypedef:
-                p = htod_type_tostring(&buf, s->Stype);
-                if (strlen(p) == strlen(s->Sident) + 1 &&
-                    memcmp(p, s->Sident, strlen(s->Sident)) == 0)
+                p = htod_type_tostring(&buf, s.Stype);
+                if (strlen(p) == strlen(&s.Sident[0]) + 1 &&
+                    memcmp(p, &s.Sident[0], strlen(&s.Sident[0])) == 0)
                     break;      // avoid alias X X;
                 htod_indent(indent + 4);
-                fprintf(fdmodule, "alias %s %s;\n", htod_type_tostring(&buf, s->Stype), s->Sident);
+                fprintf(fdmodule, "alias %s %s;\n", htod_type_tostring(&buf, s.Stype), &s.Sident[0]);
                 break;
 
             case SCextern:
@@ -499,23 +516,23 @@ return value; }\n",
     fprintf(fdmodule, "}\n");
 }
 
-void htod_enum(symbol *s)
+void htod_enum(Symbol *s)
 {   type *tbase;
     Outbuffer buf;
 
-    //printf("htod_enum('%s')\n", s->Sident);
-    tbase = s->Stype->Tnext;
+    //printf("htod_enum('%s')\n", &s.Sident[0]);
+    tbase = s.Stype.Tnext;
 
     htod_indent(indent);
-    if (s->Senum->SEflags & SENnotagname)
+    if (s.Senum.SEflags & SENnotagname)
         fprintf(fdmodule, "enum");
     else
-        fprintf(fdmodule, "enum %s", s->Sident);
-    if (tybasic(tbase->Tty) != TYint)
+        fprintf(fdmodule, "enum %s", &s.Sident[0]);
+    if (tybasic(tbase.Tty) != TYint)
     {
         fprintf(fdmodule, " : %s", htod_type_tostring(&buf, tbase));
     }
-    if (s->Senum->SEflags & SENforward)
+    if (s.Senum.SEflags & SENforward)
     {
         fprintf(fdmodule, ";\n");
         return;
@@ -526,18 +543,18 @@ void htod_enum(symbol *s)
     fprintf(fdmodule, "{\n");
 
     targ_ullong lastvalue = 0;
-    for (symlist_t sl = s->Senumlist; sl; sl = list_next(sl))
-    {   symbol *sf = list_symbol(sl);
+    for (symlist_t sl = s.Senum.SEenumlist; sl; sl = list_next(sl))
+    {   Symbol *sf = list_symbol(sl);
         targ_ullong value;
 
         symbol_debug(sf);
-        value = el_tolongt(sf->Svalue);
+        value = el_tolongt(sf.Svalue);
         htod_indent(indent + 4);
-        fprintf(fdmodule, "%s", sf->Sident);
+        fprintf(fdmodule, "%s", &sf.Sident[0]);
         if (lastvalue != value)
         {
             buf.reset();
-            fprintf(fdmodule, " = %s", htod_el_tostring(&buf, sf->Svalue));
+            fprintf(fdmodule, " = %s", htod_el_tostring(&buf, sf.Svalue));
         }
         fprintf(fdmodule, ",\n");
         lastvalue = value + 1;
@@ -547,18 +564,17 @@ void htod_enum(symbol *s)
     fprintf(fdmodule, "}\n");
 }
 
-void htod_decl(symbol *s)
+void htod_decl(Symbol *s)
 {
     if (s &&
         htod_output() &&
         anylines)
     {   Outbuffer buf;
-        mangle_t m = type_mangle(s->Stype);
-        tym_t ty = tybasic(s->Stype->Tty);
-        char *p;
+        mangle_t m = type_mangle(s.Stype);
+        tym_t ty = tybasic(s.Stype.Tty);
 
         if (m && m != dlinkage)
-        {   const char *p;
+        {   const(char)* p;
 
             switch (m)
             {
@@ -576,18 +592,20 @@ void htod_decl(symbol *s)
             dlinkage = m;
         }
 
-        switch (s->Sclass)
+        switch (s.Sclass)
         {
             case SCtypedef:
-                p = htod_type_tostring(&buf, s->Stype);
-                if (strlen(p) == strlen(s->Sident) + 1 &&
-                    memcmp(p, s->Sident, strlen(s->Sident)) == 0)
+            {
+                char *p;
+                p = htod_type_tostring(&buf, s.Stype);
+                if (strlen(p) == strlen(&s.Sident[0]) + 1 &&
+                    memcmp(p, &s.Sident[0], strlen(&s.Sident[0])) == 0)
                     break;      // avoid alias X X;
-                fprintf(fdmodule, "alias %s%s;\n", p, s->Sident);
+                fprintf(fdmodule, "alias %s%s;\n", p, &s.Sident[0]);
                 break;
-
+            }
             case SCstruct:
-                htod_struct((Classsym *)s);
+                htod_struct(cast(Classsym *)s);
                 break;
 
             case SCenum:
@@ -601,7 +619,7 @@ void htod_decl(symbol *s)
             case SCinline:
             case SCsinline:
             case SCstatic:
-                if (tyfunc(s->Stype->Tty))
+                if (tyfunc(s.Stype.Tty))
                 {
                     // Unsupported combinations
                     if (m == mTYman_c && ty != TYnfunc)
@@ -611,30 +629,30 @@ void htod_decl(symbol *s)
                     if (m == mTYman_pas && ty != TYnpfunc)
                         return;
 
-                    fprintf(fdmodule, "%s", htod_type_tostring(&buf, s->Stype->Tnext));
-                    fprintf(fdmodule, " %s", s->Sident);
-                    fprintf(fdmodule, "%s;\n", htod_param_tostring(&buf, s->Stype));
+                    fprintf(fdmodule, "%s", htod_type_tostring(&buf, s.Stype.Tnext));
+                    fprintf(fdmodule, " %s", &s.Sident[0]);
+                    fprintf(fdmodule, "%s;\n", htod_param_tostring(&buf, s.Stype));
 //symbol_print(s);
                 }
                 else
                 {
-                    if (s->Sclass == SCextern)
+                    if (s.Sclass == SCextern)
                         fprintf(fdmodule, "extern ");
-                    if (s->Sclass == SCconst || s->Stype->Tty & mTYconst)
+                    if (s.Sclass == SCconst || s.Stype.Tty & mTYconst)
                         fprintf(fdmodule, "const ");
-                    fprintf(fdmodule, "%s%s", htod_type_tostring(&buf, s->Stype), s->Sident);
-                    if ((s->Sclass == SCconst || s->Stype->Tty & mTYconst) &&
-                        s->Sflags & SFLvalue)
+                    fprintf(fdmodule, "%s%s", htod_type_tostring(&buf, s.Stype), &s.Sident[0]);
+                    if ((s.Sclass == SCconst || s.Stype.Tty & mTYconst) &&
+                        s.Sflags & SFLvalue)
                     {
                         buf.reset();
-                        fprintf(fdmodule, " = %s", htod_el_tostring(&buf, s->Svalue));
+                        fprintf(fdmodule, " = %s", htod_el_tostring(&buf, s.Svalue));
                     }
                     fprintf(fdmodule, ";\n");
                 }
                 break;
 
             default:
-                fprintf(fdmodule, "symbol %s\n", s->Sident);
+                fprintf(fdmodule, "symbol %s\n", &s.Sident[0]);
 //symbol_print(s);
                 break;
         }
@@ -644,136 +662,136 @@ void htod_decl(symbol *s)
 char *htod_type_tostring(Outbuffer *buf,type *t)
 {
     tym_t ty;
-    const char *s;
+    const(char)* s;
     type *tn;
     Outbuffer buf2;
     mangle_t mangle;
 
     //printf("htod_type_tostring()\n");
     //type_print(t);
-    buf->reset();
-    for (; t; t = t->Tnext)
+    buf.reset();
+    for (; t; t = t.Tnext)
     {
         type_debug(t);
 
-        if (t->Ttypedef)
-        {   if (t->Ttypedef->Sclass == SCenum &&
-                t->Ttypedef->Senum->SEflags & SENnotagname)
+        if (t.Ttypedef)
+        {   if (t.Ttypedef.Sclass == SCenum &&
+                t.Ttypedef.Senum.SEflags & SENnotagname)
             {
             }
             else if (!(config.htodFlags & HTODFtypedef))
             {
-                buf->write(t->Ttypedef->Sident);
-                buf->write(" ");
-                return buf->toString();
+                buf.write(&t.Ttypedef.Sident[0]);
+                buf.write(" ");
+                return buf.toString();
             }
         }
 
         mangle = type_mangle(t);
-        ty = t->Tty;
+        ty = t.Tty;
 
         ty = tybasic(ty);
         assert(ty < TYMAX);
 
         switch (ty)
         {   case TYarray:
-                buf->write(htod_type_tostring(&buf2, t->Tnext));
-                buf->write("[");
-                if (t->Tflags & TFstatic)
-                    buf->write("static ");
-                if (t->Tflags & TFvla)
-                    buf->write("*");
-                else if (t->Tflags & TFsizeunknown)
-                    ;
+                buf.write(htod_type_tostring(&buf2, t.Tnext));
+                buf.write("[");
+                if (t.Tflags & TFstatic)
+                    buf.write("static ");
+                if (t.Tflags & TFvla)
+                    buf.write("*");
+                else if (t.Tflags & TFsizeunknown)
+                { }
                 else
-                {   char buffer[sizeof(unsigned long) * 3 + 1];
+                {   char[uint.sizeof * 3 + 1] buffer = void;
 
-                    sprintf(buffer,"%lu",(unsigned long)t->Tdim);
-                    buf->write(buffer);
+                    sprintf(&buffer[0],"%u",cast(uint)t.Tdim);
+                    buf.write(&buffer[0]);
                 }
-                buf->write("]");
-                return buf->toString();
+                buf.write("]");
+                return buf.toString();
 
             case TYident:
-                buf->write(t->Tident);
+                buf.write(t.Tident);
                 break;
 
             case TYtemplate:
-                buf->write((char *)((typetemp_t *)t)->Tsym->Sident);
-                buf->write("!(");
-                htod_ptpl_tostring(buf, t->Tparamtypes);
-                buf->write(")");
+                buf.write(cast(char *)(cast(typetemp_t *)t).Tsym.Sident);
+                buf.write("!(");
+                htod_ptpl_tostring(buf, t.Tparamtypes);
+                buf.write(")");
                 break;
 
             case TYenum:
-//              if (t->Ttag && t->Ttag->Sclass == SCenum &&
-//                  t->Ttag->Senum->SEflags & SENnotagname)
+//              if (t.Ttag && t.Ttag.Sclass == SCenum &&
+//                  t.Ttag.Senum.SEflags & SENnotagname)
                     break;
             case TYstruct:
-                buf->write(t->Ttag ? prettyident(t->Ttag) : "{}");
-                buf->writeByte(' ');
-                return buf->toString();
+                buf.write(t.Ttag ? prettyident(t.Ttag) : "{}");
+                buf.writeByte(' ');
+                return buf.toString();
 
             case TYmemptr:
-                buf->writeByte(' ');
-                buf->write(t->Ttag ? prettyident(t->Ttag) : "struct {}");
-                buf->write("::*");
-                if (tyfunc(t->Tnext->Tty) || tybasic(t->Tnext->Tty == TYarray))
+                buf.writeByte(' ');
+                buf.write(t.Ttag ? prettyident(t.Ttag) : "struct {}");
+                buf.write("::*");
+                if (tyfunc(t.Tnext.Tty) || tybasic(t.Tnext.Tty == TYarray))
                     break;
                 else
                 {
-                    buf->prependBytes(htod_type_tostring(&buf2,t->Tnext));
+                    buf.prependBytes(htod_type_tostring(&buf2,t.Tnext));
                     goto Lret;
                 }
 
-#if TX86
             case TYnptr:
             case TYsptr:
             case TYcptr:
             case TYhptr:
-#endif
             case TYfptr:
             case TYvptr:
-                if (tyfunc(t->Tnext->Tty))
+                if (tyfunc(t.Tnext.Tty))
                 {
-                    buf->write(htod_type_tostring(&buf2, t->Tnext->Tnext));
-                    buf->write(" function");
-                    buf->write(htod_param_tostring(&buf2, t->Tnext));
-                    return buf->toString();
+                    buf.write(htod_type_tostring(&buf2, t.Tnext.Tnext));
+                    buf.write(" function");
+                    buf.write(htod_param_tostring(&buf2, t.Tnext));
+                    return buf.toString();
                 }
+                goto case TYref;
+
             case TYref:
-                buf->write(htod_type_tostring(&buf2, t->Tnext));
-                buf->write("*");
-                return buf->toString();
+                buf.write(htod_type_tostring(&buf2, t.Tnext));
+                buf.write("*");
+                return buf.toString();
 
             default:
                 if (tyfunc(ty))
                 {
                     size_t len;
 
-                    len = buf->size();
-                    buf->write(tystring[ty]);
+                    len = buf.size();
+                    buf.write(tystring[ty]);
                     if (len)
-                        buf->bracket('(',')');
-                    buf->write(htod_param_tostring(&buf2,t));
-                    buf->prependBytes(htod_type_tostring(&buf2,t->Tnext));
+                        buf.bracket('(',')');
+                    buf.write(htod_param_tostring(&buf2,t));
+                    buf.prependBytes(htod_type_tostring(&buf2,t.Tnext));
                     goto Lret;
                 }
                 else
-                {   const char *q;
+                {   const(char)* q;
 
                     q = htod_typestring(ty);
                     buf2.reset();
                     buf2.write(q);
                     if (isalpha(q[strlen(q) - 1]))
                         buf2.writeByte(' ');
-                    buf->prependBytes(buf2.toString());
+                    buf.prependBytes(buf2.toString());
                 }
                 break;
         }
     }
 Lret:
-    return buf->toString();
+    return buf.toString();
 }
 
 /*********************************
@@ -784,42 +802,42 @@ Lret:
 char *htod_param_tostring(Outbuffer *buf,type *t)
 {
     param_t *pm;
-    static char ellipsis[] = "...";
+    __gshared const(char)* ellipsis = "...";
 
     type_debug(t);
-    buf->reset();
-    if (!tyfunc(t->Tty))
+    buf.reset();
+    if (!tyfunc(t.Tty))
         goto L1;
-    buf->writeByte('(');
-    pm = t->Tparamtypes;
+    buf.writeByte('(');
+    pm = t.Tparamtypes;
     if (!pm)
     {
-        if (t->Tflags & TFfixed)
-            ;
+        if (t.Tflags & TFfixed)
+        { }
         else
-            buf->write(ellipsis);
+            buf.write(ellipsis);
     }
     else
     {   Outbuffer pbuf;
 
         while (1)
-        {   buf->write(htod_type_tostring(&pbuf,pm->Ptype));
-            if (pm->Pident)
-                buf->write(pm->Pident);
-            pm = pm->Pnext;
+        {   buf.write(htod_type_tostring(&pbuf,pm.Ptype));
+            if (pm.Pident)
+                buf.write(pm.Pident);
+            pm = pm.Pnext;
             if (pm)
-                buf->write(", ");
-            else if (!(t->Tflags & TFfixed))
-            {   buf->write(",...");
+                buf.write(", ");
+            else if (!(t.Tflags & TFfixed))
+            {   buf.write(",...");
                 break;
             }
             else
                 break;
         }
     }
-    buf->writeByte(')');
+    buf.writeByte(')');
 L1:
-    return buf->toString();
+    return buf.toString();
 }
 
 /******************************
@@ -828,23 +846,23 @@ L1:
 
 char *htod_arglist_tostring(Outbuffer *buf,list_t el)
 {
-    buf->reset();
-    buf->writeByte('(');
+    buf.reset();
+    buf.writeByte('(');
     if (el)
     {   Outbuffer ebuf;
 
         while (1)
         {
             elem_debug(list_elem(el));
-            buf->write(htod_type_tostring(&ebuf,list_elem(el)->ET));
+            buf.write(htod_type_tostring(&ebuf,list_elem(el).ET));
             el = list_next(el);
             if (!el)
                 break;
-            buf->writeByte(',');
+            buf.writeByte(',');
         }
     }
-    buf->writeByte(')');
-    return buf->toString();
+    buf.writeByte(')');
+    return buf.toString();
 }
 
 /*********************************
@@ -855,20 +873,20 @@ char *htod_arglist_tostring(Outbuffer *buf,list_t el)
 char *htod_ptpl_tostring(Outbuffer *buf, param_t *ptpl)
 {
     //printf("htod_ptpl_tostring():\n");
-    for (; ptpl; ptpl = ptpl->Pnext)
+    for (; ptpl; ptpl = ptpl.Pnext)
     {   Outbuffer pbuf;
 
-        if (ptpl->Ptype)
-            buf->write(htod_type_tostring(&pbuf, ptpl->Ptype));
-        else if (ptpl->Pelem)
-            buf->write(htod_el_tostring(&pbuf, ptpl->Pelem));
-        else if (ptpl->Pident)
-            buf->write(ptpl->Pident);
-        if (ptpl->Pnext)
-            buf->writeByte(',');
+        if (ptpl.Ptype)
+            buf.write(htod_type_tostring(&pbuf, ptpl.Ptype));
+        else if (ptpl.Pelem)
+            buf.write(htod_el_tostring(&pbuf, ptpl.Pelem));
+        else if (ptpl.Pident)
+            buf.write(ptpl.Pident);
+        if (ptpl.Pnext)
+            buf.writeByte(',');
     }
     //printf("-htod_ptpl_tostring()\n");
-    return buf->toString();
+    return buf.toString();
 }
 
 /**********************************
@@ -878,21 +896,21 @@ char *htod_ptpl_tostring(Outbuffer *buf, param_t *ptpl)
 char *htod_el_tostring(Outbuffer *buf, elem *e)
 {
     //printf("htod_el_tostring(): "); elem_print(e);
-    char *fmt;
 
-    switch (e->Eoper)
+    switch (e.Eoper)
     {
         case OPvar:
-            buf->write(e->EV.sp.Vsym->Sident);
+            buf.write(&e.EV.Vsym.Sident[0]);
             break;
 
         case OPconst:
-            char buffer[1 + sizeof(targ_llong) * 3 + 1];
-            fmt = "%lld";
-            switch (tybasic(e->ET->Tty))
+        {
+            char[1 + targ_llong.sizeof * 3 + 1] buffer = void;
+            const(char)* fmt = "%lld";
+            switch (tybasic(e.ET.Tty))
             {
                 case TYbool:
-                    sprintf(buffer, "%s", el_tolongt(e) ? "true" : "false");
+                    sprintf(&buffer[0], "%s", cast(const(char)*)(el_tolongt(e) ? "true" : "false"));
                     goto L1;
                 case TYchar:
                 case TYuchar:
@@ -904,23 +922,29 @@ char *htod_el_tostring(Outbuffer *buf, elem *e)
                 case TYulong:           fmt = "%lluU";  break;
                 case TYllong:           fmt = "%lldL";  break;
                 case TYullong:          fmt = "%lluUL"; break;
+
+                default:
+                    break;
             }
-            sprintf(buffer, fmt, el_tolongt(e));
+            sprintf(&buffer[0], fmt, el_tolongt(e));
         L1:
-            buf->write(buffer);
+            buf.write(&buffer[0]);
             break;
+        }
 
         // BUG: should handle same cases as in newman.c
+        default:
+            break;
     }
-    return buf->toString();
+    return buf.toString();
 }
 
 /**********************************
  * Get D type string corresponding to type.
  */
 
-const char *htod_typestring(tym_t ty)
-{   const char *p;
+const(char)* htod_typestring(tym_t ty)
+{   const(char)* p;
     ty = tybasic(ty);
 
     switch (ty)
@@ -961,9 +985,18 @@ const char *htod_typestring(tym_t ty)
     return p;
 }
 
-#else
+}
+else
+{
 
-void htod_init(const char *name) { }
+import ddmd.backend.cdef;
+import ddmd.backend.cc;
+
+import parser;
+
+extern (C++):
+
+void htod_init(const(char)* name) { }
 
 void htod_term() { }
 
@@ -975,8 +1008,8 @@ bool htod_running()
 /* Stub them out
  */
 
-void htod_decl(symbol *s) { }
+void htod_decl(Symbol *s) { }
 
 void htod_define(macro_t *m) { }
 
-#endif
+}
