@@ -70,12 +70,14 @@ alias MEM_PARF_STRDUP = mem_strdup;
 
 private __gshared const(char)* xyzzy = "written by Walter Bright";
 
+/*
 private void nwc_outstatics();
 private void nwc_predefine();
 private type * getprototype(const char *,type *);
 private void getparamlst(type *,type *);
 private Symbol * anonymous(Classsym *,int);
 private void nwc_based();
+*/
 void output_func();
 int islvalue(elem *e);
 
@@ -93,9 +95,6 @@ private list_t nwc_funcstowrite;  // list of function symbols to write out
 int readini(char *argv0,char *ini);
 type* tserr();
 
-version (all)
-{
-
 static if (1)
 {
 /*******************************
@@ -103,271 +102,276 @@ static if (1)
  */
 
 extern (C) int main(int argc,char** argv)
-{ list_t headerlist;
+{
+    list_t headerlist;
 
-  argv0 = argv[0];                      // save program name
-version (SPP)
-{
-  mem_init();
-  mem_setexception(MEM_E.MEM_CALLFP,&err_nomem);
-version (_WINDLL)
-{
-}
-else
-{
-    readini(argv0,cast(char*)"sc.ini".ptr);            // read initialization file
-}
-  list_init();
-  pragma_init();
-  getcmd(argc,argv);                    /* process command line         */
-  file_iofiles();
-  token_init();                         // initialize tokenizer tables
-  insblk(cast(ubyte*)finname,BLfile,null,FQtop,null);      // install top level block
-  if (headers)
-  {     insblk(cast(ubyte*)list_ptr(headers),BLfile,null,FQcwd | FQpath,null);
-        list_pop(&headers);
-  }
-
-  while (stoken() != TKeof)
-  { }
-
-  pragma_term();
-  file_term();
-  fclose(fout);
-static if (TERMCODE)                            /* dump this to speed up compile */
-{
-  blklst_term();
-  token_term();
-  mem_free(eline);
-  getcmd_term();
-  list_term();
-}
-
-}
-else
-{
-
-version (DigitalMars)
-  {
-        _8087 = 0;                      /* no fuzzy floating point      */
-                                        /* (use emulation only)         */
-  }
-version (Windows)
-{
-    // Set unbuffered output in case output is redirected to a file
-    // and we need to see how far it got before a crash.
-    //stdout._flag |= _IONBF;
-    //core.stdc.stdio.setvbuf(stdout, null, _IONBF, 0);
-    core.stdc.stdio.setvbuf(&_iob[1], null, _IONBF, 0);
-}
-  mem_init();
-  mem_setexception(MEM_E.MEM_CALLFP,&err_nomem);
-  list_init();
-  vec_init();
-  cod3_setdefault();
-  getcmd(argc,argv);                    // process command line
-  file_iofiles();
-  token_init();                         // initialize tokenizer tables
-  pstate.STinitseg = 1;                 // default is USER segment
-
-  pstate.STsequence = 1;                // first Symbol will be #1
-  pstate.STmaxsequence = ~0;            // accept all Symbol's
-
-  cpp_init();
-  pstate.STgclass = SCglobal;
-  except_init();                        // exception handling code
-  Outbuffer objbuf;
-version (HTOD)
-{
-  htod_init(fdmodulename);
-}
-else
-{
-version (Win32)
-{
-  char *p = (config.exe & EX_dos) ? file_8dot3name(finname) : null;
-  if (!p || !*p)
-        p = finname;
-  objmod = Obj.init(&objbuf, p, configv.csegname);
-  Obj.initfile(p, configv.csegname, null);
-//  free(p);
-}
-else
-{
-  objmod = Obj.init(objbuf, finname, configv.csegname);
-  Obj.initfile(finname,configv.csegname);
-}
-}
-  PARSER = 1;
-  el_init();
-  block_init();
-  type_init();
-  rtlsym_init();
-  insblk(cast(ubyte *)finname,BLfile,null,FQtop,null);      // install top level block
-
-  cstate.CSpsymtab = &globsym;
-  createglobalsymtab();                 // create top level symbol table
-  headerlist = headers;
-  if (headers)
-  {     pragma_include(cast(char *)list_ptr(headers),FQcwd | FQpath);
-        headers = list_next(headers);
-  }
-  nwc_predefine();                      // any initial declarations
-  stoken();
-  ext_def(0);                           // do external_definitions
-version (HTOD)
-{
-}
-else
-{
-  if (pstate.STflags & PFLhxgen)
-      ph_autowrite();
-  template_instantiate();
-  cpp_build_STI_STD();                  // do static ctors/dtors
-  output_func();                        /* write out any more functions */
-  nwc_outstatics();
-  if (config.ansi_c && !CPP &&
-      !(pstate.STflags & (PFLextdef | PFLcomdef)) &&
-      !(config.flags2 & CFG2phgen))     // and not generating precompiled header
-        synerr(EM_no_ext_def);          // need external definition
-  if ((config.flags2 & (CFG2hdrdebug | CFG2noobj)) == CFG2hdrdebug)
-        symbol_gendebuginfo();          // generate debug info for global symbols
-  Obj.termfile();                       // fix up and terminate object file
-  Obj.term(null);
-  if (!errcnt)
-  {
-        objfile_close(objbuf.buf, objbuf.p - objbuf.buf);
-  }
-  if (fsymname)
-  {
-        assert(config.flags2 & CFG2phgen);
-        symboltable_clean(cast(Symbol *)scope_find(SCTglobal).root);
-        symboltable_balance(cast(Symbol **)&scope_find(SCTglobal).root);
-        if (!CPP)
-        {   symboltable_clean(cast(Symbol *)scope_find(SCTglobaltag).root);
-            symboltable_balance(cast(Symbol **)&scope_find(SCTglobaltag).root);
+    argv0 = argv[0];                      // save program name
+    version (SPP)
+    {
+        mem_init();
+        mem_setexception(MEM_E.MEM_CALLFP,&err_nomem);
+        version (_WINDLL)
+        {
         }
-        ph_write(fsymname,2);           // write precompiled header
-  }
-}
-  pragma_term();
-  file_term();
-version (HTOD)
-{
-  htod_term();
-  if (fdmodule)
-  {
-        fclose(fdmodule);
-  }
-}
-else
-{
-  if (flst)
-  {
-        fclose(flst);
-  }
-}
+        else
+        {
+            readini(argv0,cast(char*)"sc.ini".ptr); // read initialization file
+        }
+        list_init();
+        pragma_init();
+        getcmd(argc,argv);                    // process command line
+        file_iofiles();
+        token_init();                         // initialize tokenizer tables
+        insblk(cast(ubyte*)finname,BLfile,null,FQtop,null);      // install top level block
+        if (headers)
+        {
+            insblk(cast(ubyte*)list_ptr(headers),BLfile,null,FQcwd | FQpath,null);
+            list_pop(&headers);
+        }
 
-static if (TERMCODE)                    /* dump this to speed up compile */
-{
-  assert(pstate.STinparamlist == 0);
-  if (!(config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy)))
-  {
-        debug printf("deletesymtab\n");
-        deletesymtab();                 /* for drill & error checking   */
-        file_progress();
-        symbol_free(cstate.CSlinkage);
-        debug printf("freesymtab\n");
-        freesymtab(globsym.tab,0,globsym.top); /* free symbol table     */
-        symtab_free(globsym.tab);
-        except_term();
-        cpp_term();
-        file_progress();
-        iasm_term();                    // terminate inline assembler
-        symbol_term();
-        go_term();
-        cgcs_term();
-        code_term();
-        file_progress();
-        rtlsym_term();
-        type_term();
-        token_term();
-        mem_free(eline);
-        getcmd_term();
-        vec_term();
-        file_progress();
-        el_term();
-        file_progress();
-        dt_term();
-        blklst_term();
-        list_free(&headerlist,FPNULL);
-        list_term();
-        scope_term();
-        block_term();
-  }
-} /* TERMCODE */
-} /* SPP */
+        while (stoken() != TKeof)
+        { }
 
-  if (errcnt)                           /* if any errors occurred       */
+        pragma_term();
+        file_term();
+        fclose(fout);
+        static if (TERMCODE)                   // dump this to speed up compile
+        {
+            blklst_term();
+            token_term();
+            mem_free(eline);
+            getcmd_term();
+            list_term();
+        }
+    }
+    else
+    {
+        version (DigitalMars)
+        {
+            _8087 = 0;                  // no fuzzy floating point
+                                        // (use emulation only)
+        }
+        version (Windows)
+        {
+            // Set unbuffered output in case output is redirected to a file
+            // and we need to see how far it got before a crash.
+            //stdout._flag |= _IONBF;
+            //core.stdc.stdio.setvbuf(stdout, null, _IONBF, 0);
+            core.stdc.stdio.setvbuf(&_iob[1], null, _IONBF, 0);
+        }
+        mem_init();
+        mem_setexception(MEM_E.MEM_CALLFP,&err_nomem);
+        list_init();
+        vec_init();
+        cod3_setdefault();
+        getcmd(argc,argv);                    // process command line
+        file_iofiles();
+        token_init();                         // initialize tokenizer tables
+        pstate.STinitseg = 1;                 // default is USER segment
+
+        pstate.STsequence = 1;                // first Symbol will be #1
+        pstate.STmaxsequence = ~0;            // accept all Symbol's
+
+        cpp_init();
+        pstate.STgclass = SCglobal;
+        except_init();                        // exception handling code
+        Outbuffer objbuf;
+        version (HTOD)
+        {
+            htod_init(fdmodulename);
+        }
+        else
+        {
+            version (Win32)
+            {
+                char *p = (config.exe & EX_dos) ? file_8dot3name(finname) : null;
+                if (!p || !*p)
+                    p = finname;
+            /*
+                objmod = config.objfmt = OBJ_MSCOFF
+                         ? MsCoffObj.init(&objbuf, p, configv.csegname)
+                         :       Obj.init(&objbuf, p, configv.csegname);
+             */
+                objmod = Obj.init(&objbuf, p, configv.csegname);
+                Obj.initfile(p, configv.csegname, null);
+            }
+            else
+            {
+                objmod = Obj.init(objbuf, finname, configv.csegname);
+                Obj.initfile(finname,configv.csegname);
+            }
+        }
+        PARSER = 1;
+        el_init();
+        block_init();
+        type_init();
+        rtlsym_init();
+        insblk(cast(ubyte *)finname,BLfile,null,FQtop,null);      // install top level block
+
+        cstate.CSpsymtab = &globsym;
+        createglobalsymtab();                 // create top level symbol table
+        headerlist = headers;
+        if (headers)
+        {
+            pragma_include(cast(char *)list_ptr(headers),FQcwd | FQpath);
+            headers = list_next(headers);
+        }
+        nwc_predefine();                      // any initial declarations
+        stoken();
+        ext_def(0);                           // do external_definitions
+        version (HTOD)
+        {
+        }
+        else
+        {
+            if (pstate.STflags & PFLhxgen)
+              ph_autowrite();
+            template_instantiate();
+            cpp_build_STI_STD();               // do static ctors/dtors
+            output_func();                     // write out any more functions
+            nwc_outstatics();
+            if (config.ansi_c && !CPP &&
+                !(pstate.STflags & (PFLextdef | PFLcomdef)) &&
+                !(config.flags2 & CFG2phgen))  // and not generating precompiled header
+                synerr(EM_no_ext_def);         // need external definition
+            if ((config.flags2 & (CFG2hdrdebug | CFG2noobj)) == CFG2hdrdebug)
+                symbol_gendebuginfo();         // generate debug info for global symbols
+            Obj.termfile();                    // fix up and terminate object file
+            Obj.term(null);
+            if (!errcnt)
+            {
+                objfile_close(objbuf.buf, objbuf.p - objbuf.buf);
+            }
+            if (fsymname)
+            {
+                assert(config.flags2 & CFG2phgen);
+                symboltable_clean(cast(Symbol *)scope_find(SCTglobal).root);
+                symboltable_balance(cast(Symbol **)&scope_find(SCTglobal).root);
+                if (!CPP)
+                {   symboltable_clean(cast(Symbol *)scope_find(SCTglobaltag).root);
+                    symboltable_balance(cast(Symbol **)&scope_find(SCTglobaltag).root);
+                }
+                ph_write(fsymname,2);          // write precompiled header
+            }
+        }
+        pragma_term();
+        file_term();
+        version (HTOD)
+        {
+            htod_term();
+            if (fdmodule)
+            {
+                fclose(fdmodule);
+            }
+        }
+        else
+        {
+            if (flst)
+            {
+                fclose(flst);
+            }
+        }
+
+        static if (TERMCODE)                    // dump this to speed up compile
+        {
+            assert(pstate.STinparamlist == 0);
+            if (!(config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy)))
+            {
+                debug printf("deletesymtab\n");
+                deletesymtab();                 // for drill & error checking
+                file_progress();
+                symbol_free(cstate.CSlinkage);
+                debug printf("freesymtab\n");
+                freesymtab(globsym.tab,0,globsym.top); // free symbol table
+                symtab_free(globsym.tab);
+                except_term();
+                cpp_term();
+                file_progress();
+                iasm_term();                    // terminate inline assembler
+                symbol_term();
+                go_term();
+                cgcs_term();
+                code_term();
+                file_progress();
+                rtlsym_term();
+                type_term();
+                token_term();
+                mem_free(eline);
+                getcmd_term();
+                vec_term();
+                file_progress();
+                el_term();
+                file_progress();
+                dt_term();
+                blklst_term();
+                list_free(&headerlist,FPNULL);
+                list_term();
+                scope_term();
+                block_term();
+            }
+        } /* TERMCODE */
+    } /* SPP */
+
+    if (errcnt)                           // if any errors occurred
         err_exit();
 
-static if (TERMCODE)
-{
-version (SPP)
-{
-  mem_free(foutname);
-  mem_term();
-}
-else
-{
-  objfile_term();
-  if (!(config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy)))
-        mem_term();
-}
-}
-
-version (SPP)
-{
-}
-else
-{
-    ph_term();
-}
-
-version (_WINDLL)
-{
-}
-else
-{
-    if (configv.verbose == 2)
+    static if (TERMCODE)
     {
-        clock_t stime = clock();
-
-version (SPP)
-{
-        printf("SPP complete. Time: %ld.%02ld seconds\n",
-                stime/100,stime%100);
-}
-else
-{
-        printf("%s complete. Time: %ld.%02ld seconds\n",
-                COMPILER.ptr, stime/100, stime%100);
-static if (0)
-{
-        Offset(DATA) += UDoffset; // + TDoffset;
-        printf(
-            "%s complete. Code: 0x%04lx (%lu) Data: 0x%04lx (%lu) Time: %ld.%02ld seconds\n",
-            COMPILER,
-            cast(int)Offset(cseg),cast(int)Offset(cseg),
-            cast(int)Offset(DATA),cast(int)Offset(DATA),
-            stime / 100,stime % 100);
-}
-}
+        version (SPP)
+        {
+            mem_free(foutname);
+            mem_term();
+        }
+        else
+        {
+            objfile_term();
+            if (!(config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy)))
+                mem_term();
+        }
     }
-}
+
+    version (SPP)
+    {
+    }
+    else
+    {
+        ph_term();
+    }
+
+    version (_WINDLL)
+    {
+    }
+    else
+    {
+        if (configv.verbose == 2)
+        {
+            clock_t stime = clock();
+
+            version (SPP)
+            {
+                printf("SPP complete. Time: %ld.%02ld seconds\n",
+                        stime/100,stime%100);
+            }
+            else
+            {
+                printf("%s complete. Time: %ld.%02ld seconds\n",
+                        COMPILER.ptr, stime/100, stime%100);
+                static if (0)
+                {
+                    Offset(DATA) += UDoffset; // + TDoffset;
+                    printf(
+                        "%s complete. Code: 0x%04lx (%lu) Data: 0x%04lx (%lu) Time: %ld.%02ld seconds\n",
+                        COMPILER,
+                        cast(int)Offset(cseg),cast(int)Offset(cseg),
+                        cast(int)Offset(DATA),cast(int)Offset(DATA),
+                        stime / 100,stime % 100);
+                }
+            }
+        }
+    }
     errmsgs_term();
-version (Windows)
-    os_term();
+    version (Windows)
+        os_term();
 
     return EXIT_SUCCESS;
 }
@@ -378,68 +382,70 @@ else
 
 extern (C) void main_parser(int argc,char **argv)
 {
-version (SPP)
-{
-  list_init();
-  pragma_init();
-  getcmd(argc,argv);                    /* process command line         */
-  file_iofiles();
-  insblk(cast(char *)finname,BLfile,null,FQtop,null);      // install top level block
-  if (headers)
-  {     insblk(list_ptr(headers),BLfile,null,FQcwd | FQpath,null);
-        list_pop(&headers);
-  }
+    version (SPP)
+    {
+        list_init();
+        pragma_init();
+        getcmd(argc,argv);                    // process command line
+        file_iofiles();
+        insblk(cast(char *)finname,BLfile,null,FQtop,null);      // install top level block
+        if (headers)
+        {
+            insblk(list_ptr(headers),BLfile,null,FQcwd | FQpath,null);
+            list_pop(&headers);
+        }
 
-  while (stoken() != TKeof)
-        { }
+        while (stoken() != TKeof)
+            {   }
 
-  pragma_term();
+        pragma_term();
 
-}
-else
-{
+    }
+    else
+    {
 
-  ph_init();                            /* assume precompiled header memory */
-  list_init();
-  vec_init();
+        ph_init();                            // assume precompiled header memory
+        list_init();
+        vec_init();
 
-version (DEMO)
-  dbg_printf("Digital Mars C/C++ Demo Compiler\n");
+        version (DEMO)
+            dbg_printf("Digital Mars C/C++ Demo Compiler\n");
 
-  pragma_init();
-  pstate.STgclass = SCglobal;
-  getcmd(argc,argv);                    /* process command line         */
-  file_iofiles();
-  el_init();
-  PARSER = 1;
-  type_init();
-  insblk(cast(char *)finname,BLfile,null,FQtop,null);      // install top level block
+        pragma_init();
+        pstate.STgclass = SCglobal;
+        getcmd(argc,argv);                    // process command line
+        file_iofiles();
+        el_init();
+        PARSER = 1;
+        type_init();
+        insblk(cast(char *)finname,BLfile,null,FQtop,null);      // install top level block
 
-  cstate.CSpsymtab = &globsym;
-  createglobalsymtab();                 /* create top level symbol table */
+        cstate.CSpsymtab = &globsym;
+        createglobalsymtab();                 // create top level symbol table
 
-  if (config.flags2 & (CFG2phauto | CFG2phautoy))       // if automatic precompiled headers
-        ph_auto();
+        if (config.flags2 & (CFG2phauto | CFG2phautoy))       // if automatic precompiled headers
+            ph_auto();
 
-  if (headers)
-  {     pragma_include(cast(char *)list_ptr(headers),FQcwd | FQpath);
-        list_pop(&headers);
-  }
-  nwc_predefine();                      /* any initial declarations     */
-  stoken();
-  ext_def(0);                           /* do external_definitions      */
-  if (pstate.STflags & PFLhxgen)
-      ph_autowrite();
-  template_instantiate();
-  cpp_build_STI_STD();                  // do static ctors/dtors
-  output_func();                        /* write out any more functions */
-} /* SPP */
-  if (errcnt)                           /* if any errors occurred       */
+        if (headers)
+        {
+            pragma_include(cast(char *)list_ptr(headers),FQcwd | FQpath);
+            list_pop(&headers);
+        }
+        nwc_predefine();                      // any initial declarations
+        stoken();
+        ext_def(0);                           // do external_definitions
+        if (pstate.STflags & PFLhxgen)
+            ph_autowrite();
+        template_instantiate();
+        cpp_build_STI_STD();                  // do static ctors/dtors
+        output_func();                        // write out any more functions
+    } // SPP
+    if (errcnt)                           // if any errors occurred
         err_exit();
 }
-}
 
 }
+
 
 version (SPP)
 {

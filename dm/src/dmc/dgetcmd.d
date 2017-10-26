@@ -115,7 +115,7 @@ void getcmd(int argc,char **argv)
     char *p;
     char *q;
     char *finname2;
-    char switch_U = false;
+    bool switch_U = false;
     char target = 0;
     char scheduler = 0;
     char switch_a = false;              // saw a -a switch
@@ -850,8 +850,8 @@ static if (0)
                 flags = CFGalwaysframe;
                 goto Lflags1;
 
-            case 'u':
-                switch_U = cast(char)on;
+            case 'u':                   // https://digitalmars.com/ctg/sc.html#dashu
+                switch_U = cast(bool)on;
                 goto Lonec;
 
             case 'v':                   /* suppress non-essential msgs  */
@@ -1211,11 +1211,15 @@ version (SCPP)
                       break;
 
             case 'A':
-static if (TARGET_LINUX)
-                      config.exe = EX_LINUX64;
-else
-                      config.exe = EX_WIN64;
-
+                      static if (TARGET_LINUX)
+                      {
+                          config.exe = EX_LINUX64;
+                      }
+                      else
+                      {
+                          config.exe = EX_WIN64;
+                          config.objfmt = OBJ_MSCOFF;
+                      }
                       config.fpxmmregs = true;
                       config.defstructalign = 8 - 1; // NT uses 8 byte alignment
                       config.flags |= CFGnoebp;
@@ -1224,13 +1228,14 @@ else
                       config.target_cpu = TARGET_PentiumPro;
                       config.target_scheduler = config.target_cpu;
                       config.inline8087 = 1;
+                      config.avx = 0;
                       config.memmodel = Smodel;
                       config.target_cpu = '6';
                       if (config.fulltypes == CV4)
                         config.fulltypes = CV8;
                       util_set64();
-version (SCPP)
-                      cod3_set64();
+                      version (SCPP)
+                          cod3_set64();
 
                       break;
 
@@ -1344,7 +1349,7 @@ static if (MEMMODELS > 1)
         else
         {
             config.ehmethod = EHmethod.EH_DM;
-        config.flags |= CFGalwaysframe;
+            config.flags |= CFGalwaysframe;
         }
     }
     else
@@ -1429,6 +1434,39 @@ version (SCPP)
         addpath(&pathlist, getenv(INC_ENV));       // get path from environment
     }
     mergepaths(pathlist, pathsyslist, pathlist);
+    linkage = config.linkage;
+
+    if (config.flags & CFGuchar)        /* if chars are unsigned        */
+    {   tytab[TYchar] |= TYFLuns;
+        tyequiv[TYchar] = TYuchar;
+    }
+
+    setPredefinedMacros(switch_U, model, target, defalign, finname2);
+}
+
+
+/************************************************
+ * Set all predefined macros.
+ * https://digitalmars.com/ctg/predefined.html
+ * Params:
+ *      switch_U = true if -u switch is thrown
+ *      model = 'T' if tiny memory model
+ *      target = `0` == 8088, `2` == 286, `3` == 386, `4` == 486, `5` == P5, `6` == P6
+ *      defalign = default struct alignment - 1
+ *      finname2 = source file as specified on the command line
+ */
+private void setPredefinedMacros(bool switch_U, char model, char target, int defalign, char* finname2)
+{
+    /*****************************
+     * Predefine a macro to 1
+     */
+
+    static void predefine(const(char)* name)
+    {
+        __gshared char[2] one = "1";
+        if (*name == '_' || !config.ansi_c)
+            defmac(name,one.ptr);
+    }
 
     if (!switch_U)                      /* if didn't turn them off      */
     {
@@ -1527,11 +1565,8 @@ version (SCPP)
         predefine("_DLL");
     }
 
-    if (config.flags & CFGuchar)        /* if chars are unsigned        */
-    {   tytab[TYchar] |= TYFLuns;
-        tyequiv[TYchar] = TYuchar;
+    if (config.flags & CFGuchar)        // if chars are unsigned
         predefine("_CHAR_UNSIGNED");
-    }
 
     if (config.flags3 & CFG3ju)         // if -Ju
         predefine("_CHAR_EQ_UCHAR");
@@ -1577,19 +1612,19 @@ version (SCPP)
     /* ANSI C macros to give memory model and cpu type  */
     {
 
-static if (MEMMODELS == 1)
-{
-       __gshared const(char)*[MEMMODELS] modelmac =
+        static if (MEMMODELS == 1)
+        {
+           __gshared const(char)*[MEMMODELS] modelmac =
                 ["__SMALL__"
                 ];
-}
-else
-{
-       __gshared const(char)*[MEMMODELS] modelmac =
+        }
+        else
+        {
+           __gshared const(char)*[MEMMODELS] modelmac =
                 ["__SMALL__"
                 ,"__MEDIUM__","__COMPACT__","__LARGE__","__VCM__"
                 ];
-}
+        }
         const(char)* i86 = "__I86__";
         char[2] i86value = void;
 
@@ -1679,21 +1714,8 @@ else
 
     if (htod_running())
         fixeddefmac("__HTOD__", one.ptr);
-
-    linkage = config.linkage;
 }
 
-
-/*****************************
- * Predefine a macro to 1
- */
-
-private void predefine(const(char)* name)
-{
-    __gshared char[2] one = "1";
-    if (*name == '_' || !config.ansi_c)
-        defmac(name,one.ptr);
-}
 
 /*****************************
  * Define macro.
