@@ -280,6 +280,7 @@ else version (OMFandMSCOFF)
     //    static void addrel(int seg, targ_size_t offset, uint type,
     //                                         uint symidx, targ_size_t val);
 
+        static int seg_drectve();
         static int seg_pdata();
         static int seg_xdata();
         static int seg_pdata_comdat(Symbol *sfunc);
