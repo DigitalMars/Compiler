@@ -421,8 +421,8 @@ enum
     BFLnostackopt    = 8,       // set when stack elimination should not
                                 // be done
 #if NTEXCEPTIONS
-    BFLehcode        = 0x10,    // set when we need to load exception code
-    BFLunwind        = 0x1000,  // do local_unwind following block
+    BFLehcode        = 0x10,    // BC_filter: need to load exception code
+    BFLunwind        = 0x1000,  // do local_unwind following block (unused)
 #endif
     BFLnomerg        = 0x20,    // do not merge with other blocks
     BFLprolog        = 0x80,    // generate function prolog

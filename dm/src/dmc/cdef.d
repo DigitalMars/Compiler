@@ -5,12 +5,13 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/_cdef.d
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cdef.d, backend/_cdef.d)
  */
 
 module ddmd.backend.cdef;
+
+// Online documentation: https://dlang.org/phobos/ddmd_backend_cdef.html
 
 import ddmd.backend.cc: Classsym, Symbol, param_t, config;
 import ddmd.backend.el;
@@ -130,6 +131,7 @@ enum NTEXCEPTIONS = 2;
 //#define ERRSTREAM stdout
 //#endif
 //#define err_printf printf
+//#define err_vprintf vfprintf
 //#define err_fputc fputc
 //#define dbg_fputc fputc
 //#define LF '\n'
@@ -420,6 +422,7 @@ enum
 enum EHmethod
 {
     EH_NONE,                    // no exception handling
+    EH_SEH,                     // SEH __try, __except, __finally only
     EH_WIN32,                   // Win32 SEH
     EH_WIN64,                   // Win64 SEH (not supported yet)
     EH_DM,                      // Digital Mars method
@@ -652,7 +655,6 @@ enum config_flags4_t CFGX4 = CFG4optimized | CFG4fastfloat | CFG4fdivcall |
 enum config_flags4_t CFGY4 = CFG4nowchar_t | CFG4noemptybaseopt | CFG4adl |
                              CFG4enumoverload | CFG4implicitfromvoid |
                              CFG4wchar_is_long | CFG4underscore;
-
 
 // Configuration flags for HTOD executable
 alias htod_flags_t = uint;

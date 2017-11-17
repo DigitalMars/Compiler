@@ -1352,6 +1352,8 @@ static if (MEMMODELS > 1)
             config.flags |= CFGalwaysframe;
         }
     }
+    else if (config.exe == EX_WIN32)
+        config.ehmethod = EHmethod.EH_SEH;
     else
         config.ehmethod = EHmethod.EH_NONE;
 
