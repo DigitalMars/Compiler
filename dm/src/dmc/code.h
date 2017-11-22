@@ -162,14 +162,16 @@ enum
 {
     NTEH_try        = 1,      // used _try statement
     NTEH_except     = 2,      // used _except statement
+
     NTEHexcspec     = 4,      // had C++ exception specification
     NTEHcleanup     = 8,      // destructors need to be called
     NTEHtry         = 0x10,   // had C++ try statement
     NTEHcpp         = (NTEHexcspec | NTEHcleanup | NTEHtry),
+
     EHcleanup       = 0x20,   // has destructors in the 'code' instructions
     EHtry           = 0x40,   // has BCtry or BC_try blocks
-    NTEHjmonitor    = 0x80,   // uses Mars monitor
-    NTEHpassthru    = 0x100,
+    NTEHjmonitor    = 0x80,   // uses D class monitor
+    NTEHpassthru    = 0x100,  // skip this frame when unwinding
 };
 
 /********************** Code Generator State ***************/
