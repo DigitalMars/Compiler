@@ -4,9 +4,9 @@
  *
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/dwarf.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/dwarf.c, backend/dwarf.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/dwarf.c
  */
 
 // Emit Dwarf symbolic debug info
@@ -93,6 +93,11 @@ static char __file__[] = __FILE__;      // for tassert.h
  */
 bool doUnwindEhFrame()
 {
+    if (funcsym_p->Sfunc->Fflags3 & Feh_none)
+    {
+        return (config.exe & (EX_FREEBSD | EX_FREEBSD64)) != 0;
+    }
+
     /* FreeBSD fails when having some frames as having unwinding info and some not.
      * (It hangs in unittests for std.datetime.)
      * g++ on FreeBSD does not generate mixed frames, while g++ on OSX and Linux does.
@@ -1531,7 +1536,7 @@ void dwarf_func_term(Symbol *sfunc)
 
     unsigned funcabbrevcode;
 
-    if (config.ehmethod == EH_DM)
+    if (ehmethod(sfunc) == EH_DM)
     {
         IDXSEC dfseg = dwarf_getsegment(debug_frame_name, 1);
         writeDebugFrameFDE(dfseg, sfunc);

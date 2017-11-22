@@ -622,7 +622,7 @@ Written by Walter Bright"
 
 /* Linkage type         */
 typedef int linkage_t;
-enum LINK
+enum Link
 {
     LINK_C,                     /* C style                              */
     LINK_CPP,                   /* C++ style                            */

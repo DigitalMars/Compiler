@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cc.h
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cc.h, backend/cc.h)
  */
 
 #if __DMC__
@@ -712,6 +711,7 @@ enum
     Fnotailrecursion = 0x4000,  // no tail recursion optimizations
     Ffakeeh          = 0x8000,  // allocate space for NT EH context sym anyway
     Fnothrow         = 0x10000, // function does not throw (even if not marked 'nothrow')
+    Feh_none         = 0x20000, // ehmethod==EH_NONE for this function only
 };
 
 struct func_t
@@ -1414,6 +1414,18 @@ struct Aliassym : Symbol { };
 #else
     inline char *prettyident(Symbol *s) { return s->Sident; }
 #endif
+
+/************************
+ * Params:
+ *      f = function symbol
+ * Returns:
+ *      exception method for f
+ */
+inline EHmethod ehmethod(Symbol *f)
+{
+    return f->Sfunc->Fflags3 & Feh_none ? EH_NONE : config.ehmethod;
+}
+
 
 
 /**********************************
