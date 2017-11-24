@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cgelem.c, backend/cgelem.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/cgelem.c
  */
 
 #if !SPP
@@ -1055,7 +1056,7 @@ L1:
   if (e2->Eoper == OPrelconst)
   {     if (e1->Eoper == OPrelconst && e1->EV.sp.Vsym == e2->EV.sp.Vsym)
         {       e->Eoper = OPconst;
-                e->EV.Vint = e1->EV.sp.Voffset - e2->EV.sp.Voffset;
+                e->EV.Vllong = e1->EV.sp.Voffset - e2->EV.sp.Voffset;
                 el_free(e1);
                 el_free(e2);
                 return e;
@@ -1406,18 +1407,14 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
          */
         if (e1->Eoper == OPshl &&
             ELCONST(e1->E1,1) &&
-            ((e12 = e1->E2), 1) &&
-            ((e12->Eoper == OP64_32 && ((e12 = e12->E1),1)),
-            e12->Eoper == OPand) &&
+            (((e12 = e1->E2)->Eoper == OP64_32 ? (e12 = e12->E1) : e12)->Eoper == OPand) &&
             ELCONST(e12->E2,sz * 8 - 1) &&
 
             e2->Eoper == OPind &&
             e2->E1->Eoper == OPadd &&
             e2->E1->E1->Eoper == OPshl &&
             ELCONST(e2->E1->E1->E2,pow2sz) &&
-            ((e2111 = e2->E1->E1->E1), 1) &&
-            ((e2111->Eoper == OPu32_64 && ((e2111 = e2111->E1),1)),
-            e2111->Eoper == OPshr) &&
+            (((e2111 = e2->E1->E1->E1)->Eoper == OPu32_64 ? (e2111 = e2111->E1) : e2111)->Eoper == OPshr) &&
             ELCONST(e2111->E2,pow2sz + 3)
            )
         {

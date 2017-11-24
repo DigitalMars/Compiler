@@ -407,8 +407,7 @@ void nteh_prolog(CodeBuilder& cdb)
 
 void nteh_epilog(CodeBuilder& cdb)
 {
-    if (config.exe != EX_WIN32)
-        return;
+    assert(config.exe == EX_WIN32);
 
     /* Generate:
         mov     ECX,__context[EBP].prev
