@@ -5202,7 +5202,7 @@ void cdvoid(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 void cdhalt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
-    cdb.gen1(0xF4);            // HLT
+    cdb.gen1(0xCC);            // INT 3
 }
 
 #endif // !SPP
