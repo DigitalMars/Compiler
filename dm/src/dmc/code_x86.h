@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/code_x86.h
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/code_x86.h, backend/code_x86.h)
  */
 
 /* Register definitions */
@@ -220,6 +219,8 @@ enum
     LES     = 0xC4,
     LEA     = 0x8D,
     LOCK    = 0xF0,
+    INT3    = 0xCC,
+    HLT     = 0xF4,
 
     STO     = 0x89,
     LOD     = 0x8B,
@@ -242,6 +243,8 @@ enum
     JGE     = 0x7D,
     JLE     = 0x7E,
     JG      = 0x7F,
+
+    UD2     = 0x0F0B,
 
     // NOP is used as a placeholder in the linked list of instructions, no
     // actual code will be generated for it.

@@ -3,16 +3,18 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cod2.c, backend/cod2.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/cod2.c
  */
 
 #if !SPP
 
 #include        <stdio.h>
 #include        <string.h>
+#include        <stdint.h>
 #include        <time.h>
 #include        "cc.h"
 #include        "oper.h"
@@ -31,8 +33,8 @@ int cdcmp_flag;
 extern signed char regtorm[8];
 
 // from divcoeff.c
-extern bool choose_multiplier(int N, targ_ullong d, int prec, targ_ullong *pm, int *pshpost);
-extern bool udiv_coefficients(int N, targ_ullong d, int *pshpre, targ_ullong *pm, int *pshpost);
+extern bool choose_multiplier(int N, uint64_t d, int prec, uint64_t *pm, int *pshpost);
+extern bool udiv_coefficients(int N, uint64_t d, int *pshpre, uint64_t *pm, int *pshpost);
 
 
 /*******************************
@@ -1089,7 +1091,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             unsigned r3;
 
-            targ_ullong m;
+            uint64_t m;
             int shpost;
             int N = sz * 8;
             bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
@@ -1190,7 +1192,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             unsigned r3;
             regm_t regm;
             unsigned reg;
-            targ_ullong m;
+            uint64_t m;
             int shpre;
             int shpost;
             if (udiv_coefficients(sz * 8, e2factor, &shpre, &m, &shpost))
@@ -5202,7 +5204,7 @@ void cdvoid(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 void cdhalt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
-    cdb.gen1(0xCC);            // INT 3
+    cdb.gen1(config.target_cpu >= TARGET_80286 ? UD2 : INT3);
 }
 
 #endif // !SPP

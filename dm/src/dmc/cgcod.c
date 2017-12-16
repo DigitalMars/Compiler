@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cgcod.c, backend/cgcod.c)
@@ -148,6 +148,17 @@ void codgen(Symbol *sfunc)
     pass = PASSinitial;
     Alloca.init();
     anyiasm = 0;
+
+    if (config.ehmethod == EH_DWARF)
+    {
+        /* The dwarf unwinder relies on the function epilog to exist
+         */
+        for (block* b = startblock; b; b = b->Bnext)
+        {
+            if (b->BC == BCexit)
+                b->BC = BCret;
+        }
+    }
 
 tryagain:
     #ifdef DEBUG
@@ -2622,15 +2633,15 @@ void codelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
   if (!constflag && *pretregs & (mES | ALLREGS | mBP | XMMREGS) & ~regcon.mvar)
         *pretregs &= ~regcon.mvar;                      /* can't use register vars */
 
-    if (configv.addlinenumbers && e->Esrcpos.Slinnum)
-        cdb.genlinnum(e->Esrcpos);
-
     unsigned op = e->Eoper;
     if (e->Ecount && e->Ecount != e->Ecomsub)     // if common subexp
     {
         comsub(cdb,e,pretregs);
         goto L1;
     }
+
+    if (configv.addlinenumbers && e->Esrcpos.Slinnum)
+        cdb.genlinnum(e->Esrcpos);
 
   switch (op)
   {

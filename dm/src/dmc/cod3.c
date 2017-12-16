@@ -951,7 +951,6 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                  * because we'll be calling the BC_finally blocks and the stack will be off.
                  */
                 needframe = 1;
-                //usednteh |= EHtry;
             }
             else if (config.ehmethod == EH_SEH || config.ehmethod == EH_WIN32)
             {
@@ -1098,6 +1097,7 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             {
                 if (config.flags4 & CFG4optimized)
                     mfuncreg = mfuncregsave;
+                cdb.gen1(UD2);
             }
             else if (MARS || usednteh & NTEH_try)
             {
@@ -4160,7 +4160,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
             JMP i[EAX]                          jump to virtual function
          */
         unsigned reg = 0;
-        if ((targ_ptrdiff_t)d < 0)
+        if ((int)d < 0)
         {
             d = -d;
             reg = 5;                            // switch from ADD to SUB

@@ -554,6 +554,7 @@ struct block
                                 // is executed (optimizer and codegen)
 
     uint        Bdfoidx;        // index of this block in dfo[]
+    uint        Bnumber;        // sequence number of block
     union
     {
         // CPP
