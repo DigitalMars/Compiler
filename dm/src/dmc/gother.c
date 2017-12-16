@@ -7,8 +7,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gother.c
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/gother.c
+ * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/gother.c
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gother.c
  */
 
 #if (SCPP || MARS) && !HTOD
