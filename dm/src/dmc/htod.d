@@ -18,16 +18,16 @@ import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.ctype;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.cgcv;
-import ddmd.backend.code;
-import ddmd.backend.el;
-import ddmd.backend.global;
-import ddmd.backend.oper;
-import ddmd.backend.outbuf;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.cgcv;
+import dmd.backend.code;
+import dmd.backend.el;
+import dmd.backend.global;
+import dmd.backend.oper;
+import dmd.backend.outbuf;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 import parser;
 
@@ -989,8 +989,8 @@ const(char)* htod_typestring(tym_t ty)
 else
 {
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.cc;
 
 import parser;
 

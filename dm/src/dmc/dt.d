@@ -9,11 +9,11 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/dt.d
  */
 
-module ddmd.backend.dt;
+module dmd.backend.dt;
 
-import ddmd.backend.cc;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.cc;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 //struct Symbol;
 //alias uint tym_t;

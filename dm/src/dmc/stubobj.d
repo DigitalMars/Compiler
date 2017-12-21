@@ -14,10 +14,10 @@ module stubobj;
 version (HTOD)
 {
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.code;
-import ddmd.backend.el;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.code;
+import dmd.backend.el;
 
 extern (C++):
 

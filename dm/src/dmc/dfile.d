@@ -22,10 +22,10 @@ import core.stdc.time;
 extern (C) int read(int,void*,uint);    // io.h
 extern (C) int isatty(int);             // io.h
 
-import ddmd.backend.cc;
-import ddmd.backend.cdef;
-import ddmd.backend.global;
-import ddmd.backend.outbuf;
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.global;
+import dmd.backend.outbuf;
 
 import tk.dlist;
 import tk.filespec;

@@ -9,16 +9,16 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
  */
 
-module ddmd.backend.cc;
+module dmd.backend.cc;
 
 // Online documentation: https://dlang.org/phobos/ddmd_backend_cc.html
 
 import tk.dlist;
-import ddmd.backend.cdef;        // host and target compiler definition
-import ddmd.backend.code_x86;
-import ddmd.backend.dt;
-import ddmd.backend.el;
-import ddmd.backend.type;
+import dmd.backend.cdef;        // host and target compiler definition
+import dmd.backend.code_x86;
+import dmd.backend.dt;
+import dmd.backend.el;
+import dmd.backend.type;
 
 extern (C++):
 @nogc:
@@ -1654,7 +1654,7 @@ struct Srcfiles
 
 Sfile* sfile(uint fi)
 {
-    import ddmd.backend.global : srcfiles;
+    import dmd.backend.global : srcfiles;
     return srcfiles.pfiles[fi];
 }
 

@@ -10,12 +10,12 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/exh.d
  */
 
-module ddmd.backend.exh;
+module dmd.backend.exh;
 
-import ddmd.backend.cc;
-import ddmd.backend.cdef;
-import ddmd.backend.el;
-import ddmd.backend.type;
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.el;
+import dmd.backend.type;
 
 extern (C++):
 @nogc:

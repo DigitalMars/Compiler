@@ -10,7 +10,7 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/oper.d
  */
 
-module ddmd.backend.oper;
+module dmd.backend.oper;
 
 extern (C++):
 @nogc:

@@ -10,9 +10,9 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/_rtlsym.d
  */
 
-module ddmd.backend.rtlsym;
+module dmd.backend.rtlsym;
 
-import ddmd.backend.cc : Symbol;
+import dmd.backend.cc : Symbol;
 
 enum
 {

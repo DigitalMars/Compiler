@@ -3,7 +3,7 @@
  * Translated to D from mach.h
  */
 
-module ddmd.backend.mach;
+module dmd.backend.mach;
 
 alias cpu_type_t = int;
 alias cpu_subtype_t = int;

@@ -21,10 +21,10 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.global;
-import ddmd.backend.ty;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.global;
+import dmd.backend.ty;
 
 import tk.dlist;
 import tk.mem;

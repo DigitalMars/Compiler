@@ -12,10 +12,10 @@
 
 /* Header for cgcv.c    */
 
-module ddmd.backend.cgcv;
+module dmd.backend.cgcv;
 
-import ddmd.backend.cc : Classsym, Symbol;
-import ddmd.backend.type;
+import dmd.backend.cc : Classsym, Symbol;
+import dmd.backend.type;
 import tk.dlist;
 
 extern (C++):

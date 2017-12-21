@@ -19,9 +19,9 @@ import core.stdc.string;
 version (Windows)
     import core.sys.windows.stat;
 
-import ddmd.backend.cc;
-import ddmd.backend.cdef;
-import ddmd.backend.global;
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.global;
 
 import tk.dlist;
 import tk.filespec;

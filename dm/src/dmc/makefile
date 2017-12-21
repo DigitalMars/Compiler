@@ -52,7 +52,7 @@ DDLLFLAGS=
 DOPT=-O -release -inline
 # Additive flags for debug build
 DDEBUG=
-DFLAGS=-betterC -noboundscheck -mv=ddmd.backend=. -mv=tk=tk -version=$(TARGET) $(DDLLFLAGS) $(DOPT) $(DDEBUG)
+DFLAGS=-betterC -noboundscheck -mv=dmd.backend=. -mv=tk=tk -version=$(TARGET) $(DDLLFLAGS) $(DOPT) $(DDEBUG)
 
 ###### Flags for linking
 

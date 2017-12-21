@@ -11,7 +11,7 @@
 
 module html;
 
-import ddmd.backend.outbuf : Outbuffer;
+import dmd.backend.outbuf : Outbuffer;
 
 extern (C++):
 

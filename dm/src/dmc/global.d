@@ -8,7 +8,7 @@
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/global.d, backend/global.d)
  */
-module ddmd.backend.global;
+module dmd.backend.global;
 
 // Online documentation: https://dlang.org/phobos/ddmd_backend_global.html
 
@@ -18,14 +18,14 @@ nothrow:
 
 import core.stdc.stdio;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.cc : Symbol, block, Classsym, Blockx, code;
-import ddmd.backend.code;
-import ddmd.backend.el;
-import ddmd.backend.el : elem;
-import ddmd.backend.type;
-//import ddmd.backend.obj;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.cc : Symbol, block, Classsym, Blockx, code;
+import dmd.backend.code;
+import dmd.backend.el;
+import dmd.backend.el : elem;
+import dmd.backend.type;
+//import dmd.backend.obj;
 
 import tk.dlist;
 

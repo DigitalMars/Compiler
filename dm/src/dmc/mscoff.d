@@ -3,7 +3,7 @@
  * Source: $(DMDSRC backend/_mscoff.d)
  */
 
-module ddmd.backend.mscoff;
+module dmd.backend.mscoff;
 
 align (1):
 

@@ -10,13 +10,13 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/_type.d
  */
 
-module ddmd.backend.type;
+module dmd.backend.type;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc : block, Blockx, Classsym, Symbol, param_t;
-import ddmd.backend.code;
-import ddmd.backend.el : elem;
-import ddmd.backend.ty;
+import dmd.backend.cdef;
+import dmd.backend.cc : block, Blockx, Classsym, Symbol, param_t;
+import dmd.backend.code;
+import dmd.backend.el : elem;
+import dmd.backend.ty;
 
 import tk.dlist;
 

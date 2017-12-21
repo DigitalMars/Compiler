@@ -8,7 +8,7 @@
  * Source:    $(DMDSRC root/_speller.d)
  */
 
-module ddmd.root.speller;
+module dmd.root.speller;
 
 import core.stdc.limits;
 import core.stdc.stdlib;

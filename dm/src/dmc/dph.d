@@ -36,12 +36,12 @@ import core.stdc.time;
 
 extern (C) int read(int, void*, size_t);
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.global;
-import ddmd.backend.oper;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.global;
+import dmd.backend.oper;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 import tk.dlist;
 import tk.filespec;

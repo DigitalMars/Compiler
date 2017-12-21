@@ -9,7 +9,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/outbuf.d, backend/outbuf.d)
  */
 
-module ddmd.backend.outbuf;
+module dmd.backend.outbuf;
 
 // Online documentation: https://dlang.org/phobos/ddmd_backend_outbuf.html
 

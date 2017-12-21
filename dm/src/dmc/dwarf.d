@@ -3,12 +3,12 @@
  * Source: $(DMDSRC backend/_dwarf.d)
  */
 
-module ddmd.backend.dwarf;
+module dmd.backend.dwarf;
 
-import ddmd.backend.cc;
-import ddmd.backend.cdef;
-import ddmd.backend.outbuf;
-import ddmd.backend.type;
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.outbuf;
+import dmd.backend.type;
 
 enum DWARF_VERSION = 3;
 

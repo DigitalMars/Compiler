@@ -9,7 +9,7 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/_xmm.d
  */
 
-module ddmd.backend.xmm;
+module dmd.backend.xmm;
 
 // XMM opcodes
 

@@ -23,12 +23,12 @@ import core.stdc.time;
 extern (Pascal) int response_expand(int*, char***);     // from dmc dos.h
 extern (C) char* strupr(char*);                         // from dmc string.h
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.code;
-import ddmd.backend.global;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.code;
+import dmd.backend.global;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 import tk.dlist;
 import tk.filespec;

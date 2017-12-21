@@ -44,17 +44,17 @@ else
     import core.stdc.setjmp;
 }
 
-import ddmd.backend.cc;
-import ddmd.backend.cdef;
-import ddmd.backend.code;
-import ddmd.backend.code_x86;
-import ddmd.backend.el;
-import ddmd.backend.global;
-import ddmd.backend.iasm;
-import ddmd.backend.oper;
-import ddmd.backend.ty;
-import ddmd.backend.type;
-import ddmd.backend.xmm;
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.code;
+import dmd.backend.code_x86;
+import dmd.backend.el;
+import dmd.backend.global;
+import dmd.backend.iasm;
+import dmd.backend.oper;
+import dmd.backend.ty;
+import dmd.backend.type;
+import dmd.backend.xmm;
 
 import tk.dlist;
 import tk.mem;

@@ -20,11 +20,11 @@ version (SPP)
 import core.stdc.stdio;
 import core.stdc.string;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.global;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.global;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 import dtoken;
 import msgs2;

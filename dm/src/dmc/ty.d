@@ -10,7 +10,7 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/_ty.d
  */
 
-module ddmd.backend.ty;
+module dmd.backend.ty;
 
 extern (C++):
 @nogc:

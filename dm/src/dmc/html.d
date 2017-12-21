@@ -26,7 +26,7 @@ import core.stdc.stdarg;
 
 import msgs2;
 
-import ddmd.backend.outbuf : Outbuffer;
+import dmd.backend.outbuf : Outbuffer;
 
 extern (C++):
 

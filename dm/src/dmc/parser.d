@@ -19,12 +19,12 @@ import core.stdc.stdio;
 import phstring;
 import scopeh;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.el;
-import ddmd.backend.outbuf : Outbuffer;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.el;
+import dmd.backend.outbuf : Outbuffer;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 import tk.dlist;
 

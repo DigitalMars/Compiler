@@ -1,5 +1,5 @@
 
-module ddmd.root.speller;
+module dmd.root.speller;
 
 alias dg_speller_t = void* delegate(const(char)*, ref int);
 

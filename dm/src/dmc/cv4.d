@@ -8,7 +8,7 @@
  * Source:      $(DMDSRC backend/_cv4.d)
  */
 
-module ddmd.backend.cv4;
+module dmd.backend.cv4;
 
 enum OEM = 0x42;        // Digital Mars OEM number (picked at random)
 

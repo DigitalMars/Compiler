@@ -10,13 +10,13 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/el.d
  */
 
-module ddmd.backend.el;
+module dmd.backend.el;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.type;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.type;
 
-import ddmd.backend.cc : Symbol;
+import dmd.backend.cc : Symbol;
 
 import tk.dlist;
 

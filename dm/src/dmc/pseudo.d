@@ -21,12 +21,12 @@ else
 import core.stdc.stdio;
 import core.stdc.string;
 
-import ddmd.backend.cc;
-import ddmd.backend.cdef;
-import ddmd.backend.code_x86;
-import ddmd.backend.global;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.code_x86;
+import dmd.backend.global;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 import scopeh;
 

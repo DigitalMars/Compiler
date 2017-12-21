@@ -17,7 +17,7 @@ module rawstring;
 
 extern (C++):
 
-import ddmd.backend.global;
+import dmd.backend.global;
 
 import msgs2;
 

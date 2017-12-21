@@ -24,13 +24,13 @@ import core.stdc.stdlib;
 
 import scopeh;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.el;
-import ddmd.backend.global;
-import ddmd.backend.oper;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.el;
+import dmd.backend.global;
+import dmd.backend.oper;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 import tk.dlist;
 

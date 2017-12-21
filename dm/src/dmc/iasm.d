@@ -10,9 +10,9 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/iasm.d
  */
 
-module ddmd.backend.iasm;
+module dmd.backend.iasm;
 
-import ddmd.backend.cc : block;
+import dmd.backend.cc : block;
 
 extern (C++):
 @nogc:

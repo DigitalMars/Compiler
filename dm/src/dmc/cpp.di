@@ -19,11 +19,11 @@ extern (C++):
 import dtoken;
 import parser;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.el;
-import ddmd.backend.oper;
-import ddmd.backend.type;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.el;
+import dmd.backend.oper;
+import dmd.backend.type;
 
 import tk.dlist;
 

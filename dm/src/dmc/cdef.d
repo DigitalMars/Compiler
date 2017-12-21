@@ -9,13 +9,13 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cdef.d, backend/_cdef.d)
  */
 
-module ddmd.backend.cdef;
+module dmd.backend.cdef;
 
 // Online documentation: https://dlang.org/phobos/ddmd_backend_cdef.html
 
-import ddmd.backend.cc: Classsym, Symbol, param_t, config;
-import ddmd.backend.el;
-import ddmd.backend.ty : I32;
+import dmd.backend.cc: Classsym, Symbol, param_t, config;
+import dmd.backend.el;
+import dmd.backend.ty : I32;
 
 import tk.dlist;
 
@@ -780,7 +780,7 @@ struct con_t
  * Bootstrap complex types.
  */
 
-import ddmd.backend.bcomplex;
+import dmd.backend.bcomplex;
 
 /*********************************
  * Union of all data types. Storage allocated must be the right

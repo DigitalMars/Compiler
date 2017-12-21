@@ -2,7 +2,7 @@
  * Source: $(DMDSRC backend/_md5.d)
  */
 
-module ddmd.backend.md5;
+module dmd.backend.md5;
 
 /*
  **********************************************************************

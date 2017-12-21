@@ -5,7 +5,7 @@
  * Source: $(DMDSRC backend/_dwarf2.d)
  */
 
-module ddmd.backend.dwarf2;
+module dmd.backend.dwarf2;
 
 
 enum

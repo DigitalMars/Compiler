@@ -25,10 +25,10 @@ version (DigitalMars)
     extern (C) extern __gshared int _8087;
 }
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.global;
-import ddmd.backend.outbuf;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.global;
+import dmd.backend.outbuf;
 
 import tk.filespec;
 import tk.dlist;

@@ -24,16 +24,16 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 
-import ddmd.backend.bcomplex;
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.dt;
-import ddmd.backend.el;
-import ddmd.backend.global;
-import ddmd.backend.oper;
-import ddmd.backend.outbuf;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.bcomplex;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.dt;
+import dmd.backend.el;
+import dmd.backend.global;
+import dmd.backend.oper;
+import dmd.backend.outbuf;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 import tk.dlist;
 import tk.mem;

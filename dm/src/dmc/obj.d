@@ -9,18 +9,18 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/obj.d, backend/obj.d)
  */
 
-module ddmd.backend.obj;
+module dmd.backend.obj;
 
 // Online documentation: https://dlang.org/phobos/ddmd_backend_obj.html
 
 /* Interface to object file format
  */
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.code;
-import ddmd.backend.el;
-import ddmd.backend.outbuf;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.code;
+import dmd.backend.el;
+import dmd.backend.outbuf;
 
 extern (C++):
 

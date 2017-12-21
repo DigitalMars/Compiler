@@ -10,11 +10,11 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/code_x86.c
  */
 
-module ddmd.backend.code_x86;
+module dmd.backend.code_x86;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc : config;
-import ddmd.backend.code;
+import dmd.backend.cdef;
+import dmd.backend.cc : config;
+import dmd.backend.code;
 
 /* Register definitions */
 

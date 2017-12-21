@@ -7,7 +7,7 @@
  * Source:      $(DMDSRC backend/_bcomplex.d)
  */
 
-module ddmd.backend.bcomplex;
+module dmd.backend.bcomplex;
 
 extern (C++):
 @nogc:

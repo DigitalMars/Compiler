@@ -38,8 +38,8 @@
 
 module dtoken;
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.cc;
 
 extern (C++):
 

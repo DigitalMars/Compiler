@@ -28,19 +28,19 @@ version (DigitalMars)
     extern (C) extern __gshared int _8087;
 }
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
-import ddmd.backend.cgcv;
-import ddmd.backend.code;
-import ddmd.backend.dt;
-import ddmd.backend.el;
-import ddmd.backend.global;
-import ddmd.backend.iasm;
-import ddmd.backend.obj;
-import ddmd.backend.oper;
-import ddmd.backend.outbuf;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.cgcv;
+import dmd.backend.code;
+import dmd.backend.dt;
+import dmd.backend.el;
+import dmd.backend.global;
+import dmd.backend.iasm;
+import dmd.backend.obj;
+import dmd.backend.oper;
+import dmd.backend.outbuf;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 import tk.dlist;
 import tk.mem;

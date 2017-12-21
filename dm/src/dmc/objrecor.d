@@ -23,7 +23,7 @@ else version (HTOD)
 else
 {
 
-import ddmd.backend.global;
+import dmd.backend.global;
 
 import tk.mem;
 

@@ -22,17 +22,17 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-import ddmd.backend.cc;
-import ddmd.backend.cdef;
-import ddmd.backend.code;
-import ddmd.backend.dt;
-import ddmd.backend.el;
-import ddmd.backend.exh;
-import ddmd.backend.global;
-import ddmd.backend.obj;
-import ddmd.backend.oper;
-import ddmd.backend.ty;
-import ddmd.backend.type;
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.code;
+import dmd.backend.dt;
+import dmd.backend.el;
+import dmd.backend.exh;
+import dmd.backend.global;
+import dmd.backend.obj;
+import dmd.backend.oper;
+import dmd.backend.ty;
+import dmd.backend.type;
 
 import tk.mem;
 import tk.dlist;

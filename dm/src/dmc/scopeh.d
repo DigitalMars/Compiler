@@ -16,8 +16,8 @@ version (SPP)
 else
 {
 
-import ddmd.backend.cdef;
-import ddmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.cc;
 
 import tk.dlist;
 
