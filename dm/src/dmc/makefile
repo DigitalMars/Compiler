@@ -170,7 +170,7 @@ debppnd:
 #########################################
 
 OBJ1a=dblklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj rawstring.obj
-OBJ1b=evalu8.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
+OBJ1b=evalu8.obj poptelem.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj type.obj dt.obj dth.obj phstring.obj
@@ -327,7 +327,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	evalu8.c go.c gflow.c gdag.c gsroa.c \
 	gother.c glocal.c gloop.c newman.c \
 	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
-	type.c \
+	type.c poptelem.c \
 	elfobj.c \
 	dwarf.c machobj.c \
 	strtold.c aa.c ti_achar.c \
@@ -579,6 +579,7 @@ gloop.obj : $(DEP) $(gloop.dep) gloop.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 out.obj : $(DEP) $(out.dep) out.c
 pdata.obj : $(DEP) $(pdata.dep) pdata.c
+poptelem.obj : $(DEP) $(poptelem.dep) poptelem.c
 ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
 ti_achar.obj : tinfo.h ti_achar.c
 ti_pvoid.obj : tinfo.h ti_pvoid.c
