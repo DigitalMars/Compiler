@@ -110,17 +110,6 @@ extern void error(const char *filename, unsigned linnum, unsigned charnum, const
 
 elem * evalu8(elem *, goal_t);
 
-/* When this !=0, we do constant folding on floating point constants
- * even if they raise overflow, underflow, invalid, etc. exceptions.
- */
-
-static int ignore_exceptions;
-
-/* When this is !=0, we try to fold out OPsizeof expressions.
- */
-
-static int resolve_sizeof;
-
 /************************************
  * Helper to do % for long doubles.
  */
@@ -374,6 +363,17 @@ int iffalse(elem *e)
  */
 
 #if SCPP
+
+/* When this !=0, we do constant folding on floating point constants
+ * even if they raise overflow, underflow, invalid, etc. exceptions.
+ */
+
+static int ignore_exceptions;
+
+/* When this is !=0, we try to fold out OPsizeof expressions.
+ */
+
+static int resolve_sizeof;
 
 elem *poptelem2(elem *e)
 {

@@ -17,6 +17,7 @@ module dutil;
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.stdlib;
+import core.stdc.stdint;
 import core.stdc.string;
 import core.stdc.time;
 
@@ -183,7 +184,7 @@ int isillegal(int c)
  * If c is a power of 2, return that power else -1.
  */
 
-int ispow2(targ_ullong c)
+int ispow2(uint64_t c)
 {       int i;
 
         if (c == 0 || (c & (c - 1)))

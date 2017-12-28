@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/global.h, backend/global.h)
@@ -14,6 +14,8 @@
 //#pragma once
 #ifndef GLOBAL_H
 #define GLOBAL_H        1
+
+#include        <stdint.h>
 
 #ifndef EL_H
 #include        "el.h"
@@ -126,7 +128,7 @@ void util_progress();
 void util_set16();
 void util_set32();
 void util_set64();
-int ispow2(targ_ullong);
+int ispow2(uint64_t);
 
 #if __GNUC__
 #define util_malloc(n,size) mem_malloc((n)*(size))

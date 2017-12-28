@@ -3,11 +3,10 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/util2.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/util2.c, backend/util2.c)
  */
 
 // Utility subroutines
@@ -15,6 +14,7 @@
 #include        <stdio.h>
 #include        <ctype.h>
 #include        <string.h>
+#include        <stdint.h>
 #include        <stdlib.h>
 #include        <time.h>
 
@@ -279,7 +279,7 @@ int binary(const char *p, size_t len, const char ** table, int high)
  * If c is a power of 2, return that power else -1.
  */
 
-int ispow2(targ_ullong c)
+int ispow2(uint64_t c)
 {       int i;
 
         if (c == 0 || (c & (c - 1)))
