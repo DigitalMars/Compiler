@@ -45,56 +45,43 @@ elem *selecte1(elem *e,type *t);
 
 extern int ignore_exceptions;
 
-/* When this is !=0, we try to fold out OPsizeof expressions.
- */
-
-static int resolve_sizeof;
+static elem *poptelemi(elem *e, bool resolve_sizeof, bool ignore_exceptions);
 
 elem *poptelem2(elem *e)
 {
     // Same as poptelem(), but we ignore floating point exceptions
-    ignore_exceptions++;
-    e = poptelem(e);
-    ignore_exceptions--;
-    return e;
+    return poptelemi(e, false, true);
 }
 
 elem *poptelem3(elem *e)
 {
-    resolve_sizeof++;
-    e = poptelem(e);
-    resolve_sizeof--;
-    return e;
+    return poptelemi(e, true, false);
 }
 
 elem *poptelem4(elem *e)
 {
-    resolve_sizeof++;
-    ignore_exceptions++;
-    e = poptelem(e);
-    ignore_exceptions--;
-    resolve_sizeof--;
-    return e;
+    return poptelemi(e, true, true);
 }
 
 elem *poptelem(elem *e)
 {
-    elem *e1,*e2;
-    unsigned op;
+    return poptelemi(e, false, false);
+}
 
-    //dbg_printf("poptelem(e = %p)\n", e); elem_print(e);
+static elem *poptelemi(elem *e, bool resolve_sizeof, bool ignore_exceptions)
+{
+    elem *e1,*e2;
+
+    //dbg_printf("poptelemi(e = %p)\n", e); elem_print(e);
 #ifdef DEBUG
     assert(PARSER);
     assert(e && e->ET);
-
-    if (controlc_saw)
-        exit(1);
 //    static int xxx; if (++xxx == 1000) *(char *)0 = 0;
 #endif
     elem_debug(e);
     type_debug(e->ET);
 
-    op = e->Eoper;
+    unsigned op = e->Eoper;
 
 #ifdef DEBUG
     if (OTunary(op))
@@ -125,12 +112,11 @@ elem *poptelem(elem *e)
             e1 = e->E1;
             if (e1->Eoper == OPvar)
                 goto L3;
-            e->E1 = e1 = poptelem(e1);
+            e->E1 = e1 = poptelemi(e1, resolve_sizeof, ignore_exceptions);
             if (e1->Eoper == OPind)     /* if &*exp                     */
-            {   type *t;
-
+            {
             L6:
-                t = e->ET;
+                type *t = e->ET;
                 e1->E1 = cast(e1->E1,t);
                 e = selecte1(selecte1(e,t),t);
             }
@@ -143,9 +129,8 @@ elem *poptelem(elem *e)
                 // try to expand the template if it's got an explicit
                 // parameter list.
                 if (e->PEFflags & PEFtemplate_id)
-                {   symbol *s;
-
-                    s = e->EV.sp.Vsym;
+                {
+                    Symbol *s = e->EV.sp.Vsym;
                     s = cpp_lookformatch(s, NULL, NULL,NULL,NULL,NULL,
                             e->EV.sp.spu.Vtal, 1|8, NULL, NULL);
                     if (s)
@@ -159,7 +144,7 @@ elem *poptelem(elem *e)
             }
             break;
         case OPind:
-            e->E1 = e1 = poptelem(e->E1);
+            e->E1 = e1 = poptelemi(e->E1, resolve_sizeof, ignore_exceptions);
             if (e1->Eoper == OPrelconst)
             {   /* convert *(&var) to var       */
 
@@ -168,18 +153,18 @@ elem *poptelem(elem *e)
             }
             break;
         case OPnp_fp:
-            e->E1 = e1 = poptelem(e->E1);
+            e->E1 = e1 = poptelemi(e->E1, resolve_sizeof, ignore_exceptions);
             // If casting a non-NULL constant pointer
             if (e1->Eoper == OPconst && el_tolong(e1) != 0)
                 break;
             goto L5;
         case OPoffset:
-            e->E1 = e1 = poptelem(e->E1);
+            e->E1 = e1 = poptelemi(e->E1, resolve_sizeof, ignore_exceptions);
             if (e1->Eoper == OPnp_fp)
                 goto L6;
             goto L5;
         case OP32_16:
-            e->E1 = e1 = poptelem(e->E1);
+            e->E1 = e1 = poptelemi(e->E1, resolve_sizeof, ignore_exceptions);
         L5:
             if (e1->Eoper == OPrelconst || e1->Eoper == OPstring)
                 e = selecte1(e,e->ET);
@@ -187,25 +172,25 @@ elem *poptelem(elem *e)
                 goto eval;
             break;
         case OPandand:
-            e->E1 = e1 = poptelem(e->E1);
+            e->E1 = e1 = poptelemi(e->E1, resolve_sizeof, ignore_exceptions);
             if (iffalse(e1))
                 goto L2;
             else
                 goto def;
         case OPoror:
-            e->E1 = e1 = poptelem(e->E1);
+            e->E1 = e1 = poptelemi(e->E1, resolve_sizeof, ignore_exceptions);
             if (iftrue(e1))
             {
             L2: el_free(e->E2);
                 e->E2 = NULL;
                 e->Eoper = OPbool;
-                e = poptelem(e);
+                e = poptelemi(e, resolve_sizeof, ignore_exceptions);
             }
             else
                 goto def;
             break;
         case OPcond:
-            e->E1 = e1 = poptelem(e->E1);
+            e->E1 = e1 = poptelemi(e->E1, resolve_sizeof, ignore_exceptions);
             if (e1->Eoper == OPconst)
             {
                 e2 = e->E2;
@@ -230,14 +215,14 @@ elem *poptelem(elem *e)
                 }
                 el_free(e2);
                 el_free(e1);
-                e = poptelem(e);
+                e = poptelemi(e, resolve_sizeof, ignore_exceptions);
             }
             else
                 goto def;
             break;
         case OPadd:
-            e->E1 = e1 = poptelem(e->E1);
-            e->E2 = e2 = poptelem(e->E2);
+            e->E1 = e1 = poptelemi(e->E1, resolve_sizeof, ignore_exceptions);
+            e->E2 = e2 = poptelemi(e->E2, resolve_sizeof, ignore_exceptions);
             if (e1->Eoper == OPconst)
             {   /* swap leaves */
                 e->E1 = e2;
@@ -246,8 +231,8 @@ elem *poptelem(elem *e)
             }
             goto L4;
         case OPmin:
-            e->E1 = e1 = poptelem(e->E1);
-            e->E2 = e2 = poptelem(e->E2);
+            e->E1 = e1 = poptelemi(e->E1, resolve_sizeof, ignore_exceptions);
+            e->E2 = e2 = poptelemi(e->E2, resolve_sizeof, ignore_exceptions);
         L4:
             if (e1->Eoper == OPrelconst || e1->Eoper == OPstring)
             {
@@ -267,13 +252,14 @@ elem *poptelem(elem *e)
         default:
             if (OTleaf(op))
                 goto ret;
-            e->E1 = poptelem(e->E1);
+            e->E1 = poptelemi(e->E1, resolve_sizeof, ignore_exceptions);
         def:
             if (OTbinary(op))           // if binary node
             {
-                e->E2 = poptelem(e->E2);
+                e->E2 = poptelemi(e->E2, resolve_sizeof, ignore_exceptions);
             }
         eval:
+            ::ignore_exceptions = ignore_exceptions;
             e = evalu8(e, GOALvalue);
             break;
     }
