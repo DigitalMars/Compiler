@@ -259,8 +259,10 @@ static elem *poptelemi(elem *e, bool resolve_sizeof, bool ignore_exceptions)
                 e->E2 = poptelemi(e->E2, resolve_sizeof, ignore_exceptions);
             }
         eval:
-            ::ignore_exceptions = ignore_exceptions;
-            e = evalu8(e, GOALvalue);
+            goal_t goal = GOALvalue;
+            if (ignore_exceptions)
+                goal |= GOALignore_exceptions;
+            e = evalu8(e, goal);
             break;
     }
 ret:
