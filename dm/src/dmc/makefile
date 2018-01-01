@@ -295,7 +295,8 @@ FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d 
 	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
 	dstruct.d func.d dcpp.d dtemplate.d dexp2.d castab.d dgetcmd.d htod.d \
 	dnwc.d dblklst.d dph.d dpragma.d phstring.di phstring.d xtoken.d rawstring.di rawstring.d \
-	dscope.d dmsc.d dutil.d diasm.d dfile.d dspeller.di dspeller.d err.d page.di stubobj.d
+	dscope.d dmsc.d dutil.d diasm.d dfile.d dspeller.di dspeller.d err.d page.di stubobj.d \
+	poptelem.d
 
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 	tdb.h total.h \
@@ -327,7 +328,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	evalu8.c go.c gflow.c gdag.c gsroa.c \
 	gother.c glocal.c gloop.c newman.c \
 	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
-	type.c poptelem.c \
+	type.c \
 	elfobj.c \
 	dwarf.c machobj.c \
 	strtold.c aa.c ti_achar.c \
@@ -483,6 +484,9 @@ oper.obj : oper.d
 parser.obj : parser.d
         $(DMD) -c $(DFLAGS) parser.d
 
+poptelem.obj : poptelem.d
+        $(DMD) -c $(DFLAGS) poptelem.d
+
 precomp.obj : precomp.d
         $(DMD) -c $(DFLAGS) precomp.d
 
@@ -579,7 +583,6 @@ gloop.obj : $(DEP) $(gloop.dep) gloop.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 out.obj : $(DEP) $(out.dep) out.c
 pdata.obj : $(DEP) $(pdata.dep) pdata.c
-poptelem.obj : $(DEP) $(poptelem.dep) poptelem.c
 ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
 ti_achar.obj : tinfo.h ti_achar.c
 ti_pvoid.obj : tinfo.h ti_pvoid.c

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cdef.d, backend/_cdef.d)
@@ -11,7 +11,7 @@
 
 module dmd.backend.cdef;
 
-// Online documentation: https://dlang.org/phobos/ddmd_backend_cdef.html
+// Online documentation: https://dlang.org/phobos/dmd_backend_cdef.html
 
 import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
@@ -258,7 +258,7 @@ enum
 {
     CHARSIZE       = 1,
     SHORTSIZE      = 2,
-    WCHARSIZE      = 2,       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/Solaris
+    WCHARSIZE      = 2,       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/DragonFlyBSD/Solaris
     LONGSIZE       = 4,
     LLONGSIZE      = 8,
     CENTSIZE       = 16,
@@ -312,7 +312,7 @@ enum CV3 = 0;          // 1 means support CV3 debug format
 //#define OMFOBJ          TARGET_WINDOS
 //#endif
 //#ifndef ELFOBJ
-//#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+//#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
 //#endif
 //#ifndef MACHOBJ
 //#define MACHOBJ         TARGET_OSX
@@ -519,6 +519,7 @@ enum
     EX_SOLARIS64    = 0x200000,
     EX_OPENBSD      = 0x400000,
     EX_OPENBSD64    = 0x800000,
+    EX_DRAGONFLYBSD64 = 0x1000000,
 }
 
 
@@ -526,6 +527,7 @@ enum
 enum exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 |
                          EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 |
                          EX_OPENBSD | EX_OPENBSD64 |
+                         EX_DRAGONFLYBSD64 |
                          EX_SOLARIS | EX_SOLARIS64;
 
 // All DOS executable types

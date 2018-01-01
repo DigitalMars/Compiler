@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2012 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
@@ -11,7 +11,7 @@
 
 module dmd.backend.cc;
 
-// Online documentation: https://dlang.org/phobos/ddmd_backend_cc.html
+// Online documentation: https://dlang.org/phobos/dmd_backend_cc.html
 
 import tk.dlist;
 import dmd.backend.cdef;        // host and target compiler definition
@@ -58,7 +58,7 @@ enum WM
     WM_ccast        = 25,
     WM_obsolete     = 26,
 
-    // if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    // if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     WM_skip_attribute   = 27, // skip GNUC attribute specification
     WM_warning_message  = 28, // preprocessor warning message
     WM_bad_vastart      = 29, // args for builtin va_start bad
@@ -80,7 +80,7 @@ else
 //#include        "msgs2.h"
 //#endif
 //#include        "ty.h"
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
 //#include        "../tk/mem.h"
 //#else
 //#include        "mem.h"
@@ -1359,7 +1359,7 @@ struct Symbol
     }
     version (MARS)
     {
-        const(char)* prettyIdent;   // the symbol identifer as the user sees it
+        const(char)* prettyIdent;   // the symbol identifier as the user sees it
     }
 
 //#if TARGET_OSX

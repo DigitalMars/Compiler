@@ -5454,6 +5454,62 @@ L1:
 #endif
 }
 
+/*************************************
+ * Call optelem(), but treat OPcomma like a linked list to avoid
+ * recursive stack overflows.
+ */
+STATIC elem * xoptelem(elem *e, goal_t goal)
+{
+    if (e->Eoper != OPcomma)
+        return optelem(e, goal);
+
+    elem *estart = e;
+    tym_t ty = 0;
+    while (1)
+    {
+        e->E1 = optelem(e->E1, GOALnone);
+        elem *e2 = e->E2;
+        if (e2->Eoper == OPcomma)
+        {
+            e = e2;
+            continue;
+        }
+        e->E2 = optelem(e2, goal);
+        if (e->E2)
+            ty = e->E2->Ety;
+        break;
+    }
+
+    elem **pe = &estart;
+    while ((*pe)->Eoper == OPcomma)
+    {
+        if (!(*pe)->E1)
+        {
+            if (!(*pe)->E2)
+            {
+                *pe = NULL;
+                break;
+            }
+            if (!goal)
+                (*pe)->Ety = ty;
+            *pe = el_selecte2(*pe);
+        }
+        else if (!(*pe)->E2)
+        {
+            (*pe)->Ety = (*pe)->E1->Ety;
+            *pe = el_selecte1(*pe);
+        }
+        else
+        {
+             if (!goal)
+                (*pe)->Ety = ty;
+             pe = &(*pe)->E2;
+        }
+    }
+    return estart;
+}
+
+
 /********************************
  * Optimize and canonicalize an expression tree.
  * Fiddle with double operators so that the rvalue is a pointer

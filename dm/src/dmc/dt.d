@@ -2,14 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/dt.d
  */
 
 module dmd.backend.dt;
+
+// Online documentation: https://dlang.org/phobos/dmd_backend_dt.html
 
 import dmd.backend.cc;
 import dmd.backend.ty;
@@ -52,7 +53,17 @@ final:
     void abytes(tym_t ty, uint offset, uint size, const(char)* ptr, uint nzeros);
     void abytes(uint offset, uint size, const(char)* ptr, uint nzeros);
     void dword(int value);
+version (OSX)
+{
+    void size(ulong value, int dummy = 0)
+    {
+        nbytes(_tysize[TYnptr], cast(char*)&value);
+    }
+}
+else
+{
     void size(ulong value);
+}
     void nzeros(uint size);
     void xoff(Symbol* s, uint offset, tym_t ty);
     dt_t* xoffpatch(Symbol* s, uint offset, tym_t ty);

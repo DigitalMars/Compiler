@@ -3,14 +3,15 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1983-1998 by Symantec
- *              Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/_ty.d
  */
 
 module dmd.backend.ty;
+
+// Online documentation: https://dlang.org/phobos/dmd_backend_ty.html
 
 extern (C++):
 @nogc:
@@ -73,7 +74,7 @@ enum
     TYifunc             = 0x2E, // interrupt func
     TYptr               = 0x33, // generic pointer type
     TYmfunc             = 0x37, // NT C++ member func
-    TYjfunc             = 0x38, // LINKd D function
+    TYjfunc             = 0x38, // LINK.d D function
     TYhfunc             = 0x39, // C function with hidden parameter
     TYnref              = 0x3A, // near reference
 
@@ -183,7 +184,7 @@ enum
     mTYnothrow      = 0x00200000,    // nothrow function
 
     // Used only by C/C++ compiler
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     mTYnoret        = 0x01000000,    // function has no return
     mTYtransu       = 0x01000000,    // transparent union
 //#else
@@ -197,7 +198,7 @@ enum
     mTYsyscall      = 0x40000000,
     mTYjava         = 0x80000000,
 
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
 //    mTYTFF          = 0xFE000000,
 //#else
     mTYTFF          = 0xFF000000,
