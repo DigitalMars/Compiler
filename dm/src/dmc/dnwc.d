@@ -163,7 +163,13 @@ extern (C) int main(int argc,char** argv)
         mem_setexception(MEM_E.MEM_CALLFP,&err_nomem);
         list_init();
         vec_init();
+version (HTOD)
+{
+}
+else
+{
         cod3_setdefault();
+}
         getcmd(argc,argv);                    // process command line
         file_iofiles();
         token_init();                         // initialize tokenizer tables

@@ -12,7 +12,7 @@
 
 // Function and control flow parser
 
-module dstruct;
+module func;
 
 version (SPP)
 {

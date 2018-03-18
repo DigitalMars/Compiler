@@ -10,7 +10,7 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/code.c
  */
 
-#if !SPP
+#if (SCPP && !HTOD) || MARS
 
 #include        <stdio.h>
 #include        <string.h>

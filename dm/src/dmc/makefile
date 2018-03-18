@@ -87,8 +87,6 @@ ZIP=zip32
 # Copy to another directory
 SCP=$(CP)
 SCP=\putty\pscp -i c:\.ssh\colossus.ppk
-# PVS-Studio command line executable
-PVS="c:\Program Files (x86)\PVS-Studio\x64\PVS-Studio"
 
 LINKN=$(DMCDIR)\bin\link /de
 
@@ -133,6 +131,9 @@ sppn:
 
 htodn:
         make TARGET=HTOD XFLG=-DSCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map htodn.exe
+
+htod:
+        make TARGET=HTOD XFLG=-DSCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map htod.exe
 
 ################ NT COMMAND LINE DEBUG #########################
 
@@ -193,6 +194,7 @@ $(TARGET)n.exe : $(ALLOBJS) $(TARGET)n.lnk $(TARGET)n.def
 
 $(TARGET)nd.dll : $(ALLOBJS) $(TARGET)nd.lnk $(TARGET)nd.def
         $(LINKN) @$*.lnk
+
 
 #########################################
 
@@ -298,6 +300,14 @@ FRONTDSRC= ppexp.d unialpha.d entity.d html.d html.di cpp.di dmcdll.di nspace.d 
 	dscope.d dmsc.d dutil.d diasm.d dfile.d dspeller.di dspeller.d err.d page.di stubobj.d \
 	poptelem.d
 
+HTODSRC= ppexp.d unialpha.d entity.d cpp.di dmcdll.di nspace.d dinit.d \
+	ini.d denum.d dinline.d loadline.d parser.d scopeh.d dtoken.d adl.d utf.d \
+	objrecor.d tytostr.d filename.d precomp.d pseudo.d rtti.d eh.d exp.d \
+	dstruct.d func.d dcpp.d dtemplate.d dexp2.d dgetcmd.d htod.d \
+	dnwc.d dblklst.d dph.d dpragma.d phstring.d xtoken.d rawstring.d \
+	dscope.d dmsc.d dutil.d diasm.d dfile.d err.d page.di stubobj.d \
+	poptelem.d
+
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 	tdb.h total.h \
 	\
@@ -353,6 +363,9 @@ BUILDSRC= sppn.tra sccn.tra htodn.tra scppn.tra makefile posix.mak
 LICENSE= license.txt gpl.txt
 
 VERSION=857
+
+htod.exe : $(HTODSRC) msgs2.d dspeller.obj castab.d
+	$(DMD) $(DFLAGS) $(HTODSRC) msgs2.d dspeller.obj -J.
 
 zip:
         del dm$(VERSION).zip

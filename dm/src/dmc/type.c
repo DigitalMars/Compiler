@@ -3,10 +3,9 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/type.c
  */
 
@@ -210,10 +209,65 @@ L1:
     return sz;
 }
 
+/***********************************
+ * Compute special zero sized struct.
+ * Params:
+ *      t = type of parameter
+ *      tyf = function type
+ * Returns:
+ *      true if it is
+ */
+bool type_zeroSize(type *t, tym_t tyf)
+{
+    if (tyf != TYjfunc && config.exe & (EX_FREEBSD | EX_OSX))
+    {
+        /* Use clang convention for 0 size structs
+         */
+        if (t && tybasic(t->Tty) == TYstruct)
+        {
+            type *ts = t->Ttag->Stype;     // find main instance
+                                           // (for const struct X)
+            if (ts->Tflags & TFsizeunknown)
+            {
+#if SCPP
+                template_instantiate_forward(ts->Ttag);
+                if (ts->Tflags & TFsizeunknown)
+                    synerr(EM_unknown_size,ts->Tty & TYstruct ? prettyident(ts->Ttag) : "struct");
+                ts->Tflags &= ~TFsizeunknown;
+#endif
+            }
+            if (ts->Ttag->Sstruct->Sflags & STR0size)
+//{ printf("0size\n"); type_print(t); *(char*)0=0;
+                return true;
+//}
+        }
+    }
+    return false;
+}
+
+/*********************************
+ * Compute the size of a single parameter.
+ * Params:
+ *      t = type of parameter
+ *      tyf = function type
+ * Returns:
+ *      size in bytes
+ */
+unsigned type_parameterSize(type *t, tym_t tyf)
+{
+    if (type_zeroSize(t, tyf))
+        return 0;
+    return type_size(t);
+}
+
 /*****************************
- * Compute the size of parameters for function call.
+ * Compute the total size of parameters for function call.
  * Used for stdcall name mangling.
  * Note that hidden parameters do not contribute to size.
+ * Params:
+ *   t = function type
+ * Returns:
+ *   total stack usage in bytes
  */
 
 unsigned type_paramsize(type *t)
@@ -223,9 +277,8 @@ unsigned type_paramsize(type *t)
     {
         for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
         {
-            size_t n = type_size(p->Ptype);
-            n = _align(REGSIZE,n);       // align to REGSIZE boundary
-            sz += n;
+            const size_t n = type_parameterSize(p->Ptype, tybasic(t->Tty));
+            sz += _align(REGSIZE,n);       // align to REGSIZE boundary
         }
     }
     return sz;
@@ -477,11 +530,12 @@ type *type_enum(const char *name, type *tbase)
  * Create a struct/union/class type.
  * Params:
  *      name = name of struct (this function makes its own copy of the string)
+ *      is0size = if struct has no fields (even if Sstructsize is 1)
  * Returns:
  *      Tcount already incremented
  */
 type *type_struct_class(const char *name, unsigned alignsize, unsigned structsize,
-        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD)
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size)
 {
     Symbol *s = symbol_calloc(name);
     s->Sclass = SCstruct;
@@ -500,6 +554,8 @@ type *type_struct_class(const char *name, unsigned alignsize, unsigned structsiz
     {   s->Sstruct->Sflags |= STRclass;
         assert(!isUnion && isPOD);
     }
+    if (is0size)
+        s->Sstruct->Sflags |= STR0size;
 
     type *t = type_alloc(TYstruct);
     t->Ttag = (Classsym *)s;            // structure tag name

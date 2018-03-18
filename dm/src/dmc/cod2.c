@@ -3,14 +3,14 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod2.c, backend/cod2.c)
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod2.c
  */
 
-#if !SPP
+#if (SCPP && !HTOD) || MARS
 
 #include        <stdio.h>
 #include        <string.h>
@@ -33,9 +33,11 @@ int cdcmp_flag;
 extern signed char regtorm[8];
 
 // from divcoeff.c
+extern "C"
+{
 extern bool choose_multiplier(int N, uint64_t d, int prec, uint64_t *pm, int *pshpost);
 extern bool udiv_coefficients(int N, uint64_t d, int *pshpre, uint64_t *pm, int *pshpost);
-
+}
 
 /*******************************
  * Swap two integers.
@@ -910,7 +912,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             orthxmm(cdb,e,pretregs);
             return;
         }
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         orth87(cdb,e,pretregs);
 #else
         opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv);
@@ -1800,7 +1802,7 @@ void cdnot(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e->E1,&retregs,FALSE);
         reg = findreg(retregs);
         getregs(cdb,retregs);
-        cdb.gen2(0xF7 ^ (sz == 1),grex | modregrmx(3,3,reg));   // NEG reg
+        cdb.gen2(sz == 1 ? 0xF6 : 0xF7,grex | modregrmx(3,3,reg));   // NEG reg
         code_orflag(cdb.last(),CFpsw);
         if (!I16 && sz == SHORTSIZE)
             code_orflag(cdb.last(),CFopsize);
@@ -2012,7 +2014,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
         opcode = 0x81;
         switch (sz2)
-        {   case 1:     opcode--;
+        {   case 1:     opcode--;       // https://github.com/dlang/dmd/pull/8014
                         v1 = (signed char) v1;
                         v2 = (signed char) v2;
                         break;
@@ -3672,6 +3674,7 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     unsigned char rex = I64 ? REX_W : 0;
 
+    bool e2E2isConst = false;
     if (e2->E2->Eoper == OPconst)
     {
         value = el_tolong(e2->E2);
@@ -3679,6 +3682,12 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         value |= value << 8;
         value |= value << 16;
         value |= value << 32;
+        e2E2isConst = true;
+    }
+    else if (e2->E2->Eoper == OPstrpar)  // happens if e2->E2 is a struct of 0 size
+    {
+        value = 0;
+        e2E2isConst = true;
     }
     else
         value = 0xDEADBEEF;     // stop annoying false positives that value is not inited
@@ -3688,7 +3697,7 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         numbytes = el_tolong(e2->E1);
         if (numbytes <= REP_THRESHOLD &&
             !I16 &&                     // doesn't work for 16 bits
-            e2->E2->Eoper == OPconst)
+            e2E2isConst)
         {
             targ_uns offset = 0;
             retregs1 = *pretregs;
@@ -3759,7 +3768,7 @@ fixres:
 
     // Get nbytes into CX
     retregs2 = mCX;
-    if (!I16 && e2->E1->Eoper == OPconst && e2->E2->Eoper == OPconst)
+    if (!I16 && e2->E1->Eoper == OPconst && e2E2isConst)
     {
         remainder = numbytes & (4 - 1);
         numwords  = numbytes / 4;               // number of words
@@ -3777,7 +3786,7 @@ fixres:
     // Get val into AX
 
     retregs3 = mAX;
-    if (!I16 && e2->E2->Eoper == OPconst)
+    if (!I16 && e2E2isConst)
     {
         regwithvalue(cdb, mAX, value, NULL, I64?64:0);
         freenode(e2->E2);
@@ -4146,7 +4155,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
         goto L4;
 
     case FLtlsdata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     {
       L5:
         if (config.flags3 & CFG3pic)
@@ -4272,7 +4281,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
         goto L4;
 
     case FLextern:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         if (e->EV.sp.Vsym->ty() & mTYthread)
             goto L5;
 #endif
@@ -4404,7 +4413,7 @@ void cdneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-            unsigned reg = (sz == 8) ? AX : findregmsw(retregs);
+            unsigned reg = (sz == 8) ? (unsigned) AX : findregmsw(retregs);
             cdb.genc2(0x81,modregrm(3,6,reg),0x8000);     // XOR AX,0x8000
         }
         fixresult(cdb,e,retregs,pretregs);
@@ -4477,7 +4486,7 @@ void cdabs(CodeBuilder& cdb,elem *e, regm_t *pretregs)
         }
         else
         {
-            int reg = (sz == 8) ? AX : findregmsw(retregs);
+            int reg = (sz == 8) ? (int) AX : findregmsw(retregs);
             cdb.genc2(0x81,modregrm(3,4,reg),0x7FFF);     // AND AX,0x7FFF
         }
         fixresult(cdb,e,retregs,pretregs);
@@ -4487,7 +4496,7 @@ void cdabs(CodeBuilder& cdb,elem *e, regm_t *pretregs)
     unsigned byte = sz == 1;
     assert(byte == 0);
     byte = 0;
-    regm_t possregs = (sz <= REGSIZE) ? mAX : allregs;
+    regm_t possregs = (sz <= REGSIZE) ? (regm_t) mAX : allregs;
     if (!I16 && sz == REGSIZE)
         possregs = allregs;
     regm_t retregs = *pretregs & possregs;

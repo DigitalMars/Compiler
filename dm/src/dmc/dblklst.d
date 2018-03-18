@@ -12,7 +12,7 @@
 
 /* Read in characters from a block.                     */
 
-module dnwc;
+module dblklst;
 
 import core.stdc.ctype;
 import core.stdc.stdio;

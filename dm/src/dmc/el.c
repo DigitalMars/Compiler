@@ -1939,6 +1939,7 @@ int el_countCommas(elem *e)
  * Needed iff floating point code can't load immediate constants.
  */
 
+#if !HTOD
 elem *el_convfloat(elem *e)
 {
     unsigned char buffer[32];
@@ -2025,6 +2026,7 @@ printf("\n");
 #endif
     return e;
 }
+#endif
 
 /************************************
  * Convert vector constant to a read-only symbol.
@@ -2198,6 +2200,7 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
  * Run through a tree converting it to CODGEN.
  */
 
+#if !HTOD
 elem *el_convert(elem *e)
 {   int op;
 
@@ -2265,6 +2268,7 @@ elem *el_convert(elem *e)
     }
     return e;
 }
+#endif
 
 
 /************************

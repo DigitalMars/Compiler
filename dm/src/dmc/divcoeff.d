@@ -115,7 +115,7 @@ void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong *pqh, ullong *pq
  *      true    m >= 2**N
  */
 
-bool choose_multiplier(int N, ullong d, int prec, ullong *pm, int *pshpost)
+extern (C) bool choose_multiplier(int N, ullong d, int prec, ullong *pm, int *pshpost)
 {
     assert(N == 32 || N == 64);
     assert(prec <= N);
@@ -231,7 +231,7 @@ bool choose_multiplier(int N, ullong d, int prec, ullong *pm, int *pshpost)
  *              q = SRL(MULUH(m, SRL(n, shpre)), shpost)
  */
 
-bool udiv_coefficients(int N, ullong d, int *pshpre, ullong *pm, int *pshpost)
+extern (C) bool udiv_coefficients(int N, ullong d, int *pshpre, ullong *pm, int *pshpost)
 {
     bool mhighbit = choose_multiplier(N, d, N, pm, pshpost);
     if (mhighbit && (d & 1) == 0)

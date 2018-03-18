@@ -24,6 +24,10 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+#if HTOD
+unsigned ALLREGS;
+#endif
+
 Symbol *rtlsym[RTLSYM_MAX];
 
 #if MARS

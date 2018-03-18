@@ -17,6 +17,13 @@ module diasm;
 version (SPP)
 {
 }
+else version (HTOD)
+{
+    extern (C++) int asm_state(int iFlags)
+    {
+        return 0;
+    }
+}
 else
 {
 

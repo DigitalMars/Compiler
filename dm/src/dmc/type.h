@@ -3,10 +3,9 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/type.h
  */
 
@@ -172,6 +171,8 @@ void type_dehydrate(type **);
 
 targ_size_t type_size(type *);
 unsigned type_alignsize(type *);
+bool type_zeroSize(type *t, tym_t tyf);
+unsigned type_parameterSize(type *t, tym_t tyf);
 unsigned type_paramsize(type *t);
 type *type_alloc(tym_t);
 type *type_alloc_template(symbol *s);
@@ -202,6 +203,6 @@ type *type_delegate(type *tnext);
 extern "C" type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
 type *type_enum(const char *name, type *tbase);
 type *type_struct_class(const char *name, unsigned alignsize, unsigned structsize,
-        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD);
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size);
 
 #endif

@@ -350,7 +350,9 @@ void block_free(block *b)
             break;
 #endif
         case BCasm:
+#if !HTOD
             code_free(b->Bcode);
+#endif
             break;
     }
     b->Bnext = block_freelist;
@@ -396,7 +398,9 @@ void blocklist_hydrate(block **pb)
                 break;
 
             case BCasm:
+#if !HTOD
                 code_hydrate(&b->Bcode);
+#endif
                 break;
         }
         filename_translate(&b->Bsrcpos);

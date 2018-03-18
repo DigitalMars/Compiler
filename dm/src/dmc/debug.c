@@ -309,8 +309,10 @@ void WRblock(block *b)
                         printf(";\n");
                 }
         }
+#if !HTOD
         if (b->Bcode)
             b->Bcode->print();
+#endif
         ferr("\n");
     }
     else

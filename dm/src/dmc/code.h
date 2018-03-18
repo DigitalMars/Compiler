@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -365,7 +365,7 @@ void fltregs(CodeBuilder& cdb, code *pcs, tym_t tym);
 void tstresult(CodeBuilder& cdb, regm_t regm, tym_t tym, unsigned saveflag);
 void fixresult(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);
 void callclib(CodeBuilder& cdb, elem *e, unsigned clib, regm_t *pretregs, regm_t keepmask);
-void pushParams(CodeBuilder& cdb,elem *, unsigned);
+void pushParams(CodeBuilder& cdb,elem *, unsigned, tym_t tyf);
 void offsetinreg(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 
 /* cod2.c */
