@@ -2001,9 +2001,19 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         targ_size_t v1,v2;
         int opcode;
 
-        retregs = *pretregs & (ALLREGS | mBP);
-        if (!retregs)
-            retregs = ALLREGS;
+        if (sz2 != 1 || I64)
+        {
+            retregs = *pretregs & (ALLREGS | mBP);
+            if (!retregs)
+                retregs = ALLREGS;
+        }
+        else
+        {
+            retregs = *pretregs & BYTEREGS;
+            if (!retregs)
+                retregs = BYTEREGS;
+        }
+
         cdcmp_flag = 1;
         v1 = e21->EV.Vllong;
         v2 = e22->EV.Vllong;
@@ -2014,7 +2024,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
         opcode = 0x81;
         switch (sz2)
-        {   case 1:     opcode--;       // https://github.com/dlang/dmd/pull/8014
+        {   case 1:     opcode--;
                         v1 = (signed char) v1;
                         v2 = (signed char) v2;
                         break;
@@ -2049,7 +2059,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             {
                 v1 -= v2;
                 cdb.genc2(opcode,grex | modregrmx(3,4,reg),v1);   // AND reg,v1-v2
-                if (I64 && sz1 == 1 && reg >= 4)
+                if (I64 && sz2 == 1 && reg >= 4)
                     code_orrex(cdb.last(), REX);
                 if (v2 == 1 && !I64)
                     cdb.gen1(0x40 + reg);                     // INC reg
@@ -2057,7 +2067,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     cdb.gen1(0x48 + reg);                     // DEC reg
                 else
                 {   cdb.genc2(opcode,grex | modregrmx(3,0,reg),v2);   // ADD reg,v2
-                    if (I64 && sz1 == 1 && reg >= 4)
+                    if (I64 && sz2 == 1 && reg >= 4)
                         code_orrex(cdb.last(), REX);
                 }
             }
