@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gflow.c, backend/gflow.c)
@@ -1462,6 +1462,13 @@ STATIC void accumlv(vec_t GEN,vec_t KILL,elem *n)
                         vec_setbit(s->Ssymnum,KILL);
                     }
                 }
+                break;
+
+            case OPbt:                          // much like OPind
+                accumlv(GEN,KILL,n->E1);
+                accumlv(GEN,KILL,n->E2);
+                vec_orass(GEN,ambigsym);
+                vec_subass(GEN,KILL);
                 break;
 
             case OPind:
