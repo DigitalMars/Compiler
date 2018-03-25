@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 2009-2017 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/machobj.c, backend/machobj.c)
@@ -22,7 +22,7 @@
 #include        <malloc.h>
 #endif
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
 #include        <signal.h>
 #include        <unistd.h>
 #endif
@@ -609,7 +609,9 @@ void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
     //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (unsigned)offset, seg, value);
     if (I64)
     {
-        int32_t *p = (int32_t *)(fobjbuf->buf + SecHdrTab64[pseg->SDshtidx].offset + offset);
+        targ_size_t off = SecHdrTab64[pseg->SDshtidx].offset + offset;
+        assert(fobjbuf->buf + off + 4 <= fobjbuf->pend);
+        int32_t *p = (int32_t *)(fobjbuf->buf + off);
 #if 0
         printf("\taddr1 = x%llx\n\taddr2 = x%llx\n\t*p = x%llx\n\tdelta = x%llx\n",
             SecHdrTab64[pseg->SDshtidx].addr,
@@ -2114,7 +2116,7 @@ char *obj_mangle2(Symbol *s,char *dest)
                 *p = toupper(*p);
             break;
         case mTYman_std:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
             if (tyfunc(s->ty()) && !variadic(s->Stype))
 #else
             if (!(config.flags4 & CFG4oldstdmangle) &&
@@ -2133,8 +2135,6 @@ char *obj_mangle2(Symbol *s,char *dest)
                 memcpy(dest + 1 + len, pstr, pstrlen + 1);
                 break;
             }
-        case mTYman_cpp:
-        case mTYman_d:
         case mTYman_sys:
         case 0:
             if (len >= DEST_LEN)
@@ -2143,6 +2143,8 @@ char *obj_mangle2(Symbol *s,char *dest)
             break;
 
         case mTYman_c:
+        case mTYman_cpp:
+        case mTYman_d:
             if (len >= DEST_LEN - 1)
                 dest = (char *)mem_malloc(1 + len + 1);
             dest[0] = '_';

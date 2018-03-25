@@ -635,6 +635,7 @@ void blockopt(int iter)
 #ifdef DEBUG
         if (debugb)
         {
+            printf("...................After blockopt().............\n");
             numberBlocks(startblock);
             for (block *b = startblock; b; b = b->Bnext)
                 WRblock(b);

@@ -65,6 +65,7 @@ struct Outbuffer
     // Write an array to the buffer, no reserve check
     void writen(const void *b, d_size_t len)
     {
+        //if (p + len > pend) assert(0);
         memcpy(p,b,len);
         p += len;
     }

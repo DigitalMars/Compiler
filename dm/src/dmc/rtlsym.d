@@ -3,11 +3,11 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/_rtlsym.d
+ * Documentation: https://dlang.org/phobos/dmd_backend_rtlsym.html
  */
 
 module dmd.backend.rtlsym;
@@ -33,7 +33,6 @@ enum
     RTLSYM_DARRAY,
     RTLSYM_DARRAYP,
     RTLSYM_DINVARIANT,
-    RTLSYM__DINVARIANT,
     RTLSYM_MEMCPY,
     RTLSYM_MEMSET8,
     RTLSYM_MEMSET16,
@@ -52,9 +51,9 @@ enum
     RTLSYM_MONITOREXIT,
     RTLSYM_CRITICALENTER,
     RTLSYM_CRITICALEXIT,
-    RTLSYM_SWITCH_STRING,
-    RTLSYM_SWITCH_USTRING,
-    RTLSYM_SWITCH_DSTRING,
+    RTLSYM_SWITCH_STRING,       // unused
+    RTLSYM_SWITCH_USTRING,      // unused
+    RTLSYM_SWITCH_DSTRING,      // unused
     RTLSYM_DSWITCHERR,
     RTLSYM_DHIDDENFUNC,
     RTLSYM_NEWCLASS,
@@ -104,11 +103,11 @@ enum
     RTLSYM_ARRAYCAST,
     RTLSYM_ARRAYEQ,
     RTLSYM_ARRAYEQ2,
-    RTLSYM_ARRAYCMP,
-    RTLSYM_ARRAYCMP2,
-    RTLSYM_ARRAYCMPCHAR,
-    RTLSYM_OBJ_EQ,
-    RTLSYM_OBJ_CMP,
+    RTLSYM_ARRAYCMP,            // unused
+    RTLSYM_ARRAYCMP2,           // unused
+    RTLSYM_ARRAYCMPCHAR,        // unused
+    RTLSYM_OBJ_EQ,              // unused
+    RTLSYM_OBJ_CMP,             // unused
 
     RTLSYM_EXCEPT_HANDLER2,
     RTLSYM_EXCEPT_HANDLER3,

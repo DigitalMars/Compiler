@@ -335,7 +335,7 @@ void WRblock(block *b)
         printf("\n");
         if (b->Belem)
         {
-            if (0)
+            if (debugf)
                 elem_print(b->Belem);
             else
             {
