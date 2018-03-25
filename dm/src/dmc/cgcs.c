@@ -3,10 +3,9 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.c
  */
 
@@ -298,6 +297,10 @@ STATIC void ecom(elem **pe)
         ecom(&e->E2);
         return;
     case OPcomma:
+        ecom(&e->E1);
+        ecom(&e->E2);
+        return;
+
     case OPremquo:
         ecom(&e->E1);
         ecom(&e->E2);
