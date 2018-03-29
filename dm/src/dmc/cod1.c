@@ -4228,7 +4228,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign, tym_t tyf)
         {   // Avoid PUSH MEM on the Pentium when optimizing for speed
             break;
         }
-        else if (movOnly(e))
+        else if (movOnly(e) || (tyxmmreg(tym) && config.fpxmmregs) || tyvector(tym))
             break;                      // no PUSH MEM
         else
         {
@@ -4366,7 +4366,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign, tym_t tyf)
   }
 
     regm_t retregs = tybyte(tym) ? BYTEREGS : allregs;
-    if (tyvector(tym))
+    if (tyvector(tym) || (tyxmmreg(tym) && config.fpxmmregs))
     {
         regm_t retregs = XMMREGS;
         codelem(cdb,e,&retregs,FALSE);
