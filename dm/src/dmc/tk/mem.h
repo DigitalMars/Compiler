@@ -12,6 +12,15 @@
 
 #include <stdio.h> // for size_t
 
+#if __APPLE__ && __i386__
+    /* size_t is 'unsigned long', which makes it mangle differently
+     * than D's 'uint'
+     */
+    typedef unsigned d_size_t;
+#else
+    typedef size_t d_size_t;
+#endif
+
 /*
  * Memory management routines.
  *
@@ -53,7 +62,7 @@
 extern int mem_inited;          /* != 0 if mem package is initialized.  */
                                 /* Test this if you have other packages */
                                 /* that depend on mem being initialized */
-
+
 /********************* PUBLIC FUNCTIONS *************************/
 
 /***********************************
@@ -146,7 +155,7 @@ void mem_checkptr(void *ptr);
  *              return NULL
  */
 
-void *mem_malloc(size_t);
+void *mem_malloc(d_size_t);
 void *mem_calloc(size_t);
 
 /*****************************
@@ -222,7 +231,7 @@ char *mem_fstrdup(const char *);
 extern int __mem_line;
 extern char *__mem_file;
 #endif
-
+
 /* The following stuff forms the implementation rather than the
  * definition, so ignore it.
  */
