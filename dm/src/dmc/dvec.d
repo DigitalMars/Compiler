@@ -31,14 +31,143 @@ static assert(vec_base_t.sizeof==2 && VECSHIFT==4 ||
               vec_base_t.sizeof==4 && VECSHIFT==5 ||
               vec_base_t.sizeof==8 && VECSHIFT==6);
 
-enum VECMAX = 20;
-
-__gshared
+struct VecGlobal
 {
-    int vec_count;           // # of vectors allocated
-    int vec_initcount;       // # of times package is initialized
-    vec_t[VECMAX] vecfreelist;
+    int count;           // # of vectors allocated
+    int initcount;       // # of times package is initialized
+    vec_t[30] freelist;  // free lists indexed by dim
+
+  nothrow:
+  @nogc:
+
+    void initialize()
+    {
+        if (initcount++ == 0)
+            count = 0;
+    }
+
+    void terminate()
+    {
+        if (--initcount == 0)
+        {
+            debug
+            {
+                if (count != 0)
+                {
+                    printf("vecGlobal.count = %d\n", count);
+                    assert(0);
+                }
+            }
+            else
+                assert(count == 0);
+
+            foreach (size_t i; 0 .. freelist.length)
+            {
+                void **vn;
+                for (void** v = cast(void **)freelist[i]; v; v = vn)
+                {
+                    vn = cast(void **)(*v);
+                    //mem_free(v);
+                    .free(v);
+                }
+                freelist[i] = null;
+            }
+        }
+    }
+
+    vec_t allocate(size_t numbits)
+    {
+        if (numbits == 0)
+            return cast(vec_t) null;
+        const dim = (numbits + (VECBITS - 1)) >> VECSHIFT;
+        vec_t v;
+        if (dim < freelist.length && (v = freelist[dim]) != null)
+        {
+            freelist[dim] = *cast(vec_t *)v;
+            v += 2;
+            switch (dim)
+            {
+                case 5:     v[4] = 0;  goto case 4;
+                case 4:     v[3] = 0;  goto case 3;
+                case 3:     v[2] = 0;  goto case 2;
+                case 2:     v[1] = 0;  goto case 1;
+                case 1:     v[0] = 0;
+                            break;
+                default:    memset(v,0,dim * vec_base_t.sizeof);
+                            break;
+            }
+            goto L1;
+        }
+        else
+        {
+            v = cast(vec_t) calloc(dim + 2, vec_base_t.sizeof);
+            assert(v);
+        }
+        if (v)
+        {
+            v += 2;
+        L1:
+            vec_dim(v) = dim;
+            vec_numbits(v) = numbits;
+            /*printf("vec_calloc(%d): v = %p vec_numbits = %d vec_dim = %d\n",
+                numbits,v,vec_numbits(v),vec_dim(v));*/
+            count++;
+        }
+        return v;
+    }
+
+    vec_t dup(const vec_t v)
+    {
+        if (!v)
+            return null;
+
+        const dim = vec_dim(v);
+        const nbytes = (dim + 2) * vec_base_t.sizeof;
+        vec_t vc;
+        vec_t result;
+        if (dim < freelist.length && (vc = freelist[dim]) != null)
+        {
+            freelist[dim] = *cast(vec_t *)vc;
+            goto L1;
+        }
+        else
+        {
+            vc = cast(vec_t) calloc(nbytes, 1);
+            assert(vc);
+        }
+        if (vc)
+        {
+          L1:
+            memcpy(vc,v - 2,nbytes);
+            count++;
+            result = vc + 2;
+        }
+        else
+            result = null;
+        return result;
+    }
+
+    void free(vec_t v)
+    {
+        /*printf("vec_free(%p)\n",v);*/
+        if (v)
+        {
+            const dim = vec_dim(v);
+            v -= 2;
+            if (dim < freelist.length)
+            {
+                *cast(vec_t *)v = freelist[dim];
+                freelist[dim] = v;
+            }
+            else
+                .free(v);
+            count--;
+        }
+    }
+
 }
+
+__gshared VecGlobal vecGlobal;
 
 private pure vec_base_t MASK(uint b) { return cast(vec_base_t)1 << (b & VECMASK); }
 
@@ -51,8 +180,7 @@ pure ref inout(vec_base_t) vec_dim(inout vec_t v) { return v[-2]; }
 
 void vec_init()
 {
-    if (vec_initcount++ == 0)
-        vec_count = 0;
+    vecGlobal.initialize();
 }
 
 
@@ -62,35 +190,7 @@ void vec_init()
 
 void vec_term()
 {
-    if (--vec_initcount == 0)
-    {
-        debug
-        {
-            if (vec_count != 0)
-            {
-                printf("vec_count = %d\n",vec_count);
-                assert(0);
-            }
-        }
-        else
-            assert(vec_count == 0);
-
-        enum TERMCODE = 0;
-        static if (TERMCODE)
-        {
-            foreach (size_t i; 0 .. VECMAX)
-            {
-                void **vn;
-                for (void** v = cast(void **)vecfreelist[i]; v; v = vn)
-                {
-                    vn = cast(void **)(*v);
-                    //mem_free(v);
-                    free(v);
-                }
-                vecfreelist[i] = null;
-            }
-        }
-    }
+    vecGlobal.terminate();
 }
 
 /********************************
@@ -100,43 +200,7 @@ void vec_term()
 
 vec_t vec_calloc(size_t numbits)
 {
-    if (numbits == 0)
-        return cast(vec_t) null;
-    const dim = (numbits + (VECBITS - 1)) >> VECSHIFT;
-    vec_t v;
-    if (dim < VECMAX && (v = vecfreelist[dim]) != null)
-    {
-        vecfreelist[dim] = *cast(vec_t *)v;
-        v += 2;
-        switch (dim)
-        {
-            case 5:     v[4] = 0;  goto case 4;
-            case 4:     v[3] = 0;  goto case 3;
-            case 3:     v[2] = 0;  goto case 2;
-            case 2:     v[1] = 0;  goto case 1;
-            case 1:     v[0] = 0;
-                        break;
-            default:    memset(v,0,dim * vec_base_t.sizeof);
-                        break;
-        }
-        goto L1;
-    }
-    else
-    {
-        v = cast(vec_t) calloc(dim + 2, vec_base_t.sizeof);
-        assert(v);
-    }
-    if (v)
-    {
-        v += 2;
-    L1:
-        vec_dim(v) = dim;
-        vec_numbits(v) = numbits;
-        /*printf("vec_calloc(%d): v = %p vec_numbits = %d vec_dim = %d\n",
-            numbits,v,vec_numbits(v),vec_dim(v));*/
-        vec_count++;
-    }
-    return v;
+    return vecGlobal.allocate(numbits);
 }
 
 /********************************
@@ -145,33 +209,7 @@ vec_t vec_calloc(size_t numbits)
 
 vec_t vec_clone(const vec_t v)
 {
-    if (!v)
-        return null;
-
-    const dim = vec_dim(v);
-    const nbytes = (dim + 2) * vec_base_t.sizeof;
-    vec_t vc;
-    vec_t result;
-    if (dim < VECMAX && (vc = vecfreelist[dim]) != null)
-    {
-        vecfreelist[dim] = *cast(vec_t *)vc;
-        goto L1;
-    }
-    else
-    {
-        vc = cast(vec_t) calloc(nbytes, 1);
-        assert(vc);
-    }
-    if (vc)
-    {
-      L1:
-        memcpy(vc,v - 2,nbytes);
-        vec_count++;
-        result = vc + 2;
-    }
-    else
-        result = null;
-    return result;
+    return vecGlobal.dup(v);
 }
 
 /**************************
@@ -181,19 +219,7 @@ vec_t vec_clone(const vec_t v)
 void vec_free(vec_t v)
 {
     /*printf("vec_free(%p)\n",v);*/
-    if (v)
-    {
-        const dim = vec_dim(v);
-        v -= 2;
-        if (dim < VECMAX)
-        {
-            *cast(vec_t *)v = vecfreelist[dim];
-            vecfreelist[dim] = v;
-        }
-        else
-            free(v);
-        vec_count--;
-    }
+    return vecGlobal.free(v);
 }
 
 /**************************
