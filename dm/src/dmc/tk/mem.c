@@ -557,9 +557,9 @@ void *mem_realloc_debug(void *oldp, size_t n, const char *fil, int lin)
 
 static void mem_checkdl(struct mem_debug *dl)
 {   void *p;
+    int error;
 #if (__SC__ || __DMC__) && !_WIN32
     unsigned u;
-    int error;
 
     /* Take advantage of fact that SC's allocator stores the size of the
      * alloc in the unsigned immediately preceding the allocation.

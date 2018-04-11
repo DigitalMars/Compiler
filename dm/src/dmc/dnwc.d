@@ -44,7 +44,7 @@ import dmd.backend.type;
 
 import tk.dlist;
 import tk.mem;
-import tk.vec;
+import dvec;
 
 import cpp;
 import dtoken;

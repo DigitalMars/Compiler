@@ -182,7 +182,7 @@ OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarf.obj stubobj.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj
-OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj dspeller.obj utf.obj divcoeff.obj
+OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj dspeller.obj utf.obj divcoeff.obj dvec.obj
 
 ALLOBJS= $(OBJ1a) $(OBJ1b) $(OBJ1c) $(OBJ1d) $(OBJ1e) $(OBJ1f) $(OBJ1g) \
          $(OBJ2a) $(OBJ2b) $(OBJ2c) $(OBJ2d) $(OBJ2e)
@@ -320,7 +320,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
-	divcoeff.d
+	divcoeff.d dvec.d
 
 BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
@@ -351,7 +351,7 @@ SRC= $(FRONTSRC) $(FRONTDSRC) $(BACKSRC) $(BACKDSRC)
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
         $(TK)\mem.c $(TK)\list.c $(TK)\vec.c $(TK)\filespec.c \
-        $(TK)\dlist.d $(TK)\mem.di $(TK)\vec.di
+        $(TK)\dlist.d $(TK)\mem.di
 
 SHELLSRC= $(NTDLLSHELL)\include\dllrun.h $(NTDLLSHELL)\include\network.h \
         $(NTDLLSHELL)\include\nsidde.h $(NTDLLSHELL)\include\netspawn.h
@@ -478,6 +478,9 @@ nspace.obj : nspace.d
 
 divcoeff.obj : divcoeff.d
         $(DMD) -c $(DFLAGS) divcoeff.d
+
+dvec.obj : dvec.d
+        $(DMD) -c $(DFLAGS) dvec.d
 
 loadline.obj : loadline.d msgs2.d
         $(DMD) -c $(DFLAGS) loadline.d
