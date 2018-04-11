@@ -24,7 +24,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "filespec.c"
 
 #if !SPP
-#include        "vec.c"
+//#include        "vec.c"
 
 #define malloc          ph_malloc
 #define calloc(x,y)     ph_calloc((x) * (y))
