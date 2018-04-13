@@ -25,7 +25,7 @@ import dmd.backend.el;
 import dmd.backend.oper;
 import dmd.backend.type;
 
-import tk.dlist;
+import dlist;
 
 alias char_p = char*;
 alias symbol_p = Symbol*;

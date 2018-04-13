@@ -28,7 +28,7 @@ import dmd.backend.el : elem;
 import dmd.backend.type;
 //import dmd.backend.obj;
 
-import tk.dlist;
+import dlist;
 
 extern __gshared
 {

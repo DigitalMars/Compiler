@@ -43,7 +43,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import tk.dlist;
+import dlist;
 import tk.filespec;
 import tk.mem;
 

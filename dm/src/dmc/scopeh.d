@@ -19,7 +19,7 @@ else
 import dmd.backend.cdef;
 import dmd.backend.cc;
 
-import tk.dlist;
+import dlist;
 
 extern (C++):
 

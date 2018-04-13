@@ -26,7 +26,7 @@ import dmd.backend.outbuf : Outbuffer;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import tk.dlist;
+import dlist;
 
 extern (C++):
 

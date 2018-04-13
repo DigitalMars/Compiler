@@ -15,7 +15,7 @@
 
 module phstring;
 
-import tk.dlist;
+import dlist;
 
 extern (C++):
 

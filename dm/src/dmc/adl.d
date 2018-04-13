@@ -38,7 +38,7 @@ import dtoken;
 import parser;
 import scopeh;
 
-import tk.dlist;
+import dlist;
 
 extern (C++):
 

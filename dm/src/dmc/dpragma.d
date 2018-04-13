@@ -29,7 +29,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import tk.filespec;
-import tk.dlist;
+import dlist;
 import tk.mem;
 
 import dtoken;

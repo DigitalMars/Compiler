@@ -32,7 +32,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import tk.dlist;
+import dlist;
 
 void n2_instantiate_memfunc(Symbol* s);
 void nwc_mustwrite(Symbol*);

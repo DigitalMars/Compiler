@@ -26,7 +26,7 @@ import dmd.backend.cc;
 import dmd.backend.global;
 import dmd.backend.ty;
 
-import tk.dlist;
+import dlist;
 import tk.mem;
 
 import msgs2;

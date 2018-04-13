@@ -33,7 +33,7 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import tk.dlist;
+import dlist;
 import tk.mem;
 
 import dtoken;
