@@ -266,7 +266,7 @@ extern  void *list_subtract (list_t *,void *);
 extern  list_t
 #if MEM_DEBUG
 #define list_append(a,b) list_append_debug(a,b,__FILE__,__LINE__)
-        list_append_debug (list_t *,void *,char *,int),
+        list_append_debug (list_t *,void *,const char *,int),
 #else
         list_append (list_t *,void *),
 #endif

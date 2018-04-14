@@ -37,13 +37,5 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #endif
 #include        "mem.c"
 
-/*
-#define list_new()              ((list_t) ph_malloc(sizeof(struct LIST)))
-#define list_delete(list)       ph_free(list)
-#define mem_setnewfileline(a,b,c) 0
-*/
-
-//#define list_freelist cstate.CSlist_freelist
-#include        "list.c"
 
 
