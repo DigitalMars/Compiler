@@ -35,7 +35,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import tk.mem;
-import dlist;
+import dmd.backend.dlist;
 
 import cpp;
 import msgs2;

@@ -19,7 +19,7 @@ import dmd.backend.type;
 
 import dmd.backend.cc : Symbol;
 
-import dlist;
+import dmd.backend.dlist;
 
 extern (C++):
 @nogc:

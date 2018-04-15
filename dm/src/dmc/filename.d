@@ -23,7 +23,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.global;
 
-import dlist;
+import dmd.backend.dlist;
 import tk.filespec;
 import tk.mem;
 

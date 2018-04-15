@@ -27,7 +27,7 @@ import dmd.backend.cdef;
 import dmd.backend.global;
 import dmd.backend.outbuf;
 
-import dlist;
+import dmd.backend.dlist;
 import tk.filespec;
 import tk.mem;
 

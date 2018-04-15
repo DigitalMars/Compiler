@@ -15,7 +15,7 @@
 
 module phstring;
 
-import dlist;
+import dmd.backend.dlist;
 
 extern (C++):
 

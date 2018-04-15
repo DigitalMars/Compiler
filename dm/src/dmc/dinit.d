@@ -35,7 +35,7 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dlist;
+import dmd.backend.dlist;
 import tk.mem;
 
 import cpp;

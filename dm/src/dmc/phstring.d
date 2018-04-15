@@ -19,7 +19,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-import dlist;
+import dmd.backend.dlist;
 
 import parser;
 import precomp;

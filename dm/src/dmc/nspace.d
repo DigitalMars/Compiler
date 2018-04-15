@@ -40,7 +40,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dlist;
+import dmd.backend.dlist;
 import tk.mem;
 
 extern (C++):

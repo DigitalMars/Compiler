@@ -17,7 +17,7 @@ import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
 import dmd.backend.ty : I32;
 
-import dlist;
+import dmd.backend.dlist;
 
 extern (C++):
 @nogc:

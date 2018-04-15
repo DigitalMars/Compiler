@@ -16,7 +16,7 @@
  * Source:      $(DMDSRC backend/tk/_dlist.d)
  */
 
-module dlist;
+module dmd.backend.dlist;
 
 import core.stdc.stdarg;
 import core.stdc.stdio;

@@ -17,7 +17,7 @@ module dmd.backend.cgcv;
 
 import dmd.backend.cc : Classsym, Symbol;
 import dmd.backend.type;
-import dlist;
+import dmd.backend.dlist;
 
 extern (C++):
 @nogc:

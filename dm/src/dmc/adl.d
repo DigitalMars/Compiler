@@ -38,7 +38,7 @@ import dtoken;
 import parser;
 import scopeh;
 
-import dlist;
+import dmd.backend.dlist;
 
 extern (C++):
 
