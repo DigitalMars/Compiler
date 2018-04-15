@@ -920,6 +920,18 @@ STATIC void bropt()
                                 cmes("CHANGE: if (e) goto L1; else goto L1;\n");
                                 go.changes++;
                         }
+                        else
+                        {
+                            block *bfalse = b->nthSucc(1);
+                            if (bfalse->BC == BCexit && !bfalse->Belem) // code that is not reachable
+                            {
+                                b->BC = BCgoto;
+                                list_subtract(&(b->Bsucc),bfalse);
+                                list_subtract(&(bfalse->Bpred),b);
+                                cmes("CHANGE: if (e) goto L1; else exit;\n");
+                                go.changes++;
+                            }
+                        }
                 }
                 else if (b->BC == BCswitch)
                 {       /* see we can evaluate this switch now  */
