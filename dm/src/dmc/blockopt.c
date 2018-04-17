@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1997 by Symantec
- *              Copyright (c) 2000-2012 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/blockopt.c, backend/blockopt.c)
@@ -718,7 +718,7 @@ void brcombine()
                     {
                         if (EOP(b3->Belem))
                             continue;
-                        tym_t ty = (bc2 == BCretexp) ? b2->Belem->Ety : TYvoid;
+                        tym_t ty = (bc2 == BCretexp) ? b2->Belem->Ety : (tym_t) TYvoid;
                         elem *e = el_bin(OPcolon2,ty,b2->Belem,b3->Belem);
                         b->Belem = el_bin(OPcond,ty,b->Belem,e);
                     }
@@ -920,18 +920,6 @@ STATIC void bropt()
                                 cmes("CHANGE: if (e) goto L1; else goto L1;\n");
                                 go.changes++;
                         }
-                        else
-                        {
-                            block *bfalse = b->nthSucc(1);
-                            if (bfalse->BC == BCexit && !bfalse->Belem) // code that is not reachable
-                            {
-                                b->BC = BCgoto;
-                                list_subtract(&(b->Bsucc),bfalse);
-                                list_subtract(&(bfalse->Bpred),b);
-                                cmes("CHANGE: if (e) goto L1; else exit;\n");
-                                go.changes++;
-                            }
-                        }
                 }
                 else if (b->BC == BCswitch)
                 {       /* see we can evaluate this switch now  */
@@ -941,9 +929,9 @@ STATIC void bropt()
                                 continue;
                         assert(tyintegral(n->Ety));
                         targ_llong value = el_tolong(n);
-                        targ_llong* p = b->BS.Bswitch;      // ptr to switch data
-                        assert(p);
-                        unsigned ncases = *p++;          // # of cases
+                        targ_llong* pv = b->BS.Bswitch;      // ptr to switch data
+                        assert(pv);
+                        unsigned ncases = *pv++;          // # of cases
                         unsigned i = 1;                  // first case
                         while (1)
                         {
@@ -951,7 +939,7 @@ STATIC void bropt()
                                 {   i = 0;      /* select default       */
                                     break;
                                 }
-                                if (*p++ == value)
+                                if (*pv++ == value)
                                     break;      /* found it             */
                                 i++;            /* next case            */
                         }
@@ -960,8 +948,8 @@ STATIC void bropt()
                         /* delete predecessors of successors (!)        */
                         for (list_t bl = b->Bsucc; bl; bl = list_next(bl))
                             if (i--)            // if not ith successor
-                            {   void *p;
-                                p = list_subtract(
+                            {
+                                void *p = list_subtract(
                                     &(list_block(bl)->Bpred),b);
                                 assert(p == b);
                             }

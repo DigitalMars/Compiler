@@ -3,10 +3,9 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcv.c
  */
 
@@ -132,7 +131,7 @@ int cv_namestring(unsigned char *p, const char *name, int length)
         len += 4;
     }
     else
-    {   p[0] = len;
+    {   p[0] = (unsigned char)len;
         memcpy(p + 1,name,len);
         len++;
     }
@@ -148,9 +147,8 @@ int cv_namestring(unsigned char *p, const char *name, int length)
  */
 
 STATIC int cv_regnum(symbol *s)
-{   unsigned reg;
-
-    reg = s->Sreglsw;
+{
+    unsigned reg = s->Sreglsw;
 #if SCPP
     if (s->Sclass == SCpseudo)
     {
@@ -267,7 +265,7 @@ void debtyp_check(debtyp_t *d,int linnum)
  */
 
 idx_t cv_debtyp(debtyp_t *d)
-{   unsigned u;
+{
     unsigned short length;
     unsigned hashi;
 
@@ -316,11 +314,11 @@ idx_t cv_debtyp(debtyp_t *d)
         if (length >= sizeof(unsigned))
         {
             // Hash consists of the sum of the first 4 bytes with the last 4 bytes
-            union { unsigned char* cp; unsigned* up; } u;
-            u.cp = d->data;
-            hash += *u.up;
-            u.cp += length - sizeof(unsigned);
-            hash += *u.up;
+            union { unsigned char* cp; unsigned* up; } un;
+            un.cp = d->data;
+            hash += *un.up;
+            un.cp += length - sizeof(unsigned);
+            hash += *un.up;
         }
         hashi = hash % DEBTYPHASHDIM;
         hash %= DEBTYPVECDIM;
@@ -331,9 +329,9 @@ idx_t cv_debtyp(debtyp_t *d)
 //printf(" test");
 #if 1
             // Threaded list is much faster
-            for (u = debtyphash[hashi]; u; u = debtyp[u]->prev)
+            for (unsigned u = debtyphash[hashi]; u; u = debtyp[u]->prev)
 #else
-            for (u = debtyptop; u--; )
+            for (unsigned u = debtyptop; u--; )
 #endif
             {
                 if (length == debtyp[u]->length &&
@@ -1095,11 +1093,9 @@ printf("fwd struct ref\n");
     for (sl = st->Sfldlst; sl; sl = list_next(sl))
     {   symbol *sf = list_symbol(sl);
         targ_size_t offset;
-        char *id;
-        unsigned len;
 
         symbol_debug(sf);
-        id = sf->Sident;
+        char *sfid = sf->Sident;
         switch (sf->Sclass)
         {   case SCmember:
             case SCfield:
@@ -1110,7 +1106,7 @@ printf("fwd struct ref\n");
 #endif
                 {   offset = sf->Smemoff;
                     fnamelen += ((config.fulltypes == CV4) ? 6 : 8) +
-                                cv4_numericbytes(offset) + cv_stringbytes(id);
+                                cv4_numericbytes(offset) + cv_stringbytes(sfid);
                 }
                 break;
 #if SCPP
@@ -1118,19 +1114,19 @@ printf("fwd struct ref\n");
                 if (sf->Sstruct->Sflags & STRanonymous)
                     continue;
                 if (sf->Sstruct->Sflags & STRnotagname)
-                    id = cpp_name_none;
+                    sfid = cpp_name_none;
                 property |= 0x10;       // class contains nested classes
                 goto Lnest2;
 
             case SCenum:
                 if (sf->Senum->SEflags & SENnotagname)
-                    id = cpp_name_none;
+                    sfid = cpp_name_none;
                 goto Lnest2;
 
             case SCtypedef:
             Lnest2:
                 fnamelen += ((config.fulltypes == CV4) ? 4 : 8) +
-                            cv_stringbytes(id);
+                            cv_stringbytes(sfid);
                 break;
 
             case SCextern:
@@ -1160,10 +1156,10 @@ printf("fwd struct ref\n");
                     if (nfuncs > 1)
                         count += nfuncs - 1;
 
-                    id = cv4_prettyident(sf);
+                    sfid = cv4_prettyident(sf);
                 }
                 fnamelen += ((config.fulltypes == CV4) ? 6 : 8) +
-                            cv_stringbytes(id);
+                            cv_stringbytes(sfid);
                 break;
 #endif
             default:
@@ -1321,10 +1317,9 @@ printf("fwd struct ref\n");
     for (sl = s->Sstruct->Sfldlst; sl; sl = list_next(sl))
     {   symbol *sf = list_symbol(sl);
         targ_size_t offset;
-        char *id;
 
         symbol_debug(sf);
-        id = sf->Sident;
+        char *sfid = sf->Sident;
         switch (sf->Sclass)
         {   case SCfield:
             {   debtyp_t *db;
@@ -1385,19 +1380,19 @@ printf("fwd struct ref\n");
                 }
                 cv4_storenumeric(p,offset);
                 p += cv4_numericbytes(offset);
-                p += cv_namestring(p,id);
+                p += cv_namestring(p,sfid);
                 break;
 #if SCPP
             case SCstruct:
                 if (sf->Sstruct->Sflags & STRanonymous)
                     continue;
                 if (sf->Sstruct->Sflags & STRnotagname)
-                    id = cpp_name_none;
+                    sfid = cpp_name_none;
                 goto Lnest;
 
             case SCenum:
                 if (sf->Senum->SEflags & SENnotagname)
-                    id = cpp_name_none;
+                    sfid = cpp_name_none;
                 goto Lnest;
 
             case SCtypedef:
@@ -1413,7 +1408,7 @@ printf("fwd struct ref\n");
                     p += 8;
                 }
             L2:
-                p += cv_namestring(p,id);
+                p += cv_namestring(p,sfid);
                 break;
 
             case SCextern:
@@ -1430,7 +1425,7 @@ printf("fwd struct ref\n");
                     typidx = cv4_methodlist(sf,&count);
                     if (!typidx)
                         break;
-                    id = cv4_prettyident(sf);
+                    sfid = cv4_prettyident(sf);
                     TOWORD(p,LF_METHOD);
                     TOWORD(p + 2,count);
                     p += 4;
@@ -2053,7 +2048,6 @@ L1:
         {   param_t *p;
             unsigned nparam;
             idx_t paramidx;
-            unsigned u;
 
             call = cv4_callconv(t);
             paramidx = cv4_arglist(t,&nparam);
