@@ -3,10 +3,9 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.c
  */
 
@@ -437,7 +436,7 @@ void symbol_func(symbol *s)
     // Interrupt functions modify all registers
     // BUG: do interrupt functions really save BP?
     // Note that fregsaved may not be set yet
-    s->Sregsaved = (s->Stype && tybasic(s->Stype->Tty) == TYifunc) ? mBP : fregsaved;
+    s->Sregsaved = (s->Stype && tybasic(s->Stype->Tty) == TYifunc) ? (regm_t) mBP : fregsaved;
     s->Sseg = UNKNOWN;          // don't know what segment it is in
     if (!s->Sfunc)
         s->Sfunc = func_calloc();
