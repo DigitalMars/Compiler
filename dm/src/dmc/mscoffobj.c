@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 2009-2017 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/mscoffobj.c, backend/mscoffobj.c)
@@ -589,7 +589,7 @@ void build_syment_table(bool bigobj)
             aux.x_section.length = pseg->SDoffset;
 
         if (pseg->SDrel)
-            aux.x_section.NumberOfRelocations = pseg->SDrel->size() / sizeof(struct Relocation);
+            aux.x_section.NumberOfRelocations = (unsigned short)(pseg->SDrel->size() / sizeof(struct Relocation));
 
         if (psechdr->Characteristics & IMAGE_SCN_LNK_COMDAT)
         {
