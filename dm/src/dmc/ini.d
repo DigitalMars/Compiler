@@ -20,7 +20,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-import tk.filespec;
+import filespec;
 import tk.mem;
 
 extern (C++):

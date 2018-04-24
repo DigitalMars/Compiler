@@ -24,7 +24,7 @@ import dmd.backend.cdef;
 import dmd.backend.global;
 
 import dmd.backend.dlist;
-import tk.filespec;
+import filespec;
 import tk.mem;
 
 import msgs2;

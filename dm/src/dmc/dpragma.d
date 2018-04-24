@@ -28,7 +28,7 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import tk.filespec;
+import filespec;
 import dmd.backend.dlist;
 import tk.mem;
 

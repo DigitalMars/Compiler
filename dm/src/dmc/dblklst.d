@@ -30,7 +30,7 @@ import dmd.backend.cc;
 import dmd.backend.global;
 import dmd.backend.outbuf;
 
-import tk.filespec;
+import filespec;
 import dmd.backend.dlist;
 import tk.mem;
 

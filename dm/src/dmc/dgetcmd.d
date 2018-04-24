@@ -31,7 +31,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.dlist;
-import tk.filespec;
+import filespec;
 import tk.mem;
 
 import dtoken;

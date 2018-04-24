@@ -28,7 +28,7 @@ import dmd.backend.global;
 import dmd.backend.outbuf;
 
 import dmd.backend.dlist;
-import tk.filespec;
+import filespec;
 import tk.mem;
 
 import html;
