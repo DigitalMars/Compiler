@@ -1,3 +1,4 @@
+#if 0
 /*_ filespec.c   Mon Jul  3 1989   Modified by: Walter Bright */
 /* Copyright (C) 1986-1987 by Northwest Software        */
 /* All Rights Reserved                                  */
@@ -51,7 +52,8 @@
 
 /**********************/
 
-char * filespecaddpath(const char *path,const char *filename)
+#if 0
+char * filespecaddpath(const char *path,const char *filename);
 {   char *filespec;
     size_t pathlen;
 
@@ -82,9 +84,11 @@ char * filespecaddpath(const char *path,const char *filename)
     }
     return filespec;
 }
+#endif
 
 #ifndef MPW
 /**********************/
+#if 0
 char * filespecrootpath(char *filespec)
 {
 #if SUN || M_UNIX || M_XENIX || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
@@ -190,9 +194,11 @@ char * filespecrootpath(char *filespec)
 #endif
 }
 #endif
+#endif
 
 /**********************/
 
+#if 0
 char * filespecdotext(const char *filespec)
 {   const char *p;
     size_t len;
@@ -211,9 +217,11 @@ char * filespecdotext(const char *filespec)
     }
     return (char *)p;
 }
+#endif
 
 /**********************/
 
+#if 0
 char * filespecname(const char *filespec)
 {   register const char *p;
 
@@ -226,9 +234,11 @@ char * filespecname(const char *filespec)
             ;
     return (char *)p;
 }
+#endif
 
 /***********************/
 
+#if 0
 char * filespecgetroot(const char *name)
 {       char *root,*p,c;
 
@@ -239,9 +249,11 @@ char * filespecgetroot(const char *name)
         *p = c;
         return root;
 }
+#endif
 
 /*****************************/
 
+#if 0
 char * filespecforceext(const char *filespec,const char *ext)
 {   register char *p;
     register const char *pext;
@@ -264,9 +276,11 @@ char * filespecforceext(const char *filespec,const char *ext)
     }
     return p;
 }
+#endif
 
 /*****************************/
 
+#if 0
 char * filespecdefaultext(const char *filespec,const char *ext)
 {       register char *p;
         register const char *pext;
@@ -288,6 +302,7 @@ char * filespecdefaultext(const char *filespec,const char *ext)
         }
         return p;
 }
+#endif
 
 /************************************/
 
@@ -421,4 +436,5 @@ char * filespecbackup(const char *filespec)
     return f;
 #endif
 }
+#endif
 #endif
