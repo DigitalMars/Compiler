@@ -3,22 +3,22 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/code.d, backend/_code.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code.d, backend/_code.d)
  */
 
-module ddmd.backend.code;
+module dmd.backend.code;
 
-// Online documentation: https://dlang.org/phobos/ddmd_backend_code.html
+// Online documentation: https://dlang.org/phobos/dmd_backend_code.html
 
-import ddmd.backend.cc;
-import ddmd.backend.cdef;
-import ddmd.backend.code_x86;
-import ddmd.backend.el;
-import ddmd.backend.outbuf;
-import ddmd.backend.type;
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.code_x86;
+import dmd.backend.el : elem;
+import dmd.backend.outbuf;
+import dmd.backend.type;
 
 extern (C++):
 
