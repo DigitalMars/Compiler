@@ -13,6 +13,7 @@
 
 DMCDIR=\dm
 DMDDIR=e:\dmd2.074
+#DMDDIR=e:\dmd2.079
 
 CBX=.
 NTDLLSHELL=ntdllshell

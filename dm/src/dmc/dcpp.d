@@ -3184,7 +3184,6 @@ private Symbol * cpp_findmemberx(Classsym *sclass,const(char)* sident,
                     else if (c1dominatesc2(sclass,sc,sctmp))
                     {   /* s dominates stmp     */
                         //printf("\t2: %s dominates %s\n", sc.Sident, sctmp.Sident);
-                        ;
                     }
                     else
                         err_ambiguous(s,stmp);  /* ambiguous reference to s */

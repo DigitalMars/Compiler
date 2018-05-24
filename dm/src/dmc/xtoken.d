@@ -2862,7 +2862,7 @@ uint comphash(const(char)* p)
 {       int idlen;
 
         idlen = strlen(p);
-        return (((*p << 8) + idlen) << 8) + (p[idlen - 1] & 0xFF);;
+        return (((*p << 8) + idlen) << 8) + (p[idlen - 1] & 0xFF);
 }
 
 /**************************************
@@ -2882,7 +2882,7 @@ private enum_TK innum()
     /* We use a state machine to collect numbers        */
     enum { STATE_initial, STATE_0, STATE_decimal, STATE_octal, STATE_octale,
         STATE_hex, STATE_binary, STATE_hex0, STATE_binary0,
-        STATE_hexh, STATE_error };
+        STATE_hexh, STATE_error }
     int state;
 
     enum

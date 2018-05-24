@@ -177,9 +177,7 @@ typedef struct Symbol Classsym;
 typedef struct Symbol Nspacesym;
 typedef Symbol Funcsym;
 struct elem;
-#if !MARS
 typedef struct MACRO macro_t;
-#endif
 typedef list_t symlist_t;       /* list of pointers to Symbols          */
 struct symtab_t;
 struct code;

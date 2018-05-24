@@ -21,8 +21,9 @@ import core.stdc.stdint;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
-import dmd.backend.cc : Symbol, block, Classsym, Blockx, code;
+import dmd.backend.cc : Symbol, block, Classsym, Blockx;
 import dmd.backend.code;
+import dmd.backend.code_x86 : code;
 import dmd.backend.el;
 import dmd.backend.el : elem;
 import dmd.backend.type;

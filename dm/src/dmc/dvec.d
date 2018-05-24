@@ -2,12 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Simple bit vector implementation.
+ *
  * Copyright:   Copyright (c) 2013-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dvec.d, backend/dvec.d)
  */
 
+module dvec;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -27,9 +30,9 @@ enum VECBITS = vec_base_t.sizeof * 8;        // # of bits per entry
 enum VECMASK = VECBITS - 1;                  // mask for bit position
 enum VECSHIFT = (VECBITS == 16) ? 4 : (VECBITS == 32 ? 5 : 6);   // # of bits in VECMASK
 
-static assert(vec_base_t.sizeof==2 && VECSHIFT==4 ||
-              vec_base_t.sizeof==4 && VECSHIFT==5 ||
-              vec_base_t.sizeof==8 && VECSHIFT==6);
+static assert(vec_base_t.sizeof == 2 && VECSHIFT == 4 ||
+              vec_base_t.sizeof == 4 && VECSHIFT == 5 ||
+              vec_base_t.sizeof == 8 && VECSHIFT == 6);
 
 struct VecGlobal
 {
@@ -504,7 +507,8 @@ pure
 void vec_set(vec_t v)
 {
     if (v)
-    {   memset(v, ~0, v[0].sizeof * vec_dim(v));
+    {
+        memset(v, ~0, v[0].sizeof * vec_dim(v));
         vec_clearextrabits(v);
     }
 }
@@ -568,7 +572,7 @@ void vec_clearextrabits(vec_t v)
     assert(v);
     const n = vec_numbits(v);
     if (n & VECMASK)
-        v[vec_dim(v) - 1] &= MASK(n) - 1;
+        v[vec_dim(v) - 1] &= MASK(cast(uint)n) - 1;
 }
 
 /******************

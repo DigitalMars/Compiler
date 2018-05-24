@@ -436,7 +436,6 @@ private void initializer(Symbol *s)
                     (!stag.Sstruct.Sctor ||
                      stag.Sstruct.Sctor.Sfunc.Fflags & Fgen))
                 {
-                    ;
                 }
                 else
                 {

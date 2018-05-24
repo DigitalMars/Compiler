@@ -2257,7 +2257,7 @@ type *declar(type *t,char *vident,int flag)
          */
         alias modifier = int;
         enum { mTYhandle = 1, mTY_ss = 2, mTY_far16 = 8,
-                        mTYhuge = 0x10 };
+                        mTYhuge = 0x10 }
 
         //tok.print();
         switch (tok.TKval)
@@ -4945,7 +4945,7 @@ static if (TARGET_WINDOS)
                         tfn.Ttag != sclass &&
                         n2_searchmember(tfn.Ttag,"?C"))  // should be OParrow from newman.c
                     {
-                            ;           /* object of a class with .    */
+                        // object of a class with .
                     }
                     else if (sclass && sclass.Sstruct.Stempsym)
                     {
