@@ -1,12 +1,12 @@
-##Source Code to the Digital Mars C and C++ compilers.
+## Source Code to the Digital Mars C and C++ compilers.
 
 http://www.digitalmars.com
 
-#Running the compiler:
+# Running the compiler:
 
 https://digitalmars.com/ctg/sc.html
 
-#Building the compiler:
+# Building the compiler:
 
 1. Download and install Digital Mars C++ compiler from https://www.digitalmars.com/download/freecompiler.html
 2. Download and install DMD 2.074.1 from http://downloads.dlang.org/releases/2017/
