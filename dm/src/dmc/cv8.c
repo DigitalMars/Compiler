@@ -179,8 +179,8 @@ void cv8_termfile(const char *objfilename)
 
     int seg = MsCoffObj::seg_debugS();
 
-    unsigned v = 4;
-    objmod->bytes(seg,0,4,&v);
+    const unsigned value = 4;
+    objmod->bytes(seg,0,4,&value);
 
     /* Start with starting symbol in separate "F1" section
      */
