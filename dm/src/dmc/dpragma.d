@@ -2290,7 +2290,7 @@ else
         "user"
     ];
 
-    enum PRC { PRC_compiler,PRC_exestr,PRC_lib,PRC_linker,PRC_user };
+    enum PRC { PRC_compiler,PRC_exestr,PRC_lib,PRC_linker,PRC_user }
 
     char *p;
     targ_size_t len;
@@ -2580,7 +2580,7 @@ enum
             PRXtrace,
             PRXwarning,
             PRXMAX
-        };
+        }
 
         __gshared const(char)*[PRX.PRXMAX] table =
         [
@@ -2919,7 +2919,7 @@ version (Windows)
                         "system",
                     ];
                     enum PRL { PRL_cdecl,PRL_pascal,PRLcdecl,PRLfar16,
-                                PRLpascal,PRLsystem };
+                                PRLpascal,PRLsystem }
                     PRL prl;
                     uint tym;
                     mangle_t mangle;
@@ -3850,7 +3850,7 @@ debug
 static if (0)       // inlined for speed
             hash = comphash(p);
 else
-            hash = (((cast(int)c << 8) + len) << 8) + (p[len - 1] & 0xFF);;
+            hash = (((cast(int)c << 8) + len) << 8) + (p[len - 1] & 0xFF);
 
 
             mp = &mactabroot[hashtoidx(hash)];  /* parent of root       */
