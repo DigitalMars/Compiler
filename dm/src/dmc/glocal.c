@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1993-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/glocal.c, backend/glocal.c)
@@ -355,6 +355,11 @@ Loop:
                                   * core.simd intrinsics. The backend type for void16 is Tschar16!
                                   */
                                  (tyvector(em->Ety) != 0) == (tyvector(e->Ety) != 0) && tybasic(e->Ety) == TYschar16) &&
+                                /* Changing the Ety to a OPvecfill node means we're potentially generating
+                                 * wrong code.
+                                 * Ref: https://issues.dlang.org/show_bug.cgi?id=18034
+                                 */
+                                (em->E2->Eoper != OPvecfill || tybasic(e->Ety) == tybasic(em->Ety)) &&
                                 !local_preserveAssignmentTo(em->E1->Ety))
                             {
 #ifdef DEBUG
