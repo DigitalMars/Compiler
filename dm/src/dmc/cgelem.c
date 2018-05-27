@@ -1392,6 +1392,7 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             ELCONST(e1->E1,1) &&
             (((e12 = e1->E2)->Eoper == OP64_32 ? (e12 = e12->E1) : e12)->Eoper == OPand) &&
             ELCONST(e12->E2,sz * 8 - 1) &&
+            tysize(e12->Ety) <= sz &&
 
             e2->Eoper == OPind &&
             e2->E1->Eoper == OPadd &&
@@ -3579,7 +3580,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
             !el_appears(e2, e1->EV.sp.Vsym)
            )
         {
-            //printf("** before:\n"); WReqn(e); printf("\n");
+            // printf("** before:\n"); elem_print(e); printf("\n");
             tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
             if (tyfloating(e1->Ety) && REGSIZE >= 4)
                 ty = (REGSIZE == 8) ? TYdouble : TYfloat;
@@ -3606,7 +3607,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
             }
 
             e2->Eoper = OPcomma;
-            //printf("** after:\n"); WReqn(e2); printf("\n");
+            // printf("** after:\n"); elem_print(e2); printf("\n");
             return optelem(e2,goal);
         }
 
