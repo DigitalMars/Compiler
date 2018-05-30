@@ -1,98 +1,116 @@
-/*_ make.c   */
-/* Copyright (C) 1985-2012 by Walter Bright     */
+/*_ make.d   */
+/* Copyright (C) 1985-2018 by Walter Bright     */
 /* All rights reserved                          */
 /* Written by Walter Bright                     */
-/* $Header$ */
 
 /*
  * To build for Win32:
- *      dmc make tinyheap man -o
+ *      dmd dmake dman -O -release -inline
  */
 
-#include        <stdio.h>
-#include        <ctype.h>
-#include        <time.h>
-#include        <sys/stat.h>
-#include        <string.h>
-#include        <stdlib.h>
-#include        <process.h>
-#include        <dos.h>
-#include        <direct.h>
-#include        <stdbool.h>
+import core.stdc.ctype;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.stdc.time;
+import core.sys.windows.stat;
+//import core.stdc.process;
+//import core.stdc.direct;
 
-#if _WIN32
-#include        <windows.h>
-#endif
+version (Windows)
+{
+    import core.sys.windows.windows;
+}
 
-#ifdef DEBUG
-#define debug1(a)       printf(a)
-#define debug2(a,b)     printf(a,b)
-#define debug3(a,b,c)   printf(a,b,c)
-#else
-#define debug1(a)
-#define debug2(a,b)
-#define debug3(a,b,c)
-#endif
+import man;
 
-#define TRUE    1
-#define FALSE   0
+extern (C):
 
-#define ESC     '!'             /* our escape character                 */
+int stricmp(const(char)*, const(char)*) pure nothrow @nogc;
+extern (Pascal) int response_expand(int*, char ***);
+int chdir(const char *);
+int putenv(const char *);
+int spawnlp(int, const char*, const char *, ...);
+int utime(const char *, time_t*);
 
-#define NEWOBJ(type)    ((type *) mem_calloc(sizeof(type)))
-#define arraysize(array)        (sizeof(array) / sizeof(array[0]))
+struct Stat
+{
+  align (2):
+    short       st_dev;
+    ushort      st_ino;
+    ushort st_mode;
+    short       st_nlink;
+    ushort      st_uid;
+    ushort      st_gid;
+    short       st_rdev;
+    short       dummy;                  /* for alignment                */
+    int st_size;
+    int st_atime;
+    int st_mtime;
+    int st_ctime;
+}
+int stat(const(char)*, Stat*);
 
-#if __SC__ && !__NT__
-int _okbigbuf = 0;              /* disallow big file buffers, in order  */
-                                /* to make the in-memory size of make   */
-                                /* as small as possible                 */
-unsigned __cdecl _stack = 20000;        // set default stack size
-#endif
+struct FINDA
+{
+  align (1):
+    char[21] reserved;
+    char attribute;
+    ushort time,date;
+    uint size;
+    char[260] name;
+}
+FINDA* findfirst(const char*, int);
+FINDA* findnext();
 
-void browse(const char *url);
+enum ESC =      '!';            // our escape character
+
+type* NEWOBJ(type)() { return cast(type*) mem_calloc(type.sizeof); }
+
 
 /* File name comparison is case-insensitive on some systems     */
-#if MSDOS || __OS2__ || __NT__
-#define filenamecmp(s1,s2)      stricmp((s1),(s2))
-#else
-#define filenamecmp(s1,s2)      strcmp((s1),(s2))
-#endif
+
+version (Windows)
+    int filenamecmp(const(char)* s1, const(char)* s2) { return stricmp(s1, s2); }
+else
+    int filenamecmp(const(char)* s1, const(char)* s2) { return strcmp(s1, s2); }
+
 
 /* Length of command line
  */
 
-int CMDLINELEN;
+__gshared int CMDLINELEN;
 void set_CMDLINELEN();
 
-#if MSDOS
-#define EXTMAX  3
-#else
-#define EXTMAX  5
-#endif
+enum EXTMAX = 5;
 
 
 /*************************
  * List of macro names and replacement text.
  *      name    macro name
- *      perm    if TRUE, then macro cannot be replaced
+ *      perm    if true, then macro cannot be replaced
  *      text    replacement text
  *      next    next macro in list
  */
 
-typedef struct MACRO
-        {       char *name,*text;
-                int perm;
-                struct MACRO *next;
-        } macro;
+struct MACRO
+{
+    char* name,text;
+    int perm;
+    MACRO *next;
+}
 
 /*************************
  * List of files
  */
 
-typedef struct FILELIST
-        {       struct FILENODE *fnode;
-                struct FILELIST *next;
-        } filelist;
+struct FILELIST
+{
+    FILENODE *fnode;
+    FILELIST *next;
+}
+
+alias filelist = FILELIST;
 
 /*************************
  * File node.
@@ -107,15 +125,19 @@ typedef struct FILELIST
  *      next            next file node in list
  */
 
-typedef struct FILENODE
-        {       char            *name,genext[EXTMAX+1];
-                char            dblcln;
-                char            expanding;
-                time_t          time;
-                filelist        *dep;
-                struct RULE     *frule;
-                struct FILENODE *next;
-        } filenode;
+struct FILENODE
+{
+        char            *name;
+        char[EXTMAX+1]  genext;
+        char            dblcln;
+        char            expanding;
+        time_t          time;
+        filelist        *dep;
+        RULE            *frule;
+        FILENODE        *next;
+}
+
+alias filenode = FILENODE;
 
 /*************************
  * Implicit rule.
@@ -125,133 +147,97 @@ typedef struct FILENODE
  *      next            next in list
  */
 
-typedef struct IMPLICIT
-        {       char            fromext[EXTMAX+1],toext[EXTMAX+1];
-                struct RULE     *grule;
-                struct IMPLICIT *next;
-        } implicit;
+struct IMPLICIT
+{
+        char[EXTMAX+1]  fromext;
+        char[EXTMAX+1]  toext;
+        RULE            *grule;
+        IMPLICIT        *next;
+}
+
+alias implicit = IMPLICIT;
 
 /*************************
  * Make rules.
  * Multiple people can point to one instance of this.
  *      count           # of parents of this
- *      gener           TRUE if this is an implicit rule
+ *      gener           true if this is an implicit rule
  *      rulelist        list of rules
  */
 
-typedef struct RULE
-        {       int count;
-                int gener;
-                struct LINELIST *rulelist;
-        } rule;
+struct RULE
+{
+        int count;
+        int gener;
+        LINELIST *rulelist;
+}
+
+alias rule = RULE;
 
 /*************************
  * List of lines
  */
 
-typedef struct LINELIST
-        {       char *line;
-                struct LINELIST *next;
-        } linelist;
+struct LINELIST
+{
+        char *line;
+        LINELIST *next;
+}
+
+alias linelist = LINELIST;
 
 /********************** Global Variables *******************/
 
-static ignore_errors = FALSE;   /* if TRUE then ignore errors from rules */
-static execute = TRUE;          /* if FALSE then rules aren't executed  */
-static gag = FALSE;             /* if TRUE then don't echo commands     */
-static touchem = FALSE;         /* if TRUE then just touch targets      */
-static debug = FALSE;           /* if TRUE then output debugging info   */
-static list_lines = FALSE;      /* if TRUE then show expanded lines     */
-static usebuiltin = TRUE;       /* if TRUE then use builtin rules       */
-static print = FALSE;           /* if TRUE then print complete set of   */
-                                /* macro definitions and target desc.   */
-static question = FALSE;        /* exit(0) if file is up to date,       */
-                                /* else exit(1)                         */
-static action = FALSE;          /* 1 if rules were executed             */
-char *makefile = "makefile";    /* default makefile                     */
+__gshared
+{
+    bool ignore_errors = false;         /* if true then ignore errors from rules */
+    bool execute = true;                /* if false then rules aren't executed  */
+    bool gag = false;                   /* if true then don't echo commands     */
+    bool touchem = false;               /* if true then just touch targets      */
+    bool xdebug = false;                /* if true then output debugging info   */
+    bool list_lines = false;            /* if true then show expanded lines     */
+    bool usebuiltin = true;             /* if true then use builtin rules       */
+    bool print = false;                 /* if true then print complete set of   */
+                                        /* macro definitions and target desc.   */
+    bool question = false;              /* exit(0) if file is up to date,       */
+                                        /* else exit(1)                         */
+    bool action = false;                /* 1 if rules were executed             */
+    const(char)* makefile = "makefile"; /* default makefile                     */
 
-static filenode *filenodestart = NULL;  /* list of all files            */
-static filelist *targlist = NULL;       /* main target list             */
-static implicit  *implicitstart = NULL; /* list of implicits            */
-static macro *macrostart = NULL;        /* list of macros               */
+    filenode *filenodestart = null;     /* list of all files            */
+    filelist *targlist = null;          /* main target list             */
+    implicit  *implicitstart = null;    /* list of implicits            */
+    MACRO *macrostart = null;           /* list of macros               */
 
-static filenode *dotdefault = NULL;     /* .DEFAULT rule                */
+    filenode *dotdefault = null;        /* .DEFAULT rule                */
 
-static char *buf = NULL;        /* input line buffer                    */
-static int bufmax = 0;          /* max size of line buffer              */
-static int curline = 0;         /* makefile line counter                */
+    char *buf = null;                   /* input line buffer                    */
+    int bufmax = 0;                     /* max size of line buffer              */
+    int curline = 0;                    /* makefile line counter                */
 
-static int inreadmakefile = 0;  /* if reading makefile                  */
-static int newcnt = 0;          /* # of new'ed items                    */
-
-#if 1
-#define mem_init()
-void *mem_realloc ( void *oldbuf , unsigned newbufsize );
-char *mem_strdup ( const char *s );
-void *mem_calloc ( unsigned size );
-void mem_free ( void *p );
-#endif
-
-int doswitch (char *p );
-void cmderr(char *format,...);
-void faterr (char *format ,...);
-time_t getsystemtime ( void );
-void setsystemtime ( time_t datetime );
-time_t gettimex ( char *name );
-time_t touch ( char *name );
-linelist **readmakefile ( char *makefile , linelist **rl );
-void addmacro ( char *name , char *text , int perm );
-linelist **targetline ( char *p );
-int isimplicit ( char *p );
-linelist **addimplicit ( char *p );
-int readline ( FILE *f );
-void addtofilelist ( char *filename , filelist **pflist );
-filenode *findfile ( char *filename , int install );
-char *expandline ( char *buf );
-char *searchformacro ( char *name );
-char *skipspace ( char *p );
-char *skipname ( char *p );
-char *filespecdotext ( char *p );
-int isfchar ( int c );
-int ispchar ( int c );
-char *filespecforceext ( char *name , char *ext );
-char *filespecgetroot ( char *name );
-int do_implicits ( void );
-int make ( filenode *f );
-int dorules ( filenode *f );
-void executerule ( char *p );
-void freemacro ( void );
-void freefilelist ( filelist *fl );
-int freeimplicits ( void );
-void freefilenode ( filenode *f );
-void freerule ( rule *r );
-void WRmacro ( macro *m );
-void WRmacrolist ( void );
-void WRlinelist ( linelist *l );
-void WRrule ( rule *r );
-void WRimplicit ( void );
-void WRfilenode ( filenode *f );
-void WRfilelist ( filelist *fl );
-void WRfilenodelist ( filenode *fn );
+    int inreadmakefile = 0;             /* if reading makefile                  */
+    int newcnt = 0;                     /* # of new'ed items                    */
+}
 
 /***********************
  */
 
-_WILDCARDS;                     /* do wildcard expansion        */
+//_WILDCARDS;                   /* do wildcard expansion        */
 
-int cdecl main(int argc,char *argv[])
+int main(int argc,char** argv)
 {
     char *p;
     filelist *t;
     int i;
 
-    mem_init();
+    //mem_init();
     set_CMDLINELEN();
 
     /* Process switches from MAKEFLAGS environment variable     */
     p = getenv("MAKEFLAGS");
     if (p)
-    {   char *p1,*p2,c;
+    {   char* p1,p2;
+        char c;
 
         /* Create our own copy since we can't modify environment */
         p = mem_strdup(p);
@@ -272,35 +258,37 @@ int cdecl main(int argc,char *argv[])
     }
 
     if (response_expand(&argc,&argv))
-        cmderr("can't expand response file\n");
+        cmderr("can't expand response file\n", null);
 
     for (i = 1; i < argc; i++)          /* loop through arguments */
         doswitch(argv[i]);
 
-    addmacro("**","$**",FALSE);
-    addmacro("?","$?",FALSE);
-    addmacro("*","$*",FALSE);
-    addmacro("$","$$",FALSE);
-    addmacro("@","$@",FALSE);
-    addmacro("<","$<",FALSE);   /* so they expand safely        */
+    addmacro("**","$**",false);
+    addmacro("?","$?",false);
+    addmacro("*","$*",false);
+    addmacro("$","$$",false);
+    addmacro("@","$@",false);
+    addmacro("<","$<",false);   /* so they expand safely        */
 
-    readmakefile(makefile,NULL);
+    readmakefile(makefile,null);
     do_implicits();
 
-#ifdef DEBUG
-    printf("***** FILES ******\n"); WRfilenodelist(filenodestart);
-    printf("***** IMPLICITS *****\n"); WRimplicit();
-    printf("***** TARGETS *****\n"); WRfilelist(targlist);
-#endif
+    debug
+    {
+        printf("***** FILES ******\n"); WRfilenodelist(filenodestart);
+        printf("***** IMPLICITS *****\n"); WRimplicit();
+        printf("***** TARGETS *****\n"); WRfilelist(targlist);
+    }
 
-        /* Build each target    */
-    for (t = targlist; t; t = t->next)
-        if (t->fnode != dotdefault && !make(t->fnode))
+    /* Build each target        */
+    for (t = targlist; t; t = t.next)
+        if (t.fnode != dotdefault && !make(t.fnode))
         {   if (!question)
-                printf("Target '%s' is up to date\n",t->fnode->name);
+                printf("Target '%s' is up to date\n",t.fnode.name);
         }
 
-#if TERMCODE
+    version (TERMCODE)
+    {
     /* Free everything up       */
     mem_free(p);
     mem_free(buf);
@@ -311,7 +299,7 @@ int cdecl main(int argc,char *argv[])
     mem_term();
     if (newcnt)
         printf("newcnt = %d\n",newcnt);
-#endif
+    }
     if (question)
         exit(action);
     return EXIT_SUCCESS;
@@ -321,8 +309,7 @@ int cdecl main(int argc,char *argv[])
  * Process switch p.
  */
 
-doswitch(p)
-char *p;
+void doswitch(char* p)
 {
     if (*makefile == 0)
         /* Could have "-f filename"             */
@@ -332,16 +319,16 @@ char *p;
         switch (tolower(*p))
         {
             case 'd':
-                debug = TRUE;
+                xdebug = true;
                 break;
             case 'f':
                 makefile = ++p;
                 break;
             case 'i':
-                ignore_errors = TRUE;
+                ignore_errors = true;
                 break;
             case 'l':
-                list_lines = TRUE;
+                list_lines = true;
                 break;
             case 'm':
                 if (p[1] == 'a' && p[2] == 'n' && p[3] == 0)
@@ -349,23 +336,25 @@ char *p;
                     browse("http://www.digitalmars.com/ctg/make.html");
                     exit(EXIT_SUCCESS);
                 }
+                execute = false;
+                break;
             case 'n':
-                execute = FALSE;
+                execute = false;
                 break;
             case 'p':
-                print = TRUE;
+                print = true;
                 break;
             case 'q':
-                question = TRUE;
+                question = true;
                 break;
             case 'r':
-                usebuiltin = FALSE;
+                usebuiltin = false;
                 break;
             case 's':
-                gag = TRUE;
+                gag = true;
                 break;
             case 't':
-                touchem = TRUE;
+                touchem = true;
                 break;
             default:
                 cmderr("undefined switch '%s'\n",--p);
@@ -379,7 +368,7 @@ char *p;
         {   if (p == text)
                 cmderr("bad macro definition '%s'\n",p);
             *text = 0;
-            addmacro(p,text + 1,TRUE);
+            addmacro(p,text + 1,true);
         }
         else
             addtofilelist(p,&targlist);
@@ -390,39 +379,38 @@ char *p;
  * Process command line error.
  */
 
-void cmderr(format,arg)
-char *format,*arg;
+void cmderr(const char* format, const char* arg)
 {
-    printf("\
-Digital Mars Make Version 5.06\n\
-Copyright (C) Digital Mars 1985-2012.  All Rights Reserved.\n\
-Written by Walter Bright  digitalmars.com\n\
-Documentation: http://www.digitalmars.com/ctg/make.html\n\
-\n\
-        MAKE [-man] {target} {macro=text} {-dilnqst} [-fmakefile] {@file}\n\
-\n\
-@file   Get command args from environment or file\n\
-target  What targets to make        macro=text  Define macro to be text\n\
--d      Output debugging info       -ffile      Use file instead of makefile\n\
--f-     Read makefile from stdin    -i  Ignore errors from executing make rules\n\
--l      List macro expansions       -n  Just echo rules that would be executed\n\
--q      If rules would be executed  -s  Do not echo make rules\n\
-        then exit with errorlevel 1 -t  Just touch files\n\
--man    manual\n\
-\n\
-Predefined macros:\n\
-        $$      Expand to $\n\
-        $@      Full target name\n\
-        $?      List of dependencies that are newer than target\n\
-        $**     Full list of dependencies\n\
-        $*      Name of current target without extension\n\
-        $<      From name of current target, if made using an implicit rule\n\
-Rule flags:\n\
-        +       Force use of COMMAND.COM to execute rule\n\
-        -       Ignore exit status\n\
-        @       Do not echo rule\n\
-        *       Can handle environment response files\n\
-        ~       Force use of environment response file\
+    printf(
+"Digital Mars Make Version 6.00
+Copyright (C) Digital Mars 1985-2018.  All Rights Reserved.
+Written by Walter Bright  digitalmars.com
+Documentation: http://www.digitalmars.com/ctg/make.html
+
+        MAKE [-man] {target} {macro=text} {-dilnqst} [-fmakefile] {@file}
+
+@file   Get command args from environment or file
+target  What targets to make        macro=text  Define macro to be text
+-d      Output debugging info       -ffile      Use file instead of makefile
+-f-     Read makefile from stdin    -i  Ignore errors from executing make rules
+-l      List macro expansions       -n  Just echo rules that would be executed
+-q      If rules would be executed  -s  Do not echo make rules
+        then exit with errorlevel 1 -t  Just touch files
+-man    manual
+
+Predefined macros:
+        $$      Expand to $
+        $@      Full target name
+        $?      List of dependencies that are newer than target
+        $**     Full list of dependencies
+        $*      Name of current target without extension
+        $<      From name of current target, if made using an implicit rule
+Rule flags:
+        +       Force use of COMMAND.COM to execute rule
+        -       Ignore exit status
+        @       Do not echo rule
+        *       Can handle environment response files
+        ~       Force use of environment response file
 ");
     printf("\nCommand error: ");
     printf(format,arg);
@@ -433,8 +421,7 @@ Rule flags:\n\
  * Fatal error.
  */
 
-void faterr(format,arg)
-char *format,*arg;
+void faterr(const char* format, const char* arg = null)
 {
     if (inreadmakefile)
         printf("Error on line %d: ",curline);
@@ -452,26 +439,28 @@ char *format,*arg;
 time_t getsystemtime()
 {   time_t t;
 
-#if __NT__
+version (Windows)
+{
     time(&t);
 
     /* FAT systems get their file times rounded up to a 2 second
        boundary. So we round up system time to match.
      */
     return (t + 2) & ~1;
-#else
+}
+else
+{
     return time(&t);
-#endif
+}
 }
 
 /***************************
  * Set system time.
  */
 
-void setsystemtime(datetime)
-time_t datetime;
+void setsystemtime(time_t datetime)
 {
-#if 0
+/+
     union REGS inregs, outregs;
     unsigned date,time;
 
@@ -489,7 +478,7 @@ time_t datetime;
     inregs.h.cl = (time >> 5) & 0x3F;
     inregs.h.ch = time >> 11;
     intdos(&inregs,&outregs);
-#endif
++/
 }
 
 /********************************
@@ -497,76 +486,39 @@ time_t datetime;
  * Return 1L if file doesn't exist.
  */
 
-#if MSDOS
-/* Swiped from stat.c */
-static time_t near pascal _filetime(unsigned date,unsigned time)
-{       time_t t;
-        unsigned dd,mm,yy;
-        static signed char adjust[12] =
-        /*  J  F  M  A  M  J  J  A  S  O  N  D */
-        /* 31 28 31 30 31 30 31 31 30 31 30 31 */
-        {   0, 1,-1, 0, 0, 1, 1, 2, 3, 3, 4, 4 };
-
-        /* Convert time to seconds since midnight       */
-        t = ((time & 0x1F) * 2 +                        /* 2-second increments */
-                ((time >> 5) & 0x3F) * 60) +            /* minutes      */
-            (time_t) ((time >> 11) & 0x1F) * 3600;      /* hours        */
-        /* Convert date to days since Jan 1, 1980       */
-        dd = date & 0x1F;                       /* 1..31                */
-        mm = ((date >> 5) & 0x0F) - 1;          /* 0..11                */
-        yy = (date >> 9) & 0x7F;                /* 0..119 (1980-2099)   */
-        date = dd + yy * 365 + mm * 30 + adjust[mm] +
-                ((yy + 3) >> 2); /* add day for each previous leap year */
-        if (mm <= 1 || yy & 3)                  /* if not a leap year   */
-                date--;
-
-        /* Combine date and time to get seconds since Jan 1, 1970       */
-        return t + (time_t) date * (time_t) (60*60*24L) + TIMEOFFSET;
-}
-#endif
-
-time_t gettimex(name)
-char *name;
+time_t gettimex(char* name)
 {   time_t datetime;
     time_t systemtime;
 
-#if MSDOS
-    struct FIND *find;
-
-    find = findfirst(name,FA_DIREC | FA_SYSTEM | FA_HIDDEN);
-    if (!find)
-        return 1L;
-    datetime = _filetime(find->date,find->time);
-#else
-    struct stat st;
+    Stat st;
 
     if (stat(name,&st) == -1)
         return 1L;
     datetime = st.st_mtime;
-#endif
 
-    debug2("Returning x%lx\n",datetime);
+    debug printf("Returning x%lx\n",datetime);
     systemtime = getsystemtime();
     if (datetime > systemtime)
-#if 1
     {
-        printf("File '%s' is newer than system time.\n",name);
-        printf("File time = %ld, system time = %ld\n",datetime,systemtime);
-        printf("File time = '%s'\n",ctime(&datetime));
-        printf("Sys  time = '%s'\n",ctime(&systemtime));
-    }
-#else
-    {   char c;
+        static if (1)
+        {
+            printf("File '%s' is newer than system time.\n",name);
+            printf("File time = %ld, system time = %ld\n",datetime,systemtime);
+            printf("File time = '%s'\n",ctime(&datetime));
+            printf("Sys  time = '%s'\n",ctime(&systemtime));
+        }
+        else
+        {   char c;
 
-        printf("File '%s' is newer than system time. Fix system time (Y/N)? ",
-                name);
-        fflush(stdout);
-        c = bdos(1);
-        if (c == 'y' || c == 'Y')
+            printf("File '%s' is newer than system time. Fix system time (Y/N)? ",
+                    name);
+            fflush(stdout);
+            c = bdos(1);
+            if (c == 'y' || c == 'Y')
                 setsystemtime(datetime);
-        fputc('\n',stdout);
+            fputc('\n',stdout);
+        }
     }
-#endif
     return datetime;
 }
 
@@ -576,13 +528,13 @@ char *name;
  *      Time that was given to the file.
  */
 
-time_t touch(name)
-char *name;
-{   time_t timep[2];
+time_t touch(char* name)
+{
+    time_t[2] timep = void;
 
     printf("touch('%s')\n",name);
     time(&timep[1]);
-    utime(name,timep);
+    utime(name,timep.ptr);
     return timep[1];
 }
 
@@ -591,7 +543,7 @@ char *name;
  */
 
 void builtin_del(char *args)
-{   struct FIND *f;
+{   FINDA *f;
     char *pe;
     char c;
 
@@ -612,7 +564,8 @@ void builtin_del(char *args)
         /* args now points at 0-terminated argument     */
         f = findfirst(args,0);
         while (f)
-        {   remove(f->name);
+        {
+            remove(f.name.ptr);
             f = findnext();
         }
 
@@ -645,7 +598,7 @@ int builtin_cd(char *args)
     *pe = 0;
 
     /* args now points at 0-terminated argument */
-    i = _chdir(args);
+    i = chdir(args);
     if (i)
         return 1;
     return 0;
@@ -655,10 +608,9 @@ int builtin_cd(char *args)
  * Read makefile and build data structures.
  */
 
-linelist **readmakefile(char *makefile,linelist **rl)
+linelist **readmakefile(const char *makefile,linelist **rl)
 {       FILE *f;
-        char *line,*p,*q;
-        linelist **addimplicit(),**targetline();
+        char* line,p,q;
         int curlinesave = curline;
 
         if (!strcmp(makefile,"-"))
@@ -668,7 +620,7 @@ linelist **readmakefile(char *makefile,linelist **rl)
         if (!f)
                 faterr("can't read makefile '%s'",makefile);
         inreadmakefile++;
-        while (TRUE)
+        while (true)
         {       if (readline(f))        /* read input line              */
                         break;          /* end of file                  */
                 line = expandline(buf); /* expand macros                */
@@ -680,11 +632,11 @@ linelist **readmakefile(char *makefile,linelist **rl)
                     else
                     {
                         if (!rl)                /* no current target    */
-                            faterr("target must appear before commands");
+                            faterr("target must appear before commands", null);
                         /* add line to current rule */
-                        *rl = NEWOBJ(linelist);
-                        (*rl)->line = line;
-                        rl = &((*rl)->next);
+                        *rl = NEWOBJ!(linelist)();
+                        (*rl).line = line;
+                        rl = &((*rl).next);
                     }
                 }
                 else if (isimplicit(p))
@@ -699,18 +651,18 @@ linelist **readmakefile(char *makefile,linelist **rl)
                         if (*p == '=')          /* it's a macro line    */
                         {       *pn = 0;
                                 p = skipspace(p + 1);
-                                addmacro(line,p,FALSE);
+                                addmacro(line,p,false);
                         }
                         else if (!*p)           /* if end of line       */
                         {       *pn = 0;        /* delete trailing whitespace */
                                 if (!strcmp(line,".SILENT"))
-                                    gag = TRUE;
+                                    gag = true;
                                 else if (!strcmp(line,".IGNORE"))
-                                    ignore_errors = TRUE;
+                                    ignore_errors = true;
                                 else
                                     faterr("unrecognized target '%s'",line);
                         }
-                        else if (memcmp(line,"include",7) == 0)
+                        else if (memcmp(line,"include".ptr,7) == 0)
                                 rl = readmakefile(p,rl);
                         else                    /* target line          */
                                 rl = targetline(line);
@@ -726,25 +678,22 @@ linelist **readmakefile(char *makefile,linelist **rl)
 /*************************
  */
 
-void addmacro(name,text,perm)
-char *name,*text;
-{       macro **mp;
+void addmacro(const char* name, const char* text, int perm)
+{       MACRO **mp;
 
-#ifdef DEBUG
-        printf("addmacro('%s','%s',%d)\n",name,text,perm);
-#endif
-        for (mp = &macrostart; *mp; mp = &((*mp)->next))
-        {       if (!strcmp(name,(*mp)->name))  /* already in macro table */
-                {       if ((*mp)->perm)        /* if permanent entry   */
+        debug printf("addmacro('%s','%s',%d)\n",name,text,perm);
+        for (mp = &macrostart; *mp; mp = &((*mp).next))
+        {       if (!strcmp(name,(*mp).name))   /* already in macro table */
+                {       if ((*mp).perm) /* if permanent entry   */
                                 return;         /* then don't change it */
-                        mem_free((*mp)->text);
+                        mem_free((*mp).text);
                         goto L1;
                 }
         }
-        *mp = NEWOBJ(macro);
-        (*mp)->name = mem_strdup(name);
-  L1:   (*mp)->text = mem_strdup(skipspace(text));
-        (*mp)->perm = perm;
+        *mp = NEWOBJ!(MACRO)();
+        (*mp).name = mem_strdup(name);
+  L1:   (*mp).text = mem_strdup(skipspace(text));
+        (*mp).perm = perm;
 }
 
 /*************************
@@ -752,17 +701,18 @@ char *name,*text;
  * Return pointer to pointer to rule list.
  */
 
-linelist **targetline(p)
-char *p;
-{       filelist *tlist,*tl;
+linelist **targetline(char* p)
+{
+        filelist* tlist,tl;
         filenode *t;
         rule *r;
         int nintlist;                   /* # of files in tlist          */
-        char *pend,c;
+        char *pend;
+        char c;
         char dblcln;
 
-        debug2("targetline('%s')\n",p);
-        tlist = NULL;                   /* so addtofilelist() will work */
+        debug printf("targetline('%s')\n",p);
+        tlist = null;                   /* so addtofilelist() will work */
 
         /* Pull out list of targets appearing before the ':'. Put them  */
         /* all in tlist.                                                */
@@ -780,7 +730,7 @@ char *p;
                 *pend = 0;
                 addtofilelist(p,&tlist);
                 if (strcmp(p,".DEFAULT") == 0)
-                    dotdefault = findfile(p,TRUE);
+                    dotdefault = findfile(p,true);
                 /*printf("adding '%s' to tlist\n",p);*/
                 *pend = c;
                 p = skipspace(pend);
@@ -792,16 +742,16 @@ char *p;
             p++;
         }
 
-        r = NEWOBJ(rule);
-        for (tl = tlist; tl; tl = tl->next)
-        {       t = tl->fnode;          /* for each target t in tlist   */
-                t->dblcln = dblcln;
-                if (t->frule)           /* if already got rules         */
-                {   /*faterr("already have rules for %s\n",t->name);*/
-                    freerule(t->frule); /* dump them                    */
+        r = NEWOBJ!(rule)();
+        for (tl = tlist; tl; tl = tl.next)
+        {       t = tl.fnode;           /* for each target t in tlist   */
+                t.dblcln = dblcln;
+                if (t.frule)            /* if already got rules         */
+                {   /*faterr("already have rules for %s\n",t.name);*/
+                    freerule(t.frule);  /* dump them                    */
                 }
-                t->frule = r;           /* point at rule                */
-                r->count++;             /* count how many point at this */
+                t.frule = r;            /* point at rule                */
+                r.count++;              /* count how many point at this */
         }
 
         /* for each dependency broken out */
@@ -810,55 +760,59 @@ char *p;
         {
                 pend = skipname(p);
                 if (p == pend)
-                        faterr("'%c' is not a valid filename char",*p);
+                {
+                    char[2] s = void;
+                    s[0] = *p;
+                    s[1] = 0;
+                    faterr("'%s' is not a valid filename char", s.ptr);
+                }
                 c = *pend;
                 *pend = 0;
-                for (tl = tlist; tl; tl = tl->next)
-                {       t = tl->fnode;  /* for each target t in tlist   */
+                for (tl = tlist; tl; tl = tl.next)
+                {       t = tl.fnode;   /* for each target t in tlist   */
                         /* add this dependency to its dependency list   */
-                        addtofilelist(p,&(t->dep));
-                        /*printf("Adding dep '%s' to file '%s'\n",p,t->name);*/
+                        addtofilelist(p,&(t.dep));
+                        /*printf("Adding dep '%s' to file '%s'\n",p,t.name);*/
                 }
                 *pend = c;
                 p = skipspace(pend);
         }
         if (!targlist &&                /* if we don't already have one */
-            (tlist->next || tlist->fnode != dotdefault)
+            (tlist.next || tlist.fnode != dotdefault)
            )
                 targlist = tlist;       /* use the first one we found   */
         else
-        {       debug2("freefilelist(%p)\n",tlist);
+        {       debug printf("freefilelist(%p)\n",tlist);
                 freefilelist(tlist);    /* else dump it                 */
         }
         if (*p == ';')
         {
             p = skipspace(p + 1);
             if (*p)
-            {   r->rulelist = NEWOBJ(linelist);
-                r->rulelist->line = mem_strdup(p);
-                return (&r->rulelist->next);
+            {   r.rulelist = NEWOBJ!(linelist)();
+                r.rulelist.line = mem_strdup(p);
+                return (&r.rulelist.next);
             }
         }
-        return &(r->rulelist);
+        return &(r.rulelist);
 }
 
 /***********************
  * Determine if line p is an implicit rule.
  */
 
-int isimplicit(p)
-char *p;
+int isimplicit(char* p)
 {
     char *q;
 
     if (*p == '.' &&
         isfchar(p[1]) &&
-        (q = strchr(p+2,'.')) != NULL &&
+        (q = strchr(p+2,'.')) != null &&
         strchr(p,':') > q)      /* implicit line        */
 
-        return TRUE;
+        return true;
     else
-        return FALSE;
+        return false;
 }
 
 /*************************
@@ -866,24 +820,26 @@ char *p;
  * Return pointer to pointer to rule list.
  */
 
-linelist **addimplicit(p)
-char *p;
+linelist **addimplicit(char* p)
 {
-    implicit *g,**pg,*gr;
+    implicit *g;
+    implicit **pg;
+    implicit *gr;
     rule *r;
-    char *pend,c;
+    char *pend;
+    char c;
 
-    debug2("addimplicit('%s')\n",p);
+    debug printf("addimplicit('%s')\n",p);
     pg = &implicitstart;
-    r = NEWOBJ(rule);
+    r = NEWOBJ!(rule)();
     do
     {
         while (*pg)
-            pg = &((*pg)->next);
+            pg = &((*pg).next);
 
-        g = *pg = NEWOBJ(implicit);
-        g->grule = r;
-        r->count++;
+        g = *pg = NEWOBJ!(implicit)();
+        g.grule = r;
+        r.count++;
 
         /* Get fromext[]        */
         pend = ++p;                     /* skip over .                  */
@@ -893,7 +849,7 @@ char *p;
         c = *pend;
         *pend = 0;
         if (strlen(p) > EXTMAX) goto err;
-        strcpy(g->fromext,p);
+        strcpy(g.fromext.ptr,p);
         *pend = c;
         p = skipspace(pend);
 
@@ -906,21 +862,18 @@ char *p;
         c = *pend;
         *pend = 0;
         if (strlen(p) > EXTMAX) goto err;
-        strcpy(g->toext,p);
+        strcpy(g.toext.ptr,p);
         *pend = c;
         p = skipspace(pend);
 
         /* See if it's already in the list      */
-        for (gr = implicitstart; gr != g; gr = gr->next)
-                if (!filenamecmp(gr->fromext,g->fromext) &&
-                    !filenamecmp(gr->toext,g->toext))
-                        faterr("ambiguous implicit rule");
+        for (gr = implicitstart; gr != g; gr = gr.next)
+                if (!filenamecmp(gr.fromext.ptr,g.fromext.ptr) &&
+                    !filenamecmp(gr.toext.ptr,g.toext.ptr))
+                        faterr("ambiguous implicit rule", null);
 
-#ifdef DEBUG
-        printf("adding implicit rule from '%s' to '%s'\n",
-                g->fromext,g->toext);
-#endif
-
+        debug printf("adding implicit rule from '%s' to '%s'\n",
+                g.fromext,g.toext);
     } while (*p == '.');
     if (*p != ':')
         goto err;
@@ -930,17 +883,18 @@ char *p;
     {
         p = skipspace(p + 1);
         if (*p)
-        {   r->rulelist = NEWOBJ(linelist);
-            r->rulelist->line = mem_strdup(p);
-            return (&r->rulelist->next);
+        {   r.rulelist = NEWOBJ!(linelist)();
+            r.rulelist.line = mem_strdup(p);
+            return (&r.rulelist.next);
         }
     }
     if (*p)
         goto err;
-    return &(r->rulelist);
+    return &(r.rulelist);
 
 err:
-    faterr("bad syntax for implicit rule, should be .frm.to:");
+    faterr("bad syntax for implicit rule, should be .frm.to:", null);
+    assert(0);
 }
 
 /*************************
@@ -948,7 +902,7 @@ err:
  * Remove comments at this point.
  * Remove trailing whitespace from line.
  * Returns:
- *      TRUE if end of file
+ *      true if end of file
  */
 
 int readline(FILE *f)
@@ -963,7 +917,7 @@ int readline(FILE *f)
             {
                         if (i >= bufmax)
                         {   bufmax += 100;
-                                buf = mem_realloc(buf,bufmax);
+                                buf = cast(char*)mem_realloc(buf,bufmax);
                         }
                         do
                         {
@@ -1038,12 +992,12 @@ int readline(FILE *f)
                                 break;
                         }
 
-                        buf[i++] = c;
+                        buf[i++] = cast(char)c;
             }
         } while (i == 0 && c != EOF);   /* if 0 length line             */
         buf[i] = 0;                     /* terminate string             */
 
-        debug3("[%d:%s]\n", curline, buf);
+        debug printf("[%d:%s]\n", curline, buf);
 
         return (c == EOF);
 }
@@ -1052,39 +1006,37 @@ int readline(FILE *f)
  * Add filename to end of file list.
  */
 
-void addtofilelist(filename,pflist)
-char *filename;
-filelist **pflist;
-{       filelist **pfl,*fl;
+void addtofilelist(char* filename, filelist** pflist)
+{
+        filelist **pfl;
+        filelist* fl;
 
-        for (pfl = pflist; *pfl; pfl = &((*pfl)->next))
-        {       if (!filenamecmp(filename,(*pfl)->fnode->name))
+        for (pfl = pflist; *pfl; pfl = &((*pfl).next))
+        {       if (!filenamecmp(filename,(*pfl).fnode.name))
                         return;         /* if already in list           */
         }
-        fl = NEWOBJ(filelist);
+        fl = NEWOBJ!(filelist)();
         *pfl = fl;
-        fl->fnode = findfile(filename,TRUE);
+        fl.fnode = findfile(filename,true);
 }
 
 /*****************
  * Find filename in file list.
- * If it isn't there and install is TRUE, install it.
+ * If it isn't there and install is true, install it.
  */
 
-filenode *findfile(filename,install)
-char *filename;
-int install;
+filenode *findfile(char* filename, int install)
 {       filenode **pfn;
 
-        /*debug2("findfile('%s')\n",filename);*/
-        for (pfn = &filenodestart; *pfn; pfn = &((*pfn)->next))
-        {       if (!filenamecmp((*pfn)->name,filename))
+        /*debug printf("findfile('%s')\n",filename);*/
+        for (pfn = &filenodestart; *pfn; pfn = &((*pfn).next))
+        {       if (!filenamecmp((*pfn).name,filename))
                         return *pfn;
         }
         if (install)
         {
-            *pfn = NEWOBJ(filenode);
-            (*pfn)->name = mem_strdup(filename);
+            *pfn = NEWOBJ!(filenode)();
+            (*pfn).name = mem_strdup(filename);
         }
         return *pfn;
 }
@@ -1096,23 +1048,24 @@ int install;
 
 char *expandline(char *buf)
 {
-    unsigned i;                 /* where in buf we have expanded up to  */
-    unsigned b;                 /* start of macro name                  */
-    unsigned t;                 /* start of text following macro call   */
-    unsigned p;                 /* 1 past end of macro name             */
-    unsigned textlen;           /* length of replacement text (excl. 0) */
-    unsigned buflen;            /* length of buffer (excluding 0)       */
+    uint i;                     /* where in buf we have expanded up to  */
+    uint b;                     /* start of macro name                  */
+    uint t;                     /* start of text following macro call   */
+    uint p;                     /* 1 past end of macro name             */
+    uint textlen;               /* length of replacement text (excl. 0) */
+    uint buflen;                /* length of buffer (excluding 0)       */
     int paren;
-    char c,*text;
+    char c;
+    const(char)* text;
 
-    debug2("expandline('%s')\n",buf);
+    debug printf("expandline('%s')\n",buf);
     buf = mem_strdup(buf);
     i = 0;
     while (buf[i])
     {   if (buf[i] == '$')      /* if start of macro            */
         {   b = i + 1;
             if (buf[b] == '(')
-            {   paren = TRUE;
+            {   paren = true;
                 b++;
                 p = b;
                 while (buf[p] != ')')
@@ -1121,7 +1074,7 @@ char *expandline(char *buf)
                 t = p + 1;
             }
             else
-            {   paren = FALSE;
+            {   paren = false;
                 /* Special case to recognize $** */
                 p = b + 1;
                 if (buf[b] == '*' && buf[p] == '*')
@@ -1139,7 +1092,7 @@ char *expandline(char *buf)
             else
             {
                 buflen = strlen(buf);
-                buf = mem_realloc(buf,buflen + textlen + 1);
+                buf = cast(char*)mem_realloc(buf,buflen + textlen + 1);
                 memmove(buf + i + textlen,buf + t,buflen + 1 - t);
                 memmove(buf + i,text,textlen);
                 if (textlen == 1 && *text == '$')
@@ -1158,13 +1111,13 @@ char *expandline(char *buf)
  * Search for macro.
  */
 
-char *searchformacro(char *name)
-{       macro *m;
+const(char)* searchformacro(const char *name)
+{       MACRO *m;
         char *envstring;
 
-        for (m = macrostart; m; m = m->next)
-                if (!strcmp(name,m->name))
-                        return m->text;
+        for (m = macrostart; m; m = m.next)
+                if (!strcmp(name,m.name))
+                        return m.text;
 
         envstring = getenv(name);
         if (envstring)
@@ -1181,7 +1134,7 @@ char *searchformacro(char *name)
                 int curlinesave = curline;
                 char *p;
 
-                buf = NULL;
+                buf = null;
                 bufmax = 0;
                 curline = 0;
 
@@ -1197,15 +1150,14 @@ char *searchformacro(char *name)
             }
         }
 
-        return "";
+        return "".ptr;
 }
 
 /********************
  * Skip spaces.
  */
 
-char *skipspace(p)
-char *p;
+inout(char) *skipspace(inout(char)* p)
 {
         while (isspace(*p))
                 p++;
@@ -1216,8 +1168,7 @@ char *p;
  * Skip file names.
  */
 
-char *skipname(p)
-char *p;
+char *skipname(char* p)
 {       char *pstart = p;
 
         while (ispchar(*p))
@@ -1236,8 +1187,7 @@ char *p;
  * If no extension, return pointer to trailing 0.
  */
 
-char *filespecdotext(p)
-char *p;
+char *filespecdotext(char* p)
 {       char *s;
 
         s = p + strlen(p);
@@ -1252,22 +1202,20 @@ char *p;
 }
 
 /***********************
- * Return TRUE if char is a file name character.
+ * Return true if char is a file name character.
  */
 
-int isfchar(c)
-char c;
+int isfchar(char c)
 {
     return isalnum(c) || c == '_' || c == '-';
 }
 
 /***********************
- * Return TRUE if char is a file name character, including path separators
+ * Return true if char is a file name character, including path separators
  * and .s
  */
 
-int ispchar(c)
-char c;
+int ispchar(char c)
 {
     return isfchar(c) || c == ':' || c == '/' || c == '\\' || c == '.';
 }
@@ -1277,11 +1225,10 @@ char c;
  * Delete old extension if there was one.
  */
 
-char *filespecforceext(name,ext)
-char *name,*ext;
-{       char *newname,*p;
+char *filespecforceext(char* name, char* ext)
+{       char* newname,p;
 
-        newname = mem_calloc(strlen(name) + strlen(ext) + 1 + 1);
+        newname = cast(char*)mem_calloc(strlen(name) + strlen(ext) + 1 + 1);
         strcpy(newname,name);
         p = filespecdotext(newname);
         *p++ = '.';
@@ -1295,9 +1242,9 @@ char *name,*ext;
  * Get root name of file name.
  */
 
-char *filespecgetroot(name)
-char *name;
-{       char *root,*p,c;
+char *filespecgetroot(char* name)
+{       char* root,p;
+        char c;
 
         p = filespecdotext(name);
         c = *p;
@@ -1312,31 +1259,31 @@ char *name;
  * apply an implicit rule.
  */
 
-do_implicits()
+void do_implicits()
 {       filenode *f;
-        char *ext,*depname;
+        char* ext,depname;
         implicit *g;
         time_t time;
 
-        for (f = filenodestart; f; f = f->next)
-        {       if (f->frule)
-                {       if (f->frule->rulelist) /* if already have rules */
+        for (f = filenodestart; f; f = f.next)
+        {       if (f.frule)
+                {       if (f.frule.rulelist)   /* if already have rules */
                                 continue;
-                        freerule(f->frule);
-                        f->frule = NULL;
+                        freerule(f.frule);
+                        f.frule = null;
                 }
-                ext = filespecdotext(f->name);
+                ext = filespecdotext(f.name);
                 if (*ext == '.')
                         ext++;
-                for (g = implicitstart; g; g = g->next)
-                {   if (!filenamecmp(ext,g->toext))
+                for (g = implicitstart; g; g = g.next)
+                {   if (!filenamecmp(ext,g.toext.ptr))
                     {   filenode *fd;
 
-                        strcpy(f->genext,g->fromext);
-                        depname = filespecforceext(f->name,f->genext);
+                        strcpy(f.genext.ptr,g.fromext.ptr);
+                        depname = filespecforceext(f.name,f.genext.ptr);
                         time = gettimex(depname);
                         if (time == 1L) /* if file doesn't exist */
-                        {   fd = findfile(depname,FALSE);
+                        {   fd = findfile(depname,false);
                             if (!fd)
                             {
                                 mem_free(depname);
@@ -1344,64 +1291,64 @@ do_implicits()
                             }
                         }
                         else
-                            fd = findfile(depname,TRUE);
+                            fd = findfile(depname,true);
 
-                        fd->time = time;
-                        f->frule = g->grule;
-                        f->frule->count++;
-                        addtofilelist(depname,&(f->dep));
+                        fd.time = time;
+                        f.frule = g.grule;
+                        f.frule.count++;
+                        addtofilelist(depname,&(f.dep));
                         mem_free(depname);
                         break;
                     }
                 }
-#if 0
+static if (0)
+{
                 if (!g && dotdefault)   /* if failed to find implicit rule */
                 {   /* Use default rule */
-                    f->frule = dotdefault->frule;
-                    f->frule->count++;
+                    f.frule = dotdefault.frule;
+                    f.frule.count++;
                 }
-#endif
+}
         }
 }
 
 /***************************
- * Make a file. Return TRUE if rules were executed.
+ * Make a file. Return true if rules were executed.
  */
 
-int make(f)
-filenode *f;
-{       int made = FALSE;
-        int gooddate = FALSE;
+int make(filenode* f)
+{       int made = false;
+        int gooddate = false;
         filelist *dl;                   /* dependency list              */
         filelist *newer;
         char *newbuf;
         int totlength,starstarlen;
 
-        if (f->expanding)
-            faterr("circular dependency for '%s'",f->name);
-        debug2("make('%s')\n",f->name);
-        dl = f->dep;
+        if (f.expanding)
+            faterr("circular dependency for '%s'",f.name);
+        debug printf("make('%s')\n",f.name);
+        dl = f.dep;
 
-        addmacro("$","$",FALSE);
-        addmacro("?","",FALSE);         /* the default                  */
-        addmacro("**","",FALSE);
-        if (!f->frule || !f->frule->rulelist)   /* if no make rules     */
-        {   if (f->time <= 1)
-                f->time = gettimex(f->name);
+        addmacro("$","$",false);
+        addmacro("?","",false);         /* the default                  */
+        addmacro("**","",false);
+        if (!f.frule || !f.frule.rulelist)      /* if no make rules     */
+        {   if (f.time <= 1)
+                f.time = gettimex(f.name);
             if (!dl)                            /* if no dependencies   */
-            {   if (f->time == 1)               /* if file doesn't exist */
+            {   if (f.time == 1)                /* if file doesn't exist */
                 {
-                    if (dotdefault && dotdefault->frule &&
-                        dotdefault->frule->rulelist)
+                    if (dotdefault && dotdefault.frule &&
+                        dotdefault.frule.rulelist)
                     {
-                        f->frule = dotdefault->frule;
-                        f->frule->count++;
+                        f.frule = dotdefault.frule;
+                        f.frule.count++;
                         return dorules(f);
                     }
                     else
-                        faterr("don't know how to make '%s'",f->name);
+                        faterr("don't know how to make '%s'",f.name);
                 }
-                return FALSE;
+                return false;
             }
         }
 
@@ -1410,102 +1357,101 @@ filenode *f;
 
         /* Make each dependency, also compute length of $** expansion   */
         starstarlen = 0;
-        f->expanding++;
-        for (; dl; dl = dl->next)
-        {       made |= make(dl->fnode);
-                starstarlen += strlen(dl->fnode->name) + 1;
+        f.expanding++;
+        for (; dl; dl = dl.next)
+        {       made |= make(dl.fnode);
+                starstarlen += strlen(dl.fnode.name) + 1;
         }
-        f->expanding--;
+        f.expanding--;
 
-        newbuf = mem_calloc(starstarlen + 1);
+        newbuf = cast(char*)mem_calloc(starstarlen + 1);
         *newbuf = 0;                    /* initial 0 length string      */
 
         /* If there are any newer dependencies, we must remake this one */
-        newer = NULL;
+        newer = null;
         totlength = 0;
-        for (dl = f->dep; dl; dl = dl->next)
-        {       if (!dl->fnode->time)
-                        dl->fnode->time = gettimex(dl->fnode->name);
-                strcat(newbuf,dl->fnode->name);
+        for (dl = f.dep; dl; dl = dl.next)
+        {       if (!dl.fnode.time)
+                        dl.fnode.time = gettimex(dl.fnode.name);
+                strcat(newbuf,dl.fnode.name);
                 strcat(newbuf," ");
             L1:
-                if (f->time < dl->fnode->time)
+                if (f.time < dl.fnode.time)
                 {       if (!gooddate)  /* if date isn't guaranteed     */
-                        {   f->time = gettimex(f->name);
-                            gooddate = TRUE;
+                        {   f.time = gettimex(f.name);
+                            gooddate = true;
                             goto L1;
                         }
-                        if (debug)
-                        {   if (f->time == 1L)
-                                printf("File '%s' doesn't exist\n",f->name);
+                        if (xdebug)
+                        {   if (f.time == 1L)
+                                printf("File '%s' doesn't exist\n",f.name);
                             else
                                 printf("file '%s' is older than '%s'\n",
-                                        f->name,dl->fnode->name);
+                                        f.name,dl.fnode.name);
                         }
                         /* still out of date    */
-                        addtofilelist(dl->fnode->name,&newer);
-                        totlength += strlen(dl->fnode->name) + 1;
+                        addtofilelist(dl.fnode.name,&newer);
+                        totlength += strlen(dl.fnode.name) + 1;
                 }
         }
-        addmacro("**",newbuf,FALSE);    /* full list of dependencies    */
+        addmacro("**",newbuf,false);    /* full list of dependencies    */
         mem_free(newbuf);
 
         if (newer)                      /* if any newer dependencies    */
         {       filelist *fl;
 
-                newbuf = mem_calloc(totlength + 1);
+                newbuf = cast(char*)mem_calloc(totlength + 1);
                 *newbuf = 0;            /* initial 0 length string      */
-                for (fl = newer; fl; fl = fl->next)
-                {       strcat(newbuf,fl->fnode->name);
+                for (fl = newer; fl; fl = fl.next)
+                {       strcat(newbuf,fl.fnode.name);
                         strcat(newbuf," ");
                 }
-                addmacro("?",newbuf,FALSE);     /* newer dependencies   */
+                addmacro("?",newbuf,false);     /* newer dependencies   */
                 mem_free(newbuf);
                 freefilelist(newer);
                 return made | dorules(f);
         }
         if (!gooddate)
-                f->time = gettimex(f->name);
+                f.time = gettimex(f.name);
         return made;
 }
 
 /********************************
  * Execute rules for a filenode.
- * Return TRUE if we executed some rules.
+ * Return true if we executed some rules.
  */
 
-int dorules(f)
-filenode *f;
-{       char *root,*fromname;
+int dorules(filenode* f)
+{       char* root, fromname;
         linelist *l;
 
-        debug2("dorules('%s')\n",f->name);
-        if (!f->frule)
-                return FALSE;
+        debug printf("dorules('%s')\n",f.name);
+        if (!f.frule)
+                return false;
         if (touchem)
-        {       f->time = touch(f->name);
-                return TRUE;            /* assume rules were executed   */
+        {       f.time = touch(f.name);
+                return true;            /* assume rules were executed   */
         }
-        root = filespecgetroot(f->name);
-        fromname = filespecforceext(root,f->genext);
-        addmacro("*",root,FALSE);
-        addmacro("<",fromname,FALSE);
-        addmacro("@",f->name,FALSE);
+        root = filespecgetroot(f.name);
+        fromname = filespecforceext(root,f.genext.ptr);
+        addmacro("*",root,false);
+        addmacro("<",fromname,false);
+        addmacro("@",f.name,false);
         mem_free(root);
         mem_free(fromname);
-        for (l = f->frule->rulelist; l; l = l->next)
-                executerule(l->line);
-        f->time = gettimex(f->name);
-        return TRUE;
+        for (l = f.frule.rulelist; l; l = l.next)
+                executerule(l.line);
+        f.time = gettimex(f.name);
+        return true;
 }
 
 /******************************
  * Determine if filename p is in the array of strings.
  */
 
-int inarray(char *p, char **array, size_t dim)
+int inarray(const char *p, const char **array, size_t dim)
 {
-    char **b;
+    const(char*)* b;
     int result = 0;
 
     for (b = array; b < &array[dim]; b++)
@@ -1521,16 +1467,16 @@ int inarray(char *p, char **array, size_t dim)
  * Execute a rule.
  */
 
-void executerule(p)
-char *p;
-{       char echo = TRUE;
-        char igerr = FALSE;
-        char useCOMMAND = FALSE;
+void executerule(char* p)
+{       char echo = true;
+        char igerr = false;
+        char useCOMMAND = false;
         char useenv = 0;
         char forceuseenv = 0;
-        char *cmd,*args,c;
+        char* cmd,args;
+        char c;
 
-        debug2("executerule('%s')\n",p);
+        debug printf("executerule('%s')\n",p);
         if (question)
         {       action = 1;     /* file is not up to date               */
                 return;
@@ -1538,11 +1484,11 @@ char *p;
         p = skipspace(p);
         while (1)
         {   switch (*p)
-            {   case '+':       useCOMMAND = TRUE;      p++; continue;
-                case '@':       echo = FALSE;           p++; continue;
-                case '-':       igerr = TRUE;           p++; continue;
+            {   case '+':       useCOMMAND = true;      p++; continue;
+                case '@':       echo = false;           p++; continue;
+                case '-':       igerr = true;           p++; continue;
                 case '*':       useenv = '@';           p++; continue;
-                case '~':       forceuseenv = TRUE;
+                case '~':       forceuseenv = true;
                                 useenv = '@';           p++; continue;
                 default:
                     break;
@@ -1562,7 +1508,10 @@ char *p;
                 return;
         }
 
-#if MSDOS || __OS2__ || _WIN32
+        bool flag = true;
+version (Windows)
+{
+        flag = false;
         /* Separate between command and args                            */
         bool quoted = false;
         char *cmdstart = cmd;
@@ -1606,35 +1555,35 @@ char *p;
 
         /* Handle commands we know about special        */
         {
-            static char *builtin[] =    /* MS-DOS built-in commands     */
-            {   "break","cls","copy","ctty",
+            __gshared const(char)*[] builtin =  /* MS-DOS built-in commands     */
+            [   "break","cls","copy","ctty",
                 "date","dir","echo","erase","exit",
                 "for","goto","if","md","mkdir","pause",
                 "rd","rem","rmdir","ren","rename",
                 "shift","time","type","ver","verify","vol"
-            };
+            ];
 
-            static char *respenv[] =    /* uses our response files      */
-            {   "ztc","make","touch","blink","blinkr","blinkx",
+            __gshared const(char)*[] respenv =  /* uses our response files      */
+            [   "ztc","make","touch","blink","blinkr","blinkx",
                 "zorlib","zorlibx","lib","zrcc","sc","sj",
                 "dmc","dmd"
-            };
+            ];
 
-            static char *pharrespenv[] = /* uses pharlap response files */
-            {   "386asm","386asmr","386link","386linkr","386lib","fastlink",
+            __gshared const(char)*[] pharrespenv = /* uses pharlap response files       */
+            [   "386asm","386asmr","386link","386linkr","386lib","fastlink",
                 "bind386",
-            };
+            ];
 
-            useCOMMAND  |= inarray(p,builtin,arraysize(builtin));
-            if (inarray(p,respenv,arraysize(respenv)))
+            useCOMMAND  |= inarray(p,builtin.ptr,builtin.length);
+            if (inarray(p,respenv.ptr,respenv.length))
                 useenv = '@';
-            if (inarray(p,pharrespenv,arraysize(pharrespenv)))
+            if (inarray(p,pharrespenv.ptr,pharrespenv.length))
                 useenv = '%';
         }
 
         /* Use COMMAND.COM for .BAT files       */
         if (!filenamecmp(filespecdotext(p),".bat"))
-            useCOMMAND |= TRUE;
+            useCOMMAND |= true;
 
         if (useCOMMAND)
         {
@@ -1642,13 +1591,13 @@ char *p;
                 *cmd = c;               /* restore stomped character    */
                 if (strlen(p) > CMDLINELEN - 2) /* -2 for /c switch     */
                         faterr("command line too long");
-                debug1("Using COMMAND.COM\n");
+                debug printf("Using COMMAND.COM\n");
                 system(p);
         }
         else if (!filenamecmp(p,"del"))
         {
                 if (strchr(args,'\\'))
-                {   useCOMMAND = TRUE;
+                {   useCOMMAND = true;
                     goto Lcmd;
                 }
                 builtin_del(args);
@@ -1666,53 +1615,59 @@ char *p;
         {       char *q;
 
                 for (q = args; *q && *q != '='; q++)
-                    *q = toupper(*q);           /* convert env var to uc */
+                    *q = cast(char)toupper(*q);         /* convert env var to uc */
 
                 if (putenv(args))               /* set environment      */
                     faterr("out of memory");
         }
         else
-#endif
+            flag = true;
+}
+        if (flag)
         {       int status;
                 size_t len;
 
-                debug1("Using FORK\n");
-#if MSDOS || __OS2__ || _WIN32
+                debug printf("Using FORK\n");
+version (Windows)
+{
                 if (forceuseenv || (len = strlen(args)) > CMDLINELEN)
                 {   char *q;
-                    static char envname[] = "@_CMDLINE";
+                    char[10] envname = "@_CMDLINE";
 
                     if (!useenv)
                         goto L1;
                     envname[0] = useenv;
-                    q = (char *) mem_calloc(sizeof(envname) + len);
-                    sprintf(q,"%s=%s",envname + 1,args);
+                    q = cast(char *) mem_calloc(envname.sizeof + len);
+                    sprintf(q,"%s=%s",envname.ptr + 1,args);
                     status = putenv(q);
                     mem_free(q);
                     if (status == 0)
-                        args = envname;
+                        args = envname.ptr;
                     else
                     {
                      L1:
                         faterr("command line too long");
                     }
                 }
-#endif
-#if 1
-#if M_UNIX || M_XENIX
+}
+static if (1)
+{
+version (POSIX)
                 status = system(p);
-#else
-                status = spawnlp(0,p,p,args,NULL);
-#endif
+else
+                status = spawnlp(0,p,p,args,null);
+
                 if (status == -1)
                         faterr("'%s' not found",p);
-#else
-                status = forklp(p,p,"",args,NULL);
+}
+else
+{
+                status = forklp(p,p,"",args,null);
                 if (status)                     /* if error             */
                         faterr("'%s' not found",p);
                 else
                         status = wait();        /* exit code of p       */
-#endif
+}
                 printf("\n");
                 if (status && !ignore_errors && !igerr)
                 {       printf("--- errorlevel %d\n",status);
@@ -1732,10 +1687,17 @@ void set_CMDLINELEN()
     * http://msdn.microsoft.com/library/default.asp?url=/library/en-us/win9x/msdos_694j.asp
     */
 
-#if _WIN32
+version (Windows)
+{
+  version (all)
+  {
+    CMDLINELEN = 10000;
+  }
+  else
+  {
     OSVERSIONINFO OsVerInfo;
 
-    OsVerInfo.dwOSVersionInfoSize = sizeof(OsVerInfo);
+    OsVerInfo.dwOSVersionInfoSize = OsVerInfo.sizeof;
     GetVersionEx(&OsVerInfo);
     CMDLINELEN = 10000;
     switch (OsVerInfo.dwMajorVersion)
@@ -1753,31 +1715,27 @@ void set_CMDLINELEN()
             }
             break;
     }
-#endif
-#if __OS2__
-    CMDLINELEN = 255;
-#endif
-#if MSDOS
-    CMDLINELEN = 127;
-#endif
+  }
+}
 }
 
 /****************** STORAGE MANAGEMENT *****************/
 
-#if 1
+static if (1)
+{
 
 /*******************
  */
 
-void *mem_calloc(unsigned size)
-{ char *p;
+void *mem_calloc(uint size)
+{ void* p;
 
-/*  debug2("size = %d\n",size);*/
+/*  debug printf("size = %d\n",size);*/
   newcnt++;
   p = calloc(size,1);
   if (!p)
         faterr("out of memory");
-/*  debug2("mem_calloc() = %p\n",p);*/
+/*  debug printf("mem_calloc() = %p\n",p);*/
   return p;
 }
 
@@ -1786,7 +1744,7 @@ void *mem_calloc(unsigned size)
 
 void mem_free(void *p)
 {
-    /*debug2("mem_free(%p)\n",p);*/
+    /*debug printf("mem_free(%p)\n",p);*/
     if (p)
     {   free(p);
         newcnt--;
@@ -1797,14 +1755,14 @@ void mem_free(void *p)
  * Re-allocate a buffer.
  */
 
-void *mem_realloc(void *oldbuf,unsigned newbufsize)
+void *mem_realloc(void *oldbuf,uint newbufsize)
 {
-        char *p;
+        void* p;
 
         if (!oldbuf)
             newcnt++;
         p = realloc(oldbuf,newbufsize);
-        if (p == NULL)
+        if (p == null)
             faterr("out of memory");
         return p;
 }
@@ -1815,70 +1773,69 @@ void *mem_realloc(void *oldbuf,unsigned newbufsize)
 
 char *mem_strdup(const char *s)
 {
-    return strcpy(mem_calloc(strlen(s) + 1),s);
+    return strcpy(cast(char*)mem_calloc(strlen(s) + 1),s);
 }
 
-#endif
+}
 
-#if TERMCODE
+version (TERMCODE)
+{
 void freemacro()
-{       macro *m,*mn;
+{       MACRO* m,mn;
 
         for (m = macrostart; m; m = mn)
-        {       mn = m->next;
-                mem_free(m->name);
-                mem_free(m->text);
+        {       mn = m.next;
+                mem_free(m.name);
+                mem_free(m.text);
                 mem_free(m);
         }
 }
-#endif
+}
 
-void freefilelist(fl)
-filelist *fl;
+void freefilelist(filelist *fl)
 {       filelist *fln;
 
         for (; fl; fl = fln)
-        {       fln = fl->next;
+        {       fln = fl.next;
                 mem_free(fl);
         }
 }
 
-#if TERMCODE
+version (TERMCODE)
+{
 
-freeimplicits()
-{       implicit *g,*gn;
+void freeimplicits()
+{       implicit* g,gn;
 
         for (g = implicitstart; g; g = gn)
-        {       gn = g->next;
-                freerule(g->grule);
+        {       gn = g.next;
+                freerule(g.grule);
                 mem_free(g);
         }
 }
 
-void freefilenode(f)
-filenode *f;
+void freefilenode(filenode *f)
 {       filenode *fn;
 
         for (; f; f = fn)
-        {       fn = f->next;
-                mem_free(f->name);
-                freefilelist(f->dep);
-                freerule(f->frule);
+        {       fn = f.next;
+                mem_free(f.name);
+                freefilelist(f.dep);
+                freerule(f.frule);
                 mem_free(f);
         }
 }
 
-#endif
+}
 
-void freerule(r)
-rule *r;
-{       linelist *l,*ln;
+void freerule(rule* r)
+{       linelist* l,ln;
 
-        if (!r || --r->count)
+        if (!r || --r.count)
                 return;
-        for (l = r->rulelist; l; l = ln)
-        {       ln = l->next;
-                mem_free(l->line);
+        for (l = r.rulelist; l; l = ln)
+        {       ln = l.next;
+                mem_free(l.line);
                 mem_free(l);
         }
         mem_free(r);
@@ -1886,76 +1843,71 @@ rule *r;
 
 /****************** DEBUG CODE *************************/
 
-#ifdef DEBUG
+debug
+{
 
-void WRmacro(m)
-macro *m;
+void WRmacro(MACRO *m)
 {
     printf("macro %p: perm %d next %p name '%s' = '%s'\n",
-                m,m->perm,m->next,m->name,m->text);
+                m,m.perm,m.next,m.name,m.text);
 }
 
 void WRmacrolist()
-{       macro *m;
+{       MACRO *m;
 
         printf("****** MACRO LIST ********\n");
-        for (m = macrostart; m; m = m->next)
+        for (m = macrostart; m; m = m.next)
                 WRmacro(m);
 }
 
-void WRlinelist(l)
-linelist *l;
+void WRlinelist(linelist *l)
 {
         while (l)
-        {       printf("line %p next %p: '%s'\n",l,l->next,l->line);
-                l = l->next;
+        {       printf("line %p next %p: '%s'\n",l,l.next,l.line);
+                l = l.next;
         }
 }
 
-void WRrule(r)
-rule *r;
+void WRrule(rule *r)
 {
-        printf("rule %p: count = %d\n",r,r->count);
-        WRlinelist(r->rulelist);
+        printf("rule %p: count = %d\n",r,r.count);
+        WRlinelist(r.rulelist);
 }
 
 void WRimplicit()
 {       implicit *g;
 
-        for (g = implicitstart; g; g = g->next)
+        for (g = implicitstart; g; g = g.next)
         {       printf("implicit %p next %p: from '%s' to '%s'\n",
-                        g,g->next,g->fromext,g->toext);
-                WRrule(g->grule);
+                        g,g.next,g.fromext,g.toext);
+                WRrule(g.grule);
                 putchar('\n');
         }
 }
 
-void WRfilenode(f)
-filenode *f;
+void WRfilenode(filenode *f)
 {       filelist *fl;
 
         printf("filenode %p: name '%s' genext '%s' time %ld\n",
-                f,f->name,f->genext,f->time);
+                f,f.name,f.genext,f.time);
         printf("Dependency list:\n");
-        for (fl = f->dep; fl; fl = fl->next)
-                printf("\t%s\n",fl->fnode->name);
-        if (f->frule)
-                WRrule(f->frule);
+        for (fl = f.dep; fl; fl = fl.next)
+                printf("\t%s\n",fl.fnode.name);
+        if (f.frule)
+                WRrule(f.frule);
         putchar('\n');
 }
 
-void WRfilelist(fl)
-filelist *fl;
+void WRfilelist(filelist *fl)
 {
-        for (; fl; fl = fl->next)
-                WRfilenode(fl->fnode);
+        for (; fl; fl = fl.next)
+                WRfilenode(fl.fnode);
 }
 
-void WRfilenodelist(fn)
-filenode *fn;
+void WRfilenodelist(filenode *fn)
 {
-        for (; fn; fn = fn->next)
+        for (; fn; fn = fn.next)
                 WRfilenode(fn);
 }
 
-#endif
+}
