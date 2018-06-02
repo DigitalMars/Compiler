@@ -49,6 +49,7 @@ version (XVERSION)
     enum TARGET_OPENBSD = xversion!`OpenBSD`;
     enum TARGET_SOLARIS = xversion!`Solaris`;
     enum TARGET_WINDOS  = xversion!`Windows`;
+    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFly`;
 }
 
 

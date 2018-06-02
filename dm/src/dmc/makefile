@@ -124,8 +124,8 @@ release:
 
 scppn:
 #       make TARGET=SCPP OPT=-o "DEBUG=-gt -g -DSTATIC= -Nc" LFLAGS=/noi/noe/map scppn.exe
-#       make TARGET=SCPP OPT=-o "DEBUG=-g -DSTATIC= -Nc" LFLAGS=/noi/noe/map/co scppn.exe
-        make TARGET=SCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map scppn.exe
+       make TARGET=SCPP OPT=-o "DEBUG=-g -DSTATIC= -Nc" LFLAGS=/noi/noe/map/co scppn.exe
+#        make TARGET=SCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map scppn.exe
 
 sppn:
         make TARGET=SPP  OPT=-o+space DEBUG= LFLAGS=/noi/noe/map sppn.exe
@@ -321,7 +321,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code.d code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
-	divcoeff.d dvec.d dlist.d filespec.d
+	divcoeff.d dvec.d dlist.d filespec.d evalu8.d
 
 BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
@@ -336,7 +336,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgreg.c var.c compress.c \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
 	code.c symbol.c debug.c dt.c ee.c el.c \
-	evalu8.c fp.c go.c gflow.c gdag.c gsroa.c \
+	fp.c go.c gflow.c gdag.c gsroa.c \
 	gother.c glocal.c gloop.c newman.c \
 	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
 	type.c \
@@ -464,6 +464,9 @@ dspeller.obj : dspeller.d
 
 dtemplate.obj : dtemplate.d
         $(DMD) -c $(DFLAGS) dtemplate.d
+
+evalu8.obj : evalu8.d
+        $(DMD) -c $(DFLAGS) evalu8.d
 
 filespec.obj : filespec.d
         $(DMD) -c $(DFLAGS) filespec.d
@@ -598,7 +601,6 @@ ee.obj : $(DEP) $(ee.dep) ee.c
 el.obj : $(DEP) $(el.dep) el.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 fp.obj : $(DEP) $(fp.dep) fp.c
-evalu8.obj : $(DEP) $(evalu8.dep) evalu8.c
 glocal.obj : $(DEP) $(glocal.dep) glocal.c
 gloop.obj : $(DEP) $(gloop.dep) gloop.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c

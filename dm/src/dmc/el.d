@@ -15,6 +15,7 @@ module dmd.backend.el;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
+import dmd.backend.global;
 import dmd.backend.type;
 
 import dmd.backend.cc : Symbol;

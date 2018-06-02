@@ -42,7 +42,7 @@ struct Complex_ld
 {
     targ_ldouble re, im;
 
-    static Complex_ld div(ref Complex_ld x, Complex_ld y);
+    static Complex_ld div(ref Complex_ld x, ref Complex_ld y);
     static Complex_ld mul(ref Complex_ld x, ref Complex_ld y);
     static targ_ldouble abs(ref Complex_ld z);
     static Complex_ld sqrtc(ref Complex_ld z);
