@@ -172,7 +172,7 @@ debppnd:
 #########################################
 
 OBJ1a=dblklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj rawstring.obj
-OBJ1b=evalu8.obj poptelem.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
+OBJ1b=evalu8.obj fp.obj poptelem.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj type.obj dt.obj dth.obj phstring.obj
@@ -336,7 +336,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgreg.c var.c compress.c \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
 	code.c symbol.c debug.c dt.c ee.c el.c \
-	evalu8.c go.c gflow.c gdag.c gsroa.c \
+	evalu8.c fp.c go.c gflow.c gdag.c gsroa.c \
 	gother.c glocal.c gloop.c newman.c \
 	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
 	type.c \
@@ -597,6 +597,7 @@ dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
 ee.obj : $(DEP) $(ee.dep) ee.c
 el.obj : $(DEP) $(el.dep) el.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
+fp.obj : $(DEP) $(fp.dep) fp.c
 evalu8.obj : $(DEP) $(evalu8.dep) evalu8.c
 glocal.obj : $(DEP) $(glocal.dep) glocal.c
 gloop.obj : $(DEP) $(gloop.dep) gloop.c
