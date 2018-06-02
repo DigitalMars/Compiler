@@ -24,8 +24,9 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 extern (C++):
-nothrow:
-@nogc:
+
+nothrow @nogc
+{
 
 /* **************** TYPEDEFS AND DEFINES ****************** */
 
@@ -464,34 +465,6 @@ list_t list_cat(list_t *pl1, list_t l2)
     return *pl1;
 }
 
-/*************************
- * Build a list out of the null-terminated argument list.
- * Returns:
- *      generated list
- */
-
-list_t list_build(void *p,...)
-{
-    va_list ap;
-
-    list_t alist = null;
-    list_t *pe = &alist;
-    for (va_start(ap,p); p; p = va_arg!(void*)(ap))
-    {
-        list_t list = list_alloc();
-        if (list)
-        {
-            list.next = null;
-            list.ptr = p;
-            list.count = 1;
-            *pe = list;
-            pe = &list.next;
-        }
-    }
-    //va_end(ap);
-    return alist;
-}
-
 /***************************************
  * Apply a function fp to each member of a list.
  */
@@ -560,4 +533,39 @@ list_t list_insert(list_t *pl,void *ptr,int n)
     }
     return list;
 }
+
+}
+
+/* The following function should be nothrow @nogc, too, but on
+ * some platforms core.stdc.stdarg is not fully nothrow @nogc.
+ */
+
+/*************************
+ * Build a list out of the null-terminated argument list.
+ * Returns:
+ *      generated list
+ */
+
+list_t list_build(void *p,...)
+{
+    va_list ap;
+
+    list_t alist = null;
+    list_t *pe = &alist;
+    for (va_start(ap,p); p; p = va_arg!(void*)(ap))
+    {
+        list_t list = list_alloc();
+        if (list)
+        {
+            list.next = null;
+            list.ptr = p;
+            list.count = 1;
+            *pe = list;
+            pe = &list.next;
+        }
+    }
+    //va_end(ap);
+    return alist;
+}
+
 
