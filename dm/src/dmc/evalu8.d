@@ -49,7 +49,6 @@ int testFE();
 void clearFE();
 int statusFE();
 bool have_float_except();
-targ_ldouble _modulo(targ_ldouble x, targ_ldouble y);
 
 
 /**********************
@@ -114,7 +113,7 @@ version (SCPP)
                 case TYdouble_alias:
                 case TYildouble:
                 case TYldouble:
-                {   targ_ldouble ld = el_toldouble(e);
+                {   targ_ldouble ld = el_toldoubled(e);
 
                     if (isnan(cast(double)ld))
                         b = 1;
@@ -290,10 +289,11 @@ elem * evalu8(elem *e, goal_t goal)
     uint op;
     targ_int i1,i2;
     targ_llong l1,l2;
-    targ_ldouble d1,d2;
+    //targ_ldouble d1,d2;
+    real d1,d2;
     elem esave = void;
 
-    static bool unordered(targ_ldouble d1, targ_ldouble d2) { return isnan(d1) || isnan(d2); }
+    static bool unordered(real d1, real d2) { return isnan(d1) || isnan(d2); }
 
     assert((statusFE() & 0x3800) == 0);
     assert(e && !OTleaf(e.Eoper));
@@ -313,7 +313,7 @@ elem * evalu8(elem *e, goal_t goal)
             if (e2.Eoper == OPconst && !tyvector(e2.Ety))
             {
                 i2 = cast(targ_int)(l2 = el_tolong(e2));
-                d2 = el_toldouble(e2);
+                d2 = el_toldoubled(e2);
             }
             else
                 return e;
@@ -328,7 +328,7 @@ elem * evalu8(elem *e, goal_t goal)
             d2 = 0;             // "
         }
         i1 = cast(targ_int)(l1 = el_tolong(e1));
-        d1 = el_toldouble(e1);
+        d1 = el_toldoubled(e1);
         tym = tybasic(typemask(e1));    /* type of op is type of left child */
 
         // Huge pointers are always evaluated at runtime
@@ -1149,8 +1149,8 @@ else
                     {
                         case TYldouble:
                         case TYildouble:
-                            e.EV.Vcldouble.re = _modulo(e1.EV.Vcldouble.re, d2);
-                            e.EV.Vcldouble.im = _modulo(e1.EV.Vcldouble.im, d2);
+                            e.EV.Vcldouble.re = _modulo(cast(real)e1.EV.Vcldouble.re, d2);
+                            e.EV.Vcldouble.im = _modulo(cast(real)e1.EV.Vcldouble.im, d2);
                             break;
                         default:
                             assert(0);
@@ -1631,7 +1631,7 @@ else
             e.EV.Vcldouble.im = e1.EV.Vcdouble.im;
         break;
     case OPld_d:
-        e.EV.Vdouble = e1.EV.Vldouble;
+        e.EV.Vdouble = cast(double)e1.EV.Vldouble;
         if (tycomplex(tym))
             e.EV.Vcdouble.im = e1.EV.Vcldouble.im;
         break;
@@ -1898,4 +1898,51 @@ version (SCPP)
   return e;
 }
 
+/******************************
+ * This is the same as the one in el.c, but uses native D reals
+ * instead of the soft long double ones.
+ */
+
+extern (D) real el_toldoubled(elem *e)
+{
+    real result;
+
+    elem_debug(e);
+    assert(e.Eoper == OPconst);
+    switch (tybasic(typemask(e)))
+    {
+        case TYfloat:
+        case TYifloat:
+            result = e.EV.Vfloat;
+            break;
+        case TYdouble:
+        case TYidouble:
+        case TYdouble_alias:
+            result = e.EV.Vdouble;
+            break;
+        case TYldouble:
+        case TYildouble:
+            result = cast(real)e.EV.Vldouble;
+            break;
+        default:
+            result = 0;
+            break;
+    }
+    return result;
+}
+
+/***************************************
+ * Copy of _modulo from fp.c. Here to help with linking problems.
+ */
+version (CRuntime_Microsoft)
+{
+    extern (D) private real _modulo(real x, real y)
+    {
+        return fmodl(x, y);
+    }
+}
+else
+{
+    targ_ldouble _modulo(targ_ldouble x, targ_ldouble y);
+}
 }

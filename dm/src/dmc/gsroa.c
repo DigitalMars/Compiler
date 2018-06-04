@@ -5,7 +5,7 @@
  * Copyright:   Copyright (C) 2016-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/gsroa.c
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gslice.c, backend/gslice.c)
  */
 
 
@@ -226,6 +226,12 @@ void sliceStructs()
                 anySlice = true;
                 sia[si].canSlice = true;
                 sia[si].accessSlice = false;
+                // We can't slice whole XMM registers
+                if (tyxmmreg(s->Stype->Tty) &&
+                    s->Spreg >= XMM0 && s->Spreg <= XMM15 && s->Spreg2 == NOREG)
+                {
+                    sia[si].canSlice = false;
+                }
                 break;
 
             case SCstack:

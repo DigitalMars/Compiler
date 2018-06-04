@@ -13,7 +13,7 @@
 
 DMCDIR=\dm
 DMDDIR=e:\dmd2.074
-#DMDDIR=e:\dmd2.079
+DMDDIR79=e:\dmd2.079
 
 CBX=.
 NTDLLSHELL=ntdllshell
@@ -65,6 +65,7 @@ LFLAGS=/map/e/f/packcode/noe;
 
 # D compiler
 DMD=$(DMDDIR)\windows\bin\dmd
+DMD79=$(DMDDIR79)\windows\bin\dmd
 # C++ compiler
 CC=dmc
 # Make program
@@ -331,7 +332,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	outbuf.h token.h tassert.h tinfo.h varstats.h xmm.h \
 	\
 	optabgen.c platform_stub.c \
-	bcomplex.c blockopt.c cg.c cg87.c cgxmm.c \
+	blockopt.c cg.c cg87.c cgxmm.c \
 	cgcod.c cgcs.c cgcv.c cgelem.c cgen.c cgobj.c \
 	cgreg.c var.c compress.c \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
@@ -419,6 +420,9 @@ strtold.obj : strtold.c
 
 adl.obj : adl.d
         $(DMD) -c $(DFLAGS) adl.d
+
+bcomplex.obj : bcomplex.d
+        $(DMD79) -c $(DFLAGS) bcomplex.d
 
 dblklst.obj : dblklst.d
         $(DMD) -c $(DFLAGS) dblklst.d
@@ -579,7 +583,6 @@ DEP=total.sym msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.
 
 aa.obj : aa.h tinfo.h aa.c
 backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
-bcomplex.obj : bcomplex.h bcomplex.c
 blockopt.obj : $(DEP) $(blockopt.dep) blockopt.c
 cg.obj : $(DEP) $(cg.dep) cg.c
 cgcs.obj : $(DEP) $(cgcs.dep) cgcs.c
