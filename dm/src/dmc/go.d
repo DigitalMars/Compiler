@@ -10,26 +10,137 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/go.c
  */
 
-#if !SPP
+version (SPP)
+{
+}
+else
+{
 
-#include        <stdio.h>
-#include        <string.h>
-#include        <stdlib.h>
-#include        <time.h>
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.stdc.time;
 
-#include        "cc.h"
-#include        "global.h"
-#include        "oper.h"
-#include        "el.h"
-#include        "go.h"
-#include        "type.h"
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.oper;
+import dmd.backend.global;
+import dmd.backend.el;
+import dmd.backend.ty;
+import dmd.backend.type;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import dmd.backend.dlist;
 
-/****************************
- * Terminate use of globals.
+import dvec;
+
+extern (C++):
+
+/***************************************
+ * Bit masks for various optimizations.
  */
+
+alias mftype = uint;        /* a type big enough for all the flags  */
+enum
+{
+    MFdc    = 1,               // dead code
+    MFda    = 2,               // dead assignments
+    MFdv    = 4,               // dead variables
+    MFreg   = 8,               // register variables
+    MFcse   = 0x10,            // global common subexpressions
+    MFvbe   = 0x20,            // very busy expressions
+    MFtime  = 0x40,            // favor time (speed) over space
+    MFli    = 0x80,            // loop invariants
+    MFliv   = 0x100,           // loop induction variables
+    MFcp    = 0x200,           // copy propagation
+    MFcnp   = 0x400,           // constant propagation
+    MFloop  = 0x800,           // loop till no more changes
+    MFtree  = 0x1000,          // optelem (tree optimization)
+    MFlocal = 0x2000,          // localize expressions
+    MFall   = 0xFFFF,          // do everything
+}
+
+/**********************************
+ * Definition elem vector, used for reaching definitions.
+ */
+
+struct DefNode
+{
+    elem    *DNelem;        // pointer to definition elem
+    block   *DNblock;       // pointer to block that the elem is in
+    vec_t    DNunambig;     // vector of unambiguous definitions
+}
+
+/* Global Variables */
+//extern __gshared uint[] optab;
+
+/* Global Optimizer variables
+ */
+struct GlobalOptimizer
+{
+    mftype mfoptim;
+    uint changes;       // # of optimizations performed
+
+    DefNode *defnod;    // array of definition elems
+    uint deftop;        // # of entries in defnod[]
+    uint defmax;        // capacity of defnod[]
+    uint unambigtop;    // number of unambiguous defininitions ( <= deftop )
+
+    vec_base_t *dnunambig;  // pool to allocate DNunambig vectors from
+    uint    dnunambigmax;   // capacity of dnunambig[]
+
+    elem **expnod;      // array of expression elems
+    uint exptop;        // top of expnod[]
+    block **expblk;     // parallel array of block pointers
+
+    vec_t defkill;      // vector of AEs killed by an ambiguous definition
+    vec_t starkill;     // vector of AEs killed by a definition of something that somebody could be
+                        // pointing to
+    vec_t vptrkill;     // vector of AEs killed by an access
+}
+
+extern __gshared GlobalOptimizer go;
+
+/* gdag.c */
+void builddags();
+void boolopt();
+void opt_arraybounds();
+
+/* gflow.c */
+void flowrd();
+void flowlv();
+void flowae();
+void flowvbe();
+void flowcp();
+void flowae();
+void genkillae();
+void flowarraybounds();
+int ae_field_affect(elem *lvalue,elem *e);
+
+/* glocal.c */
+void localize();
+
+/* gloop.c */
+int blockinit();
+void compdom();
+void loopopt();
+void fillInDNunambig(vec_t v, elem *e);
+void updaterd(elem *n,vec_t GEN,vec_t KILL);
+
+/* gother.c */
+void rd_arraybounds();
+void rd_free();
+void constprop();
+void copyprop();
+void rmdeadass();
+void elimass(elem *);
+void deadvar();
+void verybusyexp();
+list_t listrds(vec_t, elem *, vec_t);
+
+/* gslice.c */
+void sliceStructs();
+
+/***************************************************************************/
 
 void go_term()
 {
@@ -41,19 +152,21 @@ void go_term()
     util_free(go.defnod);
 }
 
-#if DEBUG
+debug
+{
                         // to print progress message and current trees set to
                         // DEBUG_TREES to 1 and uncomment next 2 lines
-#define DEBUG_TREES 0
-#if DEBUG_TREES
-void dbg_optprint(char *);
-#else
+//debug = DEBUG_TREES;
+debug (DEBUG_TREES)
+    void dbg_optprint(const(char) *);
+else
                         // to print progress message, undo comment
-#define dbg_optprint(c) // dbg_printf(c)
-#endif
-#else
-#define dbg_optprint(c)
-#endif
+    void dbg_optprint(const(char) *c) { printf(c); }
+}
+else
+{
+    void dbg_optprint(const(char) *c) { }
+}
 
 /**************************************
  * Parse optimizer command line flag.
@@ -65,29 +178,27 @@ void dbg_optprint(char *);
  */
 
 int go_flag(char *cp)
-{   unsigned i;
-    unsigned flag;
+{   uint i;
+    uint flag;
 
     enum GL     // indices of various flags in flagtab[]
     {
-        GLO,GLall,GLcnp,GLcp,GLcse,GLda,GLdc,GLdv,GLli,GLliv,GLlocal,GLloop,
-        GLnone,GLo,GLreg,GLspace,GLspeed,GLtime,GLtree,GLvbe,GLMAX
-    };
-    static const char *flagtab[] =
-    {   "O","all","cnp","cp","cse","da","dc","dv","li","liv","local","loop",
+        O,all,cnp,cp,cse,da,dc,dv,li,liv,local,loop,
+        none,o,reg,space,speed,time,tree,vbe,MAX
+    }
+    __gshared const char*[GL.MAX] flagtab =
+    [   "O","all","cnp","cp","cse","da","dc","dv","li","liv","local","loop",
         "none","o","reg","space","speed","time","tree","vbe"
-    };
-    static mftype flagmftab[] =
-    {   0,MFall,MFcnp,MFcp,MFcse,MFda,MFdc,MFdv,MFli,MFliv,MFlocal,MFloop,
+    ];
+    __gshared const mftype[GL.MAX] flagmftab =
+    [   0,MFall,MFcnp,MFcp,MFcse,MFda,MFdc,MFdv,MFli,MFliv,MFlocal,MFloop,
         0,0,MFreg,0,MFtime,MFtime,MFtree,MFvbe
-    };
+    ];
 
-    i = GLMAX;
-    assert(i == arraysize(flagtab));
-    assert(i == arraysize(flagmftab));
+    i = GL.MAX;
 
     //printf("go_flag('%s')\n", cp);
-    flag = binary(cp + 1,flagtab,GLMAX);
+    flag = binary(cp + 1,cast(const(char)**)flagtab.ptr,GL.MAX);
     if (go.mfoptim == 0 && flag != -1)
         go.mfoptim = MFall & ~MFvbe;
 
@@ -95,30 +206,30 @@ int go_flag(char *cp)
     {                                   /* cp -> flag string            */
         switch (flag)
         {
-            case GLall:
-            case GLcnp:
-            case GLcp:
-            case GLdc:
-            case GLda:
-            case GLdv:
-            case GLcse:
-            case GLli:
-            case GLliv:
-            case GLlocal:
-            case GLloop:
-            case GLreg:
-            case GLspeed:
-            case GLtime:
-            case GLtree:
-            case GLvbe:
+            case GL.all:
+            case GL.cnp:
+            case GL.cp:
+            case GL.dc:
+            case GL.da:
+            case GL.dv:
+            case GL.cse:
+            case GL.li:
+            case GL.liv:
+            case GL.local:
+            case GL.loop:
+            case GL.reg:
+            case GL.speed:
+            case GL.time:
+            case GL.tree:
+            case GL.vbe:
                 go.mfoptim &= ~flagmftab[flag];    /* clear bits   */
                 break;
-            case GLo:
-            case GLO:
-            case GLnone:
+            case GL.o:
+            case GL.O:
+            case GL.none:
                 go.mfoptim |= MFall & ~MFvbe;      // inverse of -all
                 break;
-            case GLspace:
+            case GL.space:
                 go.mfoptim |= MFtime;      /* inverse of -time     */
                 break;
             case -1:                    /* not in flagtab[]     */
@@ -131,28 +242,28 @@ int go_flag(char *cp)
     {                           /* cp -> flag string            */
         switch (flag)
         {
-            case GLall:
-            case GLcnp:
-            case GLcp:
-            case GLdc:
-            case GLda:
-            case GLdv:
-            case GLcse:
-            case GLli:
-            case GLliv:
-            case GLlocal:
-            case GLloop:
-            case GLreg:
-            case GLspeed:
-            case GLtime:
-            case GLtree:
-            case GLvbe:
+            case GL.all:
+            case GL.cnp:
+            case GL.cp:
+            case GL.dc:
+            case GL.da:
+            case GL.dv:
+            case GL.cse:
+            case GL.li:
+            case GL.liv:
+            case GL.local:
+            case GL.loop:
+            case GL.reg:
+            case GL.speed:
+            case GL.time:
+            case GL.tree:
+            case GL.vbe:
                 go.mfoptim |= flagmftab[flag];     /* set bits     */
                 break;
-            case GLnone:
+            case GL.none:
                 go.mfoptim &= ~MFall;      /* inverse of +all      */
                 break;
-            case GLspace:
+            case GL.space:
                 go.mfoptim &= ~MFtime;     /* inverse of +time     */
                 break;
             case -1:                    /* not in flagtab[]     */
@@ -176,18 +287,19 @@ badflag:
     return 0;
 }
 
-#if DEBUG_TREES
+debug (DEBUG_TREES)
+{
 void dbg_optprint(char *title)
 {
     block *b;
-    for (b = startblock; b; b = b->Bnext)
-        if (b->Belem)
+    for (b = startblock; b; b = b.Bnext)
+        if (b.Belem)
         {
-            dbg_printf("%s\n",title);
-            elem_print(b->Belem);
+            dll_printf("%s\n",title);
+            elem_print(b.Belem);
         }
 }
-#endif
+}
 
 /****************************
  * Optimize function.
@@ -195,40 +307,44 @@ void dbg_optprint(char *title)
 
 void optfunc()
 {
-#if !HTOD
+version (HTOD)
+{
+}
+else
+{
     block *b;
     int iter;           // iteration count
     clock_t starttime;
 
-    cmes ("optfunc()\n");
+    if (debugc) printf("optfunc()\n");
     dbg_optprint("optfunc\n");
-#ifdef DEBUG
-    if (debugb)
+
+    debug if (debugb)
     {
-        dbg_printf("................Before optimization.........\n");
+        dll_printf("................Before optimization.........\n");
         WRfunc();
     }
-#endif
+
     iter = 0;
 
     if (localgot)
     {   // Initialize with:
         //      localgot = OPgot;
         elem *e = el_long(TYnptr, 0);
-        e->Eoper = OPgot;
+        e.Eoper = OPgot;
         e = el_bin(OPeq, TYnptr, el_var(localgot), e);
-        startblock->Belem = el_combine(e, startblock->Belem);
+        startblock.Belem = el_combine(e, startblock.Belem);
     }
 
     // Each pass through the loop can reduce only one level of comma expression.
     // The infinite loop check needs to take this into account.
     // Add 100 just to give optimizer more rope to try to converge.
     int iterationLimit = 0;
-    for (b = startblock; b; b = b->Bnext)
+    for (b = startblock; b; b = b.Bnext)
     {
-        if (!b->Belem)
+        if (!b.Belem)
             continue;
-        int d = el_countCommas(b->Belem) + 100;
+        int d = el_countCommas(b.Belem) + 100;
         if (d > iterationLimit)
             iterationLimit = d;
     }
@@ -243,33 +359,30 @@ void optfunc()
         {   assert(iter < iterationLimit);      // infinite loop check
             break;
         }
-#if MARS
+version (MARS)
         util_progress();
-#else
+else
         file_progress();
-#endif
 
         //printf("optelem\n");
         /* canonicalize the trees        */
-        for (b = startblock; b; b = b->Bnext)
-            if (b->Belem)
+        for (b = startblock; b; b = b.Bnext)
+            if (b.Belem)
             {
-#if DEBUG
-                if(debuge)
+                debug if (debuge)
                 {
-                    dbg_printf("before\n");
-                    elem_print(b->Belem);
-                    //el_check(b->Belem);
+                    dll_printf("before\n");
+                    elem_print(b.Belem);
+                    //el_check(b.Belem);
                 }
-#endif
-                b->Belem = doptelem(b->Belem,bc_goal[b->BC] | GOALagain);
-#if DEBUG
-                if(0 && debugf)
+
+                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | GOALagain);
+
+                debug if (0 && debugf)
                 {
-                    dbg_printf("after\n");
-                    elem_print(b->Belem);
+                    dll_printf("after\n");
+                    elem_print(b.Belem);
                 }
-#endif
             }
         //printf("blockopt\n");
         if (go.mfoptim & MFdc)
@@ -284,8 +397,8 @@ void optfunc()
                                         /* induction vars                */
                                         /* do loop rotation              */
         else
-            for (b = startblock; b; b = b->Bnext)
-                b->Bweight = 1;
+            for (b = startblock; b; b = b.Bnext)
+                b.Bweight = 1;
         dbg_optprint("boolopt\n");
 
         if (go.mfoptim & MFcnp)
@@ -302,14 +415,14 @@ void optfunc()
          * replaced with loads from variables in read-only data.
          * This can result in localgot getting needed.
          */
-        symbol *localgotsave = localgot;
-        for (b = startblock; b; b = b->Bnext)
+        Symbol *localgotsave = localgot;
+        for (b = startblock; b; b = b.Bnext)
         {
-            if (b->Belem)
+            if (b.Belem)
             {
-                b->Belem = doptelem(b->Belem,bc_goal[b->BC] | GOALstruct);
-                if (b->Belem)
-                    b->Belem = el_convert(b->Belem);
+                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | GOALstruct);
+                if (b.Belem)
+                    b.Belem = el_convert(b.Belem);
             }
         }
         if (localgot != localgotsave)
@@ -317,9 +430,9 @@ void optfunc()
              *  localgot = OPgot;
              */
             elem *e = el_long(TYnptr, 0);
-            e->Eoper = OPgot;
+            e.Eoper = OPgot;
             e = el_bin(OPeq, TYnptr, el_var(localgot), e);
-            startblock->Belem = el_combine(e, startblock->Belem);
+            startblock.Belem = el_combine(e, startblock.Belem);
         }
 
         /* localize() is after localgot, otherwise we wind up with
@@ -331,18 +444,18 @@ void optfunc()
         if (go.mfoptim & MFda)
             rmdeadass();                /* remove dead assignments       */
 
-        cmes2 ("changes = %d\n", go.changes);
+        if (debugc) printf("changes = %d\n", go.changes);
         if (!(go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
             break;
     } while (1);
-    cmes2("%d iterations\n",iter);
+    if (debugc) printf("%d iterations\n",iter);
     if (go.mfoptim & MFdc)
         blockopt(1);                    // do block optimization
 
-    for (b = startblock; b; b = b->Bnext)
+    for (b = startblock; b; b = b.Bnext)
     {
-        if (b->Belem)
-            postoptelem(b->Belem);
+        if (b.Belem)
+            postoptelem(b.Belem);
     }
     if (go.mfoptim & MFvbe)
         verybusyexp();              /* very busy expressions         */
@@ -351,20 +464,18 @@ void optfunc()
     if (go.mfoptim & MFdv)
         deadvar();                  /* eliminate dead variables      */
 
-#ifdef DEBUG
-    if (debugb)
+    debug if (debugb)
     {
-        dbg_printf(".............After optimization...........\n");
+        dll_printf(".............After optimization...........\n");
         WRfunc();
     }
-#endif
 
     // Prepare for code generator
-    for (b = startblock; b; b = b->Bnext)
+    for (b = startblock; b; b = b.Bnext)
     {
         block_optimizer_free(b);
     }
-#endif
+}
 }
 
-#endif // !SPP
+}
