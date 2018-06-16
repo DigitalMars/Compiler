@@ -4894,7 +4894,6 @@ void cpp_buildinitializer(Symbol *s_ctor,list_t baseinit,int flag)
 void cpp_fixconstructor(Symbol *s_ctor)
 {   elem *e;
     Symbol *s_this;
-    block *b;
     func_t *f;
     type *tclass;
     symlist_t sl;
@@ -4953,7 +4952,7 @@ void cpp_fixconstructor(Symbol *s_ctor)
     /* Find every occurrence of an assignment to this, and append a     */
     /* copy of e to it.                                                 */
     sawthis = false;                    /* assume no assignments to this */
-    for (b = baseblock; b; b = b.Bnext)
+    foreach (b; BlockRange(baseblock))
         if (b.Belem)
             sawthis |= !!fixctorwalk(b.Belem,e,s_this);
 
@@ -4971,7 +4970,7 @@ void cpp_fixconstructor(Symbol *s_ctor)
 
 fixret:
     /* Make sure 'this' is returned from every return block             */
-    for (b = s_ctor.Sfunc.Fstartblock; b; b = b.Bnext)
+    foreach (b; BlockRange(s_ctor.Sfunc.Fstartblock))
         if (b.BC == BCret || b.BC == BCretexp)
         {   elem *ex;
 
@@ -5325,12 +5324,11 @@ void cpp_fixdestructor(Symbol *s_dtor)
 
 
     {
-    block *b;
     char sawthis;
 
     /* Search for any assignments to this       */
     sawthis = false;                    /* assume no assignments to this */
-    for (b = baseblock; b; b = b.Bnext)
+    foreach (b; BlockRange(baseblock))
         if (b.Belem && fixctorwalk(b.Belem,null,s_this))
         {   sawthis = true;
             synerr(EM_assignthis);
@@ -5339,7 +5337,7 @@ void cpp_fixdestructor(Symbol *s_dtor)
 
     _abstract = stag.Sstruct.Sflags & STRabstract;
 
-    for (b = baseblock; b; b = b.Bnext)
+    foreach (b; BlockRange(baseblock))
     {
         if (b.BC == BCret || b.BC == BCretexp || b == f.Fbaseendblock)
             b.Belem = el_combine(b.Belem,el_copytree(e));

@@ -322,8 +322,7 @@ debug (DEBUG_TREES)
 {
 void dbg_optprint(char *title)
 {
-    block *b;
-    for (b = startblock; b; b = b.Bnext)
+    foreach (b; BlockRange(startblock))
         if (b.Belem)
         {
             printf("%s\n",title);
@@ -365,7 +364,7 @@ else
     // The infinite loop check needs to take this into account.
     // Add 100 just to give optimizer more rope to try to converge.
     int iterationLimit = 0;
-    for (block* b = startblock; b; b = b.Bnext)
+    foreach (b; BlockRange(startblock))
     {
         if (!b.Belem)
             continue;
@@ -392,7 +391,7 @@ else
 
         //printf("optelem\n");
         /* canonicalize the trees        */
-        for (block* b = startblock; b; b = b.Bnext)
+        foreach (b; BlockRange(startblock))
             if (b.Belem)
             {
                 debug if (debuge)
@@ -423,7 +422,7 @@ else
                                         /* induction vars                */
                                         /* do loop rotation              */
         else
-            for (block* b = startblock; b; b = b.Bnext)
+            foreach (b; BlockRange(startblock))
                 b.Bweight = 1;
         dbg_optprint("boolopt\n");
 
@@ -442,7 +441,7 @@ else
          * This can result in localgot getting needed.
          */
         Symbol *localgotsave = localgot;
-        for (block* b = startblock; b; b = b.Bnext)
+        foreach (b; BlockRange(startblock))
         {
             if (b.Belem)
             {
@@ -479,7 +478,7 @@ else
     if (go.mfoptim & MFdc)
         blockopt(1);                    // do block optimization
 
-    for (block* b = startblock; b; b = b.Bnext)
+    foreach (b; BlockRange(startblock))
     {
         if (b.Belem)
             postoptelem(b.Belem);
@@ -498,7 +497,7 @@ else
     }
 
     // Prepare for code generator
-    for (block* b = startblock; b; b = b.Bnext)
+    foreach (b; BlockRange(startblock))
     {
         block_optimizer_free(b);
     }

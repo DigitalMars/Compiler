@@ -2561,10 +2561,9 @@ L1:
 }
 
 /*private*/ int func_anypath(block *bend,block *binit)
-{   block *b;
-
+{
     // Mark all blocks as unvisited
-    for (b = startblock; b; b = b.Bnext)
+    foreach (b; BlockRange(startblock))
         b.Bflags &= ~BFLmark;
     return func_anypathx(startblock,binit,bend);
 }
@@ -2579,8 +2578,8 @@ enum DBG = false;
 {   uint si;
 
     debug if (0)
-    {   block *b;
-        for (b = startblock; b; b = b.Bnext)
+    {
+        foreach (b; BlockRange(startblock))
             WRblock(b);
     }
 
@@ -2614,15 +2613,14 @@ enum DBG = false;
     if (bstart.Bnext)
         func_doblock(bstart.Bnext);
 
-    {   block *b;
-
+    {
         if (DBG) dbg_printf("bstart = %d, Bendscope = %d BC = ",
          bstart.Bblknum,bstart.Bendscope.Bblknum);
         if (DBG) WRBC(bstart.BC);
         if (DBG) dbg_printf("\n");
 
         /* Unmark all blocks    */
-        for (b = startblock; b; b = b.Bnext)
+        foreach (b; BlockRange(startblock))
             b.Bflags &= ~BFLvisited;
 
         func_lookat(bstart,bstart);
@@ -3210,7 +3208,6 @@ else
 
 /*private*/ void namret_process()
 {   list_t el;
-    block *b;
 
     if ((el = funcstate.namret.explist) != null)
     {
@@ -3233,7 +3230,7 @@ else
         }
 
         /* Go through function, replacing all occurrences of s with sret */
-        for (b = startblock; b; b = b.Bnext)
+        foreach (b; BlockRange(startblock))
         {   namret_replace(b.Belem);
         }
 

@@ -102,7 +102,7 @@ void inline_do(Symbol *sfunc)
     if (CPP || f.Fflags3 & Fdoinline)  // if any inline functions called
     {
         f.Fflags |= Finlinenest;
-        for (auto b = startblock; b; b = b.Bnext)
+        foreach (b; BlockRange(startblock))
             if (b.Belem)
             {
                 //elem_print(b.Belem);

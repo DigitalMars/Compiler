@@ -869,7 +869,6 @@ Symbol *except_gentables()
     uint psize;                 // target size of (void *)
     uint fsize;                 // target size of function pointer
     int i;
-    block *b;
     ushort us;                  // For placing short values into the stream
     static if (TX86)
     {
@@ -993,7 +992,7 @@ Symbol *except_gentables()
     //                  offset of handler from start of function
     //                  pointer to typeinfo
     ntrys = 0;
-    for (b = startblock; b; b = b.Bnext)
+    foreach (b; BlockRange(startblock))
         ntrys += (b.BC == BCtry);
 
     debug if (debuge)
@@ -1002,7 +1001,7 @@ Symbol *except_gentables()
     //printf("ntrys = %d\n",ntrys);
     dtb.nbytes(2,cast(char *)&ntrys);
     sz += 2;
-    for (b = startblock; b; b = b.Bnext)
+    foreach (b; BlockRange(startblock))
     {   list_t list;
         targ_size_t cvoffset;
         debug int handler = 0;
