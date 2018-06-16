@@ -146,6 +146,7 @@ void list_term()
         while (list_freelist)
         {
             list_t list = list_next(list_freelist);
+            list_delete(list_freelist);
             list_freelist = list;
             nlist--;
         }
@@ -156,8 +157,6 @@ void list_term()
     }
 }
 
-
-list_t list_alloc();
 
 list_t list_alloc()
 {

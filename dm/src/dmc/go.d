@@ -10,6 +10,8 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/go.c
  */
 
+module dmd.backend.go;
+
 version (SPP)
 {
 }
@@ -31,9 +33,29 @@ import dmd.backend.type;
 
 import dmd.backend.dlist;
 
+version (MARS)
+import dmd.backend.dvec;
+else
 import dvec;
 
+/+
+version (OSX)
+{
+    version (X86)
+    {
+        //pragma(mangle, "clock$UNIX2003") clock_t clock();
+        //clock_t clock() { return 0; }
+    }
+}
+
+clock_t clock() { return 0; }
++/
+
+extern (C) clock_t os_clock();
+
+
 extern (C++):
+
 
 /***************************************
  * Bit masks for various optimizations.
@@ -142,14 +164,25 @@ void sliceStructs();
 
 /***************************************************************************/
 
+extern (C++) void mem_free(void* p);
+
 void go_term()
 {
     vec_free(go.defkill);
     vec_free(go.starkill);
     vec_free(go.vptrkill);
+version (Posix)
+{
+    mem_free(go.expnod);
+    mem_free(go.expblk);
+    mem_free(go.defnod);
+}
+else
+{
     util_free(go.expnod);
     util_free(go.expblk);
     util_free(go.defnod);
+}
 }
 
 debug
@@ -178,9 +211,7 @@ else
  */
 
 int go_flag(char *cp)
-{   uint i;
-    uint flag;
-
+{
     enum GL     // indices of various flags in flagtab[]
     {
         O,all,cnp,cp,cse,da,dc,dv,li,liv,local,loop,
@@ -195,10 +226,10 @@ int go_flag(char *cp)
         0,0,MFreg,0,MFtime,MFtime,MFtree,MFvbe
     ];
 
-    i = GL.MAX;
+    uint i = GL.MAX;
 
     //printf("go_flag('%s')\n", cp);
-    flag = binary(cp + 1,cast(const(char)**)flagtab.ptr,GL.MAX);
+    uint flag = binary(cp + 1,cast(const(char)**)flagtab.ptr,GL.MAX);
     if (go.mfoptim == 0 && flag != -1)
         go.mfoptim = MFall & ~MFvbe;
 
@@ -295,7 +326,7 @@ void dbg_optprint(char *title)
     for (b = startblock; b; b = b.Bnext)
         if (b.Belem)
         {
-            dll_printf("%s\n",title);
+            printf("%s\n",title);
             elem_print(b.Belem);
         }
 }
@@ -312,20 +343,14 @@ version (HTOD)
 }
 else
 {
-    block *b;
-    int iter;           // iteration count
-    clock_t starttime;
-
     if (debugc) printf("optfunc()\n");
     dbg_optprint("optfunc\n");
 
     debug if (debugb)
     {
-        dll_printf("................Before optimization.........\n");
+        printf("................Before optimization.........\n");
         WRfunc();
     }
-
-    iter = 0;
 
     if (localgot)
     {   // Initialize with:
@@ -340,7 +365,7 @@ else
     // The infinite loop check needs to take this into account.
     // Add 100 just to give optimizer more rope to try to converge.
     int iterationLimit = 0;
-    for (b = startblock; b; b = b.Bnext)
+    for (block* b = startblock; b; b = b.Bnext)
     {
         if (!b.Belem)
             continue;
@@ -351,7 +376,8 @@ else
 
     // Some functions can take enormous amounts of time to optimize.
     // We try to put a lid on it.
-    starttime = clock();
+    clock_t starttime = os_clock();
+    int iter = 0;           // iteration count
     do
     {
         //printf("iter = %d\n", iter);
@@ -366,12 +392,12 @@ else
 
         //printf("optelem\n");
         /* canonicalize the trees        */
-        for (b = startblock; b; b = b.Bnext)
+        for (block* b = startblock; b; b = b.Bnext)
             if (b.Belem)
             {
                 debug if (debuge)
                 {
-                    dll_printf("before\n");
+                    printf("before\n");
                     elem_print(b.Belem);
                     //el_check(b.Belem);
                 }
@@ -380,7 +406,7 @@ else
 
                 debug if (0 && debugf)
                 {
-                    dll_printf("after\n");
+                    printf("after\n");
                     elem_print(b.Belem);
                 }
             }
@@ -397,13 +423,13 @@ else
                                         /* induction vars                */
                                         /* do loop rotation              */
         else
-            for (b = startblock; b; b = b.Bnext)
+            for (block* b = startblock; b; b = b.Bnext)
                 b.Bweight = 1;
         dbg_optprint("boolopt\n");
 
         if (go.mfoptim & MFcnp)
             boolopt();                  // optimize boolean values
-        if (go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC)
+        if (go.changes && go.mfoptim & MFloop && (os_clock() - starttime) < 30 * CLOCKS_PER_SEC)
             continue;
 
         if (go.mfoptim & MFcnp)
@@ -416,7 +442,7 @@ else
          * This can result in localgot getting needed.
          */
         Symbol *localgotsave = localgot;
-        for (b = startblock; b; b = b.Bnext)
+        for (block* b = startblock; b; b = b.Bnext)
         {
             if (b.Belem)
             {
@@ -445,14 +471,15 @@ else
             rmdeadass();                /* remove dead assignments       */
 
         if (debugc) printf("changes = %d\n", go.changes);
-        if (!(go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
+        if (!(go.changes && go.mfoptim & MFloop && (os_clock() - starttime) < 30 * CLOCKS_PER_SEC))
             break;
     } while (1);
     if (debugc) printf("%d iterations\n",iter);
+
     if (go.mfoptim & MFdc)
         blockopt(1);                    // do block optimization
 
-    for (b = startblock; b; b = b.Bnext)
+    for (block* b = startblock; b; b = b.Bnext)
     {
         if (b.Belem)
             postoptelem(b.Belem);
@@ -466,12 +493,12 @@ else
 
     debug if (debugb)
     {
-        dll_printf(".............After optimization...........\n");
+        printf(".............After optimization...........\n");
         WRfunc();
     }
 
     // Prepare for code generator
-    for (b = startblock; b; b = b.Bnext)
+    for (block* b = startblock; b; b = b.Bnext)
     {
         block_optimizer_free(b);
     }

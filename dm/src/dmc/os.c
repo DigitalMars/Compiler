@@ -3,11 +3,10 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/os.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/os.c, backend/os.c)
  */
 
 /*
@@ -21,7 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -629,7 +628,7 @@ int os_file_exists(const char *name)
     else
         result = 1;
     return result;
-#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
     struct stat buf;
 
     return stat(name,&buf) == 0;        /* file exists if stat succeeded */
@@ -740,7 +739,7 @@ char *file_8dot3name(const char *filename)
 
 int file_write(char *name, void *buffer, unsigned len)
 {
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
     int fd;
     ssize_t numwritten;
 
@@ -813,7 +812,7 @@ err:
 
 int file_createdirs(char *name)
 {
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
     return 1;
 #endif
 #if _WIN32
@@ -847,6 +846,19 @@ int file_createdirs(char *name)
 Lfail:
     return 1;
 #endif
+}
+
+/***********************************
+ * Returns:
+ *   result of C library clock()
+ */
+
+extern "C" // because of mangling of clock_t, which is a long
+{
+clock_t os_clock()
+{
+    return clock();
+}
 }
 
 /***********************************
@@ -903,6 +915,18 @@ int os_critsecsize32()
 int os_critsecsize64()
 {
     assert(0);
+    return 8; // sizeof(pthread_mutex_t) on 64 bit
+}
+#endif
+
+#if __DragonFlyBSD__
+int os_critsecsize32()
+{
+    return 4; // sizeof(pthread_mutex_t) on 32 bit
+}
+
+int os_critsecsize64()
+{
     return 8; // sizeof(pthread_mutex_t) on 64 bit
 }
 #endif
