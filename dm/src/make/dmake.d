@@ -257,8 +257,11 @@ int main(int argc,char** argv)
         }
     }
 
+version (Win32)
+{
     if (response_expand(&argc,&argv))
         cmderr("can't expand response file\n", null);
+}
 
     for (i = 1; i < argc; i++)          /* loop through arguments */
         doswitch(argv[i]);
@@ -1052,8 +1055,6 @@ char *expandline(char *buf)
     uint b;                     /* start of macro name                  */
     uint t;                     /* start of text following macro call   */
     uint p;                     /* 1 past end of macro name             */
-    uint textlen;               /* length of replacement text (excl. 0) */
-    uint buflen;                /* length of buffer (excluding 0)       */
     int paren;
     char c;
     const(char)* text;
@@ -1085,13 +1086,13 @@ char *expandline(char *buf)
             buf[p] = 0;
             text = searchformacro(buf + b);
             buf[p] = c;
-            textlen = strlen(text);
+            const textlen = strlen(text);
             /* If replacement text exactly matches macro call, skip expansion */
             if (textlen == t - i && strncmp(text,buf + i,t - i) == 0)
                 i = t;
             else
             {
-                buflen = strlen(buf);
+                const buflen = strlen(buf);
                 buf = cast(char*)mem_realloc(buf,buflen + textlen + 1);
                 memmove(buf + i + textlen,buf + t,buflen + 1 - t);
                 memmove(buf + i,text,textlen);
@@ -1727,7 +1728,7 @@ static if (1)
 /*******************
  */
 
-void *mem_calloc(uint size)
+void *mem_calloc(size_t size)
 { void* p;
 
 /*  debug printf("size = %d\n",size);*/
@@ -1755,7 +1756,7 @@ void mem_free(void *p)
  * Re-allocate a buffer.
  */
 
-void *mem_realloc(void *oldbuf,uint newbufsize)
+void *mem_realloc(void *oldbuf, size_t newbufsize)
 {
         void* p;
 
