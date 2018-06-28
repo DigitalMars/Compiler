@@ -322,7 +322,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code.d code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
-	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d
+	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d
 
 BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
@@ -337,7 +337,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgreg.c var.c compress.c \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
 	code.c symbol.c debug.c dt.c ee.c el.c \
-	fp.c gflow.c gdag.c gsroa.c \
+	fp.c gflow.c gdag.c \
 	gother.c glocal.c gloop.c newman.c \
 	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
 	type.c \
@@ -481,6 +481,9 @@ func.obj : func.d
 go.obj : go.d
         $(DMD) -c $(DFLAGS) go.d
 
+gsroa.obj : gsroa.d
+        $(DMD) -c $(DFLAGS) gsroa.d
+
 ini.obj : ini.d
         $(DMD) -c $(DFLAGS) ini.d
 
@@ -622,7 +625,7 @@ cgelem.obj : $(DEP) $(cgelem.dep) cgelem.c
 gdag.obj : $(DEP) $(gdag.dep) gdag.c
 dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 gother.obj : $(DEP) $(gother.dep) gother.c
-gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
+#gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
 #go.obj : $(DEP) $(go.dep) go.c
 gflow.obj : $(DEP) $(gflow.dep) gflow.c
 cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
