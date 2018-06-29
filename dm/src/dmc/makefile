@@ -322,7 +322,8 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code.d code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.d \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
-	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d
+	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
+	glocal.d
 
 BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
@@ -338,7 +339,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
 	code.c symbol.c debug.c dt.c ee.c el.c \
 	fp.c gflow.c gdag.c \
-	gother.c glocal.c gloop.c newman.c \
+	gother.c gloop.c newman.c \
 	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
 	type.c \
 	elfobj.c \
@@ -478,6 +479,9 @@ filespec.obj : filespec.d
 func.obj : func.d
         $(DMD) -c $(DFLAGS) func.d
 
+glocal.obj : glocal.d
+        $(DMD) -c $(DFLAGS) glocal.d
+
 go.obj : go.d
         $(DMD) -c $(DFLAGS) go.d
 
@@ -610,7 +614,6 @@ ee.obj : $(DEP) $(ee.dep) ee.c
 el.obj : $(DEP) $(el.dep) el.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 fp.obj : $(DEP) $(fp.dep) fp.c
-glocal.obj : $(DEP) $(glocal.dep) glocal.c
 gloop.obj : $(DEP) $(gloop.dep) gloop.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 out.obj : $(DEP) $(out.dep) out.c
