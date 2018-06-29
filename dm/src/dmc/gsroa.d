@@ -5,10 +5,10 @@
  * Copyright:   Copyright (C) 2016-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gslice.c, backend/gslice.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gsroa.c, backend/gsroa.d)
  */
 
-module backend.gsroa;
+module dmd.backend.gsroa;
 
 version (SCPP)
     version = COMPILE;
@@ -318,7 +318,7 @@ void sliceStructs()
                 assert(id);
                 sprintf(id, "__%s_%d", sold.Sident.ptr, REGSIZE);
                 if (debugc) printf("creating slice symbol %s\n", id);
-                Symbol *snew = symbol_calloc(id, idlen);
+                Symbol *snew = symbol_calloc(id, cast(uint)idlen);
                 free(id);
                 snew.Sclass = sold.Sclass;
                 snew.Sfl = sold.Sfl;
