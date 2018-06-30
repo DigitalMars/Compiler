@@ -23,7 +23,11 @@ extern (C):
 nothrow:
 @nogc:
 
-alias size_t vec_base_t;                     // base type of vector
+version (D_LP64)
+    alias ulong vec_base_t;                     // base type of vector
+else
+    alias uint vec_base_t;                      // base type of vector
+
 alias vec_base_t* vec_t;
 
 enum VECBITS = vec_base_t.sizeof * 8;        // # of bits per entry

@@ -339,7 +339,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
 	code.c symbol.c debug.c dt.c ee.c el.c \
 	fp.c gflow.c gdag.d \
-	gother.c gloop.c newman.c \
+	gother.d gloop.c newman.c \
 	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
 	type.c \
 	elfobj.c \
@@ -488,6 +488,9 @@ glocal.obj : glocal.d
 go.obj : go.d
         $(DMD) -c $(DFLAGS) go.d
 
+gother.obj : gother.d
+        $(DMD) -c $(DFLAGS) gother.d
+
 gsroa.obj : gsroa.d
         $(DMD) -c $(DFLAGS) gsroa.d
 
@@ -629,7 +632,6 @@ type.obj : $(DEP) $(type.dep) type.c
 cgcv.obj : $(DEP) $(cgcv.dep) cgcv.c
 cgelem.obj : $(DEP) $(cgelem.dep) cgelem.c
 dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
-gother.obj : $(DEP) $(gother.dep) gother.c
 #gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
 #go.obj : $(DEP) $(go.dep) go.c
 gflow.obj : $(DEP) $(gflow.dep) gflow.c
