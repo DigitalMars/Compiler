@@ -104,7 +104,6 @@ void opt_arraybounds();
 /* gflow.c */
 void flowrd();
 void flowlv();
-void flowae();
 void flowvbe();
 void flowcp();
 void flowae();
