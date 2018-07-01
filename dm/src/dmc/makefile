@@ -338,8 +338,8 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgreg.c var.c compress.c \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
 	code.c symbol.c debug.c dt.c ee.c el.c \
-	fp.c gflow.c gdag.d \
-	gother.d gloop.c newman.c \
+	fp.c gflow.d gdag.d \
+	gother.d gloop.d newman.c \
 	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
 	type.c \
 	elfobj.c \
@@ -482,8 +482,14 @@ func.obj : func.d
 gdag.obj : gdag.d
         $(DMD) -c $(DFLAGS) gdag.d
 
+gflow.obj : gflow.d
+        $(DMD) -c $(DFLAGS) gflow.d
+
 glocal.obj : glocal.d
         $(DMD) -c $(DFLAGS) glocal.d
+
+gloop.obj : gloop.d
+        $(DMD) -c $(DFLAGS) gloop.d
 
 go.obj : go.d
         $(DMD) -c $(DFLAGS) go.d
@@ -620,7 +626,6 @@ ee.obj : $(DEP) $(ee.dep) ee.c
 el.obj : $(DEP) $(el.dep) el.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 fp.obj : $(DEP) $(fp.dep) fp.c
-gloop.obj : $(DEP) $(gloop.dep) gloop.c
 nteh.obj : $(DEP) $(nteh.dep) nteh.c
 out.obj : $(DEP) $(out.dep) out.c
 pdata.obj : $(DEP) $(pdata.dep) pdata.c
@@ -634,7 +639,7 @@ cgelem.obj : $(DEP) $(cgelem.dep) cgelem.c
 dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 #gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
 #go.obj : $(DEP) $(go.dep) go.c
-gflow.obj : $(DEP) $(gflow.dep) gflow.c
+#gflow.obj : $(DEP) $(gflow.dep) gflow.c
 cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
 cgen.obj : $(DEP) $(cgen.dep) cgen.c
 rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
