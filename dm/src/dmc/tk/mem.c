@@ -29,6 +29,9 @@
 #endif
 #endif
 
+extern "C"
+{
+
 #ifndef MEM_H
 #include        "mem.h"
 #endif
@@ -63,7 +66,9 @@ static int mem_scount;          /* # of sallocs that haven't been free'd */
 
 /* Determine where to send error messages       */
 #if _WINDLL
+extern "C++" {
 void err_message(const char *,...);
+}
 #define PRINT   err_message(
 #elif MSDOS
 #define PRINT   printf( /* stderr can't be redirected with MS-DOS       */
@@ -326,7 +331,7 @@ static struct mem_debug
         11111,
         0,
         BEFOREVAL,
-#if !(__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+#if !(__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun)
         AFTERVAL
 #endif
 };
@@ -854,7 +859,7 @@ void mem_init()
                 mem_numalloc = 0;
                 mem_maxalloc = 0;
                 mem_alloclist.Mnext = NULL;
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
                 *(long *) &(mem_alloclist.data[0]) = AFTERVAL;
 #endif
 #endif
@@ -907,4 +912,11 @@ void mem_term()
         mem_inited = 0;
 }
 
+extern "C++"
+{
+    void mem_free_cpp(void *p) { mem_free(p); }
+}
+
 #endif /* !MEM_NONE */
+
+}

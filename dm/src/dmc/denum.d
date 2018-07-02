@@ -38,6 +38,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.dlist;
+import tk.mem;
 
 extern (C++):
 
@@ -45,7 +46,6 @@ Symbol *scope_searchinner(const(char)* id, uint sct);
 void n2_chkexist(Classsym* stag, char* name);
 void n2_addmember(Classsym* stag, Symbol* smember);
 Symbol* scope_define(const(char)* id, uint sct, enum_SC sclass);
-void *mem_calloc(size_t);
 Symbol* cpp_findmember(Classsym* sclass, const(char)* sident, uint flag);
 
 

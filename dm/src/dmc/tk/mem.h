@@ -1,5 +1,5 @@
 /*_ mem.h */
-/* Copyright 1986-2012 by Walter Bright         */
+/* Copyright (C) 1986-2018 by The D Language Foundation, All Rights Reserved         */
 /* All Rights Reserved                          */
 /* Written by Walter Bright                     */
 
@@ -11,6 +11,9 @@
 #endif
 
 #include <stdio.h> // for size_t
+
+extern "C"
+{
 
 #if __APPLE__ && __i386__
     /* size_t is 'unsigned long', which makes it mangle differently
@@ -278,5 +281,7 @@ void mem_setnewfileline (void *,const char *,int);
 
 #endif /* MEM_DEBUG */
 #endif /* MEM_NONE  */
+
+}
 
 #endif /* MEM_H */

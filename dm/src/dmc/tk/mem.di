@@ -1,5 +1,5 @@
 
-extern (C++):
+extern (C):
 
 nothrow:
 @nogc:
@@ -12,7 +12,11 @@ void mem_free(void *);
 void mem_init();
 void mem_term();
 
-alias mem_freefp = mem_free;
+extern (C++)
+{
+    void mem_free_cpp(void *);
+    alias mem_freefp = mem_free_cpp;
+}
 
 enum MEM_E { MEM_ABORTMSG, MEM_ABORT, MEM_RETNULL, MEM_CALLFP, MEM_RETRY }
 void mem_setexception(MEM_E,...);

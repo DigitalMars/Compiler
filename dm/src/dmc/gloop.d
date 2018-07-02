@@ -28,6 +28,7 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code_x86;
+import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
@@ -39,7 +40,15 @@ import dmd.backend.type;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-import tk.mem;
+version (SCPP)
+    import tk.mem;
+else
+{
+    extern (C)
+    {
+        void *mem_calloc(size_t);
+    }
+}
 
 char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
@@ -2896,7 +2905,7 @@ private void elimbasivs(loop *l)
                  */
                 if (!tyuns(ty) &&
                     (tyintegral(ty) && el_tolong(fl.c1) < 0 ||
-                     tyfloating(ty) && el_toldouble(fl.c1) < 0.0))
+                     tyfloating(ty) && el_toldoubled(fl.c1) < 0.0))
                         refEoper = swaprel(refEoper);
 
                 /* Replace (X relop e) with (X relop (short)e)
