@@ -323,7 +323,7 @@ BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code.d code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
-	glocal.d goh.d
+	glocal.d goh.d md5.d
 
 BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
@@ -345,7 +345,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	elfobj.c \
 	dwarf.c machobj.c \
 	strtold.c aa.c ti_achar.c \
-	md5.c ti_pvoid.c ph2.c util2.c \
+	ti_pvoid.c ph2.c util2.c \
 	mscoffobj.c pdata.c cv8.c backconfig.c \
 	divcoeff.d dwarfeh.c varstats.c \
 	backend.txt
