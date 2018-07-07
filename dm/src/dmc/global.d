@@ -430,7 +430,7 @@ void compdfo();
 /* debug.c */
 extern __gshared const(char)*[32] regstring;
 
-void WRclass(SC c);
+void WRclass(enum_SC c);
 void WRTYxx(tym_t t);
 void WROP(uint oper);
 void WRBC(uint bc);
