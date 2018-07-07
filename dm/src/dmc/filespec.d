@@ -7,7 +7,7 @@ import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
 
-import tk.mem;
+import dmd.backend.memh;
 
 extern (C++):
 

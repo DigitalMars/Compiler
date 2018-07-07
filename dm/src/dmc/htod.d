@@ -33,7 +33,7 @@ import parser;
 
 import dmd.backend.dlist;
 import filespec;
-import tk.mem;
+import dmd.backend.memh;
 
 extern (C) void crlf(FILE*);
 

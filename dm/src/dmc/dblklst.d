@@ -32,7 +32,7 @@ import dmd.backend.outbuf;
 
 import filespec;
 import dmd.backend.dlist;
-import tk.mem;
+import dmd.backend.memh;
 
 import dtoken;
 import parser;

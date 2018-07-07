@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/optabgen.c, backend/optabgen.c)
@@ -604,12 +604,25 @@ void dotab()
   fprintf(f,"\t%s\n\t};\n",cdxxx[i]);
   fclose(f);
 
-  f = fopen("elxxx.c","w");
-  fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *, goal_t) = \n\t{\n");
-  for (i = 0; i < OPMAX - 1; i++)
-        fprintf(f,"\t%s,\n",elxxx[i]);
-  fprintf(f,"\t%s\n\t};\n",elxxx[i]);
-  fclose(f);
+#if 1
+    {
+        f = fopen("elxxx.d","w");
+        fprintf(f,"extern (C++) __gshared elem *function(elem *, goal_t)[OPMAX] elxxx = \n\t[\n");
+        for (i = 0; i < OPMAX - 1; i++)
+            fprintf(f,"\t&%s,\n",elxxx[i]);
+        fprintf(f,"\t&%s\n\t];\n",elxxx[i]);
+        fclose(f);
+    }
+#else
+    {
+        f = fopen("elxxx.c","w");
+        fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *, goal_t) = \n\t{\n");
+        for (i = 0; i < OPMAX - 1; i++)
+            fprintf(f,"\t%s,\n",elxxx[i]);
+        fprintf(f,"\t%s\n\t};\n",elxxx[i]);
+        fclose(f);
+    }
+#endif
 }
 
 void fltables()
@@ -1035,7 +1048,7 @@ void dotytab()
             case TYcldouble:
 #if TARGET_OSX
                 sz = 16;
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
                 sz = 4;
 #elif TARGET_WINDOS
                 sz = 2;

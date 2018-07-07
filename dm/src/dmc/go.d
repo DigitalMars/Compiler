@@ -34,6 +34,7 @@ import dmd.backend.type;
 
 import dmd.backend.dlist;
 import dmd.backend.dvec;
+import dmd.backend.memh;
 
 /+
 version (OSX)
@@ -55,8 +56,6 @@ extern (C++):
 
 
 /***************************************************************************/
-
-extern (C++) void mem_free(void* p);
 
 void go_term()
 {

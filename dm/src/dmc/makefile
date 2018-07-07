@@ -278,7 +278,7 @@ TOTALH=$(CCH) total.sym
 
 ##################### GENERATED SOURCE #####################
 
-elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
+elxxx.d cdxxx.c optab.c debtab.c fltables.c tytab.c : \
         cdef.h cc.h oper.h ty.h optabgen.c
         $(CC) -cpp optabgen -I$(TK)
         optabgen
@@ -323,7 +323,7 @@ BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code.d code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
-	glocal.d goh.d md5.d
+	glocal.d goh.d md5.d memh.d
 
 BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
@@ -334,8 +334,8 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	\
 	optabgen.c platform_stub.c \
 	blockopt.c cg.c cg87.c cgxmm.c \
-	cgcod.c cgcs.c cgcv.c cgelem.c cgen.c cgobj.c \
-	cgreg.c var.c compress.c \
+	cgcod.c cgcs.c cgcv.c cgelem.d cgen.c cgobj.c \
+	cgreg.c var.c compress.d \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
 	code.c symbol.c debug.c dt.c ee.c el.c \
 	fp.c gflow.d gdag.d \
@@ -353,8 +353,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 SRC= $(FRONTSRC) $(FRONTDSRC) $(BACKSRC) $(BACKDSRC)
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
-        $(TK)\mem.c $(TK)\filespec.c \
-        $(TK)\mem.di
+        $(TK)\mem.c $(TK)\filespec.c
 
 SHELLSRC= $(NTDLLSHELL)\include\dllrun.h $(NTDLLSHELL)\include\network.h \
         $(NTDLLSHELL)\include\nsidde.h $(NTDLLSHELL)\include\netspawn.h
@@ -427,6 +426,12 @@ bcomplex.obj : bcomplex.d
 
 dblklst.obj : dblklst.d
         $(DMD) -c $(DFLAGS) dblklst.d
+
+cgelem.obj : elxxx.d cgelem.d
+        $(DMD) -c $(DFLAGS) -J. cgelem.d
+
+compress.obj : compress.d
+        $(DMD) -c $(DFLAGS) compress.d
 
 dcpp.obj : dcpp.d
         $(DMD) -c $(DFLAGS) dcpp.d
@@ -601,7 +606,7 @@ utf.obj : utf.d
 
 ################# Source file dependencies ###############
 
-DEP=total.sym msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
+DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.c optab.c debtab.c fltables.c tytab.c
 
 aa.obj : aa.h tinfo.h aa.c
 backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
@@ -616,7 +621,6 @@ cod3.obj : $(DEP) $(cod3.dep) cod3.c
 cod4.obj : $(DEP) $(cod4.dep) cod4.c
 cod5.obj : $(DEP) $(cod5.dep) cod5.c
 code.obj : $(DEP) $(code.dep) code.c
-compressj.obj : $(DEP) $(compress.dep) compress.c
 cv8.obj : $(DEP) $(cv8.dep) cv8.c
 debug.obj : $(DEP) $(debug.dep) debug.c
 dt.obj : $(DEP) $(dt.dep) dt.c
@@ -635,7 +639,6 @@ ti_pvoid.obj : tinfo.h ti_pvoid.c
 tk.obj : $(DEP) $(tk.dep) tk.c
 type.obj : $(DEP) $(type.dep) type.c
 cgcv.obj : $(DEP) $(cgcv.dep) cgcv.c
-cgelem.obj : $(DEP) $(cgelem.dep) cgelem.c
 dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 #gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
 #go.obj : $(DEP) $(go.dep) go.c
@@ -668,6 +671,6 @@ clean:
         del *.exp
         del *.dbg
         del *.res
-        del msgs.c msgs2.d msgs2.h msgs2.c elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
+        del msgs.c msgs2.d msgs2.h msgs2.c elxxx.d cdxxx.c optab.c debtab.c fltables.c tytab.c
 
 ###################################

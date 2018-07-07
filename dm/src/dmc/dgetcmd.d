@@ -32,7 +32,7 @@ import dmd.backend.type;
 
 import dmd.backend.dlist;
 import filespec;
-import tk.mem;
+import dmd.backend.memh;
 
 import dtoken;
 import msgs2;
