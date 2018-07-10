@@ -13,7 +13,7 @@
  *              Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC backend/tk/_dlist.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dlist.d, backend/dlist.d)
  */
 
 module dmd.backend.dlist;
@@ -315,10 +315,9 @@ list_t list_prepend(list_t *plist, void *ptr)
 int list_nitems(list_t list)
 {
     int n = 0;
-    while (list)
+    foreach (l; ListRange(list))
     {
         ++n;
-        list = list_next(list);
     }
     return n;
 }
@@ -441,10 +440,10 @@ int list_cmp(list_t list1, list_t list2, int function(void*, void*) @nogc nothro
 
 list_t list_inlist(list_t list, void* ptr)
 {
-    for (; list; list = list_next(list))
-        if (list.ptr == ptr)
-            break;
-    return list;
+    foreach (l; ListRange(list))
+        if (l.ptr == ptr)
+            return l;
+    return null;
 }
 
 /*************************
@@ -471,7 +470,7 @@ list_t list_cat(list_t *pl1, list_t l2)
 void list_apply(list_t* plist, void function(void*) @nogc nothrow fp)
 {
     if (fp)
-        for (list_t l = *plist; l; l = list_next(l))
+        foreach (l; ListRange(*plist))
         {
             (*fp)(list_ptr(l));
         }
@@ -533,6 +532,26 @@ list_t list_insert(list_t *pl,void *ptr,int n)
     return list;
 }
 
+/********************************
+ * Range for Lists.
+ */
+struct ListRange
+{
+  pure nothrow @nogc @safe:
+
+    this(list_t li)
+    {
+        this.li = li;
+    }
+
+    list_t front() return  { return li; }
+    void popFront() { li = li.next; }
+    bool empty()    { return !li; }
+
+  private:
+    list_t li;
+}
+
 }
 
 /* The following function should be nothrow @nogc, too, but on
@@ -563,7 +582,7 @@ list_t list_build(void *p,...)
             pe = &list.next;
         }
     }
-    //va_end(ap);
+    va_end(ap);
     return alist;
 }
 
