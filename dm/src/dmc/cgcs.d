@@ -10,6 +10,8 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgcs.d
  */
 
+module dmd.backend.cgcs;
+
 version (SPP)
 {
 }
@@ -17,6 +19,7 @@ else
 {
 
 import core.stdc.stdio;
+import core.stdc.stdlib;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -144,7 +147,8 @@ void cgcs_term()
     vec_free(csvec);
     csvec = null;
     debug debugw && printf("freeing hcstab\n");
-    util_free(hcstab);
+    //util_free(hcstab);
+    free(hcstab);
     hcstab = null;
     hcsmax = 0;
 }
@@ -474,7 +478,9 @@ private void addhcstab(elem *e,int hash)
         // With 32 bit compiles, we've got memory to burn
         hcsmax += hcsmax + 128;
         assert(h < hcsmax);
-        hcstab = cast(HCS *) util_realloc(hcstab,hcsmax,HCS.sizeof);
+        //hcstab = cast(HCS *) util_realloc(hcstab,hcsmax,HCS.sizeof);
+        hcstab = cast(HCS *) realloc(hcstab,hcsmax * HCS.sizeof);
+        assert(!hcsmax || hcstab);
         //printf("hcstab = %p; hcsarray.top = %d, hcsmax = %d\n",hcstab,hcsarray.top,hcsmax);
   }
   hcstab[h].Helem = e;
