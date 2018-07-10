@@ -125,7 +125,7 @@ release:
 
 scppn:
 #       make TARGET=SCPP OPT=-o "DEBUG=-gt -g -DSTATIC= -Nc" LFLAGS=/noi/noe/map scppn.exe
-       make TARGET=SCPP OPT=-o "DEBUG=-g -DSTATIC= -Nc" LFLAGS=/noi/noe/map/co scppn.exe
+       make TARGET=SCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map/co scppn.exe
 #        make TARGET=SCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map scppn.exe
 
 sppn:
@@ -340,7 +340,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	code.c symbol.c debug.c dt.c ee.c el.c \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
-	nteh.c os.c out.c outbuf.c ptrntab.c rtlsym.c \
+	nteh.d os.c out.c outbuf.c ptrntab.c rtlsym.c \
 	type.c \
 	elfobj.c \
 	dwarf.c machobj.c \
@@ -464,7 +464,7 @@ dnwc.obj : dnwc.d
         $(DMD) -c $(DFLAGS) dnwc.d
 
 dph.obj : dph.d page.di
-        $(DMD) -c $(DFLAGS) dph.d
+        $(DMD79) -c $(DFLAGS) dph.d
 
 dpragma.obj : dpragma.d
         $(DMD) -c $(DFLAGS) dpragma.d
@@ -476,7 +476,7 @@ dspeller.obj : dspeller.d
         $(DMD) -c $(DFLAGS) dspeller.d
 
 dtemplate.obj : dtemplate.d
-        $(DMD) -c $(DFLAGS) dtemplate.d
+        $(DMD79) -c $(DFLAGS) dtemplate.d
 
 evalu8.obj : evalu8.d
         $(DMD) -c $(DFLAGS) evalu8.d
@@ -577,6 +577,9 @@ exp.obj : exp.d
 filename.obj : filename.d
         $(DMD) -c $(DFLAGS) filename.d
 
+nteh.obj : nteh.d
+        $(DMD) -c $(DFLAGS) nteh.d
+
 objrecor.obj : objrecor.d
         $(DMD) -c $(DFLAGS) objrecor.d
 
@@ -632,7 +635,6 @@ ee.obj : $(DEP) $(ee.dep) ee.c
 el.obj : $(DEP) $(el.dep) el.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 fp.obj : $(DEP) $(fp.dep) fp.c
-nteh.obj : $(DEP) $(nteh.dep) nteh.c
 out.obj : $(DEP) $(out.dep) out.c
 pdata.obj : $(DEP) $(pdata.dep) pdata.c
 ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
