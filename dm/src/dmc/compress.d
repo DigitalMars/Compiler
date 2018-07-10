@@ -2,24 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/compress.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/compress.d, backend/compress.d)
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#if TARGET_WINDOS
-
-static char __file__[] = __FILE__;      // for tassert.h
-#include        "tassert.h"
-#else
-#include        <assert.h>
-#endif
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 
 /****************************************
  * Find longest match of pattern[0..plen] in dict[0..dlen].
@@ -27,7 +18,7 @@ static char __file__[] = __FILE__;      // for tassert.h
  *      true if match found
  */
 
-static bool longest_match(char *dict, int dlen, char *pattern, int plen,
+private bool longest_match(char *dict, int dlen, char *pattern, int plen,
         int *pmatchoff, int *pmatchlen)
 {
     int matchlen = 0;
@@ -77,10 +68,10 @@ static bool longest_match(char *dict, int dlen, char *pattern, int plen,
  *      malloc'd compressed 0-terminated identifier
  */
 
-char *id_compress(char *id, int idlen, size_t *plen)
+extern(C) char *id_compress(char *id, int idlen, size_t *plen)
 {
     int count = 0;
-    char *p = (char *)malloc(idlen + 1);
+    char *p = cast(char *)malloc(idlen + 1);
     for (int i = 0; i < idlen; i++)
     {
         int matchoff;
@@ -100,7 +91,7 @@ char *id_compress(char *id, int idlen, size_t *plen)
 
             if (off <= 8 && matchlen <= 8)
             {
-                p[count] = 0xC0 | ((off - 1) << 3) | (matchlen - 1);
+                p[count] = cast(char) (0xC0 | ((off - 1) << 3) | (matchlen - 1));
                 count++;
                 i += matchlen - 1;
                 continue;
@@ -109,9 +100,9 @@ char *id_compress(char *id, int idlen, size_t *plen)
             {
                 if (matchlen >= 1024)
                     matchlen = 1023;    // longest representable match
-                p[count + 0] = 0x80 | ((matchlen >> 4) & 0x38) | ((off >> 7) & 7);
-                p[count + 1] = 0x80 | matchlen;
-                p[count + 2] = 0x80 | off;
+                p[count + 0] = cast(char) (0x80 | ((matchlen >> 4) & 0x38) | ((off >> 7) & 7));
+                p[count + 1] = cast(char) (0x80 | matchlen);
+                p[count + 2] = cast(char) (0x80 | off);
                 count += 3;
                 i += matchlen - 1;
                 continue;
@@ -126,5 +117,3 @@ char *id_compress(char *id, int idlen, size_t *plen)
     *plen = count;
     return p;
 }
-
-
