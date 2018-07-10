@@ -68,7 +68,7 @@ void rtlsym_init()
         t->Tmangle = mTYman_c;
         t->Tcount++;
 
-#if MARS
+#if 1 || MARS
         // Variadic function
         type *tv = type_fake(TYnfunc);
         tv->Tmangle = mTYman_c;
