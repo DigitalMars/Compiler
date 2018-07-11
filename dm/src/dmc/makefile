@@ -337,7 +337,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.c var.c compress.d \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.c \
-	code.c symbol.c debug.c dt.c ee.c el.c \
+	code.c symbol.c debug.c dt.c ee.d el.c \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
 	nteh.d os.c out.c outbuf.c ptrntab.c rtlsym.c \
@@ -565,6 +565,9 @@ xtoken.obj : xtoken.d
 dutil.obj : dutil.d
         $(DMD) -c $(DFLAGS) dutil.d
 
+ee.obj : ee.d
+        $(DMD) -c $(DFLAGS) ee.d
+
 eh.obj : eh.d
         $(DMD) -c $(DFLAGS) eh.d
 
@@ -631,7 +634,6 @@ debug.obj : $(DEP) $(debug.dep) debug.c
 dt.obj : $(DEP) $(dt.dep) dt.c
 dwarf.obj : $(DEP) $(dwarf.dep) dwarf.h dwarf.c
 dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
-ee.obj : $(DEP) $(ee.dep) ee.c
 el.obj : $(DEP) $(el.dep) el.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 fp.obj : $(DEP) $(fp.dep) fp.c

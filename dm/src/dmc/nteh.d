@@ -30,6 +30,7 @@ import dmd.backend.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
+import dmd.backend.oper;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -50,6 +51,7 @@ extern (C++):
 
 int REGSIZE();
 Symbol* except_gensym();
+void except_fillInEHTable(Symbol *s);
 
 private __gshared
 {
@@ -201,7 +203,7 @@ version (MARS)
 {
     if (!(bx.funcsym.Sfunc.Fflags3 & Fnteh)) // if haven't already done it
     {   bx.funcsym.Sfunc.Fflags3 |= Fnteh;
-        s = symbol_name(s_name_context,SCbprel,tsint);
+        s = symbol_name(s_name_context,SCbprel,tstypes[TYint]);
         s.Soffset = -5 * 4;            // -6 * 4 for C __try, __except, __finally
         s.Sflags |= SFLfree | SFLnodebug;
         type_setty(&s.Stype,mTYvolatile | TYint);
@@ -244,7 +246,7 @@ elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index)
     s = blx.context;
     symbol_debug(s);
     e = el_var(s);
-    e.EV.sp.Voffset = nteh_offset_sindex();
+    e.EV.Voffset = nteh_offset_sindex();
     return el_bin(OPeq, TYint, e, el_long(TYint, scope_index));
 }
 }
@@ -461,7 +463,8 @@ void nteh_prolog(ref CodeBuilder cdb)
 
 void nteh_epilog(ref CodeBuilder cdb)
 {
-    assert(config.exe == EX_WIN32);
+    if (config.exe != EX_WIN32)
+        return;
 
     /* Generate:
         mov     ECX,__context[EBP].prev

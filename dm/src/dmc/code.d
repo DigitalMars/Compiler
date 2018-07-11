@@ -118,8 +118,6 @@ enum
     NTEHpassthru    = 0x100,
 }
 
-extern __gshared LocalSection Para;
-
 alias IDXSTR = uint;
 alias IDXSEC = uint;
 alias IDXSYM = uint;
@@ -205,17 +203,28 @@ struct FuncParamRegs
 
 extern __gshared
 {
+    regm_t msavereg,mfuncreg,allregs;
+
     int BPRM;
-    targ_size_t localsize;
-    targ_size_t funcoffset;
-    targ_size_t framehandleroffset;
+    regm_t FLOATREGS;
+    regm_t FLOATREGS2;
+    regm_t DOUBLEREGS;
+    //const char datafl[],stackfl[],segfl[],flinsymtab[];
+    char needframe,gotref;
+    targ_size_t localsize,
+        funcoffset,
+        framehandleroffset;
     segidx_t cseg;
+    int STACKALIGN;
+    LocalSection Para;
+    LocalSection Fast;
+    LocalSection Auto;
+    LocalSection EEStack;
+    LocalSection Alloca;
 }
 
 /* cgxmm.c */
 bool isXMMstore(uint op);
-
-extern __gshared LocalSection Alloca;
 
 /* cgcod.c */
 extern __gshared int pass;
