@@ -392,6 +392,7 @@ void WRblock(block *b)
             case BCexit:
                 break;
             default:
+                printf("bc = %d\n", b->BC);
                 assert(0);
         }
     }

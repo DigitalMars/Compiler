@@ -142,7 +142,7 @@ struct ASM_STATE
 }
 
 __gshared ASM_STATE asmstate;
-__gshared block *curblock;
+extern __gshared block *curblock;
 
 // From ptrntab.c
 const(char)* asm_opstr(OP *pop);

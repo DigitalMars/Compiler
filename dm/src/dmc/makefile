@@ -333,7 +333,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	outbuf.h token.h tassert.h tinfo.h varstats.h xmm.h \
 	\
 	optabgen.c platform_stub.c \
-	blockopt.c cg.c cg87.c cgxmm.c \
+	blockopt.d cg.c cg87.c cgxmm.c \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.c var.c compress.d \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.d \
@@ -424,6 +424,9 @@ adl.obj : adl.d
 bcomplex.obj : bcomplex.d
         $(DMD79) -c $(DFLAGS) bcomplex.d
 
+blockopt.obj : blockopt.d
+        $(DMD) -c $(DFLAGS) blockopt.d
+
 dblklst.obj : dblklst.d
         $(DMD) -c $(DFLAGS) dblklst.d
 
@@ -439,7 +442,7 @@ cgelem.obj : elxxx.d cgelem.d
 compress.obj : compress.d
         $(DMD) -c $(DFLAGS) compress.d
 
-dcpp.obj : dcpp.d
+dcpp.obj : msgs2.d dcpp.d
         $(DMD) -c $(DFLAGS) dcpp.d
 
 denum.obj : denum.d
@@ -571,7 +574,7 @@ dutil.obj : dutil.d
 ee.obj : ee.d
         $(DMD) -c $(DFLAGS) ee.d
 
-eh.obj : eh.d
+eh.obj : msgs2.d eh.d
         $(DMD) -c $(DFLAGS) eh.d
 
 entity.obj : entity.d
@@ -622,7 +625,6 @@ DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.c optab.c debtab.c fltables.c tytab.
 
 aa.obj : aa.h tinfo.h aa.c
 backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
-blockopt.obj : $(DEP) $(blockopt.dep) blockopt.c
 cg.obj : $(DEP) $(cg.dep) cg.c
 cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
 cgreg.obj : $(DEP) $(cgreg.dep) cgreg.c
