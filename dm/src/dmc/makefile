@@ -154,7 +154,7 @@ debhtodn:
 ################ NT DLL RELEASE #########################
 
 scppnd:
-        make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG= DDEBUG=-debug LFLAGS=/noi/noe/map BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
+        make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG= DDEBUG= LFLAGS=/noi/noe/map BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
 #       make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG=-g DDEBUG=-debug LFLAGS=/noi/noe/map/co BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
 
 sppnd:
@@ -335,7 +335,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	optabgen.c platform_stub.c \
 	blockopt.d cg.d cg87.c cgxmm.c \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
-	cgreg.c var.c compress.d \
+	cgreg.d var.c compress.d \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.d \
 	code.c symbol.c debug.c dt.c ee.d el.c \
 	fp.c gflow.d gdag.d \
@@ -441,6 +441,9 @@ cg.obj : fltables.d cg.d
 
 cgelem.obj : elxxx.d cgelem.d
         $(DMD) -c $(DFLAGS) -J. cgelem.d
+
+cgreg.obj : cgreg.d
+        $(DMD) -c $(DFLAGS) cgreg.d
 
 compress.obj : compress.d
         $(DMD) -c $(DFLAGS) compress.d
@@ -629,7 +632,7 @@ DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.c optab.c debtab.c fltables.d tytab.
 aa.obj : aa.h tinfo.h aa.c
 backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
-cgreg.obj : $(DEP) $(cgreg.dep) cgreg.c
+#cgreg.obj : $(DEP) $(cgreg.dep) cgreg.c
 cod1.obj : $(DEP) $(cod1.dep) cod1.c
 cod2.obj : $(DEP) $(cod2.dep) cod2.c
 cod3.obj : $(DEP) $(cod3.dep) cod3.c
