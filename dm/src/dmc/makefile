@@ -172,7 +172,7 @@ debppnd:
 
 #########################################
 
-OBJ1a=dblklst.obj blockopt.obj dcpp.obj debug.obj ee.obj el.obj denum.obj err.obj rawstring.obj
+OBJ1a=dblklst.obj blockopt.obj dcpp.obj debugprint.obj ee.obj el.obj denum.obj err.obj rawstring.obj
 OBJ1b=evalu8.obj fp.obj poptelem.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
@@ -278,7 +278,7 @@ TOTALH=$(CCH) total.sym
 
 ##################### GENERATED SOURCE #####################
 
-elxxx.d cdxxx.c optab.c debtab.c fltables.d tytab.c : \
+elxxx.d cdxxx.c optab.c debtab.d fltables.d tytab.c : \
         cdef.h cc.h oper.h ty.h optabgen.c
         $(CC) -cpp optabgen -I$(TK)
         optabgen
@@ -337,7 +337,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.d var.c compress.d \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.d \
-	code.c symbol.c debug.c dt.c ee.d el.c \
+	code.c symbol.c debugprint.d dt.c ee.d el.c \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
 	nteh.d os.c out.c outbuf.c ptrntab.c rtlsym.c \
@@ -450,6 +450,9 @@ compress.obj : compress.d
 
 dcpp.obj : msgs2.d dcpp.d
         $(DMD) -c $(DFLAGS) dcpp.d
+
+debugprint.obj : debtab.d debugprint.d
+        $(DMD) -c $(DFLAGS) -J. debugprint.d
 
 denum.obj : denum.d
         $(DMD) -c $(DFLAGS) denum.d
@@ -627,7 +630,7 @@ utf.obj : utf.d
 
 ################# Source file dependencies ###############
 
-DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.c optab.c debtab.c fltables.d tytab.c
+DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.c optab.c debtab.d fltables.d tytab.c
 
 aa.obj : aa.h tinfo.h aa.c
 backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
@@ -639,7 +642,7 @@ cod3.obj : $(DEP) $(cod3.dep) cod3.c
 cod4.obj : $(DEP) $(cod4.dep) cod4.c
 code.obj : $(DEP) $(code.dep) code.c
 cv8.obj : $(DEP) $(cv8.dep) cv8.c
-debug.obj : $(DEP) $(debug.dep) debug.c
+#debug.obj : $(DEP) $(debug.dep) debug.c
 dt.obj : $(DEP) $(dt.dep) dt.c
 dwarf.obj : $(DEP) $(dwarf.dep) dwarf.h dwarf.c
 dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
@@ -686,6 +689,6 @@ clean:
         del *.exp
         del *.dbg
         del *.res
-        del msgs.c msgs2.d msgs2.h msgs2.c elxxx.d cdxxx.c optab.c debtab.c fltables.d tytab.c
+        del msgs.c msgs2.d msgs2.h msgs2.c elxxx.d cdxxx.c optab.c debtab.d fltables.d tytab.c
 
 ###################################
