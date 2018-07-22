@@ -90,7 +90,7 @@ void cgreg_init()
         // Determine symbols that are not candidates
         if (!(s.Sflags & GTregcand) ||
             !s.Srange ||
-            (sz = type_size(s.Stype)) == 0 ||
+            (sz = cast(uint)type_size(s.Stype)) == 0 ||
             (tysize(s.ty()) == -1) ||
             (I16 && sz > REGSIZE) ||
             (tyfloating(s.ty()) && !(config.fpxmmregs && tyxmmreg(s.ty())))
@@ -240,7 +240,7 @@ private void el_weights(int bi,elem *e,uint weight)
                     if (s.Ssymnum != -1 && s.Sflags & GTregcand)
                     {
                         s.Sweight += weight;
-                        //printf("adding %d weight to '%s' (block %d, Ssymnum %d), giving Sweight %d\n",weight,s.Sident,bi,s.Ssymnum,s.Sweight);
+                        //printf("adding %d weight to '%s' (block %d, Ssymnum %d), giving Sweight %d\n",weight,s.Sident.ptr,bi,s.Ssymnum,s.Sweight);
                         if (weights)
                             WEIGHTS(bi,s.Ssymnum) += weight;
                     }
@@ -269,7 +269,7 @@ int cgreg_benefit(Symbol *s,int reg, Symbol *retsym)
     int gotoepilog;
     int retsym_cnt;
 
-    //printf("cgreg_benefit(s = '%s', reg = %d)\n", s.Sident, reg);
+    //printf("cgreg_benefit(s = '%s', reg = %d)\n", s.Sident.ptr, reg);
 
     vec_sub(s.Slvreg,s.Srange,regrange[reg]);
     int si = s.Ssymnum;
@@ -508,7 +508,7 @@ Lret:
 
 Lcant:
     assert(0);
-    return -1;                  // can't assign to reg
+//    return -1;                  // can't assign to reg
 }
 
 /**********************************
@@ -525,7 +525,7 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
 {
     const int bi = b.Bdfoidx;
 
-    //printf("cgreg_spillreg_prolog(block %d, s = '%s')\n",bi,s.Sident);
+    //printf("cgreg_spillreg_prolog(block %d, s = '%s')\n",bi,s.Sident.ptr);
 
     bool load = false;
     int inoutp;
@@ -574,7 +574,7 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
 
     debug if (debugr)
     {
-        int sz = type_size(s.Stype);
+        int sz = cast(int)type_size(s.Stype);
         if (inoutp == -1)
             printf("B%d: prolog moving %s into '%s'\n",bi,regstring[s.Sreglsw],s.Sident.ptr);
         else
@@ -601,7 +601,7 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
 void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref CodeBuilder cdbload)
 {
     int bi = b.Bdfoidx;
-    //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s.Sident);
+    //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s.Sident.ptr);
     //assert(b.BC == BCgoto);
     if (!cgreg_gotoepilog(b.nthSucc(0), s))
         return;
@@ -723,7 +723,7 @@ void cgreg_map(Symbol *s, uint regmsw, uint reglsw)
     {
         assert(regmsw < 8);
         s.Sregmsw = cast(ubyte)regmsw;
-        s.Sregm |= 1 << regmsw;;
+        s.Sregm |= 1 << regmsw;
         mfuncreg &= ~(1 << regmsw);
         vec_orass(regrange[regmsw],s.Slvreg);
 
@@ -1028,6 +1028,5 @@ extern (C) private int weight_compare(const void *e1,const void *e2)
 
     return (*psp2).Sweight - (*psp1).Sweight;
 }
-
 
 }

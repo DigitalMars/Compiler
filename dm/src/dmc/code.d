@@ -257,7 +257,7 @@ void codgen(Symbol *);
 debug
 {
     uint findreg(regm_t regm , int line, const(char)* file);
-    uint findreg(regm_t regm , int line = __LINE__, string file = __FILE__)
+    extern (D) uint findreg(regm_t regm , int line = __LINE__, string file = __FILE__)
     { return findreg(regm, line, file.ptr); }
 }
 else
