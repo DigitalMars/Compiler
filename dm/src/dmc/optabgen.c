@@ -11,7 +11,7 @@
 
 
 /* Generate op-code tables
- * Creates optab.c,debtab.d,cdxxx.c,elxxx.c
+ * Creates optab.c,debtab.d,cdxxx.c,elxxx.d
  */
 
 #include        <stdio.h>
@@ -1106,13 +1106,13 @@ void dotytab()
 
     for (i = 0; i < arraysize(typetab); i++)
         tystring[typetab[i].ty] = typetab[i].string;
-    fprintf(f,"extern \"C\" const char *tystring[] =\n{ ");
+    fprintf(f,"extern \"C\" { const char *tystring[] =\n{ ");
     for (i = 0; i < arraysize(tystring); i++)
     {   fprintf(f,"\"%s\",",tystring[i]);
         if ((i & 7) == 7 && i < arraysize(tystring) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n}; }\n");
 
     for (i = 0; i < arraysize(typetab); i++)
         dttab[typetab[i].ty] = typetab[i].debtyp;

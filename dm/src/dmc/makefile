@@ -176,7 +176,7 @@ OBJ1a=dblklst.obj blockopt.obj dcpp.obj debugprint.obj ee.obj el.obj denum.obj e
 OBJ1b=evalu8.obj fp.obj poptelem.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
-OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj type.obj dt.obj dth.obj phstring.obj
+OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj dtype.obj dt.obj dth.obj phstring.obj
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
@@ -341,7 +341,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
 	nteh.d os.c out.c outbuf.c ptrntab.c rtlsym.c \
-	type.c \
+	dtype.d \
 	elfobj.c \
 	dwarf.c machobj.c \
 	strtold.c aa.c ti_achar.c \
@@ -492,6 +492,9 @@ dspeller.obj : dspeller.d
 
 dtemplate.obj : dtemplate.d
         $(DMD79) -c $(DFLAGS) dtemplate.d
+
+dtype.obj : dtype.d
+        $(DMD79) -c $(DFLAGS) dtype.d
 
 evalu8.obj : evalu8.d
         $(DMD) -c $(DFLAGS) evalu8.d
@@ -655,7 +658,7 @@ ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
 ti_achar.obj : tinfo.h ti_achar.c
 ti_pvoid.obj : tinfo.h ti_pvoid.c
 tk.obj : $(DEP) $(tk.dep) tk.c
-type.obj : $(DEP) $(type.dep) type.c
+#type.obj : $(DEP) $(type.dep) type.c
 cgcv.obj : $(DEP) $(cgcv.dep) cgcv.c
 dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 #gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c

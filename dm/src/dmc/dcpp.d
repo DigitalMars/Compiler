@@ -761,8 +761,8 @@ version (none)
                 goto Lnomatch;
             if (p1 && p2)
             {
-                int n1 = p1.searchn(t1.Tident);
-                int n2 = p2.searchn(t2.Tident);
+                int n1 = param_t_searchn(p1, t1.Tident);
+                int n2 = param_t_searchn(p2, t2.Tident);
 
                 if (n1 != -1 && n1 == n2)
                     break;
