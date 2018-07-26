@@ -337,7 +337,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.d var.c compress.d \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.d \
-	code.c symbol.c debugprint.d dt.c ee.d el.c \
+	code.c symbol.d debugprint.d dt.c ee.d el.c \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
 	nteh.d os.c out.c outbuf.c ptrntab.c rtlsym.c \
@@ -622,6 +622,9 @@ rtti.obj : rtti.d
 stubobj.obj : stubobj.d
         $(DMD) -c $(DFLAGS) stubobj.d
 
+symbol.obj : symbol.d
+        $(DMD) -c $(DFLAGS) symbol.d
+
 tytostr.obj : tytostr.d
         $(DMD) -c $(DFLAGS) tytostr.d
 
@@ -667,7 +670,7 @@ dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
 cgen.obj : $(DEP) $(cgen.dep) cgen.c
 rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
-symbol.obj : $(DEP) $(symbol.dep) symbol.c
+#symbol.obj : $(DEP) $(symbol.dep) symbol.c
 cg87.obj : $(DEP) $(cg87.dep) cg87.c
 cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
 outbuf.obj : $(DEP) $(outbuf.dep) outbuf.c

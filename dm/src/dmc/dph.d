@@ -702,7 +702,7 @@ static if (TAGGED_ALLOC)
 {
         assert((cast(Tag_t *)p)[-1] == TAG_PAGE);
 }
-static if (DEBUG_XSYMGEN)
+version (DEBUG_XSYMGEN)
 {
         if (xsym_gen && !ph_in_phbuf(p))
         {
