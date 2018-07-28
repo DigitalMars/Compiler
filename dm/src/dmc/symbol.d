@@ -9,7 +9,7 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
  */
 
-module dmd.backend.dtype;
+module dmd.backend.symbol;
 
 version (SCPP)
 {
@@ -57,8 +57,8 @@ version (SCPP_HTOD)
     import precomp;
 
     extern (C++) void baseclass_free(baseclass_t *b);
-    extern (C++) void struct_free(struct_t *st);
 }
+
 
 extern (C++):
 
@@ -77,8 +77,9 @@ alias MEM_PARF_STRDUP = mem_strdup;
 version (SCPP_HTOD)
     enum mBP = 0x20;
 else
-    import dmd.backend.code;
+    import dmd.backend.code_x86;
 
+void struct_free(struct_t *st) { }
 
 func_t* func_calloc() { return cast(func_t *) calloc(1, func_t.sizeof); }
 void func_free(func_t* f) { free(f); }
@@ -87,7 +88,7 @@ void func_free(func_t* f) { free(f); }
  * Allocate/free symbol table.
  */
 
-Symbol **symtab_realloc(Symbol **tab, size_t symmax)
+extern (C) Symbol **symtab_realloc(Symbol **tab, size_t symmax)
 {   Symbol **newtab;
 
     if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
@@ -334,7 +335,7 @@ version (SCPP_HTOD)
 
 Symbol * symbol_calloc(const(char)* id)
 {
-    return symbol_calloc(id, strlen(id));
+    return symbol_calloc(id, cast(uint)strlen(id));
 }
 
 Symbol * symbol_calloc(const(char)* id, uint len)
@@ -366,7 +367,7 @@ debug
 
 Symbol * symbol_name(const(char)* name,int sclass,type *t)
 {
-    return symbol_name(name, strlen(name), sclass, t);
+    return symbol_name(name, cast(uint)strlen(name), sclass, t);
 }
 
 Symbol * symbol_name(const(char)* name, uint len, int sclass, type *t)
@@ -1189,7 +1190,7 @@ Symbol * symbol_copy(Symbol *s)
     if (scopy.Sdt)
     {
         scope dtb = new DtBuilder();
-        dtb.nzeros(type_size(scopy.Stype));
+        dtb.nzeros(cast(uint)type_size(scopy.Stype));
         scopy.Sdt = dtb.finish();
     }
     if (scopy.Sflags & (SFLvalue | SFLdtorexp))

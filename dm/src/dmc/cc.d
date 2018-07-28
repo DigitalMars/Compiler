@@ -1446,8 +1446,6 @@ struct Symbol
     unittest { assert(sizeCheck() == Symbol.sizeof); }
 }
 
-
-
 void symbol_debug(Symbol* s)
 {
     debug assert(s.id == s.IDsymbol);

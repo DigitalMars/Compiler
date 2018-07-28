@@ -92,7 +92,7 @@ __gshared
 }
 
 struct_t* struct_calloc() { return cast(struct_t*) mem_calloc(struct_t.sizeof); }
-void struct_free(struct_t* st) { }
+//void struct_free(struct_t* st) { }
 
 baseclass_t* baseclass_malloc() { return cast(baseclass_t*) mem_malloc(baseclass_t.sizeof); }
 void baseclass_free(baseclass_t *b) { }
