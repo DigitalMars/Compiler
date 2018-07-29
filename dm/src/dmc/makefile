@@ -172,7 +172,7 @@ debppnd:
 
 #########################################
 
-OBJ1a=dblklst.obj blockopt.obj dcpp.obj debugprint.obj ee.obj el.obj denum.obj err.obj rawstring.obj
+OBJ1a=dblklst.obj blockopt.obj dcpp.obj debugprint.obj ee.obj elem.obj denum.obj err.obj rawstring.obj
 OBJ1b=evalu8.obj fp.obj poptelem.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
@@ -337,7 +337,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.d var.c compress.d \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.d \
-	code.c symbol.d debugprint.d dt.c ee.d el.c \
+	code.c symbol.d debugprint.d dt.c ee.d elem.d cel.c \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
 	nteh.d os.c out.c outbuf.c ptrntab.c rtlsym.c \
@@ -496,6 +496,9 @@ dtemplate.obj : dtemplate.d
 dtype.obj : dtype.d
         $(DMD79) -c $(DFLAGS) dtype.d
 
+elem.obj : elem.d
+        $(DMD) -c $(DFLAGS) elem.d
+
 evalu8.obj : evalu8.d
         $(DMD) -c $(DFLAGS) evalu8.d
 
@@ -652,7 +655,7 @@ cv8.obj : $(DEP) $(cv8.dep) cv8.c
 dt.obj : $(DEP) $(dt.dep) dt.c
 dwarf.obj : $(DEP) $(dwarf.dep) dwarf.h dwarf.c
 dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
-el.obj : $(DEP) $(el.dep) el.c
+#cel.obj : $(DEP) $(cel.dep) cel.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 fp.obj : $(DEP) $(fp.dep) fp.c
 out.obj : $(DEP) $(out.dep) out.c
