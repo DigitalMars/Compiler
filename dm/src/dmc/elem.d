@@ -11,7 +11,7 @@
 
 /* Routines to handle elems.                    */
 
-module dmd.backend.symbol;
+module dmd.backend.elem;
 
 version (SCPP)
 {
@@ -42,10 +42,12 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.cgcv;
 import dmd.backend.code;
+import dmd.backend.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.dvec;
 import dmd.backend.el;
+import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.memh;
@@ -62,7 +64,19 @@ version (SCPP_HTOD)
     import precomp;
 }
 
-version (CRuntime_Microsoft) extern (C++) size_t ld_sprint(char* str, int fmt, longdouble x);
+version (CRuntime_Microsoft)
+{
+    import dmd.root.longdouble;
+}
+
+/+
+version (CRuntime_Microsoft) extern (C++)
+{
+    alias real_t = real;
+    private struct longdouble_soft { real_t r; }
+    size_t ld_sprint(char* str, int fmt, longdouble_soft x);
+}
++/
 
 extern (C++):
 
@@ -78,7 +92,7 @@ alias MEM_PARF_REALLOC = mem_realloc;
 alias MEM_PARF_FREE = mem_free;
 alias MEM_PARF_STRDUP = mem_strdup;
 
-
+int REGSIZE();
 
 version (STATS)
 {
@@ -465,7 +479,7 @@ extern (C) elem *el_opCombine(elem **args, size_t length, uint op, uint ty)
 
 int el_nparams(elem *e)
 {
-    return el_opN(e, OPparam);
+    return cast(int)el_opN(e, OPparam);
 }
 
 /******************************************
@@ -655,8 +669,8 @@ static if (0)
                 break;
 }
             case OPasm:
-                d.EV.Vstring = cast(char *) mem_malloc(d.EV.Vstrlen);
-                memcpy(d.EV.Vstring,e.EV.Vstring,e.EV.Vstrlen);
+                d.EV.Vstring = cast(char *) mem_malloc(cast(uint)d.EV.Vstrlen);
+                memcpy(d.EV.Vstring,e.EV.Vstring,cast(uint)e.EV.Vstrlen);
                 break;
 
             default:
@@ -1030,7 +1044,7 @@ elem * el_long(tym_t t,targ_llong val)
         case TYcdouble:
         case TYcldouble:
             assert(0);
-            break;
+
         default:
             e.EV.Vllong = val;
             break;
@@ -1077,8 +1091,8 @@ else
     elem_debug(e);
     type_debug(t);
     type_settype(&e.ET,t);
-}
     return e;
+}
 }
 
 /*******************************
@@ -1118,7 +1132,6 @@ elem * el_typesize(type *t)
 version (MARS)
 {
     assert(0);
-    return null;
 }
 else
 {
@@ -1295,14 +1308,14 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         //printf("el_alloc_localgot()\n");
         char[15] name = void;
         __gshared int tmpnum;
-        sprintf(name, "_LOCALGOT%d", tmpnum++);
+        sprintf(name.ptr, "_LOCALGOT%d".ptr, tmpnum++);
         type *t = type_fake(TYnptr);
         /* Make it volatile because we need it for calling functions, but that isn't
          * noticed by the data flow analysis. Hence, it may get deleted if we don't
          * make it volatile.
          */
         type_setcv(&t, mTYvolatile);
-        localgot = symbol_name(name, SCauto, t);
+        localgot = symbol_name(name.ptr, SCauto, t);
         symbol_add(localgot);
         localgot.Sfl = FLauto;
         localgot.Sflags = SFLfree | SFLunambig | GTregcand;
@@ -1407,7 +1420,6 @@ static if (1)
                         break;
                     default:
                         assert(0);
-                        break;
                 }
             }
 static if (1)
@@ -1568,7 +1580,6 @@ elem *el_picvar(Symbol *s)
                         break;
                     default:
                         assert(0);
-                        break;
                 }
                 e.Ety = tym;
                 break;
@@ -1643,7 +1654,6 @@ elem *el_picvar(Symbol *s)
                     break;
                 default:
                     assert(0);
-                    break;
             }
             e.Ety = tym;
             break;
@@ -1685,6 +1695,9 @@ static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYB
             case SCglobal:
             case SCextern:
                 el_alloc_localgot();
+                break;
+
+            default:
                 break;
         }
     }
@@ -2257,7 +2270,7 @@ elem *el_convstring(elem *e)
         s.Sseg = cseg;
         symbol_keep(s);
         if (!eecontext.EEcompile || eecontext.EEin)
-        {   Obj.bytes(cseg,Offset(cseg),len,p);
+        {   objmod.bytes(cseg,Offset(cseg),cast(uint)len,p);
             Offset(cseg) += len;
         }
         mem_free(p);
@@ -2266,7 +2279,7 @@ elem *el_convstring(elem *e)
 
     if (eecontext.EEin)                 // if compiling debugger expression
     {
-        s = out_readonly_sym(e.Ety, p, len);
+        s = out_readonly_sym(e.Ety, p, cast(int)len);
         mem_free(p);
         goto L1;
     }
@@ -2274,7 +2287,7 @@ elem *el_convstring(elem *e)
     // See if e is already in the string table
     for (i = 0; i < stable.length; i++)
     {   if (stable[i].len == len &&
-            memcmp(stable[i].p,p,len) == 0)
+            memcmp(stable[i].p,p,cast(uint)len) == 0)
         {
             // Replace e with that symbol
             MEM_PH_FREE(p);
@@ -2291,13 +2304,13 @@ elem *el_convstring(elem *e)
         s.Sseg = DATA;
     }
     else
-        s = out_readonly_sym(e.Ety,p,len);
+        s = out_readonly_sym(e.Ety,p,cast(int)len);
 
     // Remember the string for possible reuse later
     //printf("Adding %d, '%s'\n",stable_si,p);
     mem_free(stable[stable_si].p);
     stable[stable_si].p   = p;
-    stable[stable_si].len = len;
+    stable[stable_si].len = cast(int)len;
     stable[stable_si].sym = s;
     stable_si = (stable_si + 1) & (stable.length - 1);
 
@@ -2338,7 +2351,16 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
         auto v = e.EV.Vldouble;
         double vDouble;
 
+version (CRuntime_Microsoft)
+{
+        static if (is(typeof(v) == real))
+            *(&vDouble) = v;
+        else
+            *(&vDouble) = cast(double)v;
+}
+else
         *(&vDouble) = v;
+
         if (v == vDouble)       // This will fail if compiler does NaN incorrectly!
         {
             // Yes, we can do it!
@@ -2388,7 +2410,7 @@ elem *el_convert(elem *e)
              * in this case, we preserve the constant 2.
              */
             if (tyreal(e.Ety) &&       // don't bother with imaginary or complex
-                e.EV.E2.Eoper == OPconst && el_toldouble(e.EV.E2) == 2.0L)
+                e.EV.E2.Eoper == OPconst && el_toldoubled(e.EV.E2) == 2.0L)
             {
                 e.EV.E1 = el_convert(e.EV.E1);
                 /* Don't call el_convert(e.EV.E2), we want it to stay as a constant
@@ -2991,7 +3013,7 @@ else
             case OPstring:
             {
                 uint n;
-                if (n1.EV.Vstrlen != (n = n2.EV.Vstrlen) ||
+                if (n1.EV.Vstrlen != (n = cast(uint)n2.EV.Vstrlen) ||
                     n1.EV.Voffset != n2.EV.Voffset ||
                     memcmp(n1.EV.Vstring,n2.EV.Vstring,n))
                         goto nomatch;   /* check bytes in the string    */
@@ -3198,7 +3220,7 @@ version (SCPP_HTOD)
         case TYcldouble:
         case TYcdouble:
         case TYcfloat:
-            result = cast(targ_llong)el_toldouble(e);
+            result = cast(targ_llong)el_toldoubled(e);
             break;
 
 version (SCPP_HTOD)
@@ -3281,6 +3303,40 @@ int el_signx32(elem *e)
  * Silently ignore types which are not floating point values.
  */
 
+version (CRuntime_Microsoft)
+{
+longdouble_soft el_toldouble(elem *e)
+{   longdouble_soft result;
+
+    elem_debug(e);
+    assert(e.Eoper == OPconst);
+    switch (tybasic(typemask(e)))
+    {
+        case TYfloat:
+        case TYifloat:
+            result = longdouble_soft(e.EV.Vfloat);
+            break;
+        case TYdouble:
+        case TYidouble:
+        case TYdouble_alias:
+            result = longdouble_soft(e.EV.Vdouble);
+            break;
+        case TYldouble:
+        case TYildouble:
+            static if (is(typeof(e.EV.Vldouble) == real))
+                result = longdouble_soft(e.EV.Vldouble);
+            else
+                result = longdouble_soft(cast(real)e.EV.Vldouble);
+            break;
+        default:
+            result = longdouble_soft(0);
+            break;
+    }
+    return result;
+}
+}
+else
+{
 targ_ldouble el_toldouble(elem *e)
 {   targ_ldouble result;
 
@@ -3306,6 +3362,7 @@ targ_ldouble el_toldouble(elem *e)
             break;
     }
     return result;
+}
 }
 
 /********************************
@@ -3502,7 +3559,7 @@ case_tym:
             if (_tysize[TYnptr] == LLONGSIZE)
                 goto L2;
             assert(0);
-            break;
+
         case TYenum:
             if (PARSER)
             {   tym = e.ET.Tnext.Tty;
@@ -3559,9 +3616,12 @@ case_tym:
         {
 version (CRuntime_Microsoft)
 {
-            char[3 + 3 * cast(targ_ldouble).sizeof + 1] buffer = void;
-            ld_sprint(buffer, 'g', e.EV.Vldouble);
-            printf("%s ", buffer);
+            char[3 + 3 * (targ_ldouble).sizeof + 1] buffer = void;
+            static if (is(typeof(e.EV.Vldouble) == real))
+                ld_sprint(buffer.ptr, 'g', longdouble_soft(e.EV.Vldouble));
+            else
+                ld_sprint(buffer.ptr, 'g', longdouble_soft(cast(real)e.EV.Vldouble));
+            printf("%s ", buffer.ptr);
 }
 else
             printf("%Lg ", e.EV.Vldouble);
