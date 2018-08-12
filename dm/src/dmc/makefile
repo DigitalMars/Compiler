@@ -180,7 +180,7 @@ OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj dtype.obj dt.obj dt
 OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
-OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj code.obj
+OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj cgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarf.obj stubobj.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj
@@ -319,7 +319,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
         tk.c
 
 # Back end
-BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.c code.d code_x86.d cv4.d \
+BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
@@ -337,7 +337,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.d var.c compress.d \
 	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.d \
-	code.c symbol.d debugprint.d dt.c ee.d elem.d \
+	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
 	nteh.d os.c out.c outbuf.c ptrntab.c rtlsym.c \
@@ -432,6 +432,9 @@ dblklst.obj : dblklst.d
 
 cgcs.obj : cgcs.d
         $(DMD) -c $(DFLAGS) cgcs.d
+
+dcode.obj : dcode.d
+        $(DMD) -c $(DFLAGS) dcode.d
 
 cod5.obj : cod5.d
         $(DMD) -c $(DFLAGS) cod5.d
@@ -649,7 +652,7 @@ cod1.obj : $(DEP) $(cod1.dep) cod1.c
 cod2.obj : $(DEP) $(cod2.dep) cod2.c
 cod3.obj : $(DEP) $(cod3.dep) cod3.c
 cod4.obj : $(DEP) $(cod4.dep) cod4.c
-code.obj : $(DEP) $(code.dep) code.c
+#code.obj : $(DEP) $(code.dep) code.c
 cv8.obj : $(DEP) $(cv8.dep) cv8.c
 #debug.obj : $(DEP) $(debug.dep) debug.c
 dt.obj : $(DEP) $(dt.dep) dt.c
