@@ -336,7 +336,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	blockopt.d cg.d cg87.c cgxmm.c \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.d var.c compress.d \
-	cgsched.c cod1.c cod2.c cod3.c cod4.c cod5.d \
+	cgsched.d cod1.c cod2.c cod3.c cod4.c cod5.d \
 	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
@@ -447,6 +447,9 @@ cgelem.obj : elxxx.d cgelem.d
 
 cgreg.obj : cgreg.d
         $(DMD) -c $(DFLAGS) cgreg.d
+
+cgsched.obj : cgsched.d
+        $(DMD) -c $(DFLAGS) cgsched.d
 
 compress.obj : compress.d
         $(DMD) -c $(DFLAGS) compress.d
