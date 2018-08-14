@@ -1379,7 +1379,7 @@ private void getinfo(Cinfo *ci,code *c)
             else if (irm == modregrm(3,5,SP))   // SUB ESP,imm
             {
                 assert(c.IFL2 == FLconst);
-                ci.spadjust = (op == 0x81) ? -c.IEV2.Vint : -cast(byte)c.IEV2.Vint;
+                ci.spadjust = (op == 0x81) ? -c.IEV2.Vint : -cast(int)cast(byte)c.IEV2.Vint;
             }
             r = grprw[0][reg][0];               // Grp 1
             w = grprw[0][reg][1];
@@ -1670,7 +1670,7 @@ else
     {   ubyte sib;
 
         sib = 0;
-        final switch (mod)
+        switch (mod)
         {
             case 0:
                 if (a32)
@@ -1723,6 +1723,9 @@ else
                 if (w & EA)
                     ci.w |= mask((w & B) ? (rm & 3) : rm);
                 break;
+
+            default:
+                assert(0);
         }
         // Adjust sibmodrm so that addressing modes can be compared simply
         irm &= modregrm(3,0,7);
