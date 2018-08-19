@@ -333,7 +333,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	outbuf.h token.h tassert.h tinfo.h varstats.h xmm.h \
 	\
 	optabgen.c platform_stub.c \
-	blockopt.d cg.d cg87.c cgxmm.c \
+	blockopt.d cg.d cg87.d cgxmm.c \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.d var.c compress.d \
 	cgsched.d cod1.c cod2.c cod3.c cod4.c cod5.d \
@@ -441,6 +441,9 @@ cod5.obj : cod5.d
 
 cg.obj : fltables.d cg.d
         $(DMD) -c $(DFLAGS) -J. cg.d
+
+cg87.obj : cg87.d
+        $(DMD) -c $(DFLAGS) -J. cg87.d
 
 cgelem.obj : elxxx.d cgelem.d
         $(DMD) -c $(DFLAGS) -J. cgelem.d
@@ -680,7 +683,7 @@ cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
 cgen.obj : $(DEP) $(cgen.dep) cgen.c
 rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 #symbol.obj : $(DEP) $(symbol.dep) symbol.c
-cg87.obj : $(DEP) $(cg87.dep) cg87.c
+#cg87.obj : $(DEP) $(cg87.dep) cg87.c
 cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
 outbuf.obj : $(DEP) $(outbuf.dep) outbuf.c
 newman.obj : $(DEP) $(newman.dep) newman.c
