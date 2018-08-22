@@ -6,10 +6,10 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cg87.c, backend/cg87.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cg87.d, backend/cg87.d)
  */
 
-module dmd.backend.cgsched;
+module dmd.backend.cg87;
 
 version (SCPP)
     version = COMPILE;
@@ -32,6 +32,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
+import dmd.backend.evalu8 : el_toldoubled;
 
 extern (C++):
 
@@ -96,6 +97,7 @@ enum CW_roundtonearest = 0x3BF;
  * about the save into an array of NDP structs:
  */
 
+version (SCPP)
 struct NDP
 {
     elem *e;                    // which elem is stored here (NULL if none)
@@ -651,13 +653,19 @@ ubyte loadconst(elem *e, int im)
     immutable double[7] dval =
         [0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2];
 
-    enum M_PI_L        = 0x1.921fb54442d1846ap+1L;       // 3.14159 fldpi
-    enum M_LOG2T_L     = 0x1.a934f0979a3715fcp+1L;       // 3.32193 fldl2t
-    enum M_LOG2E_L     = 0x1.71547652b82fe178p+0L;       // 1.4427 fldl2e
-    enum M_LOG2_L      = 0x1.34413509f79fef32p-2L;       // 0.30103 fldlg2
-    enum M_LN2_L       = 0x1.62e42fefa39ef358p-1L;       // 0.693147 fldln2
-    immutable real[7] ldval =
-    [0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L];
+    static if (real.sizeof < 10)
+    {
+    }
+    else
+    {
+        enum M_PI_L        = 0x1.921fb54442d1846ap+1L;       // 3.14159 fldpi
+        enum M_LOG2T_L     = 0x1.a934f0979a3715fcp+1L;       // 3.32193 fldl2t
+        enum M_LOG2E_L     = 0x1.71547652b82fe178p+0L;       // 1.4427 fldl2e
+        enum M_LOG2_L      = 0x1.34413509f79fef32p-2L;       // 0.30103 fldlg2
+        enum M_LN2_L       = 0x1.62e42fefa39ef358p-1L;       // 0.693147 fldln2
+        immutable targ_ldouble[7] ldval =
+        [0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L];
+    }
 
     immutable ubyte[7 + 1] opcode =
         /* FLDZ,FLD1,FLDPI,FLDL2T,FLDL2E,FLDLG2,FLDLN2,0 */
@@ -670,7 +678,7 @@ ubyte loadconst(elem *e, int im)
     int sz;
     int zero;
     void *p;
-    immutable ubyte[real.sizeof] zeros;
+    immutable ubyte[16] zeros;
 
     if (im == 0)
     {
@@ -734,6 +742,7 @@ ubyte loadconst(elem *e, int im)
 
     // Note that for this purpose, -0 is not regarded as +0,
     // since FLDZ loads a +0
+    assert(sz <= zeros.length);
     zero = (memcmp(p, zeros.ptr, sz) == 0);
     if (zero && config.target_cpu >= TARGET_PentiumPro)
         return 0xEE;            // FLDZ is the only one with 1 micro-op
@@ -758,9 +767,52 @@ ubyte loadconst(elem *e, int im)
                     continue;
                 break;
             case 10:
-                if (ldval[i] != ld)
-                    continue;
+            {
+                static if (real.sizeof < 10)
+                {
+                    import dmd.root.longdouble;
+
+                    switch (i)
+                    {
+                        case 0:
+                            if (ld_zero != ld)
+                                continue;
+                             break;
+                        case 1:
+                            if (ld_one != ld)
+                                continue;
+                             break;
+                        case 2:
+                            if (ld_pi != ld)
+                                continue;
+                             break;
+                        case 3:
+                            if (ld_log2t != ld)
+                                continue;
+                             break;
+                        case 4:
+                            if (ld_log2e != ld)
+                                continue;
+                             break;
+                        case 5:
+                            if (ld_log2 != ld)
+                                continue;
+                             break;
+                        case 6:
+                            if (ld_ln2 != ld)
+                                continue;
+                             break;
+                        default:
+                            assert(0);
+                    }
+                }
+                else
+                {
+                    if (ldval[i] != ld)
+                        continue;
+                }
                 break;
+            }
             default:
                 assert(0);
         }
@@ -940,7 +992,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         sz2 /= 2;
 
     int eoper = e.Eoper;
-    if (eoper == OPmul && e2.Eoper == OPconst && el_toldouble(e.EV.E2) == 2.0L)
+    if (eoper == OPmul && e2.Eoper == OPconst && el_toldoubled(e.EV.E2) == 2.0L)
     {
         // Perform "mul 2.0" as fadd ST(0), ST
         regm_t retregs = mST0;
@@ -1680,7 +1732,6 @@ void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *elef
                         default:
                             printf("ty = x%x\n", ty);
                             assert(0);
-                            break;
                     }
                     note87(e,0,0);
                 }

@@ -260,9 +260,6 @@ extern __gshared
     LocalSection Alloca;
 }
 
-/* cgxmm.c */
-bool isXMMstore(uint op);
-
 /* cgcod.c */
 extern __gshared int pass;
 enum

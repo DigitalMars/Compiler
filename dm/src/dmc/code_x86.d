@@ -507,9 +507,9 @@ struct NDP
     elem *e;                    // which elem is stored here (NULL if none)
     uint offset;            // offset from e (used for complex numbers)
 
-    static NDP *save;
-    static int savemax;         // # of entries in save[]
-    static int savetop;         // # of entries used in save[]
+    __gshared NDP *save;
+    __gshared int savemax;         // # of entries in save[]
+    __gshared int savetop;         // # of entries used in save[]
 }
 
 extern __gshared NDP[8] _8087elems;
