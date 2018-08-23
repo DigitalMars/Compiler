@@ -8,7 +8,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgxmm.d, backend/cgxmm.d)
  */
 
-module dmd.backend.cg87;
+module dmd.backend.cgxmm;
 
 version (SCPP)
     version = COMPILE;
@@ -1092,7 +1092,6 @@ static if (0)
             default:
                 printf("op = x%x\n", op);
                 assert(0);
-                break;
         }
         getregs(cdb,retregs);
         cdb.genc2(op,modregrmx(3,r,reg-XMM0), cast(uint)el_tolong(op2));
@@ -1174,7 +1173,6 @@ static if (0)
                 default:
                     printf("op = x%x\n", op);
                     assert(0);
-                    break;
             }
             elem *imm8 = params[3];
             cs.IFL2 = FLconst;
