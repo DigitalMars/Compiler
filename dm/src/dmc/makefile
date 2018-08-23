@@ -333,7 +333,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	outbuf.h token.h tassert.h tinfo.h varstats.h xmm.h \
 	\
 	optabgen.c platform_stub.c \
-	blockopt.d cg.d cg87.d cgxmm.c \
+	blockopt.d cg.d cg87.d cgxmm.d \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.d var.c compress.d \
 	cgsched.d cod1.c cod2.c cod3.c cod4.c cod5.d \
@@ -453,6 +453,9 @@ cgreg.obj : cgreg.d
 
 cgsched.obj : cgsched.d
         $(DMD) -c $(DFLAGS) cgsched.d
+
+cgxmm.obj : cgxmm.d
+        $(DMD) -c $(DFLAGS) cgxmm.d
 
 compress.obj : compress.d
         $(DMD) -c $(DFLAGS) compress.d
@@ -684,7 +687,7 @@ cgen.obj : $(DEP) $(cgen.dep) cgen.c
 rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 #symbol.obj : $(DEP) $(symbol.dep) symbol.c
 #cg87.obj : $(DEP) $(cg87.dep) cg87.c
-cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
+#cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
 outbuf.obj : $(DEP) $(outbuf.dep) outbuf.c
 newman.obj : $(DEP) $(newman.dep) newman.c
 tdbx.obj : $(DEP) $(tdbx.dep) tdbx.c
