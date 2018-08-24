@@ -3564,8 +3564,8 @@ void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
     }
 
     tym_t ty1 = tybasic(e1->Ety);
-    unsigned sz1 = _tysize[ty1];
-    unsigned char word = (!I16 && sz1 == SHORTSIZE) ? CFopsize : 0;
+    tym_t ty2 = tybasic(e2->Ety);
+    unsigned char word = (!I16 && _tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
     regm_t idxregs = idxregm(&cs);         // mask if index regs used
 
 //    if (e2->Eoper == OPconst && e2->EV.Vuns < 0x100)  // should do this instead?
@@ -3575,12 +3575,12 @@ void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
         cs.Irm |= modregrm(0,mode,0);
         cs.Iflags |= CFpsw | word;
         cs.IFL2 = FLconst;
-        if (sz1 == SHORTSIZE)
+        if (_tysize[ty1] == SHORTSIZE)
         {
             cs.IEVoffset1 += (e2->EV.Vuns & ~15) >> 3;
             cs.IEV2.Vint = e2->EV.Vint & 15;
         }
-        else if (sz1 == 4)
+        else if (_tysize[ty1] == 4)
         {
             cs.IEVoffset1 += (e2->EV.Vuns & ~31) >> 3;
             cs.IEV2.Vint = e2->EV.Vint & 31;
@@ -3603,7 +3603,7 @@ void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
         cs.Iop = 0x0F00 | op;                     // BT rm,reg
         code_newreg(&cs,reg);
         cs.Iflags |= CFpsw | word;
-        if (sz1 == 8 && I64)
+        if (_tysize[ty2] == 8 && I64)
             cs.Irex |= REX_W;
         cdb.gen(&cs);
     }
