@@ -251,7 +251,8 @@ alias targ_double = double;
 alias targ_ldouble = real;
 
 // Extract most significant register from constant
-//#define MSREG(p)        ((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))
+int REGSIZE();
+ulong MSREG(ulong p) { return (REGSIZE == 2) ? p >> 16 : ((targ_llong.sizeof == 8) ? p >> 32 : 0); }
 
 alias targ_int = int;
 alias targ_uns = uint;

@@ -82,6 +82,29 @@ void code_term();
 
 code *code_next(code *c) { return c.next; }
 
+extern __gshared con_t regcon;
+
+/****************************
+ * Table of common subexpressions stored on the stack.
+ *      csextab[]       array of info on saved CSEs
+ *      CSEpe           pointer to saved elem
+ *      CSEregm         mask of register that was saved (so for multi-
+ *                      register variables we know which part we have)
+ */
+
+enum CSEload       = 1;       // set if the CSE was ever loaded
+enum CSEsimple     = 2;       // CSE can be regenerated easily
+
+struct CSE
+{       elem    *e;             // pointer to elem
+        code    csimple;        // if CSEsimple, this is the code to regenerate it
+        regm_t  regm;           // mask of register stored there
+        char    flags;          // flag bytes
+}
+
+// != 0 if CSE was ever loaded
+char CSE_loaded(int i) { return csextab[i].flags & CSEload; }
+
 /************************************
  * Local sections on the stack
  */
@@ -117,6 +140,20 @@ enum
     EHtry           = 0x40,   // has BCtry or BC_try blocks
     NTEHjmonitor    = 0x80,   // uses Mars monitor
     NTEHpassthru    = 0x100,
+}
+
+/********************** Code Generator State ***************/
+
+struct CGstate
+{
+    int stackclean;     // if != 0, then clean the stack after function call
+
+    LocalSection funcarg;       // where function arguments are placed
+    targ_size_t funcargtos;     // current high water level of arguments being moved onto
+                                // the funcarg section. It is filled from top to bottom,
+                                // as if they were 'pushed' on the stack.
+                                // Special case: if funcargtos==~0, then no
+                                // arguments are there.
 }
 
 // cgen.c
@@ -270,7 +307,7 @@ enum
 }
 
 extern __gshared int dfoidx;
-//extern __gshared CSE *csextab;
+extern __gshared CSE *csextab;
 extern __gshared bool floatreg;
 extern __gshared targ_size_t prolog_allocoffset;
 extern __gshared targ_size_t startoffset;
@@ -537,6 +574,20 @@ regm_t iasm_regs(block *bp);
 
 // nteh.c
 code *nteh_patchindex(code* c, int index);
+
+
+/**********************************
+ * Set value in regimmed for reg.
+ * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
+ *      value.
+ */
+
+void regimmed_set(int reg, targ_size_t e)
+{
+    regcon.immed.value[reg] = e;
+    regcon.immed.mval |= 1 << (reg);
+    //printf("regimmed_set %s %d\n", regm_str(1 << reg), cast(int)e);
+}
 
 
 extern (C++) struct CodeBuilder

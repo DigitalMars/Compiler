@@ -336,7 +336,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	blockopt.d cg.d cg87.d cgxmm.d \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.d var.c compress.d \
-	cgsched.d cod1.c cod2.c cod3.c cod4.c cod5.d \
+	cgsched.d cod1.c cod2.c cod3.c cod4.d cod5.d \
 	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
@@ -435,6 +435,9 @@ cgcs.obj : cgcs.d
 
 dcode.obj : dcode.d
         $(DMD) -c $(DFLAGS) dcode.d
+
+cod4.obj : cod4.d
+        $(DMD) -c $(DFLAGS) cod4.d
 
 cod5.obj : cod5.d
         $(DMD) -c $(DFLAGS) cod5.d
@@ -660,7 +663,7 @@ cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
 cod1.obj : $(DEP) $(cod1.dep) cod1.c
 cod2.obj : $(DEP) $(cod2.dep) cod2.c
 cod3.obj : $(DEP) $(cod3.dep) cod3.c
-cod4.obj : $(DEP) $(cod4.dep) cod4.c
+#cod4.obj : $(DEP) $(cod4.dep) cod4.c
 #code.obj : $(DEP) $(code.dep) code.c
 cv8.obj : $(DEP) $(cv8.dep) cv8.c
 #debug.obj : $(DEP) $(debug.dep) debug.c

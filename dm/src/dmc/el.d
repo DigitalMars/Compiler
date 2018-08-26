@@ -6,7 +6,7 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/el.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/el.d, backend/el.d)
  */
 
 module dmd.backend.el;
@@ -28,13 +28,13 @@ nothrow:
 
 /* Routines to handle elems.                            */
 
-alias ubyte eflags_t;
+alias eflags_t = ubyte;
 enum
 {
     EFLAGS_variadic = 1,   // variadic function call
 }
 
-alias uint pef_flags_t;
+alias pef_flags_t = uint;
 enum
 {
     PEFnotlvalue    = 1,       // although elem may look like
@@ -46,7 +46,7 @@ enum
     PEFmember       = 0x100,   // was a class member access
 }
 
-alias ubyte nflags_t;
+alias nflags_t = ubyte;
 enum
 {
     NFLli     = 1,     // loop invariant
@@ -132,7 +132,7 @@ version (MARS)
 else
     tym_t typemask(elem* e) { return PARSER ? e.ET.Tty : e.Ety; }
 
-//FL el_fl(elem *e) { return cast(FL)e.EV.Vsym.Sfl; }
+FL el_fl(elem *e) { return cast(FL)e.EV.Vsym.Sfl; }
 
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum
