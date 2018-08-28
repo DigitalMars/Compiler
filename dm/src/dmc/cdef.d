@@ -111,7 +111,10 @@ enum bool HEADER_LIST = true;
  * This is not quite the same as !SIXTEENBIT, as one could
  * have near/far with 32 bit code.
  */
-//#define TARGET_SEGMENTED     (!MARS && TARGET_WINDOS)
+version (MARS)
+    enum TARGET_SEGMENTED = false;
+else
+    enum TARGET_SEGMENTED = TARGET_WINDOS;
 
 
 bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles

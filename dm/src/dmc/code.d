@@ -156,6 +156,22 @@ struct CGstate
                                 // arguments are there.
 }
 
+// nteh.c
+void nteh_prolog(ref CodeBuilder cdb);
+void nteh_epilog(ref CodeBuilder cdb);
+void nteh_usevars();
+void nteh_filltables();
+void nteh_gentables(Symbol *sfunc);
+void nteh_setsp(ref CodeBuilder cdb, int op);
+void nteh_filter(ref CodeBuilder cdb, block *b);
+void nteh_framehandler(Symbol *, Symbol *);
+void nteh_gensindex(ref CodeBuilder, int);
+enum GENSINDEXSIZE = 7;
+void nteh_monitor_prolog(ref CodeBuilder cdb,Symbol *shandle);
+void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs);
+code *nteh_patchindex(code* c, int index);
+void nteh_unwind(ref CodeBuilder cdb,regm_t retregs,uint index);
+
 // cgen.c
 code *code_last(code *c);
 void code_orflag(code *c,uint flag);
