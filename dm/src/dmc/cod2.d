@@ -317,7 +317,7 @@ else
                     assert(value == cast(int)value);    // sign extend imm32
                 }
                 op1 = 0xF7;
-                cs.IEV2.Vint = value;
+                cs.IEV2.Vint = cast(targ_int)value;
                 cs.IFL2 = FLconst;
             }
             cs.Iop = op1 ^ isbyte;
@@ -438,7 +438,7 @@ else
                 {
                     if (co1 > 3)
                         goto L13;
-                    ss = co1;
+                    ss = cast(int)co1;
                 }
                 else
                 {
@@ -851,7 +851,7 @@ else
         {   if (*pretregs & mPSW)
                 code_orflag(cdb.last(),word);
             else
-                cdb.last().Iflags &= ~word;
+                cdb.last().Iflags &= ~cast(int)word;
         }
         else if (numwords == 2)
         {
@@ -1073,7 +1073,7 @@ else
             getregs(cdb,mDX | mAX);
 
             targ_int lsw = cast(targ_int)(e2factor & ((1L << (REGSIZE * 8)) - 1));
-            targ_int msw = e2factor >> (REGSIZE * 8);
+            targ_int msw = cast(targ_int)(e2factor >> (REGSIZE * 8));
 
             if (msw)
             {
@@ -3538,7 +3538,7 @@ void cdstrcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         case TYhptr:
             segreg = SEG_ES;
             goto L1;
-            break;
+
         default:
             assert(0);
     }
@@ -3757,7 +3757,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (e2.EV.E1.Eoper == OPconst)
     {
         static uint REP_THRESHOLD() { return REGSIZE * (6 + (REGSIZE == 4)); }
-        numbytes = cast(targ_size_t)el_tolong(e2.EV.E1);
+        numbytes = cast(uint)cast(targ_size_t)el_tolong(e2.EV.E1);
         if (numbytes <= REP_THRESHOLD &&
             !I16 &&                     // doesn't work for 16 bits
             e2E2isConst)
@@ -3939,7 +3939,7 @@ void cdstreq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
     int segreg;
-    uint numbytes = type_size(e.ET);              // # of bytes in structure/union
+    uint numbytes = cast(uint)type_size(e.ET);          // # of bytes in structure/union
     ubyte rex = I64 ? REX_W : 0;
 
     //printf("cdstreq(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -4174,7 +4174,6 @@ void cdrelconst(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         Symbol *s = e.EV.Vsym;
         if (s.Sfl == FLdatseg)
         {   assert(0);
-            goto loadreg;
         }
         sclass = cast(SC) s.Sclass;
         ety = tybasic(s.ty());
@@ -4243,7 +4242,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 css.Iop = LEA;
                 css.Irm = modregrm(0,DI,5);
                 css.Iflags = CFopsize;
-                css.IFL1 = fl;
+                css.IFL1 = cast(ubyte)fl;
                 css.IEV1.Vsym = e.EV.Vsym;
                 css.IEV1.Voffset = e.EV.Voffset;
                 cdb.gen(&css);
@@ -4259,7 +4258,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 css.Iop = LEA;             // LEA
                 css.Irm = modregrm(0,AX,4);
                 css.Isib = modregrm(0,BX,5);
-                css.IFL1 = fl;
+                css.IFL1 = cast(ubyte)fl;
                 css.IEV1.Vsym = e.EV.Vsym;
                 css.IEV1.Voffset = e.EV.Voffset;
                 cdb.gen(&css);
@@ -4301,7 +4300,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             if (reg & 8)
                 cs.Irex |= REX_B;
             cs.Iflags = CFoff;
-            cs.IFL2 = fl;
+            cs.IFL2 = cast(ubyte)fl;
             cs.IEV2.Vsym = e.EV.Vsym;
             cs.IEV2.Voffset = e.EV.Voffset;
         }
@@ -4312,7 +4311,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             cs.Irm = modregrm(0,0,BPRM);
             code_newreg(&cs, reg);
             cs.Iflags = CFoff;
-            cs.IFL1 = fl;
+            cs.IFL1 = cast(ubyte)fl;
             cs.IEV1.Vsym = e.EV.Vsym;
             cs.IEV1.Voffset = e.EV.Voffset;
         }
@@ -4855,7 +4854,7 @@ static if (TARGET_WINDOS)
         modEA(cdb,&cs);
 
         cs.Iop = 0x81 ^ isbyte;
-        cs.Irm &= ~modregrm(0,7,0);             /* reg field = 0        */
+        cs.Irm &= ~cast(int)modregrm(0,7,0);             // reg field = 0
         cs.Irex &= ~REX_R;
         if (op == OPpostdec)
                 cs.Irm |= modregrm(0,5,0);      /* SUB                  */
@@ -4890,7 +4889,7 @@ static if (TARGET_WINDOS)
             config.flags4 & CFG4speed)
         {
             // Replace EA in cs with reg
-            cs.Irm = (cs.Irm & ~modregrm(3,0,7)) | modregrm(3,0,reg & 7);
+            cs.Irm = (cs.Irm & ~cast(int)modregrm(3,0,7)) | modregrm(3,0,reg & 7);
             if (reg & 8)
             {   cs.Irex &= ~REX_R;
                 cs.Irex |= REX_B;
@@ -5025,7 +5024,7 @@ static if (TARGET_WINDOS)
         getlvalue_msw(&cs);
         cdb.gen(&cs);                   // MOV reg,EA+2
         cs.Iop = 0x81;
-        cs.Irm &= ~modregrm(0,7,0);     /* reg field = 0 for ADD        */
+        cs.Irm &= ~cast(int)modregrm(0,7,0);     /* reg field = 0 for ADD        */
         if (op == OPpostdec)
             cs.Irm |= modregrm(0,5,0);  /* SUB                          */
         getlvalue_lsw(&cs);

@@ -588,9 +588,6 @@ void loadPair87(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 //void iasm_term();
 regm_t iasm_regs(block *bp);
 
-// nteh.c
-code *nteh_patchindex(code* c, int index);
-
 
 /**********************************
  * Set value in regimmed for reg.
