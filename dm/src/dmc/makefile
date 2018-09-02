@@ -336,7 +336,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	blockopt.d cg.d cg87.d cgxmm.d \
 	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.d var.c compress.d \
-	cgsched.d cod1.c cod2.d cod3.c cod4.d cod5.d \
+	cgsched.d cod1.d cod2.d cod3.c cod4.d cod5.d \
 	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
@@ -435,6 +435,9 @@ cgcs.obj : cgcs.d
 
 dcode.obj : dcode.d
         $(DMD) -c $(DFLAGS) dcode.d
+
+cod1.obj : cod1.d
+        $(DMD) -c $(DFLAGS) cod1.d
 
 cod2.obj : cod2.d
         $(DMD) -c $(DFLAGS) cod2.d
@@ -663,7 +666,7 @@ aa.obj : aa.h tinfo.h aa.c
 backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
 #cgreg.obj : $(DEP) $(cgreg.dep) cgreg.c
-cod1.obj : $(DEP) $(cod1.dep) cod1.c
+#cod1.obj : $(DEP) $(cod1.dep) cod1.c
 #cod2.obj : $(DEP) $(cod2.dep) cod2.c
 cod3.obj : $(DEP) $(cod3.dep) cod3.c
 #cod4.obj : $(DEP) $(cod4.dep) cod4.c

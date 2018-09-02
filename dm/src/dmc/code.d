@@ -106,6 +106,24 @@ struct CSE
 char CSE_loaded(int i) { return csextab[i].flags & CSEload; }
 
 /************************************
+ * Register save state.
+ */
+
+struct REGSAVE
+{
+    targ_size_t off;            // offset on stack
+    uint top;                   // high water mark
+    uint idx;                   // current number in use
+    int alignment;              // 8 or 16
+
+    void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
+    void save(ref CodeBuilder cdb, int reg, uint *pidx);
+    void restore(ref CodeBuilder cdb, int reg, uint idx);
+}
+
+extern __gshared REGSAVE regsave;
+
+/************************************
  * Local sections on the stack
  */
 struct LocalSection
@@ -276,11 +294,13 @@ ref targ_size_t CDoffset() { return Offset(CDATA); }
 struct FuncParamRegs
 {
     //this(tym_t tyf);
-    static FuncParamRegs create(tym_t tyf);
+    static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
 
-    int alloc(type *t, tym_t ty, ubyte *reg1, ubyte *reg2);
+    int alloc(type *t, tym_t ty, ubyte *reg1, ubyte *reg2)
+    { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
 
   private:
+  public: // for the moment
     tym_t tyf;                  // type of function
     int i;                      // ith parameter
     int regcnt;                 // how many general purpose registers are allocated
@@ -290,6 +310,9 @@ struct FuncParamRegs
     const(ubyte)* argregs;      // map to gp register
     const(ubyte)* floatregs;    // map to fp register
 }
+
+extern FuncParamRegs FuncParamRegs_create(tym_t tyf);
+extern int FuncParamRegs_alloc(ref FuncParamRegs fpr, type *t, tym_t ty, reg_t *preg1, reg_t *preg2);
 
 extern __gshared
 {
