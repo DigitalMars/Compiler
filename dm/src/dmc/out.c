@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/out.c, backend/out.c)
@@ -376,7 +376,7 @@ void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset)
                 if (tybasic(dt->Dty) == TYcptr)
                     objmod.reftocodeseg(seg,offset,dt->DTabytes);
                 else
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
                     objmod.reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else
                 /*else*/ if (dt->DTseg == DATA)
@@ -1090,7 +1090,6 @@ STATIC void writefunc2(symbol *sfunc)
 
 #if SCPP
     FuncParamRegs fpr = FuncParamRegs_create(tyf);
-//    FuncParamRegs fpr(tyf);
 #endif
 
     for (SYMIDX si = 0; si < globsym.top; si++)
@@ -1117,7 +1116,6 @@ STATIC void writefunc2(symbol *sfunc)
             case SCregpar:
             case SCparameter:
                 if (si == 0 && FuncParamRegs_alloc(fpr, s->Stype, s->Stype->Tty, &s->Spreg, &s->Spreg2))
-//                if (si == 0 && fpr.alloc(s->Stype, s->Stype->Tty, &s->Spreg, &s->Spreg2))
                 {
                     assert(s->Spreg == ((tyf == TYmfunc) ? CX : AX));
                     assert(s->Spreg2 == NOREG);
