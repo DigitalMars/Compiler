@@ -278,7 +278,7 @@ TOTALH=$(CCH) total.sym
 
 ##################### GENERATED SOURCE #####################
 
-elxxx.d cdxxx.c optab.c debtab.d fltables.d tytab.c : \
+elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c : \
         cdef.h cc.h oper.h ty.h optabgen.c
         $(CC) -cpp optabgen -I$(TK)
         optabgen
@@ -334,7 +334,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	\
 	optabgen.c platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d \
-	cgcod.c cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
+	cgcod.d cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
 	cgreg.d var.c compress.d \
 	cgsched.d cod1.d cod2.d cod3.d cod4.d cod5.d \
 	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
@@ -435,6 +435,9 @@ cgcs.obj : cgcs.d
 
 dcode.obj : dcode.d
         $(DMD) -c $(DFLAGS) dcode.d
+
+cgcod.obj : cdxxx.d cgcod.d
+        $(DMD) -c $(DFLAGS) -J. cgcod.d
 
 cod1.obj : cod1.d
         $(DMD) -c $(DFLAGS) cod1.d
@@ -663,7 +666,7 @@ utf.obj : utf.d
 
 ################# Source file dependencies ###############
 
-DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.c optab.c debtab.d fltables.d tytab.c
+DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c
 
 aa.obj : aa.h tinfo.h aa.c
 backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
@@ -694,7 +697,7 @@ dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 #gsroa.obj : $(DEP) $(gsroa.dep) gsroa.c
 #go.obj : $(DEP) $(go.dep) go.c
 #gflow.obj : $(DEP) $(gflow.dep) gflow.c
-cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
+#cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
 cgen.obj : $(DEP) $(cgen.dep) cgen.c
 rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 #symbol.obj : $(DEP) $(symbol.dep) symbol.c
@@ -722,6 +725,6 @@ clean:
         del *.exp
         del *.dbg
         del *.res
-        del msgs.c msgs2.d msgs2.h msgs2.c elxxx.d cdxxx.c optab.c debtab.d fltables.d tytab.c
+        del msgs.c msgs2.d msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c
 
 ###################################
