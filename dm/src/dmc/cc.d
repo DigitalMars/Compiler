@@ -244,7 +244,7 @@ version (HTOD)
 
 //#include "token.h"
 
-alias uint stflags_t;
+alias stflags_t = uint;
 enum
 {
     PFLpreprocessor  = 1,       // in preprocessor
@@ -268,7 +268,7 @@ enum
     PFLmfc           = 0x10000, // something will affect MFC compatibility
 }
 
-alias char sthflags_t;
+alias sthflags_t = char;
 enum
 {
     FLAG_INPLACE    = 0,       // in place hydration
@@ -407,7 +407,7 @@ enum
 //char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 //version (Windows)
-    alias char enum_SC;
+    alias enum_SC = char;
 //else
 //    alias SC enum_SC;
 
@@ -418,9 +418,9 @@ enum
  *      in a function. startblock heads the list.
  */
 
-alias void* ClassDeclaration_;
-alias void* Declaration_;
-alias void* Module_;
+alias ClassDeclaration_ = void*;
+alias Declaration_ = void*;
+alias Module_ = void*;
 
 struct Blockx
 {
@@ -444,7 +444,7 @@ struct Blockx
   }
 }
 
-alias ushort bflags_t;
+alias bflags_t = ushort;
 enum
 {
     BFLvisited       = 1,       // set if block is visited
@@ -694,7 +694,7 @@ struct symtab_t
     Symbol **tab;               // local Symbol table
 }
 
-alias uint func_flags_t;
+alias func_flags_t = uint;
 enum
 {
     Fpending    = 1,           // if function has been queued for being written
@@ -729,7 +729,7 @@ enum
     Fsurrogate  = 0x4000000,   // surrogate call function
 }
 
-alias uint func_flags3_t;
+alias func_flags3_t = uint;
 enum
 {
     Fvtblgen         = 1,       // generate vtbl[] when this function is defined
@@ -836,7 +836,7 @@ struct meminit_t
                                 // called for it
 }
 
-alias uint baseclass_flags_t;
+alias baseclass_flags_t = uint;
 enum
 {
      BCFpublic     = 1,         // base class is public
@@ -884,7 +884,7 @@ struct baseclass_t
  * For virtual tables.
  */
 
-alias char mptr_flags_t;
+alias mptr_flags_t = char;
 enum
 {
     MPTRvirtual     = 1,       // it's an offset to a virtual base
@@ -1018,7 +1018,7 @@ struct template_t
  * Special information for enums.
  */
 
-alias uint enum_flags_t;
+alias enum_flags_t = uint;
 enum
 {
     SENnotagname  = 1,       // no tag name for enum
@@ -1038,7 +1038,7 @@ struct enum_t
  * Special information for structs.
  */
 
-alias uint struct_flags_t;
+alias struct_flags_t = uint;
 enum
 {
     STRanonymous     = 1,          // set for unions with no tag names
@@ -1526,7 +1526,7 @@ version (MARS)
  *      Psym            SCtemplate for template-template-argument
  */
 
-alias uint pflags_t;
+alias pflags_t = uint;
 enum
 {
     PFexplicit = 1,       // this template argument was explicit, i.e. in < >
@@ -1750,7 +1750,7 @@ extern __gshared EEcontext eecontext;
 
 
 // Different goals for el_optimize()
-alias uint goal_t;
+alias goal_t = uint;
 enum
 {
     GOALnone        = 0,       // evaluate for side effects only

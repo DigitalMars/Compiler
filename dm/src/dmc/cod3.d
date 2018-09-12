@@ -30,18 +30,20 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
+import dmd.backend.melf;
 import dmd.backend.memh;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
+import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
 
-version (COMPILE)
+version (SCPP)
 {
     import parser;
     import precomp;
@@ -417,7 +419,7 @@ else
  *      seg = segment to write alignment bytes to
  *      nbytes = number of alignment bytes to write
  */
-void cod3_align_bytes(int seg, size_t nbytes)
+void cod3_align_bytes(int seg, uint nbytes)
 {
     /* Table 4-2 from Intel Instruction Set Reference M-Z
      * 1 bytes NOP                                        90
@@ -461,7 +463,7 @@ void cod3_align_bytes(int seg, size_t nbytes)
                 n = nops.length;
             p = cast(char*)nops;
         }
-        objmod.write_bytes(SegData[seg],n,cast(char*)p);
+        objmod.write_bytes(SegData[seg],cast(uint)n,cast(char*)p);
         nbytes -= n;
     }
 }
@@ -1696,7 +1698,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             Symbol *gotsym = Obj.getGOTsym();
             cdb.gencs(0x81,modregrm(3,0,DI),FLextern,gotsym);
             cdb.last().Iflags = CFoff;
-            cdb.last().IEVoffset2 = 3;
+            cdb.last().IEV2.Voffset = 3;
 
             makeitextern(gotsym);
 
@@ -1826,7 +1828,7 @@ void outjmptab(block *b)
     {   targ_size_t targ = def;                     // default
         for (size_t n = 0; n < ncases; n++)
         {       if (p[n] == u)
-                {       targ = b.nthSucc(n + 1).Boffset;
+                {       targ = b.nthSucc(cast(int)(n + 1)).Boffset;
                         break;
                 }
         }
@@ -2421,7 +2423,7 @@ else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGO
      */
     code *cgot = cdb.last();
     cgot.Iflags = CFoff | CFvolatile;
-    cgot.IEVoffset2 = (reg == AX) ? 2 : 3;
+    cgot.IEV2.Voffset = (reg == AX) ? 2 : 3;
 
     makeitextern(gotsym);
     fixresult(cdb,e,retregs,pretregs);
@@ -2476,17 +2478,17 @@ private int obj_namestring(char *p,const(char)* name)
         short *ps = cast(short *)p;
         p[0] = 0xFF;
         p[1] = 0;
-        ps[1] = len;
+        ps[1] = cast(short)len;
         memcpy(p + 4,name,len);
         const int ONS_OHD = 4;           // max # of extra bytes added by obj_namestring()
         len += ONS_OHD;
     }
     else
-    {   p[0] = len;
+    {   p[0] = cast(char)len;
         memcpy(p + 1,name,len);
         len++;
     }
-    return len;
+    return cast(int)len;
 }
 }
 
@@ -2959,7 +2961,7 @@ void prolog_ifunc(ref CodeBuilder cdb, tym_t* tyf)
 
     genregs(cdb,0x8B,BP,SP);     // MOV BP,SP
     if (localsize)
-        cod3_stackadj(cdb, localsize);
+        cod3_stackadj(cdb, cast(int)localsize);
 
     *tyf |= mTYloadds;
 }
@@ -3274,7 +3276,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
                     code *c = cdb.finish();
                     pinholeopt(c, null);
                     dwarf_CFA_set_loc(calcblksize(c));  // address after save
-                    dwarf_CFA_offset(reg, gpoffset - cfa_offset);
+                    dwarf_CFA_offset(reg, cast(int)(gpoffset - cfa_offset));
                     cdb.reset();
                     cdb.append(c);
                 }
@@ -3515,7 +3517,7 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
 
     genregs(cdb,0x0FB6,AX,AX);                 // MOVZX EAX,AL
     cdb.genc2(0xC1,modregrm(3,4,AX),2);                     // SHL EAX,2
-    int raxoff = voff+6*8+0x7F;
+    int raxoff = cast(int)(voff+6*8+0x7F);
     uint L2offset = (raxoff < -0x7F) ? 0x2D : 0x2A;
     if (!hasframe)
         L2offset += 1;                                      // +1 for sib byte
@@ -3616,7 +3618,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
     regm_t shadowregm = 0;
     for (SYMIDX si = 0; si < globsym.top; si++)
     {   Symbol *s = globsym.tab[si];
-        uint sz = type_size(s.Stype);
+        uint sz = cast(uint)type_size(s.Stype);
 
         if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl != FLreg)
         {   // Argument is passed in a register
@@ -3633,7 +3635,6 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
             if (Symbol_Sisdead(s, anyiasm))
             {
                 // Ignore it, as it is never referenced
-                ;
             }
             else
             {
@@ -3710,7 +3711,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
         for (int i = 0; i < vregs.length; ++i)
         {
             uint preg = vregs[i];
-            uint offset = Para.size + i * REGSIZE;
+            uint offset = cast(uint)(Para.size + i * REGSIZE);
             if (!(shadowregm & (mask(preg) | mask(XMM0 + i))))
             {
                 if (hasframe)
@@ -3740,7 +3741,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
     regm_t assignregs = 0;
     for (SYMIDX si = 0; si < globsym.top; si++)
     {   Symbol *s = globsym.tab[si];
-        uint sz = type_size(s.Stype);
+        uint sz = cast(uint)type_size(s.Stype);
 
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
             *namedargs |= s.Spregm();
@@ -3794,7 +3795,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
      */
     for (SYMIDX si = 0; si < globsym.top; si++)
     {   Symbol *s = globsym.tab[si];
-        uint sz = type_size(s.Stype);
+        uint sz = cast(uint)type_size(s.Stype);
 
         if ((s.Sclass == SCregpar || s.Sclass == SCparameter) &&
             s.Sfl == FLreg &&
@@ -4041,7 +4042,7 @@ version (MARS)
             cdbx.gen1(0x58 + regx);                    // POP regx
         }
         else if (xlocalsize)
-            cod3_stackadj(cdbx, -xlocalsize);
+            cod3_stackadj(cdbx, cast(int)-xlocalsize);
     }
     if (b.BC == BCret || b.BC == BCretexp)
     {
@@ -4155,7 +4156,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
     }
     else
     {
-        const int sz = type_size(s.Stype);
+        const int sz = cast(int)type_size(s.Stype);
         cs.Iop = toreg ? 0x8B : 0x89; // MOV reg,mem[ESP] : MOV mem[ESP],reg
         cs.Iop ^= (sz == 1);
         getlvalue(cdb,&cs,e,keepmsk);
@@ -4506,7 +4507,8 @@ int branch(block *bl,int flag)
                             /*printf("eliminating branch\n");*/
                             goto L1;
                         }
-                     L2: ;
+                     L2:
+                        { }
                     }
                 }
                     break;
@@ -5612,7 +5614,7 @@ private void pinholeopt_unittest()
         uint model,op,ea;
         targ_size_t ev1,ev2;
         uint flags;
-    };
+    }
     __gshared CS[2][22] tests =
     [
         // XOR reg,immed                            NOT regL
@@ -5860,7 +5862,7 @@ uint calccodsize(code *c)
             if (c.Iflags == CFaddrsize)        // kludge for DA inline asm
                 size = _tysize[TYnptr];
             else
-                size = c.IEV1.len;
+                size = cast(uint)c.IEV1.len;
             goto Lret2;
 
         case 0xA1:
@@ -6114,7 +6116,7 @@ struct MiniCodeBuf
     this(int seg)
     {
         index = 0;
-        this.offset = Offset(seg);
+        this.offset = cast(size_t)Offset(seg);
         this.seg = seg;
     }
 
@@ -6122,7 +6124,7 @@ struct MiniCodeBuf
     {
         // Emit accumulated bytes to code segment
         debug assert(index < bytes.length);
-        offset += objmod.bytes(seg, offset, index, bytes.ptr);
+        offset += objmod.bytes(seg, offset, cast(uint)index, bytes.ptr);
         index = 0;
     }
 
@@ -6132,9 +6134,9 @@ struct MiniCodeBuf
 
     void flush() { if (index) flushx(); }
 
-    uint getOffset() { return offset + index; }
+    uint getOffset() { return cast(uint)(offset + index); }
 
-    uint available() { return bytes.sizeof - index; }
+    uint available() { return cast(uint)(bytes.sizeof - index); }
 }
 
 private void do8bit(MiniCodeBuf *pbuf, FL, evc *);
@@ -6155,7 +6157,7 @@ uint codout(int seg, code *c)
 
     MiniCodeBuf ggen = void;
     ggen.index = 0;
-    ggen.offset = Offset(seg);
+    ggen.offset = cast(size_t)Offset(seg);
     ggen.seg = seg;
 
   for (; c; c = code_next(c))
@@ -6239,7 +6241,7 @@ else
                 }
                 else
                 {
-                    ggen.offset += objmod.bytes(seg,ggen.offset,c.IEV1.len,c.IEV1.bytes);
+                    ggen.offset += objmod.bytes(seg,ggen.offset,cast(uint)c.IEV1.len,c.IEV1.bytes);
                 }
                 debug
                 assert(calccodsize(c) == c.IEV1.len);
@@ -6434,7 +6436,7 @@ static if (TARGET_OSX || TARGET_WINDOS)
 }
                             }
                         }
-                        do32bit(&ggen, cast(FL)c.IFL1,&c.IEV1,cfflags,val);
+                        do32bit(&ggen, cast(FL)c.IFL1,&c.IEV1,cfflags,cast(int)val);
                         break;
                     }
 
@@ -6529,7 +6531,6 @@ static if (TARGET_OSX || TARGET_WINDOS)
                                 goto do16;
                             else
                                 goto do32;
-                            break;
                     }
                 }
                 else
@@ -6546,7 +6547,7 @@ static if (TARGET_OSX || TARGET_WINDOS)
                                 goto do32;
                             else
                                 goto do16;
-                            break;
+
                         case 0x9A:
                         case 0xEA:
                             if (c.Iflags & CFopsize)
@@ -6590,7 +6591,6 @@ static if (TARGET_OSX || TARGET_WINDOS)
                                 goto do32;
                             else
                                 goto do16;
-                            break;
                     }
                 }
         }
@@ -6619,7 +6619,7 @@ static if (TARGET_OSX || TARGET_WINDOS)
     ggen.flush();
     Offset(seg) = ggen.offset;
     //printf("-codout(), Coffset = x%x\n", Offset(seg));
-    return ggen.offset;                      /* ending address               */
+    return cast(uint)ggen.offset;                      /* ending address               */
 }
 
 
@@ -6763,7 +6763,7 @@ else
                 objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CFoff);
         break;
     case FLcode:
-        assert(JMPJMPTABLE);            // the only use case
+        //assert(JMPJMPTABLE);            // the only use case
         pbuf.flush();
         ad = *cast(targ_size_t *) uev + pbuf.getOffset();
         objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
@@ -6876,13 +6876,13 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
     case FLfardata:
     case FLextern:                      /* external data symbol         */
     case FLtlsdata:
-        assert(SIXTEENBIT || TARGET_SEGMENTED);
+        //assert(SIXTEENBIT || TARGET_SEGMENTED);
         pbuf.flush();
         s = uev.Vsym;               /* symbol pointer               */
         objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,flags);
         break;
     case FLfunc:                        /* function call                */
-        assert(SIXTEENBIT || TARGET_SEGMENTED);
+        //assert(SIXTEENBIT || TARGET_SEGMENTED);
         s = uev.Vsym;               /* symbol pointer               */
         if (tyfarfunc(s.ty()))
         {       /* Large code references are always absolute    */
@@ -6959,6 +6959,8 @@ version (MARS)
 /**********************************
  */
 
+version (SCPP)
+{
 static if (HYDRATE)
 {
 void code_hydrate(code **pc)
@@ -7282,9 +7284,9 @@ version (SCPP)
                 break;
         }
   done:
-        ;
         pc = &code_next(c);
     }
+}
 }
 }
 

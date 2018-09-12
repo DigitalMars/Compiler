@@ -383,7 +383,7 @@ struct code
     void setReg(uint reg)
     {
         Irex &= ~REX_R;
-        Irm &= ~modregrm(0, 7, 0);
+        Irm &= cast(ubyte)~cast(uint)modregrm(0, 7, 0);
         orReg(reg);
     }
 

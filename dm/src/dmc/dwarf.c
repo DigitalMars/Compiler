@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarf.c, backend/dwarf.c)
@@ -10,6 +10,21 @@
  */
 
 // Emit Dwarf symbolic debug info
+
+/*
+Some generic information for debug info on macOS:
+
+The linker on macOS will remove any debug info, i.e. every section with the
+`S_ATTR_DEBUG` flag, this includes everything in the `__DWARF` section. By using
+the `S_REGULAR` flag the linker will not remove this section. This allows to get
+the filenames and line numbers for backtraces from the executable.
+
+Normally the linker removes all the debug info but adds a reference to the
+object files. The debugger can then read the object files to get filename and
+line number information. It's also possible to use an additional tool that
+generates a separate `.dSYM` file. This file can then later be deployed with the
+application if debug info is needed when the application is deployed.
+*/
 
 #if !SPP
 #include        <stdio.h>
@@ -24,7 +39,7 @@
 #include        <malloc.h>
 #endif
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
 #include        <signal.h>
 #include        <unistd.h>
 #include        <errno.h>
@@ -356,7 +371,7 @@ static Outbuffer cfa_buf;               // CFA instructions
  * Params:
  *      location = offset from the start of the function
  */
-void dwarf_CFA_set_loc(size_t location)
+void dwarf_CFA_set_loc(unsigned location)
 {
     assert(location >= CFA_state_current.location);
     size_t inc = location - CFA_state_current.location;
