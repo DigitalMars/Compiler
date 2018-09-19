@@ -56,6 +56,7 @@ version (MARS)
 else
     enum MARS = false;
 
+void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset);
 int REGSIZE();
 
 private extern (D) uint mask(uint m) { return 1 << m; }
@@ -166,7 +167,7 @@ version (SCPP)
 
     cgreg_init();
     csmax = 64;
-    csextab = cast(CSE *) util_calloc(CSE.sizeof,csmax);
+    csextab = cast(CSE *) util_calloc(CSE.sizeof,cast(uint)csmax);
     tym_t functy = tybasic(sfunc.ty());
     cod3_initregs();
     allregs = ALLREGS;
@@ -216,7 +217,7 @@ static if (MARS && TARGET_WINDOS)
     if (sfunc.Sfunc.Fflags3 & Fjmonitor)
         usednteh |= NTEHjmonitor;
 }
-else
+else version (SCPP)
 {
     if (CPP)
     {
@@ -601,7 +602,7 @@ static if (MARS)
     if (config.ehmethod == EHmethod.EH_DWARF)
     {
         sfunc.Sfunc.Fstartblock = startblock;
-        dwarf_except_gentables(sfunc, startoffset, retoffset);
+        dwarf_except_gentables(sfunc, cast(uint)startoffset, cast(uint)retoffset);
         sfunc.Sfunc.Fstartblock = null;
     }
 }
@@ -670,7 +671,7 @@ targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
         alignment = STACKALIGN;
     if (alignment)
     {
-        int sz = -base + bias;
+        int sz = cast(int)(-base + bias);
         assert(sz >= 0);
         sz &= (alignment - 1);
         if (sz)
@@ -821,7 +822,7 @@ static if (TARGET_WINDOS)
      * and the overriding function, and so bias should be the same too.
     */
 
-    int bias = Para.size + (needframe ? 0 : REGSIZE);
+    int bias = cast(int)(Para.size + (needframe ? 0 : REGSIZE));
     if (Fast.alignment < REGSIZE)
         Fast.alignment = REGSIZE;
 
@@ -894,7 +895,7 @@ static if (TARGET_WINDOS)
         //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
                //npush, Para.size, needframe, localsize);
 
-        int sz = Para.size + (needframe ? 0 : -REGSIZE) + localsize + npush * REGSIZE;
+        int sz = cast(int)(Para.size + (needframe ? 0 : -REGSIZE) + localsize + npush * REGSIZE);
         if (STACKALIGN == 16)
         {
             if (sz & (8|4))
@@ -908,7 +909,7 @@ static if (TARGET_WINDOS)
     //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
         //(int)Foff,(int)Auto.size,(int)NDPoff,(int)CSoff,(int)Para.size,(int)localsize);
 
-    uint xlocalsize = localsize;    // amount to subtract from ESP to make room for locals
+    uint xlocalsize = cast(uint)localsize;    // amount to subtract from ESP to make room for locals
 
     if (tyf & mTYnaked)                 // if no prolog/epilog for function
     {
@@ -1049,7 +1050,7 @@ version (MARS)
         for (SYMIDX si = 0; 1; si++)
         {   assert(si < globsym.top);
             sthis = globsym.tab[si];
-            if (strcmp(sthis.Sident,"this") == 0)
+            if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
                 break;
         }
         nteh_monitor_prolog(cdbx,sthis);
@@ -1347,7 +1348,7 @@ void stackoffsets(int flags)
 
             if (alignsize > Auto.alignment)
                 Auto.alignment = alignsize;
-        L2: ;
+        L2: { }
         }
 
         vec_free(tbl);
@@ -1585,6 +1586,8 @@ private void cgcod_eh()
                         break;
                     case ESCrelease:
 //printf("ESCrelease\n");
+version (SCPP)
+{
                         idx = list_data(stack);
                         list_pop(&stack);
                         if (idx != except_index_get())
@@ -1603,6 +1606,7 @@ private void cgcod_eh()
                             }
                         }
                         except_release();
+}
                         break;
                     case ESCmark2:
 //printf("ESCmark2\n");
@@ -1610,7 +1614,10 @@ private void cgcod_eh()
                         break;
                     case ESCrelease2:
 //printf("ESCrelease2\n");
+version (SCPP)
+{
                         except_release();
+}
                         break;
 
                     default:
@@ -1755,8 +1762,8 @@ void freenode(elem *e)
     {
         for (size_t i = 0; i < regcon.cse.value.length; i++)
         {   if (regcon.cse.value[i] == e)       /* if a register is holding it  */
-            {   regcon.cse.mval &= ~mask(i);
-                regcon.cse.mops &= ~mask(i);    /* free masks                   */
+            {   regcon.cse.mval &= ~mask(cast(uint)i);
+                regcon.cse.mops &= ~mask(cast(uint)i);    /* free masks                   */
             }
         }
         for (size_t i = 0; i < cstop; i++)
@@ -2177,7 +2184,7 @@ else
             cseinc = csmax + 32;
 
             csextab = cast(CSE *) util_realloc(csextab,
-                (csmax + cseinc), csextab[0].sizeof);
+                cast(uint)(csmax + cseinc), csextab[0].sizeof);
             memset(&csextab[csmax],0,cseinc * csextab[0].sizeof);
             csmax += cseinc;
             goto L1;
@@ -2204,7 +2211,7 @@ else
                 csextab[i].flags |= CSEsimple;
             else
             {
-                gensavereg(cdb, reg, i);
+                gensavereg(cdb, reg, cast(uint)i);
                 reflocal = true;
             }
         }
@@ -2486,7 +2493,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
                         csextab[i].flags |= CSEload;
                         if (*pretregs == mPSW)  // if result in CCs only
                         {                       // CMP cs[BP],0
-                            gen_testcse(cdb, sz, i);
+                            gen_testcse(cdb, sz, cast(uint)i);
                         }
                         else
                         {
@@ -2494,7 +2501,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
                             if (byte_ && !(retregs & BYTEREGS))
                                     retregs = BYTEREGS;
                             allocreg(cdb,&retregs,&reg,tym);
-                            gen_loadcse(cdb, reg, i);
+                            gen_loadcse(cdb, reg, cast(uint)i);
                         L10:
                             regcon.cse.mval |= mask(reg); // cs is in a reg
                             regcon.cse.value[reg] = e;
@@ -2635,7 +2642,7 @@ private void loadcse(ref CodeBuilder cdb,elem *e,uint reg,regm_t regm)
                 regcon.cse.value[reg] = e;
                 regcon.cse.mval |= mask(reg);
                 getregs(cdb,mask(reg));
-                gen_loadcse(cdb, reg, i);
+                gen_loadcse(cdb, reg, cast(uint)i);
                 return;
         }
   }
@@ -3015,10 +3022,10 @@ const(char)* regm_str(regm_t rm)
     *p = 0;
     for (size_t j = 0; j < 32; j++)
     {
-        if (mask(j) & rm)
+        if (mask(cast(uint)j) & rm)
         {
             strcat(p,regstring[j]);
-            rm &= ~mask(j);
+            rm &= ~mask(cast(uint)j);
             if (rm)
                 strcat(p,"|");
         }
