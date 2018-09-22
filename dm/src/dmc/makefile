@@ -323,7 +323,7 @@ BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
-	glocal.d goh.d md5.d memh.d
+	glocal.d goh.d md5.d memh.d varstats.d
 
 BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
@@ -346,7 +346,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	dwarf.c machobj.c \
 	strtold.c aa.c ti_achar.c \
 	ti_pvoid.c ph2.c util2.c \
-	mscoffobj.c pdata.c cv8.c backconfig.c \
+	mscoffobj.c pdata.c cv8.d backconfig.c \
 	divcoeff.d dwarfeh.c varstats.c \
 	backend.txt
 
@@ -474,6 +474,9 @@ cgxmm.obj : cgxmm.d
 
 compress.obj : compress.d
         $(DMD) -c $(DFLAGS) compress.d
+
+cv8.obj : cv8.d
+        $(DMD) -c $(DFLAGS) cv8.d
 
 dcpp.obj : msgs2.d dcpp.d
         $(DMD) -c $(DFLAGS) dcpp.d
@@ -677,7 +680,7 @@ cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
 #cod3.obj : $(DEP) $(cod3.dep) cod3.c
 #cod4.obj : $(DEP) $(cod4.dep) cod4.c
 #code.obj : $(DEP) $(code.dep) code.c
-cv8.obj : $(DEP) $(cv8.dep) cv8.c
+#cv8.obj : $(DEP) $(cv8.dep) cv8.c
 #debug.obj : $(DEP) $(debug.dep) debug.c
 dt.obj : $(DEP) $(dt.dep) dt.c
 dwarf.obj : $(DEP) $(dwarf.dep) dwarf.h dwarf.c
