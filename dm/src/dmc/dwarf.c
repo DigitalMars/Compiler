@@ -110,7 +110,7 @@ bool doUnwindEhFrame()
 {
     if (funcsym_p->Sfunc->Fflags3 & Feh_none)
     {
-        return (config.exe & (EX_FREEBSD | EX_FREEBSD64)) != 0;
+        return (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64)) != 0;
     }
 
     /* FreeBSD fails when having some frames as having unwinding info and some not.
@@ -119,7 +119,7 @@ bool doUnwindEhFrame()
      */
     assert(!(usednteh & ~(EHtry | EHcleanup)));
     return (usednteh & (EHtry | EHcleanup)) ||
-           (config.exe & (EX_FREEBSD | EX_FREEBSD64)) && !config.betterC;
+           (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64)) && !config.betterC;
 }
 
 #if ELFOBJ
@@ -130,29 +130,24 @@ bool doUnwindEhFrame()
 
 #define OFFSET_FAC REGSIZE
 
-int dwarf_getsegment(const char *name, int align)
+int dwarf_getsegment(const char *name, int align, int flags)
 {
 #if ELFOBJ
-    return ElfObj::getsegment(name, NULL, SHT_PROGBITS, 0, align * 4);
+    return ElfObj::getsegment(name, NULL, flags, 0, align * 4);
 #elif MACHOBJ
-    return MachObj::getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
+    return MachObj::getsegment(name, "__DWARF", align * 2, flags);
 #else
     assert(0);
     return 0;
 #endif
 }
 
+#if ELFOBJ
 int dwarf_getsegment_alloc(const char *name, const char *suffix, int align)
 {
-#if ELFOBJ
     return ElfObj::getsegment(name, suffix, SHT_PROGBITS, SHF_ALLOC, align * 4);
-#elif MACHOBJ
-    return MachObj::getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
-#else
-    assert(0);
-    return 0;
-#endif
 }
+#endif
 
 int dwarf_except_table_alloc(Symbol *s)
 {
@@ -478,12 +473,13 @@ struct Section
     IDXSEC secidx;
     Outbuffer *buf;
     const char *name;
+    int flags;
 
     /* Allocate and initialize Section
      */
     void initialize()
     {
-        const segidx_t segi = dwarf_getsegment(name, 0);
+        const segidx_t segi = dwarf_getsegment(name, 0, flags);
         seg = segi;
         secidx = SegData[segi]->SDshtidx;
         buf = SegData[segi]->SDbuf;
@@ -492,23 +488,25 @@ struct Section
 };
 
 #if MACHOBJ
-static Section debug_pubnames = { 0,0,0, "__debug_pubnames" };
-static Section debug_aranges  = { 0,0,0, "__debug_aranges" };
-static Section debug_ranges   = { 0,0,0, "__debug_ranges" };
-static Section debug_loc      = { 0,0,0, "__debug_loc" };
-static Section debug_abbrev   = { 0,0,0, "__debug_abbrev" };
-static Section debug_info     = { 0,0,0, "__debug_info" };
-static Section debug_str      = { 0,0,0, "__debug_str" };
-static Section debug_line     = { 0,0,0, "__debug_line" };
+static Section debug_pubnames = { 0,0,0, "__debug_pubnames", S_ATTR_DEBUG };
+static Section debug_aranges  = { 0,0,0, "__debug_aranges", S_ATTR_DEBUG };
+static Section debug_ranges   = { 0,0,0, "__debug_ranges", S_ATTR_DEBUG };
+static Section debug_loc      = { 0,0,0, "__debug_loc", S_ATTR_DEBUG };
+static Section debug_abbrev   = { 0,0,0, "__debug_abbrev", S_ATTR_DEBUG };
+static Section debug_info     = { 0,0,0, "__debug_info", S_ATTR_DEBUG };
+static Section debug_str      = { 0,0,0, "__debug_str", S_ATTR_DEBUG };
+// We use S_REGULAR to make sure the linker doesn't remove this section. Needed
+// for filenames and line numbers in backtraces.
+static Section debug_line     = { 0,0,0, "__debug_line", S_REGULAR };
 #elif ELFOBJ
-static Section debug_pubnames = { 0,0,0, ".debug_pubnames" };
-static Section debug_aranges  = { 0,0,0, ".debug_aranges" };
-static Section debug_ranges   = { 0,0,0, ".debug_ranges" };
-static Section debug_loc      = { 0,0,0, ".debug_loc" };
-static Section debug_abbrev   = { 0,0,0, ".debug_abbrev" };
-static Section debug_info     = { 0,0,0, ".debug_info" };
-static Section debug_str      = { 0,0,0, ".debug_str" };
-static Section debug_line     = { 0,0,0, ".debug_line" };
+static Section debug_pubnames = { 0,0,0, ".debug_pubnames", SHT_PROGBITS };
+static Section debug_aranges  = { 0,0,0, ".debug_aranges", SHT_PROGBITS };
+static Section debug_ranges   = { 0,0,0, ".debug_ranges", SHT_PROGBITS };
+static Section debug_loc      = { 0,0,0, ".debug_loc", SHT_PROGBITS };
+static Section debug_abbrev   = { 0,0,0, ".debug_abbrev", SHT_PROGBITS };
+static Section debug_info     = { 0,0,0, ".debug_info", SHT_PROGBITS };
+static Section debug_str      = { 0,0,0, ".debug_str", SHT_PROGBITS };
+static Section debug_line     = { 0,0,0, ".debug_line", SHT_PROGBITS };
 #endif
 
 #if MACHOBJ
@@ -1032,7 +1030,12 @@ void dwarf_initfile(const char *filename)
         return;
     if (config.ehmethod == EH_DM)
     {
-        int seg = dwarf_getsegment(debug_frame_name, 1);
+#if MACHOBJ
+        int flags = S_ATTR_DEBUG;
+#elif ELFOBJ
+        int flags = SHT_PROGBITS;
+#endif
+        int seg = dwarf_getsegment(debug_frame_name, 1, flags);
         Outbuffer *buf = SegData[seg]->SDbuf;
         buf->reserve(1000);
         writeDebugFrameHeader(buf);
@@ -1535,7 +1538,12 @@ void dwarf_func_term(Symbol *sfunc)
 
     if (ehmethod(sfunc) == EH_DM)
     {
-        IDXSEC dfseg = dwarf_getsegment(debug_frame_name, 1);
+#if MACHOBJ
+        int flags = S_ATTR_DEBUG;
+#elif ELFOBJ
+        int flags = SHT_PROGBITS;
+#endif
+        IDXSEC dfseg = dwarf_getsegment(debug_frame_name, 1, flags);
         writeDebugFrameFDE(dfseg, sfunc);
     }
 
@@ -2983,7 +2991,7 @@ void dwarf_except_gentables(Funcsym *sfunc, unsigned startoffset, unsigned retof
 }
 
 #else
-void dwarf_CFA_set_loc(size_t location) { }
+void dwarf_CFA_set_loc(unsigned location) { }
 void dwarf_CFA_set_reg_offset(int reg, int offset) { }
 void dwarf_CFA_offset(int reg, int offset) { }
 void dwarf_except_gentables(Funcsym *sfunc, unsigned startoffset, unsigned retoffset) { }
