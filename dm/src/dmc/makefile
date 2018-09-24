@@ -278,7 +278,7 @@ TOTALH=$(CCH) total.sym
 
 ##################### GENERATED SOURCE #####################
 
-elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c : \
+elxxx.d cdxxx.d optab.d debtab.d fltables.d tytab.d : \
         cdef.h cc.h oper.h ty.h optabgen.c
         $(CC) -cpp optabgen -I$(TK)
         optabgen
@@ -335,7 +335,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	optabgen.c platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d \
 	cgcod.d cgcs.d cgcv.c cgelem.d cgen.c cgobj.c \
-	cgreg.d var.c compress.d \
+	cgreg.d var.d compress.d \
 	cgsched.d cod1.d cod2.d cod3.d cod4.d cod5.d \
 	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
 	fp.c gflow.d gdag.d \
@@ -667,6 +667,9 @@ unialpha.obj : unialpha.d
 utf.obj : utf.d
         $(DMD) -c $(DFLAGS) utf.d
 
+var.obj : tytab.d optab.d var.d
+        $(DMD) -c $(DFLAGS) -J. var.d
+
 ################# Source file dependencies ###############
 
 DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c
@@ -709,7 +712,7 @@ rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 outbuf.obj : $(DEP) $(outbuf.dep) outbuf.c
 newman.obj : $(DEP) $(newman.dep) newman.c
 tdbx.obj : $(DEP) $(tdbx.dep) tdbx.c
-var.obj : $(DEP) $(var.dep) var.c
+#var.obj : $(DEP) $(var.dep) var.c
 
 ################### Utilities ################
 
@@ -728,6 +731,6 @@ clean:
         del *.exp
         del *.dbg
         del *.res
-        del msgs.c msgs2.d msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c
+        del msgs.c msgs2.d msgs2.h msgs2.c elxxx.d cdxxx.d optab.d debtab.d fltables.d tytab.d
 
 ###################################
