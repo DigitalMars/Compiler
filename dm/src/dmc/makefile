@@ -340,7 +340,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.c \
-	nteh.d os.c out.c outbuf.c ptrntab.c rtlsym.c \
+	nteh.d os.c out.d outbuf.c ptrntab.c rtlsym.c \
 	dtype.d \
 	elfobj.c \
 	dwarf.c machobj.c \
@@ -637,6 +637,9 @@ nteh.obj : nteh.d
 objrecor.obj : objrecor.d
         $(DMD) -c $(DFLAGS) objrecor.d
 
+out.obj : out.d
+        $(DMD) -c $(DFLAGS) out.d
+
 phstring.obj : phstring.d
         $(DMD) -c $(DFLAGS) phstring.d
 
@@ -691,7 +694,7 @@ dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
 #cel.obj : $(DEP) $(cel.dep) cel.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 fp.obj : $(DEP) $(fp.dep) fp.c
-out.obj : $(DEP) $(out.dep) out.c
+#out.obj : $(DEP) $(out.dep) out.c
 pdata.obj : $(DEP) $(pdata.dep) pdata.c
 ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
 ti_achar.obj : tinfo.h ti_achar.c

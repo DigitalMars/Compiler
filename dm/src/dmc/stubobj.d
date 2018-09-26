@@ -50,6 +50,9 @@ class Obj
   static
   {
     void setcodeseg(int seg) { }
+    seg_data *tlsseg_bss() { return null; }
+    seg_data *tlsseg_data() { return null; }
+    int data_start(Symbol *sdata, targ_size_t datasize, int seg) { return 0; }
     int string_literal_segment(uint sz) { return 0; }
     int codeseg(char *name,int suffix) { return 0; }
     seg_data *tlsseg() { return null; }
@@ -78,6 +81,8 @@ class Obj
             int flags) { return 0; }
     void far16thunk(Symbol *s) { }
     void fltused() { }
+    int data_readonly(char *p, int len, int *pseg) { return 0; }
+    int data_readonly(char *p, int len) { return 0; }
     int common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count) { return 0; }
     void write_bytes(seg_data *pseg, uint nbytes, void *p) { }
     void gotref(Symbol *s) { }
