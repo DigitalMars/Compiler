@@ -565,7 +565,7 @@ uint cv8_addfile(const(char)* filename)
 
     // ensure the filename is absolute to help the debugger to find the source
     // without having to know the working directory during compilation
-    __gshared char[256] cwd;
+    __gshared char[260] cwd = 0;
     __gshared uint cwdlen;
     bool abs = (*filename == '\\') ||
                (*filename == '/')  ||
@@ -744,7 +744,7 @@ else
         case SCregister:
             if (s.Sfl != FLreg)
                 goto case_auto;
-            goto L2;
+            goto case;
 
         case SCpseudo:
         case_register:
