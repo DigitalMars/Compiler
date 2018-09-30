@@ -6,7 +6,7 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcv.c
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcv.c, backend/cgcv.c)
  */
 
 /* Header for cgcv.c    */
@@ -16,14 +16,14 @@ module dmd.backend.cgcv;
 // Online documentation: https://dlang.org/phobos/dmd_backend_cgcv.html
 
 import dmd.backend.cc : Classsym, Symbol;
-import dmd.backend.type;
 import dmd.backend.dlist;
+import dmd.backend.type;
 
 extern (C++):
 @nogc:
 nothrow:
 
-alias LIST* symlist_t;
+alias symlist_t = LIST*;
 
 extern char* ftdbname;
 
@@ -37,7 +37,7 @@ uint cv4_struct(Classsym*, int);
 
 /* =================== Added for MARS compiler ========================= */
 
-alias uint idx_t;        // type of type index
+alias idx_t = uint;        // type of type index
 
 /* Data structure for a type record     */
 
