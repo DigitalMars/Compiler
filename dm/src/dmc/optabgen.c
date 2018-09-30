@@ -320,7 +320,7 @@ void doreltables(FILE *f)
             { OPnug,    OPug,   OPnul,  OPle,   0,      0 },
             { OPnue,    OPue,   OPnue,  OPne,   0,      0 },
         };
-#define RELMAX arraysize(reltables)
+#define RELMAX ((int)arraysize(reltables))
         enum OPER rel_not[RELMAX];
         enum OPER rel_swap[RELMAX];
         enum OPER rel_integral[RELMAX];

@@ -62,10 +62,10 @@ version (Windows)
 
 extern (C++):
 
-void dt_writeToObj(ref Obj objmod, dt_t *dt, int seg, ref targ_size_t offset);
+void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset);
 
 // Determine if this Symbol is stored in a COMDAT
-bool symbol_iscomdat(Symbol* s)
+bool symbol_iscomdat2(Symbol* s)
 {
     version (MARS)
     {
@@ -116,13 +116,13 @@ version (HTOD)
 /***********************************
  * Output function thunk.
  */
-void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
+extern (C) void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2)
 {
 version (HTOD) { } else
 {
     sthunk.Sseg = cseg;
-    cod3_thunk(sthunk,sfunc,p,thisty,d,i,d2);
+    cod3_thunk(sthunk,sfunc,p,thisty,cast(uint)d,i,cast(uint)d2);
     sthunk.Sfunc.Fflags &= ~Fpending;
     sthunk.Sfunc.Fflags |= Foutput;   /* mark it as having been output */
 }
@@ -422,6 +422,7 @@ Lret:
     dt_free(dtstart);
 }
 
+
 /********************************************
  * Write dt to Object file.
  * Params:
@@ -431,7 +432,7 @@ Lret:
  *      offset = starting offset in segment - will get updated to reflect ending offset
  */
 
-void dt_writeToObj(ref Obj objmod, dt_t *dt, int seg, ref targ_size_t offset)
+void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset)
 {
     for (; dt; dt = dt.DTnext)
     {
@@ -539,7 +540,7 @@ void outcommon(Symbol *s,targ_size_t n)
              * so put them out as initialized 0s
              */
             scope dtb = new DtBuilder();
-            dtb.nzeros(n);
+            dtb.nzeros(cast(uint)n);
             s.Sdt = dtb.finish();
             outdata(s);
 version (SCPP)
@@ -561,7 +562,7 @@ version (SCPP)
                  */
                 s.Sclass = SCcomdat;
                 scope dtb = new DtBuilder();
-                dtb.nzeros(n);
+                dtb.nzeros(cast(uint)n);
                 s.Sdt = dtb.finish();
                 outdata(s);
 version (SCPP)
@@ -704,7 +705,7 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
  * a code generator tree.
  */
 
-private void outelem(elem *e, ref bool addressOfParam)
+/*private*/ void outelem(elem *e, ref bool addressOfParam)
 {
     Symbol *s;
     tym_t tym;
@@ -912,12 +913,12 @@ version (SCPP)
 {
         e.Eoper = OPconst;
         e.EV.Vlong = type_size(e.EV.Vsym.Stype);
+        break;
 }
 else
 {
         assert(0);
 }
-        break;
 
 version (SCPP)
 {
@@ -1076,6 +1077,7 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
         }
     }
 }
+
 
 /**************************
  * Optimize function,
@@ -1402,7 +1404,7 @@ version (SCPP)
     int csegsave = CSEGSAVE_DEFAULT;
     if (eecontext.EEcompile != 1)
     {
-        if (symbol_iscomdat(sfunc))
+        if (symbol_iscomdat2(sfunc))
         {
             csegsave = cseg;
             objmod.comdat(sfunc);
@@ -1543,7 +1545,7 @@ version (Win32)
         sfunc.Sclass != SCsinline &&
         !(sfunc.Sclass == SCinline && !(config.flags2 & CFG2comdat)) &&
         sfunc.ty() & mTYexport)
-        objmod.export_symbol(sfunc,Para.offset);      // export function definition
+        objmod.export_symbol(sfunc,cast(uint)Para.offset);      // export function definition
 
     if (config.fulltypes && config.fulltypes != CV8)
         cv_func(sfunc);                 // debug info for function
@@ -1561,6 +1563,9 @@ version (MARS)
         {   case SCfastpar:
                 s.Sclass = SCauto;
                 break;
+
+            default:
+                break;
         }
     }
     /* After codgen() and writing debug info for the locals,
@@ -1571,7 +1576,7 @@ version (MARS)
      cod3_adjSymOffsets();
 }
 
-    if (symbol_iscomdat(sfunc))         // if generated a COMDAT
+    if (symbol_iscomdat2(sfunc))         // if generated a COMDAT
     {
         assert(csegsave != CSEGSAVE_DEFAULT);
         objmod.setcodeseg(csegsave);       // reset to real code seg
@@ -1627,7 +1632,6 @@ void alignOffset(int seg,targ_size_t datasize)
     if (alignbytes)
         objmod.lidata(seg,Offset(seg),alignbytes);
 }
-
 
 /***************************************
  * Write data into read-only data segment.

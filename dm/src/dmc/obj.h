@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 2012-2017 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (C) 2012-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/obj.d, backend/obj.d)
@@ -24,7 +24,7 @@ struct seg_data;
 
 #if TARGET_WINDOS
 #define OMF 1
-#elif (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+#elif (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
 #define ELF 1
 #elif TARGET_OSX
 #define MACH 1
@@ -107,7 +107,7 @@ struct seg_data;
 
         static void gotref(symbol *s);
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         static unsigned addstr(Outbuffer *strtab, const char *);
         static symbol *getGOTsym();
         static void refGOTsym();
@@ -150,8 +150,8 @@ class Obj
     VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
-    virtual int  comdat(Symbol *);
-    virtual int  comdatsize(Symbol *, targ_size_t symsize);
+    VIRTUAL int  comdat(Symbol *);
+    VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
     virtual int readonly_comdat(Symbol *s);
     VIRTUAL void setcodeseg(int seg);
     virtual seg_data *tlsseg();
@@ -193,7 +193,7 @@ class Obj
 
     static void gotref(symbol *s);
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     static unsigned addstr(Outbuffer *strtab, const char *);
     static symbol *getGOTsym();
     static void refGOTsym();

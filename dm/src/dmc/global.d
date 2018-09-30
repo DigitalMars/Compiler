@@ -383,7 +383,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
 /* out.c */
 void outfilename(char *name,int linnum);
 void outcsegname(char *csegname);
-void outthunk(Symbol *sthunk, Symbol *sfunc, uint p, tym_t thisty, targ_size_t d, int i, targ_size_t d2);
+extern (C) void outthunk(Symbol *sthunk, Symbol *sfunc, uint p, tym_t thisty, targ_size_t d, int i, targ_size_t d2);
 void outdata(Symbol *s);
 void outcommon(Symbol *s, targ_size_t n);
 void out_readonly(Symbol *s);
