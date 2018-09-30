@@ -346,7 +346,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	dwarf.c machobj.c \
 	strtold.c aa.c ti_achar.c \
 	ti_pvoid.c ph2.c util2.c \
-	mscoffobj.c pdata.c cv8.d backconfig.c \
+	mscoffobj.c pdata.d cv8.d backconfig.c \
 	divcoeff.d dwarfeh.c varstats.c \
 	backend.txt
 
@@ -640,6 +640,9 @@ objrecor.obj : objrecor.d
 out.obj : out.d
         $(DMD) -c $(DFLAGS) out.d
 
+pdata.obj : pdata.d
+        $(DMD) -c $(DFLAGS) pdata.d
+
 phstring.obj : phstring.d
         $(DMD) -c $(DFLAGS) phstring.d
 
@@ -695,7 +698,7 @@ dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 fp.obj : $(DEP) $(fp.dep) fp.c
 #out.obj : $(DEP) $(out.dep) out.c
-pdata.obj : $(DEP) $(pdata.dep) pdata.c
+#pdata.obj : $(DEP) $(pdata.dep) pdata.c
 ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
 ti_achar.obj : tinfo.h ti_achar.c
 ti_pvoid.obj : tinfo.h ti_pvoid.c
