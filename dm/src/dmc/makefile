@@ -345,7 +345,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	elfobj.c \
 	dwarf.c machobj.c \
 	strtold.c aa.c ti_achar.c \
-	ti_pvoid.c ph2.c util2.c \
+	ti_pvoid.c ph2.c util2.d \
 	mscoffobj.c pdata.d cv8.d backconfig.c \
 	divcoeff.d dwarfeh.c varstats.c \
 	backend.txt
