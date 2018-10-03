@@ -279,8 +279,8 @@ TOTALH=$(CCH) total.sym
 ##################### GENERATED SOURCE #####################
 
 elxxx.d cdxxx.d optab.d debtab.d fltables.d tytab.d : \
-        cdef.h cc.h oper.h ty.h optabgen.c
-        $(CC) -cpp optabgen -I$(TK)
+        cdef.h cc.h oper.h ty.h optabgen.d
+        $(DMD) $(DFLAGS) optabgen -I$(TK)
         optabgen
 
 msgs2.d msgs2.h msgs2.c : msgsx.exe
@@ -332,7 +332,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	melf.h mach.h md5.h mscoff.h bcomplex.h obj.h \
 	outbuf.h token.h tassert.h tinfo.h varstats.h xmm.h \
 	\
-	optabgen.c platform_stub.c \
+	optabgen.d platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d \
 	cgcod.d cgcs.d dcgcv.d cgelem.d cgen.c cgobj.c \
 	cgreg.d var.d compress.d \
@@ -347,7 +347,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	strtold.c aa.c ti_achar.c \
 	ti_pvoid.c ph2.c util2.d \
 	mscoffobj.c pdata.d cv8.d backconfig.c \
-	divcoeff.d dwarfeh.c varstats.c \
+	divcoeff.d dwarfeh.c dvarstats.d \
 	backend.txt
 
 SRC= $(FRONTSRC) $(FRONTDSRC) $(BACKSRC) $(BACKDSRC)
