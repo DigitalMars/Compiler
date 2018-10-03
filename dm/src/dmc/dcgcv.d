@@ -12,10 +12,13 @@
 
 module dmd.backend.dcgcv;
 
+version (Windows)
+{
 version (SCPP)
     version = COMPILE;
 version (MARS)
     version = COMPILE;
+}
 
 version (COMPILE)
 {
@@ -46,12 +49,26 @@ version (SCPP)
     import msgs2;
     import parser;
 }
+version (MARS)
+{
+    import dmd.backend.varstats;
+}
 
 extern (C++):
 
 enum SYMDEB_TDB = false;
 
-void TOOFFSET(void* p, targ_size_t value);
+extern (C) void TOOFFSET(void* p, targ_size_t value)
+{
+    switch (_tysize[TYnptr])
+    {
+        case 2: *cast(ushort*)p = cast(ushort)value; break;
+        case 4: *cast(uint*)  p = cast(uint)  value; break;
+        case 8: *cast(ulong*) p = cast(ulong) value; break;
+        default:
+            assert(0);
+    }
+}
 
 extern __gshared char* ftdbname;
 
@@ -108,7 +125,7 @@ else
 
 int cv_stringbytes(const(char)* name)
 {
-    size_t len = strlen(name);
+    int len = cast(int)strlen(name);
     if (config.fulltypes == CV8)
         return len + 1;
     if (len > CVIDMAX)
@@ -137,14 +154,14 @@ int cv_namestring(ubyte *p, const(char)* name, int length = -1)
                     p[i] = '@';
             }
         }
-        return numBytesWritten;
+        return cast(int)numBytesWritten;
     }
     if (len > 255)
     {   p[0] = 0xFF;
         p[1] = 0;
         if (len > CVIDMAX)
             len = CVIDMAX;
-        TOWORD(p + 2,len);
+        TOWORD(p + 2,cast(uint)len);
         memcpy(p + 4,name,len);
         len += 4;
     }
@@ -153,7 +170,7 @@ int cv_namestring(ubyte *p, const(char)* name, int length = -1)
         memcpy(p + 1,name,len);
         len++;
     }
-    return len;
+    return cast(int)len;
 }
 
 /***********************************
@@ -278,7 +295,7 @@ void debtyp_check(debtyp_t *d,int linnum)
     //printf("linnum = %d\n",linnum);
     //printf(" length = %d\n",d.length);
     for (i = 0; i < d.length; i++)
-        c = d.data[i];
+        c = d.data.ptr[i];
 }
 
 void debtyp_check(debtyp_t* d) { debtyp_check(d,__LINE__); }
@@ -963,15 +980,15 @@ version (SCPP)
     id = prettyident(s);
     if (config.fulltypes == CV4)
     {   numidx = (st.Sflags & STRunion) ? 8 : 12;
-        len = numidx + cv4_numericbytes(size);
+        len = numidx + cv4_numericbytes(cast(uint)size);
         d = debtyp_alloc(len + cv_stringbytes(id));
-        cv4_storenumeric(d.data.ptr + numidx,size);
+        cv4_storenumeric(d.data.ptr + numidx,cast(uint)size);
     }
     else
     {   numidx = (st.Sflags & STRunion) ? 10 : 18;
         len = numidx + 4;
         d = debtyp_alloc(len + cv_stringbytes(id));
-        TOLONG(d.data.ptr + numidx,size);
+        TOLONG(d.data.ptr + numidx,cast(uint)size);
     }
     len += cv_namestring(d.data.ptr + len,id);
     switch (s.Sclass)
@@ -1028,7 +1045,7 @@ version (SCPP)
                         descriptor |= 5;
                     if (tyfarfunc(ty))
                         descriptor++;
-                    vshape.data[4 + n / 2] = descriptor;
+                    vshape.data.ptr[4 + n / 2] = descriptor;
                     descriptor <<= 4;
                     n++;
                 }
@@ -1069,7 +1086,7 @@ printf("fwd struct ref\n");
 {int i;
  printf("len = %d, length = %d\n",len,d.length);
  for (i=0;i<d.length;i++)
- printf("%02x ",d.data[i]);
+ printf("%02x ",d.data.ptr[i]);
  printf("\n");
 }
 }
@@ -1165,7 +1182,7 @@ version (SCPP)
                 else
                 {   offset = sf.Smemoff;
                     fnamelen += ((config.fulltypes == CV4) ? 6 : 8) +
-                                cv4_numericbytes(offset) + cv_stringbytes(sfid);
+                                cv4_numericbytes(cast(uint)offset) + cv_stringbytes(sfid);
                 }
                 break;
 
@@ -1447,8 +1464,8 @@ else
                     TOWORD(p + 2,attribute);
                     p += 8;
                 }
-                cv4_storenumeric(p,offset);
-                p += cv4_numericbytes(offset);
+                cv4_storenumeric(p,cast(uint)offset);
+                p += cv4_numericbytes(cast(uint)offset);
                 p += cv_namestring(p,sfid);
                 break;
 
@@ -2090,7 +2107,7 @@ else
             else
                 size = type_size(t);
         Larray:
-            u = cv4_numericbytes(size);
+            u = cv4_numericbytes(cast(uint)size);
             uint idxtype = I32 ? 0x12 : 0x11;  // T_LONG : T_SHORT
             if (I64)
                 idxtype = 0x23;                    // T_UQUAD
@@ -2103,8 +2120,8 @@ else
                     TOWORD(d.data.ptr,0x1503);
                     TOLONG(d.data.ptr + 2,next);
                     TOLONG(d.data.ptr + 6,idxtype);
-                    d.data[10 + u] = 0;             // no name
-                    cv4_storenumeric(d.data.ptr + 10,size);
+                    d.data.ptr[10 + u] = 0;             // no name
+                    cv4_storenumeric(d.data.ptr + 10,cast(uint)size);
                     break;
 
                 case CV4:
@@ -2112,8 +2129,8 @@ else
                     TOWORD(d.data.ptr,LF_ARRAY);
                     TOWORD(d.data.ptr + 2,next);
                     TOWORD(d.data.ptr + 4,idxtype);
-                    d.data[6 + u] = 0;             // no name
-                    cv4_storenumeric(d.data.ptr + 6,size);
+                    d.data.ptr[6 + u] = 0;             // no name
+                    cv4_storenumeric(d.data.ptr + 6,cast(uint)size);
                     break;
 
                 default:
@@ -2121,8 +2138,8 @@ else
                     TOWORD(d.data.ptr,LF_ARRAY);
                     TOLONG(d.data.ptr + 2,next);
                     TOLONG(d.data.ptr + 6,idxtype);
-                    d.data[10 + u] = 0;            // no name
-                    cv4_storenumeric(d.data.ptr + 10,size);
+                    d.data.ptr[10 + u] = 0;            // no name
+                    cv4_storenumeric(d.data.ptr + 10,cast(uint)size);
                     break;
             }
             typidx = cv_debtyp(d);
@@ -2411,15 +2428,15 @@ else
         {
             // Offsets
             if (I32)
-            {   TOLONG(debsym + 16,s.Ssize);           // proc length
-                TOLONG(debsym + 20,startoffset);        // debug start
-                TOLONG(debsym + 24,retoffset);          // debug end
+            {   TOLONG(debsym + 16,cast(uint)s.Ssize);           // proc length
+                TOLONG(debsym + 20,cast(uint)startoffset);        // debug start
+                TOLONG(debsym + 24,cast(uint)retoffset);          // debug end
                 u = 28;                                 // offset to fixup
             }
             else
-            {   TOWORD(debsym + 16,s.Ssize);           // proc length
-                TOWORD(debsym + 18,startoffset);        // debug start
-                TOWORD(debsym + 20,retoffset);          // debug end
+            {   TOWORD(debsym + 16,cast(uint)s.Ssize);           // proc length
+                TOWORD(debsym + 18,cast(uint)startoffset);        // debug start
+                TOWORD(debsym + 20,cast(uint)retoffset);          // debug end
                 u = 22;                                 // offset to fixup
             }
             length += cv_namestring(debsym + u + _tysize[TYint] + 2 + cgcv.sz_idx + 1,id);
@@ -2432,15 +2449,15 @@ else
         {
             // Offsets
             if (I32)
-            {   TOLONG(debsym + 16 + cgcv.sz_idx,s.Ssize);             // proc length
-                TOLONG(debsym + 20 + cgcv.sz_idx,startoffset);  // debug start
-                TOLONG(debsym + 24 + cgcv.sz_idx,retoffset);            // debug end
+            {   TOLONG(debsym + 16 + cgcv.sz_idx,cast(uint)s.Ssize);             // proc length
+                TOLONG(debsym + 20 + cgcv.sz_idx,cast(uint)startoffset);  // debug start
+                TOLONG(debsym + 24 + cgcv.sz_idx,cast(uint)retoffset);            // debug end
                 u = 28;                                         // offset to fixup
             }
             else
-            {   TOWORD(debsym + 16 + cgcv.sz_idx,s.Ssize);             // proc length
-                TOWORD(debsym + 18 + cgcv.sz_idx,startoffset);  // debug start
-                TOWORD(debsym + 20 + cgcv.sz_idx,retoffset);            // debug end
+            {   TOWORD(debsym + 16 + cgcv.sz_idx,cast(uint)s.Ssize);             // proc length
+                TOWORD(debsym + 18 + cgcv.sz_idx,cast(uint)startoffset);  // debug start
+                TOWORD(debsym + 20 + cgcv.sz_idx,cast(uint)retoffset);            // debug end
                 u = 22;                                         // offset to fixup
             }
             u += cgcv.sz_idx;
@@ -2451,7 +2468,7 @@ else
             TOWORD(debsym,length - 2);
         }
 
-        uint soffset = Offset(DEBSYM);
+        uint soffset = cast(uint)Offset(DEBSYM);
         objmod.write_bytes(SegData[DEBSYM],length,debsym);
 
         // Put out fixup for function start offset
@@ -2475,7 +2492,7 @@ else
 {
         id = prettyident(s);
 }
-        len = strlen(id);
+        len = cast(uint)strlen(id);
         debsym = (39 + IDOHD + len <= (buf).sizeof) ? buf.ptr : cast(ubyte *) malloc(39 + IDOHD + len);
         assert(debsym);
         switch (s.Sclass)
@@ -2595,7 +2612,8 @@ else
                     }
                 }
                 else if (s.ty() & (mTYfar | mTYcs))
-                {   fd = 0x04;
+                {
+                    fd = 0x04;
                     idx1 = idx2 = SegData[s.Sseg].segidx;
                 }
                 else
@@ -2609,9 +2627,9 @@ else
                  */
                 assert(length <= 0x1000);
                 if (idx2 != 0)
-                {   uint offset = Offset(DEBSYM);
+                {   uint offset = cast(uint)Offset(DEBSYM);
                     objmod.write_bytes(SegData[DEBSYM],length,debsym);
-                    objmod.write_long(DEBSYM,offset + fixoff,s.Soffset,
+                    objmod.write_long(DEBSYM,offset + fixoff,cast(uint)s.Soffset,
                         cgcv.LCFDpointer + fd,idx1,idx2);
                 }
                 goto Lret;
@@ -2709,17 +2727,19 @@ version (MARS)
             ubyte[2] name;
         }
 
+      extern (C++):
+
         static void endArgs()
         {
             __gshared ushort[2] endargs = [ 2, S_ENDARG ];
-            objmod.write_bytes(SegData[DEBSYM],(endargs).sizeof,endargs);
+            objmod.write_bytes(SegData[DEBSYM],(endargs).sizeof,endargs.ptr);
         }
         static void beginBlock(int offset, int length)
         {
             if (++cntOpenBlocks >= 255)
                 return; // optlink does not like more than 255 scope blocks
 
-            uint soffset = Offset(DEBSYM);
+            uint soffset = cast(uint)Offset(DEBSYM);
             // parent and end to be filled by linker
             block32_data block32 = { (block32_data).sizeof - 2, S_BLOCK32, 0, 0, length, 0, 0, [ 0, '\0' ] };
             objmod.write_bytes(SegData[DEBSYM], (block32).sizeof, &block32);
@@ -2732,7 +2752,7 @@ version (MARS)
                 return; // optlink does not like more than 255 scope blocks
 
             __gshared ushort[2] endargs = [ 2, S_END ];
-            objmod.write_bytes(SegData[DEBSYM],(endargs).sizeof,endargs);
+            objmod.write_bytes(SegData[DEBSYM],(endargs).sizeof,endargs.ptr);
         }
     }
 

@@ -83,7 +83,7 @@ void util_exit(int exitcode)
     exit(exitcode);                     /* terminate abnormally         */
 }
 
-version (Windows)
+version (CRuntime_DigitalMars)
 {
 
 extern (C) extern __gshared int controlc_saw;
@@ -112,7 +112,7 @@ extern (C)
 {
 void controlc_open();
 void controlc_close();
-alias void function() _controlc_handler_t;
+alias _controlc_handler_t = void function();
 extern __gshared _controlc_handler_t _controlc_handler;
 
 void _STI_controlc()
@@ -171,9 +171,12 @@ void util_progress(int linnum)
  *      else -1
  */
 
+version (X86) version (DigitalMars)
+    version = X86asm;
+
 int binary(const(char)* p, const(char)*  *table,int high)
 {
-version (X86)
+version (X86asm)
 {
     alias len = high;        // reuse parameter storage
     asm
@@ -194,7 +197,7 @@ version (X86)
         mov     len,ECX         ;
 
         even                    ;
-L4D:    lea     EBX,1[EAX]      ; // low = mid + 1
+L4D:    lea     EBX,[EAX + 1]   ; // low = mid + 1
         cmp     EBX,EDX         ;
         jg      Lnotfound       ;
 
@@ -305,7 +308,7 @@ version (MEM_DEBUG)
 else
     enum MEM_DEBUG = false;
 
-version (Win32)
+version (Windows)
 {
 void *util_malloc(uint n,uint size)
 {
@@ -335,7 +338,7 @@ else
 /***************************
  */
 
-version (Win32)
+version (Windows)
 {
 void *util_calloc(uint n,uint size)
 {
@@ -365,7 +368,7 @@ else
 /***************************
  */
 
-version (Win32)
+version (Windows)
 {
 void util_free(void *p)
 {
@@ -388,7 +391,7 @@ else
 /***************************
  */
 
-version (Win32)
+version (Windows)
 {
 void *util_realloc(void *oldp,uint n,uint size)
 {
