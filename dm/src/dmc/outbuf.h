@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/outbuf.h, backend/outbuf.h)
@@ -12,6 +12,7 @@
 //#pragma once
 
 #include        <string.h>
+#include        <assert.h>
 
 #include <stddef.h>     // for size_t
 
@@ -44,23 +45,45 @@ struct Outbuffer
 
     ~Outbuffer();
 
-    void reset();
+    void reset()
+    {
+        p = buf;
+    }
 
     // Reserve nbytes in buffer
-    void reserve(d_size_t nbytes)
+    void reserve(unsigned nbytes)
     {
         if (pend - p < nbytes)
             enlarge(nbytes);
     }
 
     // Reserve nbytes in buffer
-    void enlarge(d_size_t nbytes);
+    void enlarge(unsigned nbytes);
 
     // Write n zeros; return pointer to start of zeros
-    void *writezeros(d_size_t n);
+    void *writezeros(uint n)
+    {
+        if (pend - p < n)
+            reserve(n);
+        void *pstart = memset(p,0,n);
+        p += n;
+        return pstart;
+    }
 
     // Position buffer to accept the specified number of bytes at offset
-    void position(d_size_t offset, d_size_t nbytes);
+    void position(d_size_t offset, d_size_t nbytes)
+    {
+        if (offset + nbytes > pend - buf)
+        {
+            enlarge(offset + nbytes - (p - buf));
+        }
+        p = buf + offset;
+    #if DEBUG
+        assert(buf <= p);
+        assert(p <= pend);
+        assert(p + nbytes <= pend);
+    #endif
+    }
 
     // Write an array to the buffer, no reserve check
     void writen(const void *b, d_size_t len)
@@ -78,7 +101,13 @@ struct Outbuffer
     }
 
     // Write an array to the buffer.
-    void write(const void *b, d_size_t len);
+    void write(const void *b, unsigned len)
+    {
+        if (pend - p < len)
+            reserve(len);
+        memcpy(p,b,len);
+        p += len;
+    }
 
     void write(Outbuffer *b) { write(b->buf,b->p - b->buf); }
 
@@ -165,7 +194,13 @@ struct Outbuffer
     /**
      * Writes a 64 bit long.
      */
-    void write64(long long v);
+    void write64(long long v)
+    {
+        if (pend - p < 8)
+            reserve(8);
+        *(long long *)p = v;
+        p += 8;
+    }
 
     /**
      * Writes a 32 bit float.
@@ -198,7 +233,14 @@ struct Outbuffer
     }
 
     char *toString();
-    void setsize(d_size_t size);
+
+    void setsize(unsigned size)
+    {
+        p = buf + size;
+        //debug assert(buf <= p);
+        //debug assert(p <= pend);
+    }
+
 
     void writesLEB128(int value);
     void writeuLEB128(unsigned value);
