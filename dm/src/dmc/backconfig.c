@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.c, backend/backconfig.c)
@@ -336,7 +336,7 @@ void util_set32()
     _tysize[TYnullptr] = LONGSIZE;
     _tysize[TYnptr] = LONGSIZE;
     _tysize[TYnref] = LONGSIZE;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     _tysize[TYldouble] = 12;
     _tysize[TYildouble] = 12;
     _tysize[TYcldouble] = 24;
@@ -363,7 +363,7 @@ void util_set32()
     _tyalignsize[TYnullptr] = LONGSIZE;
     _tyalignsize[TYnref] = LONGSIZE;
     _tyalignsize[TYnptr] = LONGSIZE;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     _tyalignsize[TYldouble] = 4;
     _tyalignsize[TYildouble] = 4;
     _tyalignsize[TYcldouble] = 4;
@@ -401,7 +401,7 @@ void util_set64()
     _tysize[TYnullptr] = 8;
     _tysize[TYnptr] = 8;
     _tysize[TYnref] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX
     _tysize[TYldouble] = 16;
     _tysize[TYildouble] = 16;
     _tysize[TYcldouble] = 32;
@@ -424,7 +424,7 @@ void util_set64()
     _tyalignsize[TYnullptr] = 8;
     _tyalignsize[TYnptr] = 8;
     _tyalignsize[TYnref] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     _tyalignsize[TYldouble] = 16;
     _tyalignsize[TYildouble] = 16;
     _tyalignsize[TYcldouble] = 16;
@@ -453,27 +453,3 @@ void util_set64()
     TYdarray = TYucent;
 }
 
-// cc.d
-unsigned Srcpos::sizeCheck() { return sizeof(Srcpos); }
-unsigned Pstate::sizeCheck() { return sizeof(Pstate); }
-unsigned Cstate::sizeCheck() { return sizeof(Cstate); }
-unsigned Blockx::sizeCheck() { return sizeof(Blockx); }
-unsigned block::sizeCheck()  { return sizeof(block);  }
-unsigned func_t::sizeCheck() { return sizeof(func_t); }
-unsigned baseclass_t::sizeCheck() { return sizeof(baseclass_t); }
-unsigned template_t::sizeCheck() { return sizeof(template_t); }
-unsigned struct_t::sizeCheck() { return sizeof(struct_t); }
-unsigned Symbol::sizeCheck() { return sizeof(Symbol); }
-unsigned param_t::sizeCheck() { return sizeof(param_t); }
-unsigned Declar::sizeCheck() { return sizeof(Declar); }
-unsigned dt_t::sizeCheck() { return sizeof(dt_t); }
-
-// cdef.d
-unsigned Config::sizeCheck() { return sizeof(Config); }
-unsigned Configv::sizeCheck() { return sizeof(Configv); }
-unsigned eve::sizeCheck() { return sizeof(eve); }
-
-// el.d
-
-// type.d
-unsigned TYPE::sizeCheck() { return sizeof(type); }
