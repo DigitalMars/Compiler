@@ -345,8 +345,8 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	elfobj.c \
 	dwarf.c machobj.c \
 	strtold.c aa.c ti_achar.c \
-	ti_pvoid.c ph2.c util2.d \
-	mscoffobj.c pdata.d cv8.d backconfig.c sizecheck.c \
+	ti_pvoid.c ph2.d util2.d \
+	mscoffobj.c pdata.d cv8.d backconfig.d sizecheck.c \
 	divcoeff.d dwarfeh.c dvarstats.d \
 	backend.txt
 
@@ -420,6 +420,9 @@ strtold.obj : strtold.c
 
 adl.obj : adl.d
         $(DMD) -c $(DFLAGS) adl.d
+
+backconfig.obj : backconfig.d
+        $(DMD) -c $(DFLAGS) backconfig.d
 
 bcomplex.obj : bcomplex.d
         $(DMD79) -c $(DFLAGS) bcomplex.d
@@ -684,7 +687,7 @@ var.obj : tytab.d optab.d var.d
 DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c
 
 aa.obj : aa.h tinfo.h aa.c
-backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
+#backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
 #cgreg.obj : $(DEP) $(cgreg.dep) cgreg.c
 #cod1.obj : $(DEP) $(cod1.dep) cod1.c
