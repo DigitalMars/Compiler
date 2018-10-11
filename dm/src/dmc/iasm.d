@@ -3,14 +3,15 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1982-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     Mike Cote, John Micco, $(LINK2 http://www.digitalmars.com, Walter Bright),
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/iasm.d
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/iasm.d, backend/iasm.d)
  */
 
 module dmd.backend.iasm;
+
+// Online documentation: https://dlang.org/phobos/dmd_backend_iasm.html
 
 import dmd.backend.cc : block;
 
@@ -168,7 +169,7 @@ else
 // Operand flags - usOp1, usOp2, usOp3
 //
 
-alias uint opflag_t;
+alias opflag_t = uint;
 
 // Operand flags for normal opcodes
 enum
@@ -380,7 +381,8 @@ enum
 
 version (SCPP)
 {
-    enum OP_DB
+    alias OP_DB = int;
+    enum
     {
         // These are the number of bytes
         OPdb = 1,
@@ -463,6 +465,7 @@ struct PTRNTAB0 {
 }
 
 union PTRNTAB {
+        void            *ppt;
         PTRNTAB0        *pptb0;
         PTRNTAB1        *pptb1;
         PTRNTAB2        *pptb2;
@@ -472,6 +475,7 @@ union PTRNTAB {
 
 struct OP
 {
+    const(char)* str;   // opcode string
     ubyte usNumops;
     PTRNTAB ptb;
 }
