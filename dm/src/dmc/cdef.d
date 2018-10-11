@@ -722,6 +722,9 @@ struct Config
     linkage_t linkage;          // default function call linkage
     EHmethod ehmethod;          // exception handling method
     bool betterC;               // implement "Better C"
+    bool useModuleInfo;         // implement ModuleInfo
+    bool useTypeInfo;           // implement TypeInfo
+    bool useExceptions;         // implement exception handling
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Config.sizeof); }

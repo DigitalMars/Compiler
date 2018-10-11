@@ -73,7 +73,7 @@ void ph_newheap(size_t nbytes)
     if (!h)
         err_nomem();
 
-    newsize = (nbytes > 0xFF00) ? nbytes : 0xFF00;
+    newsize = (nbytes > 0xFF00) ? cast(uint)nbytes : 0xFF00;
     h.buf = cast(ubyte *) malloc(newsize);
     if (!h.buf)
     {
@@ -97,7 +97,7 @@ void *ph_malloc(size_t nbytes)
     p = heap.p;
     heap.p += nbytes;
     heap.nleft -= nbytes;
-    *cast(uint *)p = nbytes - uint.sizeof;
+    *cast(uint *)p = cast(uint)(nbytes - uint.sizeof);
     p += uint.sizeof;
     return p;
 }
