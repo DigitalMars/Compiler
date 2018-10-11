@@ -339,7 +339,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	cgsched.d cod1.d cod2.d cod3.d cod4.d cod5.d \
 	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
 	fp.c gflow.d gdag.d \
-	gother.d gloop.d newman.c \
+	gother.d gloop.d newman.d \
 	nteh.d os.c out.d outbuf.c ptrntab.d rtlsym.c \
 	dtype.d \
 	elfobj.c \
@@ -637,6 +637,9 @@ exp.obj : exp.d
 filename.obj : filename.d
         $(DMD) -c $(DFLAGS) filename.d
 
+newman.obj : newman.d
+        $(DMD) -c $(DFLAGS) newman.d
+
 nteh.obj : nteh.d
         $(DMD) -c $(DFLAGS) nteh.d
 
@@ -726,7 +729,7 @@ sizecheck.obj : $(DEP) $(sizecheck.dep) sizecheck.c
 #cg87.obj : $(DEP) $(cg87.dep) cg87.c
 #cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
 outbuf.obj : $(DEP) $(outbuf.dep) outbuf.c
-newman.obj : $(DEP) $(newman.dep) newman.c
+#newman.obj : $(DEP) $(newman.dep) newman.c
 tdbx.obj : $(DEP) $(tdbx.dep) tdbx.c
 #var.obj : $(DEP) $(var.dep) var.c
 

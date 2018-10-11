@@ -34,20 +34,20 @@ alias symbol_p = Symbol*;
 extern __gshared
 {
 //    char[2*IDMAX + 1] cpp_name;
-    char[2] cpp_name_ct;
-    char[2] cpp_name_dt;
-    char[2] cpp_name_as;
-    char[3] cpp_name_vc;
+    char[3] cpp_name_ct;
+    char[3] cpp_name_dt;
+    char[3] cpp_name_as;
+    char[4] cpp_name_vc;
     char[5] cpp_name_this;
     char[7] cpp_name_free;
     char[12] cpp_name_initvbases;
-    char[2] cpp_name_new;
-    char[2] cpp_name_delete;
-    char[3] cpp_name_anew;
-    char[3] cpp_name_adelete;
-    char[3] cpp_name_primdt;
-    char[3] cpp_name_scaldeldt;
-    char[3] cpp_name_priminv;
+    char[3] cpp_name_new;
+    char[3] cpp_name_delete;
+    char[4] cpp_name_anew;
+    char[4] cpp_name_adelete;
+    char[4] cpp_name_primdt;
+    char[4] cpp_name_scaldeldt;
+    char[4] cpp_name_priminv;
     char[10] cpp_name_none;
     char[12] cpp_name_invariant;
 
@@ -152,7 +152,7 @@ struct OPTABLE
 {
     ubyte tokn;                 // token(TKxxxx)
     ubyte oper;                 // corresponding operator(OPxxxx)
-    char *string;               // identifier string
+    const(char)* string;        // identifier string
     char[5] pretty;             // for pretty-printing
                                 // longest OP is OPunord
 }
