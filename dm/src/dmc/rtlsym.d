@@ -176,11 +176,7 @@ enum
     RTLSYM_MAX
 }
 
-// Workaround 2.066.x bug by resolving the RTLSYM_MAX value before using it as dimension.
-static if (__VERSION__ <= 2066)
-    private enum computeEnumValue = RTLSYM_MAX;
-
 extern (C++):
 
-extern __gshared Symbol*[RTLSYM_MAX] rtlsym;
-Symbol *getRtlsym(int i) { return rtlsym[i]; }
+Symbol *getRtlsym(int i);
+Symbol *getRtlsymPersonality();

@@ -54,7 +54,6 @@ application if debug info is needed when the application is deployed.
 #include        "cv4.h"
 #include        "cgcv.h"
 #include        "dt.h"
-#include        "rtlsym.h"
 
 #include        "aa.h"
 #include        "tinfo.h"
@@ -98,6 +97,7 @@ IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
 void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 #endif
 
+Symbol* getRtlsymPersonality();
 
 static Outbuffer  *reset_symbuf;        // Keep pointers to reset symbols
 
@@ -1524,7 +1524,7 @@ void dwarf_func_term(Symbol *sfunc)
 
         uint *poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
         if (*poffset == ~0)
-            *poffset = writeEhFrameHeader(dfseg, buf, getRtlsym(RTLSYM_PERSONALITY), ehunwind);
+            *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
 
         writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
     }

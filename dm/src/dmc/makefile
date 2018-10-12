@@ -177,7 +177,7 @@ OBJ1b=evalu8.obj fp.obj poptelem.obj eh.obj exp.obj dexp2.obj dfile.obj filename
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj dtype.obj dt.obj dth.obj phstring.obj
-OBJ1f=var.obj nteh.obj rtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj sizecheck.obj
+OBJ1f=var.obj nteh.obj drtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj sizecheck.obj
 OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj
@@ -328,7 +328,7 @@ BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
 BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
 	type.h dt.h cgcv.h cv4.h \
-	el.h iasm.h rtlsym.h dwarf.h dwarf2.h exh.h go.h \
+	el.h iasm.h dwarf.h dwarf2.h exh.h go.h \
 	melf.h mach.h md5.h mscoff.h bcomplex.h obj.h \
 	outbuf.h token.h tassert.h tinfo.h varstats.h xmm.h \
 	\
@@ -340,7 +340,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.d \
-	nteh.d os.c out.d outbuf.c ptrntab.d rtlsym.c \
+	nteh.d os.c out.d outbuf.c ptrntab.d drtlsym.d \
 	dtype.d \
 	elfobj.c \
 	dwarf.c machobj.c \
@@ -667,6 +667,9 @@ ptrntab.obj : ptrntab.d
 rawstring.obj : rawstring.d
         $(DMD) -c $(DFLAGS) rawstring.d
 
+drtlsym.obj : rtlsym.d drtlsym.d
+        $(DMD) -c $(DFLAGS) drtlsym.d
+
 rtti.obj : rtti.d
         $(DMD) -c $(DFLAGS) rtti.d
 
@@ -723,7 +726,7 @@ dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 #gflow.obj : $(DEP) $(gflow.dep) gflow.c
 #cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
 cgen.obj : $(DEP) $(cgen.dep) cgen.c
-rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
+#rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 sizecheck.obj : $(DEP) $(sizecheck.dep) sizecheck.c
 #symbol.obj : $(DEP) $(symbol.dep) symbol.c
 #cg87.obj : $(DEP) $(cg87.dep) cg87.c
