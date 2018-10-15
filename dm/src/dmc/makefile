@@ -178,7 +178,7 @@ OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj dtype.obj dt.obj dth.obj phstring.obj
 OBJ1f=var.obj nteh.obj drtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj sizecheck.obj
-OBJ1g=unialpha.obj entity.obj aa.obj ti_achar.obj ti_pvoid.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
+OBJ1g=unialpha.obj entity.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj dcgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj
@@ -323,7 +323,7 @@ BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
         dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
-	glocal.d goh.d md5.d memh.d varstats.d
+	glocal.d goh.d md5.d memh.d varstats.d aarray.d
 
 BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
@@ -342,12 +342,12 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	gother.d gloop.d newman.d \
 	nteh.d os.c out.d outbuf.c ptrntab.d drtlsym.d \
 	dtype.d \
-	elfobj.c \
+	elfobj.c aarray.d \
 	dwarf.c machobj.c \
 	strtold.c aa.c ti_achar.c \
 	ti_pvoid.c ph2.d util2.d \
 	mscoffobj.c pdata.d cv8.d backconfig.d sizecheck.c \
-	divcoeff.d dwarfeh.c dvarstats.d \
+	divcoeff.d dwarfeh.d dvarstats.d \
 	backend.txt
 
 SRC= $(FRONTSRC) $(FRONTDSRC) $(BACKSRC) $(BACKDSRC)
@@ -532,6 +532,9 @@ dtemplate.obj : dtemplate.d
 dtype.obj : dtype.d
         $(DMD79) -c $(DFLAGS) dtype.d
 
+dwarfeh.obj : dwarfeh.d
+        $(DMD) -c $(DFLAGS) dwarfeh.d
+
 elem.obj : elem.d
         $(DMD) -c $(DFLAGS) elem.d
 
@@ -695,7 +698,7 @@ var.obj : tytab.d optab.d var.d
 
 DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c
 
-aa.obj : aa.h tinfo.h aa.c
+#aa.obj : aa.h tinfo.h aa.c
 #backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
 #cgreg.obj : $(DEP) $(cgreg.dep) cgreg.c
@@ -707,16 +710,16 @@ cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
 #cv8.obj : $(DEP) $(cv8.dep) cv8.c
 #debug.obj : $(DEP) $(debug.dep) debug.c
 dt.obj : $(DEP) $(dt.dep) dt.c
-dwarf.obj : $(DEP) $(dwarf.dep) dwarf.h dwarf.c
-dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
+#dwarf.obj : $(DEP) $(dwarf.dep) dwarf.h dwarf.c
+#dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
 #cel.obj : $(DEP) $(cel.dep) cel.c
 errmsgs2.obj : $(DEP) $(errmsgs2.dep) errmsgs2.c msgs2.c
 fp.obj : $(DEP) $(fp.dep) fp.c
 #out.obj : $(DEP) $(out.dep) out.c
 #pdata.obj : $(DEP) $(pdata.dep) pdata.c
 #ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
-ti_achar.obj : tinfo.h ti_achar.c
-ti_pvoid.obj : tinfo.h ti_pvoid.c
+#ti_achar.obj : tinfo.h ti_achar.c
+#ti_pvoid.obj : tinfo.h ti_pvoid.c
 tk.obj : $(DEP) $(tk.dep) tk.c
 #type.obj : $(DEP) $(type.dep) type.c
 #cgcv.obj : $(DEP) $(cgcv.dep) cgcv.c

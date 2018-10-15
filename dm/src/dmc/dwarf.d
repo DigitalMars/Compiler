@@ -10,6 +10,8 @@ import dmd.backend.cdef;
 import dmd.backend.outbuf;
 import dmd.backend.type;
 
+extern (C++):
+
 enum DWARF_VERSION = 3;
 
 void dwarf_initfile(const(char) *filename);

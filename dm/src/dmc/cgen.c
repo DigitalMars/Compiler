@@ -21,7 +21,6 @@
 #include        "code.h"
 #include        "type.h"
 #include        "global.h"
-#include        "aa.h"
 #include        "dt.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
