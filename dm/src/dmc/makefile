@@ -328,7 +328,7 @@ BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
 BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
 	type.h dt.h cgcv.h cv4.h \
-	el.h iasm.h dwarf.h dwarf2.h exh.h go.h \
+	el.h dwarf.h dwarf2.h exh.h go.h \
 	melf.h mach.h md5.h mscoff.h bcomplex.h obj.h \
 	outbuf.h token.h tassert.h tinfo.h varstats.h xmm.h \
 	\
