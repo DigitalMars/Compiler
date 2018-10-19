@@ -330,7 +330,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	type.h dt.h cgcv.h cv4.h \
 	el.h dwarf.h dwarf2.h exh.h go.h \
 	melf.h mach.h md5.h mscoff.h bcomplex.h obj.h \
-	outbuf.h token.h tassert.h tinfo.h varstats.h xmm.h \
+	outbuf.h token.h tassert.h tinfo.h varstats.h \
 	\
 	optabgen.d platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d \
