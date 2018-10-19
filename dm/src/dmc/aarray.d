@@ -17,13 +17,23 @@ import core.stdc.string;
 
 alias hash_t = size_t;
 
-struct aaA
+/*********************
+ * This is the "bucket" used by the AArray.
+ */
+private struct aaA
 {
     aaA *next;
-    hash_t hash;
-    /* key   */
-    /* value */
+    hash_t hash;        // hash of the key
+    /* key   */         // key value goes here
+    /* value */         // value value goes here
 }
+
+/**************************
+ * Associative Array type.
+ * Params:
+ *      TKey = type that has members Key, getHash(), and equals()
+ *      Value = value type
+ */
 
 struct AArray(TKey, Value)
 {
@@ -34,6 +44,9 @@ struct AArray(TKey, Value)
         destroy();
     }
 
+    /****
+     * Frees all the data used by AArray
+     */
     void destroy()
     {
         if (buckets)
@@ -53,6 +66,10 @@ struct AArray(TKey, Value)
         }
     }
 
+    /********
+     * Returns:
+     *   Number of entries in the AArray
+     */
     size_t length()
     {
         return nodes;
@@ -61,6 +78,8 @@ struct AArray(TKey, Value)
     /*************************************************
      * Get pointer to value in associative array indexed by key.
      * Add entry for key if it is not already there.
+     * Params:
+     *  pKey = pointer to key
      * Returns:
      *  pointer to Value
      */
@@ -118,6 +137,8 @@ struct AArray(TKey, Value)
 
     /*************************************************
      * Determine if key is in aa.
+     * Params:
+     *  pKey = pointer to key
      * Returns:
      *  null    not in aa
      *  !=null  in aa, return pointer to value
@@ -152,6 +173,8 @@ struct AArray(TKey, Value)
     /*************************************************
      * Delete key entry in aa[].
      * If key is not in aa[], do nothing.
+     * Params:
+     *  pKey = pointer to key
      */
 
     void del(Key *pkey)
@@ -181,6 +204,8 @@ struct AArray(TKey, Value)
 
     /********************************************
      * Produce array of keys from aa.
+     * Returns:
+     *  malloc'd array of keys
      */
 
     Key[] keys()
@@ -205,6 +230,8 @@ struct AArray(TKey, Value)
 
     /********************************************
      * Produce array of values from aa.
+     * Returns:
+     *  malloc'd array of values
      */
 
     Value[] values()
@@ -273,6 +300,11 @@ struct AArray(TKey, Value)
      * For each element in the AArray,
      * call dg(Key* pkey, Value* pvalue)
      * If dg returns !=0, stop and return that value.
+     * Params:
+     *  dg = delegate to call for each key/value pair
+     * Returns:
+     *  !=0 : value returned by first dg() call that returned non-zero
+     *  0   : no entries in aa, or all dg() calls returned 0
      */
 
     int apply(int delegate(Key*, Value*) dg)
@@ -310,6 +342,10 @@ private:
 /**********************************
  * Align to next pointer boundary, so value
  * will be aligned.
+ * Params:
+ *      tsize = offset to be aligned
+ * Returns:
+ *      aligned offset
  */
 
 size_t aligntsize(size_t tsize)
@@ -331,7 +367,11 @@ immutable uint[14] prime_list =
 
 /***************************************************************/
 
-// Simple values
+/***
+ * A TKey for basic types
+ * Params:
+ *      K = a basic type
+ */
 public struct Tinfo(K)
 {
     alias Key = K;
@@ -349,7 +389,9 @@ public struct Tinfo(K)
 
 /***************************************************************/
 
-// char[]
+/****
+ * A TKey that is a string
+ */
 public struct TinfoChars
 {
     alias Key = const(char)[];

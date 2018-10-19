@@ -1603,7 +1603,7 @@ void Obj::setModuleCtorDtor(Symbol *s, bool isCtor)
  *      length of function
  */
 
-void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
+void Obj::ehtables(Symbol *sfunc,ehtables size,Symbol *ehsym)
 {
     assert(0);                  // converted to Dwarf EH debug format
 }

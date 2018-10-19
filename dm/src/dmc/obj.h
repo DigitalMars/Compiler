@@ -34,11 +34,11 @@ struct seg_data;
 #endif
 
 
-#if OMF
+#if OMF || OMFandMSCOFF
     class Obj
     {
       public:
-        static Obj *init(Outbuffer *, const char *filename, const char *csegname);
+//        static Obj *init(Outbuffer *, const char *filename, const char *csegname);
         static void initfile(const char *filename, const char *csegname, const char *modname);
         static void termfile();
         static void term(const char *objfilename);
@@ -49,6 +49,7 @@ struct seg_data;
         static void dosseg(void);
         static void startaddress(Symbol *);
         static bool includelib(const char *);
+        static bool linkerdirective(const char *);
         static bool allowZeroSize();
         static void exestr(const char *p);
         static void user(const char *p);
@@ -61,12 +62,12 @@ struct seg_data;
         static void staticctor(Symbol *s,int dtor,int seg);
         static void staticdtor(Symbol *s);
         static void setModuleCtorDtor(Symbol *s, bool isCtor);
-        static void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+        static void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
         static void ehsections();
         static void moduleinfo(Symbol *scc);
-        int  comdat(Symbol *);
-        int  comdatsize(Symbol *, targ_size_t symsize);
-        int readonly_comdat(Symbol *s);
+        static int  comdat(Symbol *);
+        static int  comdatsize(Symbol *, targ_size_t symsize);
+        static int readonly_comdat(Symbol *s);
         static void setcodeseg(int seg);
         static seg_data *tlsseg();
         static seg_data *tlsseg_bss();
@@ -135,6 +136,7 @@ class Obj
     VIRTUAL void dosseg(void);
     VIRTUAL void startaddress(Symbol *);
     VIRTUAL bool includelib(const char *);
+    VIRTUAL bool linkerdirective(const char *);
     VIRTUAL bool allowZeroSize();
     VIRTUAL void exestr(const char *p);
     VIRTUAL void user(const char *p);
@@ -147,7 +149,7 @@ class Obj
     VIRTUAL void staticctor(Symbol *s,int dtor,int seg);
     VIRTUAL void staticdtor(Symbol *s);
     VIRTUAL void setModuleCtorDtor(Symbol *s, bool isCtor);
-    VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+    VIRTUAL void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
     VIRTUAL int  comdat(Symbol *);
@@ -246,6 +248,7 @@ class MsCoffObj : public Obj
 //    VIRTUAL void dosseg(void);
     VIRTUAL void startaddress(Symbol *);
     VIRTUAL bool includelib(const char *);
+    VIRTUAL bool linkerdirective(const char *);
     VIRTUAL bool allowZeroSize();
     VIRTUAL void exestr(const char *p);
     VIRTUAL void user(const char *p);
@@ -258,7 +261,7 @@ class MsCoffObj : public Obj
     VIRTUAL void staticctor(Symbol *s,int dtor,int seg);
     VIRTUAL void staticdtor(Symbol *s);
     VIRTUAL void setModuleCtorDtor(Symbol *s, bool isCtor);
-    VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+    VIRTUAL void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
     virtual int  comdat(Symbol *);
