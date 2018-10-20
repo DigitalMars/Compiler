@@ -606,9 +606,7 @@ void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
     //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (unsigned)offset, seg, value);
     if (I64)
     {
-        targ_size_t off = SecHdrTab64[pseg->SDshtidx].offset + offset;
-        assert(fobjbuf->buf + off + 4 <= fobjbuf->pend);
-        int32_t *p = (int32_t *)(fobjbuf->buf + off);
+        int32_t *p = (int32_t *)(fobjbuf->buf + SecHdrTab64[pseg->SDshtidx].offset + offset);
 #if 0
         printf("\taddr1 = x%llx\n\taddr2 = x%llx\n\t*p = x%llx\n\tdelta = x%llx\n",
             SecHdrTab64[pseg->SDshtidx].addr,
@@ -1348,6 +1346,8 @@ void Obj::term(const char *objfilename)
         struct nlist_64 sym;
         sym.n_un.n_strx = elf_addmangled(s);
         sym.n_type = N_EXT | N_SECT;
+        if (s->Sflags & SFLhidden)
+            sym.n_type |= N_PEXT; // private extern
         sym.n_desc = 0;
         if (s->Sclass == SCcomdat)
             sym.n_desc = N_WEAK_DEF;
@@ -1600,6 +1600,15 @@ bool Obj::includelib(const char *name)
     return false;
 }
 
+/*******************************
+* Output linker directive.
+*/
+
+bool Obj::linkerdirective(const char *name)
+{
+    return false;
+}
+
 /**********************************
  * Do we allow zero sized objects?
  */
@@ -1671,24 +1680,9 @@ void Obj::compiler()
  *              3:      compiler
  */
 
-void Obj::staticctor(Symbol *s,int dtor,int none)
+void Obj::staticctor(Symbol *s, int, int)
 {
-#if 0
-    IDXSEC seg;
-    Outbuffer *buf;
-
-    //dbg_printf("Obj::staticctor(%s) offset %x\n",s->Sident,s->Soffset);
-    //symbol_print(s);
-    s->Sseg = seg =
-        ElfObj::getsegment(".ctors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
-    buf = SegData[seg]->SDbuf;
-    if (I64)
-        buf->write64(s->Soffset);
-    else
-        buf->write32(s->Soffset);
-    MachObj::addrel(seg, SegData[seg]->SDoffset, s, RELaddr);
-    SegData[seg]->SDoffset = buf->size();
-#endif
+    setModuleCtorDtor(s, true);
 }
 
 /**************************************
@@ -1701,21 +1695,7 @@ void Obj::staticctor(Symbol *s,int dtor,int none)
 
 void Obj::staticdtor(Symbol *s)
 {
-#if 0
-    IDXSEC seg;
-    Outbuffer *buf;
-
-    //dbg_printf("Obj::staticdtor(%s) offset %x\n",s->Sident,s->Soffset);
-    //symbol_print(s);
-    seg = ElfObj::getsegment(".dtors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
-    buf = SegData[seg]->SDbuf;
-    if (I64)
-        buf->write64(s->Soffset);
-    else
-        buf->write32(s->Soffset);
-    MachObj::addrel(seg, SegData[seg]->SDoffset, s, RELaddr);
-    SegData[seg]->SDoffset = buf->size();
-#endif
+    setModuleCtorDtor(s, false);
 }
 
 
@@ -1724,9 +1704,16 @@ void Obj::staticdtor(Symbol *s)
  * Used for static ctor and dtor lists.
  */
 
-void Obj::setModuleCtorDtor(Symbol *s, bool isCtor)
+void Obj::setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
-    //dbg_printf("Obj::setModuleCtorDtor(%s) \n",s->Sident);
+    const char *secname = isCtor ? "__mod_init_func" : "__mod_term_func";
+    const int align = I64 ? 3 : 2; // align to NPTRSIZE
+    const int flags = isCtor ? S_MOD_INIT_FUNC_POINTERS : S_MOD_TERM_FUNC_POINTERS;
+    IDXSEC seg = MachObj::getsegment(secname, "__DATA", align, flags);
+
+    const int relflags = I64 ? CFoff | CFoffset64 : CFoff;
+    const int sz = Obj::reftoident(seg, SegData[seg]->SDoffset, sfunc, 0, relflags);
+    SegData[seg]->SDoffset += sz;
 }
 
 
@@ -2285,6 +2272,13 @@ void Obj::pubdef(int seg, Symbol *s, targ_size_t offset)
         case SCcomdef:
             public_symbuf->write(&s, sizeof(s));
             break;
+        case SCstatic:
+            if (s->Sflags & SFLhidden)
+            {
+                public_symbuf->write(&s, sizeof(s));
+                break;
+            }
+            // fallthrough
         default:
             local_symbuf->write(&s, sizeof(s));
             break;
@@ -2349,6 +2343,8 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
 
     // can't have code or thread local comdef's
     assert(!(s->ty() & (mTYcs | mTYthread)));
+    // support for hidden comdefs not implemented
+    assert(!(s->Sflags & SFLhidden));
 
     struct Comdef comdef;
     comdef.sym = s;
