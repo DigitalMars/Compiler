@@ -791,10 +791,11 @@ void OmfObj_term(const char *objfilename)
 #if SCPP
         if (!errcnt)
 #endif
-        {   obj_defaultlib();
+        {
+            obj_defaultlib();
+            objflush_pointerRefs();
             outfixlist();               // backpatches
         }
-        objflush_pointerRefs();
 
         if (config.fulltypes)
             cv_term();                  // write out final debug info
@@ -2440,6 +2441,7 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
                 break;
             }
         case mTYman_c:
+        case mTYman_d:
             if (config.flags4 & CFG4underscore)
             {
                 dest[1] = '_';          // leading _ in name
@@ -2447,7 +2449,6 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
                 len++;
                 break;
             }
-        case mTYman_d:
         case mTYman_sys:
             memcpy(dest + 1, name, len);        // no mangling
             dest[1 + len] = 0;
