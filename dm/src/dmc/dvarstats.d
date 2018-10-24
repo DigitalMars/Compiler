@@ -22,7 +22,33 @@ import dmd.backend.cdef;
 import dmd.backend.global;
 import dmd.backend.code;
 
+
 extern (C++):
+
+version (all) // free function version
+{
+    import dmd.backend.varstats;
+
+    void varStats_writeSymbolTable(symtab_t* symtab,
+                          void function(Symbol*) fnWriteVar, void function() fnEndArgs,
+                          void function(int off,int len) fnBeginBlock, void function() fnEndBlock)
+    {
+        varStats.writeSymbolTable(symtab, fnWriteVar, fnEndArgs, fnBeginBlock, fnEndBlock);
+    }
+
+    void varStats_startFunction()
+    {
+        varStats.startFunction();
+    }
+
+    void varStats_recordLineOffset(Srcpos src, targ_size_t off)
+    {
+        varStats.recordLineOffset(src, off);
+    }
+
+    __gshared VarStatistics varStats;
+}
+
 
 // estimate of variable life time
 struct LifeTime
