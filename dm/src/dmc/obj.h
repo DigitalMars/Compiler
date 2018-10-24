@@ -154,7 +154,7 @@ class Obj
     VIRTUAL void moduleinfo(Symbol *scc);
     VIRTUAL int  comdat(Symbol *);
     VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
-    virtual int readonly_comdat(Symbol *s);
+    VIRTUAL int readonly_comdat(Symbol *s);
     VIRTUAL void setcodeseg(int seg);
     VIRTUAL seg_data *tlsseg();
     VIRTUAL seg_data *tlsseg_bss();
@@ -254,7 +254,7 @@ class MsCoffObj : public Obj
     VIRTUAL void moduleinfo(Symbol *scc);
     virtual int  comdat(Symbol *);
     virtual int  comdatsize(Symbol *, targ_size_t symsize);
-    virtual int readonly_comdat(Symbol *s);
+    VIRTUAL int readonly_comdat(Symbol *s);
     VIRTUAL void setcodeseg(int seg);
     virtual seg_data *tlsseg();
     virtual seg_data *tlsseg_bss();

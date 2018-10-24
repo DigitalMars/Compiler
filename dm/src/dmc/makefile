@@ -334,7 +334,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	\
 	optabgen.d platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d \
-	cgcod.d cgcs.d dcgcv.d cgelem.d cgen.c cgobj.c \
+	cgcod.d cgcs.d dcgcv.d cgelem.d cgen.c cgobj.d \
 	cgreg.d var.d compress.d \
 	cgsched.d cod1.d cod2.d cod3.d cod4.d cod5.d \
 	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
@@ -465,6 +465,9 @@ cg87.obj : cg87.d
 
 cgelem.obj : elxxx.d cgelem.d
         $(DMD) -c $(DFLAGS) -J. cgelem.d
+
+cgobj.obj : cgobj.d
+        $(DMD) -c $(DFLAGS) -J. cgobj.d
 
 cgreg.obj : cgreg.d
         $(DMD) -c $(DFLAGS) cgreg.d
@@ -703,7 +706,7 @@ DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.
 
 #aa.obj : aa.h tinfo.h aa.c
 #backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
-cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
+#cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
 #cgreg.obj : $(DEP) $(cgreg.dep) cgreg.c
 #cod1.obj : $(DEP) $(cod1.dep) cod1.c
 #cod2.obj : $(DEP) $(cod2.dep) cod2.c
