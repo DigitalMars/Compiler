@@ -176,13 +176,13 @@ OBJ1a=dblklst.obj blockopt.obj dcpp.obj debugprint.obj ee.obj elem.obj denum.obj
 OBJ1b=evalu8.obj fp.obj poptelem.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
-OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj dtype.obj dt.obj dth.obj phstring.obj
+OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj dtype.obj dt.obj phstring.obj
 OBJ1f=var.obj nteh.obj drtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj sizecheck.obj
 OBJ1g=unialpha.obj entity.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj dcgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj
-OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarf.obj stubobj.obj obj.obj
+OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarfdbginf.obj stubobj.obj obj.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj dspeller.obj utf.obj divcoeff.obj dvec.obj dlist.obj filespec.obj
 
@@ -280,7 +280,7 @@ TOTALH=$(CCH) total.sym
 
 elxxx.d cdxxx.d optab.d debtab.d fltables.d tytab.d : \
         cdef.h cc.h oper.h ty.h optabgen.d
-        $(DMD) $(DFLAGS) optabgen -I$(TK)
+        $(DMD) $(DFLAGS) optabgen
         optabgen
 
 msgs2.d msgs2.h msgs2.c : msgsx.exe
@@ -320,7 +320,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 
 # Back end
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
-        dt.d dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
+        dt.di dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
 	glocal.d goh.d md5.d memh.d varstats.di aarray.d
@@ -330,30 +330,30 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	type.h dt.h cgcv.h cv4.h \
 	el.h dwarf.h dwarf2.h exh.h go.h \
 	melf.h mach.h md5.h mscoff.h bcomplex.h obj.h \
-	outbuf.h token.h tassert.h tinfo.h \
+	outbuf.h token.h tassert.h \
 	\
 	optabgen.d platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d \
 	cgcod.d cgcs.d dcgcv.d cgelem.d cgen.c cgobj.d \
 	cgreg.d var.d compress.d \
 	cgsched.d cod1.d cod2.d cod3.d cod4.d cod5.d \
-	dcode.d symbol.d debugprint.d dt.c ee.d elem.d \
+	dcode.d symbol.d debugprint.d dt.d ee.d elem.d \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.d \
 	nteh.d os.c out.d outbuf.c ptrntab.d drtlsym.d \
 	dtype.d \
-	elfobj.c aarray.d \
-	dwarf.c machobj.c \
-	strtold.c aa.c ti_achar.c \
-	ti_pvoid.c ph2.d util2.d \
-	mscoffobj.c pdata.d cv8.d backconfig.d sizecheck.c \
+	elfobj.d aarray.d \
+	dwarfdbginf.d machobj.d\
+	strtold.c \
+	ph2.d util2.d \
+	mscoffobj.d pdata.d cv8.d backconfig.d sizecheck.c \
 	divcoeff.d dwarfeh.d dvarstats.d \
 	backend.txt
 
 SRC= $(FRONTSRC) $(FRONTDSRC) $(BACKSRC) $(BACKDSRC)
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
-        $(TK)\mem.c $(TK)\filespec.c
+        $(TK)\mem.c
 
 SHELLSRC= $(NTDLLSHELL)\include\dllrun.h $(NTDLLSHELL)\include\network.h \
         $(NTDLLSHELL)\include\nsidde.h $(NTDLLSHELL)\include\netspawn.h
@@ -495,6 +495,12 @@ debugprint.obj : debtab.d debugprint.d
 
 denum.obj : denum.d
         $(DMD) -c $(DFLAGS) denum.d
+
+dt.obj : dt.di dt.d
+        $(DMD) -c $(DFLAGS) dt.d
+
+dwarfdbginf.obj : dwarfdbginf.d
+        $(DMD) -c $(DFLAGS) dwarfdbginf.d
 
 err.obj : err.d
         $(DMD) -c $(DFLAGS) err.d
@@ -704,7 +710,6 @@ var.obj : tytab.d optab.d var.d
 
 DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c
 
-#aa.obj : aa.h tinfo.h aa.c
 #backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 #cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
 #cgreg.obj : $(DEP) $(cgreg.dep) cgreg.c
@@ -715,7 +720,7 @@ DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.
 #code.obj : $(DEP) $(code.dep) code.c
 #cv8.obj : $(DEP) $(cv8.dep) cv8.c
 #debug.obj : $(DEP) $(debug.dep) debug.c
-dt.obj : $(DEP) $(dt.dep) dt.c
+#dt.obj : $(DEP) $(dt.dep) dt.c
 #dwarf.obj : $(DEP) $(dwarf.dep) dwarf.h dwarf.c
 #dwarfeh.obj : $(DEP) $(dwarfeh.dep) dwarf.h dwarfeh.c
 #cel.obj : $(DEP) $(cel.dep) cel.c
@@ -724,8 +729,6 @@ fp.obj : $(DEP) $(fp.dep) fp.c
 #out.obj : $(DEP) $(out.dep) out.c
 #pdata.obj : $(DEP) $(pdata.dep) pdata.c
 #ptrntab.obj : $(DEP) $(ptrntab.dep) iasm.h ptrntab.c
-#ti_achar.obj : tinfo.h ti_achar.c
-#ti_pvoid.obj : tinfo.h ti_pvoid.c
 tk.obj : $(DEP) $(tk.dep) tk.c
 #type.obj : $(DEP) $(type.dep) type.c
 #cgcv.obj : $(DEP) $(cgcv.dep) cgcv.c

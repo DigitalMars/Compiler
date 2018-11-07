@@ -38,14 +38,15 @@ void dt2common(dt_t **pdt);
 
 class DtBuilder
 {
-private:
+//private:
+public:
 
     dt_t *head;
     dt_t **pTail;
 
 public:
 
-    DtBuilder();
+//    DtBuilder();
     virtual dt_t *finish();
     void nbytes(unsigned size, const char *ptr);
     void abytes(tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
