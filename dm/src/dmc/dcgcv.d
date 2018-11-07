@@ -661,6 +661,48 @@ void cv4_storenumeric(ubyte *p, uint value)
     }
 }
 
+/***********************************
+ * Return number of bytes required to store a signed numeric leaf.
+ * Params:
+ *   value = value to store
+ * Returns:
+ *   number of bytes required for storing value
+ */
+uint cv4_signednumericbytes(int value)
+{
+    uint u;
+    if (value >= 0 && value < 0x8000)
+        u = 2;
+    else if (value == cast(short)value)
+        u = 4;
+    else
+        u = 6;
+    return u;
+}
+
+/********************************
+ * Store signed numeric leaf.
+ * Must use exact same number of bytes as cv4_signednumericbytes().
+ * Params:
+ *   p = address where to store value
+ *   value = value to store
+ */
+void cv4_storesignednumeric(ubyte *p, int value)
+{
+    if (value >= 0 && value < 0x8000)
+        TOWORD(p, value);
+    else if (value == cast(short)value)
+    {
+        TOWORD(p, LF_SHORT);
+        TOWORD(p + 2, value);
+    }
+    else
+    {
+        TOWORD(p,LF_LONG);
+        TOLONG(p + 2, value);
+    }
+}
+
 /*********************************
  * Generate a type index for a parameter list.
  */
@@ -2515,6 +2557,8 @@ else
             case_auto:
                 base = Auto.size;
             L1:
+                if (s.Sscope) // local variables moved into the closure cannot be emitted directly
+                    goto Lret;
                 TOWORD(debsym + 2,I32 ? S_BPREL32 : S_BPREL16);
                 if (config.fulltypes == CV4)
                 {   TOOFFSET(debsym + 4,s.Soffset + base + BPoff);
