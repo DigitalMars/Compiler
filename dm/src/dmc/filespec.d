@@ -5,6 +5,7 @@
 
 import core.stdc.ctype;
 import core.stdc.stdio;
+import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.memh;
@@ -90,6 +91,13 @@ else
  *          NULL if some failure.
  */
 
+version (Windows)
+    extern (C) char* getcwd(char*, size_t);
+else
+{
+    import core.sys.posix.unistd: getcwd;
+}
+
 char *filespecrootpath(char* filespec)
 {
     char *cwd;
@@ -114,7 +122,6 @@ else
     // get current working directory path
 version (Windows)
 {
-    extern (C) char* getcwd(char*, size_t);
     char[132] cwd_d = void;
     if (getcwd(cwd_d.ptr, cwd_d.length))
        cwd_t = cwd_d.ptr;
@@ -123,7 +130,6 @@ version (Windows)
 }
 else
 {
-    import core.sys.posix.unistd: getcwd;
     cwd_t = cast(char *)getcwd(null, 256);
 }
 
