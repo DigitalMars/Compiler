@@ -842,6 +842,9 @@ static void outfixup(const Fixup &f)
             f.sym->Sclass = SCstatic;
             f.sym->Sfl = FLunde;
             DtBuilder dtb;
+            dtb.head = NULL;
+            dtb.pTail = &dtb.head;
+
             dtb.nzeros(type_size(f.sym->Stype));
             f.sym->Sdt = dtb.finish();
             outdata(f.sym);
