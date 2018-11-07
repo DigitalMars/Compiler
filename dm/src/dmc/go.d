@@ -234,7 +234,6 @@ version (HTOD)
 else
 {
     if (debugc) printf("optfunc()\n");
-    dbg_optprint("optfunc\n");
 
     debug if (debugb)
     {
@@ -315,7 +314,6 @@ else
         else
             foreach (b; BlockRange(startblock))
                 b.Bweight = 1;
-        dbg_optprint("boolopt\n");
 
         if (go.mfoptim & MFcnp)
             boolopt();                  // optimize boolean values
