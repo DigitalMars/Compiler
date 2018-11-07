@@ -85,9 +85,9 @@ void builddags()
     debug
         foreach (i, e; go.expnod[0 .. go.exptop])
         {
-            //printf("go.expnod[%d] = %p\n",i,go.expnod[i]);
-            if (go.expnod[i])
-                elem_debug(go.expnod[i]);
+            //printf("go.expnod[%d] = %p\n",i,e);
+            if (e)
+                elem_debug(e);
         }
 
     static if (0)
