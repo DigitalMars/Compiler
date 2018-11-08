@@ -1841,7 +1841,7 @@ L6:         // Look for case of #if defined(identifier)
                         s.Sclass = SCstatic;
                         char *id = prettyident(funcsym_p);
                         size_t dim = strlen(id) + 1;
-                        scope dtb = new DtBuilder();
+                        auto dtb = DtBuilder(0);
                         dtb.nbytes(dim, id);
                         s.Sdt = dtb.finish();
                         type *t2 = type_alloc(mTYconst | TYchar);

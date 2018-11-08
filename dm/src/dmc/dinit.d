@@ -122,7 +122,7 @@ struct DtArray
     /********************************
      * Put all the initializers together into one.
      */
-    void join(DtBuilder dtb, size_t elemsize, size_t dim, char unknown)
+    void join(ref DtBuilder dtb, size_t elemsize, size_t dim, char unknown)
     {
         size_t i = 0;
         for (size_t j = 0; j < this.dim; j++)
@@ -342,7 +342,7 @@ private void initializer(Symbol *s)
                     }
                 }
                 {
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 dtb.nzeros(type_size(t));
                 dsout += type_size(t);
                 assert(!s.Sdt);
@@ -441,7 +441,7 @@ private void initializer(Symbol *s)
                 {
                     if (sclass == SCstatic || sclass == SCglobal)
                     {
-                        scope dtb = new DtBuilder();
+                        auto dtb = DtBuilder(0);
                         dtb.nzeros(type_size(t));
                         dsout += type_size(t);
                         s.Sdt = dtb.finish();
@@ -493,7 +493,7 @@ private void initializer(Symbol *s)
             {
                 type_setdim(&s.Stype,e.EV.Vstrlen / type_size(s.Stype.Tnext));   /* we have determined its size  */
                 assert(s.Sdt == null);
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 dtb.nbytes(e.EV.Vstrlen, e.EV.Vstring);
                 s.Sdt = dtb.finish();
                 el_free(e);
@@ -504,7 +504,7 @@ private void initializer(Symbol *s)
                 e = typechk(e,t.Tnext);
                 e = poptelem(e);
                 t = type_setdim(&s.Stype,1);
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 einit = elemtodt(s,dtb,e,0);
                 assert(!s.Sdt);
                 s.Sdt = dtb.finish();
@@ -540,14 +540,14 @@ private void initializer(Symbol *s)
             {
                 i = getArrayIndex(i, 0, 1);
                 dta.ensureSize(i);
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 einit = el_combine(einit,initelem(t.Tnext,dtb,sinit,i * elemsize));
                 dta.data[i] = dtb.finish();
                 i++;
                 if (i > dim)
                     dim = i;
             } while (!endofarray());
-            scope dtb = new DtBuilder();
+            auto dtb = DtBuilder(0);
             dta.join(dtb, elemsize, 0, 1);
             s.Sdt = dtb.finish();
             t = type_setdim(&s.Stype,dim);     // we have determined its size
@@ -593,7 +593,7 @@ private void initializer(Symbol *s)
         case SCglobal:
             if (!CPP)
             {
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 initelem(t,dtb,s,0);                // static initializer
                 assert(!s.Sdt);
                 s.Sdt = dtb.finish();
@@ -606,7 +606,7 @@ private void initializer(Symbol *s)
             assert(CPP);
             if (sinit == s && !localstatic)
                 init_staticctor = true;
-            scope dtb = new DtBuilder();
+            auto dtb = DtBuilder(0);
             if (ty == TYstruct && tok.TKval != TKlcur)
             {   elem *e;
 
@@ -702,7 +702,7 @@ cret:
  * Create typeinfo data for a struct.
  */
 
-private void init_typeinfo_struct(DtBuilder dtb, Classsym *stag)
+private void init_typeinfo_struct(ref DtBuilder dtb, Classsym *stag)
 {
     int nbases;
     baseclass_t *b;
@@ -787,7 +787,7 @@ Symbol *init_typeinfo_data(type *ptype)
     // If it is not already there, create a new one
     if (!s)
     {   tym_t ty;
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
 
         s = scope_define(id, SCTglobal,SCcomdat);       // create the symbol
         s.Ssequence = 0;
@@ -926,7 +926,7 @@ Symbol *init_typeinfo(type *ptype)
         enum_SC scvtbl = cast(enum_SC) (config.flags2 & CFG2comdat) ? SCcomdat :
              (st.Sflags & STRvtblext) ? SCextern : SCstatic;
         n2_genvtbl(srtti,scvtbl,0);
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         dtb.xoff(st.Svtbl,0,pty);
 
         // The second is the pdata
@@ -946,7 +946,7 @@ Symbol *init_typeinfo(type *ptype)
 void init_sym(Symbol *s,elem *e)
 {
     e = poptelem(e);
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     e = elemtodt(s,dtb,e,0);
     assert(e == null);
     assert(!s.Sdt);
@@ -1089,7 +1089,7 @@ private size_t getArrayIndex(size_t i, size_t dim, char unknown)
  *      null = no dynamic part of initialization
  */
 
-private elem* initelem(type *t, DtBuilder dtb, Symbol *s, targ_size_t offset)
+private elem* initelem(type *t, ref DtBuilder dtb, Symbol *s, targ_size_t offset)
 {   elem *e;
 
     //dbg_printf("+initelem()\n");
@@ -1189,7 +1189,7 @@ struct StructDesignator
     dt_t *dt;           // SCmember
 }
 
-private elem* initstruct(type *t, DtBuilder dtb, Symbol *ss,targ_size_t offset)
+private elem* initstruct(type *t, ref DtBuilder dtb, Symbol *ss,targ_size_t offset)
 {   elem *e;
     list_t sl;
     targ_size_t dsstart;
@@ -1373,7 +1373,7 @@ private elem* initstruct(type *t, DtBuilder dtb, Symbol *ss,targ_size_t offset)
                 soffset = s.Smemoff;
                 dt_free(sd[i].dt);
                 sd[i].dt = null;
-                scope dtb2 = new DtBuilder();
+                auto dtb2 = DtBuilder(0);
                 sd[i].exp = initelem(s.Stype,dtb2,ss,offset + soffset);
                 sd[i].dt = dtb2.finish();
                 break;
@@ -1508,7 +1508,7 @@ Ldone:
  * Read and write an initializer for an array of type t.
  */
 
-private elem* initarray(type *t, DtBuilder dtb,Symbol *s,targ_size_t offset)
+private elem* initarray(type *t, ref DtBuilder dtb,Symbol *s,targ_size_t offset)
 {
     char brack;
     targ_size_t dsstart,elemsize;
@@ -1590,7 +1590,7 @@ private elem* initarray(type *t, DtBuilder dtb,Symbol *s,targ_size_t offset)
             // Ensure dtarray[] is big enough
             dta.ensureSize(i);
 
-            scope dtb2 = new DtBuilder();
+            auto dtb2 = DtBuilder(0);
             elem *ec = initelem(t.Tnext,dtb2,s,i * elemsize);
             dta.data[i] = dtb2.finish();
             e = el_combine(e,ec);
@@ -1623,7 +1623,7 @@ Ldone:
  *      null = no dynamic part of initialization, e is free'd
  */
 
-private elem* elemtodt(Symbol *s, DtBuilder dtb, elem *e, targ_size_t offset)
+private elem* elemtodt(Symbol *s, ref DtBuilder dtb, elem *e, targ_size_t offset)
 {
   char *p;
   tym_t ty;
@@ -1802,7 +1802,7 @@ void init_vtbl(Symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
     fty = tybasic(fty);
     size = type_size(s_mptr.Stype);
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
 
     // Put in RTTI information
     if (config.flags3 & CFG3rtti)
@@ -1913,7 +1913,7 @@ void init_vbtbl(
         TOOFFSET(pdata + b.BCvbtbloff,b2.BCoffset - vbptr_off);
     }
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     dtb.nbytes(size, pdata);
     s_vbtbl.Sdt = dtb.finish();
     mem_free(pdata);
@@ -2497,7 +2497,7 @@ private int init_arraywithctor(Symbol *s)
 
         if (/*sclass == SClocstat ||*/ sclass == SCstatic || sclass == SCglobal)
         {
-            scope dtb = new DtBuilder();
+            auto dtb = DtBuilder(0);
             dtb.nzeros(elemsize * t.Tdim);
             dsout += elemsize * t.Tdim;
             assert(!s.Sdt);
@@ -2570,7 +2570,7 @@ private Symbol* init_localstatic(elem **peinit, Symbol *s)
         else
         {
             sinit = symbol_generate(SCstatic,tstypes[TYchar]);
-            scope dtb = new DtBuilder();
+            auto dtb = DtBuilder(0);
             dtb.nzeros(tysize(TYchar));
             dsout += tysize(TYchar);
             sinit.Sdt = dtb.finish();

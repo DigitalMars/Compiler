@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgen.c, backend/cgen.c)
@@ -25,6 +25,8 @@
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
+
+dt_t *dt_get_nzeros(unsigned n);
 
 /*********************************
  */
@@ -348,18 +350,6 @@ void CodeBuilder::gen2sib(unsigned op, unsigned rm, unsigned sib)
  * Generate an ASM sequence.
  */
 
-code *genasm(code *c,unsigned char *s,unsigned slen)
-{   code *ce;
-
-    ce = code_calloc();
-    ce->Iop = ASM;
-    ce->IFL1 = FLasm;
-    ce->IEV1.as.len = slen;
-    ce->IEV1.as.bytes = (char *) mem_malloc(slen);
-    memcpy(ce->IEV1.as.bytes,s,slen);
-    return cat(c,ce);
-}
-
 void CodeBuilder::genasm(char *s, unsigned slen)
 {
     code *ce = code_calloc();
@@ -399,19 +389,6 @@ void CodeBuilder::genasm(block *label)
 }
 
 #if TX86
-code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
-{   code cs;
-
-    cs.Iop = op;
-    cs.Iea = ea;
-    ccheck(&cs);
-    cs.IFL2 = FL2;
-    cs.IEVsym2 = s;
-    cs.IEVoffset2 = 0;
-
-    return gen(c,&cs);
-}
-
 void CodeBuilder::gencs(unsigned op, unsigned ea, unsigned FL2, symbol *s)
 {
     code cs;
@@ -841,12 +818,7 @@ static void outfixup(const Fixup &f)
             // Put it in BSS
             f.sym->Sclass = SCstatic;
             f.sym->Sfl = FLunde;
-            DtBuilder dtb;
-            dtb.head = NULL;
-            dtb.pTail = &dtb.head;
-
-            dtb.nzeros(type_size(f.sym->Stype));
-            f.sym->Sdt = dtb.finish();
+            f.sym->Sdt = dt_get_nzeros(type_size(f.sym->Stype));
             outdata(f.sym);
         }
         else if (f.sym->Sclass != SCsinline)

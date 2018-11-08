@@ -2172,7 +2172,7 @@ done:
                     Symbol *s2 = symbol_generate(SCstatic,e.ET);
                     s2.Sflags |= SFLnodtor;     /* don't add dtors in later */
 
-                    scope dtb = new DtBuilder();
+                    auto dtb = DtBuilder(0);
                     dtb.nzeros(type_size(s2.Stype));
                     s2.Sdt = dtb.finish();
 

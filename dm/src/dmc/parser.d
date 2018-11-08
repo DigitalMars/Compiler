@@ -431,7 +431,7 @@ dt_t **dtnbytes(dt_t **,targ_size_t,const(char)* );
 dt_t **dtnzeros(dt_t **pdtend,targ_size_t size);
 dt_t **dtxoff(dt_t **pdtend,Symbol *s,targ_size_t offset,tym_t ty);
 dt_t **dtcoff(dt_t **pdtend,targ_size_t offset);
-void init_common(Symbol *);
+//void init_common(Symbol *);
 Symbol *init_typeinfo_data(type *ptype);
 Symbol *init_typeinfo(type *ptype);
 elem *init_constructor(Symbol *,type *,list_t,targ_size_t,int,Symbol *);

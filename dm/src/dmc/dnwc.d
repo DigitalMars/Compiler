@@ -814,7 +814,7 @@ private void nwc_outstatics()
             s.Sfl = FLunde;
             if (!s.Sdt)
             {
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 dtb.nzeros(type_size(s.Stype));
                 s.Sdt = dtb.finish();
             }

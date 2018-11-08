@@ -865,7 +865,7 @@ Symbol *except_gentables()
 {
     Symbol *ehsym;              // symbol for eh data
     type *tsym;                 // type for eh data
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     uint psize;                 // target size of (void *)
     uint fsize;                 // target size of function pointer
     int i;

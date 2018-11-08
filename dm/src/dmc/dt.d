@@ -100,7 +100,7 @@ void init_common(Symbol *s)
 {
     //printf("init_common('%s')\n", s.Sident);
 
-    uint size = type_size(s.Stype);
+    uint size = cast(uint)type_size(s.Stype);
     if (size)
     {
         dt_t *dt = dt_calloc(DT_common);
@@ -189,7 +189,7 @@ void dt2common(dt_t **pdt)
 
 /**********************************************************/
 
-extern (C++) class DtBuilder
+struct DtBuilder
 {
 private:
 
@@ -197,7 +197,9 @@ private:
     dt_t** pTail;
 
 public:
-    this()
+nothrow:
+@nogc:
+    this(int dummy)
     {
         pTail = &head;
     }
@@ -228,8 +230,6 @@ public:
 
         return head;
     }
-
-    final:
 
     /***********************
      * Append data represented by ptr[0..size]
@@ -455,7 +455,7 @@ public:
     /**********************
      * Append dtb to data.
      */
-    void cat(DtBuilder *dtb)
+    void cat(ref DtBuilder dtb)
     {
         assert(!*pTail);
         *pTail = dtb.head;
@@ -480,7 +480,7 @@ public:
             if (head && dtallzeros(head))
                 head.DTazeros += size * count;
             else
-                nzeros(size * count);
+                nzeros(cast(uint)(size * count));
             return;
         }
 
@@ -534,7 +534,7 @@ public:
                     offset += dtn.DTn;
                     break;
                 case DT_azeros:
-                    memset(p + offset, 0, dtn.DTazeros);
+                    memset(p + offset, 0, cast(uint)dtn.DTazeros);
                     offset += dtn.DTazeros;
                     break;
                 default:
@@ -551,7 +551,7 @@ public:
         }
 
         dt_t *dtx = dt_calloc(DT_nbytes);
-        dtx.DTnbytes = size * count;
+        dtx.DTnbytes = cast(uint)(size * count);
         dtx.DTpbytes = cast(byte*)p;
 
 
@@ -608,3 +608,13 @@ private dt_t *dt_calloc(int dtx)
 }
 
 
+/******************************************
+ * Temporary hack to initialize a dt_t* for C.
+ */
+
+dt_t* dt_get_nzeros(uint n)
+{
+    dt_t *dt = dt_calloc(DT_azeros);
+    dt.DTazeros = n;
+    return dt;
+}

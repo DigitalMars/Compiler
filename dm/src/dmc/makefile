@@ -320,7 +320,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 
 # Back end
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
-        dt.di dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
+        dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
         mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
 	glocal.d goh.d md5.d memh.d varstats.di aarray.d
@@ -496,7 +496,7 @@ debugprint.obj : debtab.d debugprint.d
 denum.obj : denum.d
         $(DMD) -c $(DFLAGS) denum.d
 
-dt.obj : dt.di dt.d
+dt.obj : dt.d
         $(DMD) -c $(DFLAGS) dt.d
 
 dwarfdbginf.obj : dwarfdbginf.d
