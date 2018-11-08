@@ -181,7 +181,7 @@ OBJ1f=var.obj nteh.obj drtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.o
 OBJ1g=unialpha.obj entity.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj
-OBJ2b= cg.obj cgelem.obj cgcs.obj dcgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj
+OBJ2b= cg.obj cgelem.obj cgcs.obj dcgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj codebuilder.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarfdbginf.obj stubobj.obj obj.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj dspeller.obj utf.obj divcoeff.obj dvec.obj dlist.obj filespec.obj
@@ -335,7 +335,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	optabgen.d platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d \
 	cgcod.d cgcs.d dcgcv.d cgelem.d cgen.c cgobj.d \
-	cgreg.d var.d compress.d \
+	cgreg.d var.d compress.d codebuilder.d \
 	cgsched.d cod1.d cod2.d cod3.d cod4.d cod5.d \
 	dcode.d symbol.d debugprint.d dt.d ee.d elem.d \
 	fp.c gflow.d gdag.d \
@@ -456,6 +456,9 @@ cod4.obj : cod4.d
 
 cod5.obj : cod5.d
         $(DMD) -c $(DFLAGS) cod5.d
+
+codebuilder.obj : codebuilder.d
+        $(DMD) -c $(DFLAGS) -J. codebuilder.d
 
 cg.obj : fltables.d cg.d
         $(DMD) -c $(DFLAGS) -J. cg.d
