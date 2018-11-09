@@ -191,7 +191,7 @@ version (MARS)
         ce.Iop = ASM;
         ce.Iflags = CFaddrsize;
         ce.IFL1 = FLblockoff;
-        ce.IEVlsym1 = label;
+        ce.IEV1.Vsym = cast(Symbol*)label;
 
         *pTail = ce;
         pTail = &ce.next;
@@ -213,7 +213,7 @@ version (MARS)
 
     void gencs(uint op, uint ea, uint FL2, Symbol *s)
     {
-        code cs = void;
+        code cs;
         cs.Iop = op;
         cs.Iflags = 0;
         cs.Iea = ea;
@@ -227,7 +227,7 @@ version (MARS)
 
     void genc2(uint op, uint ea, targ_size_t EV2)
     {
-        code cs = void;
+        code cs;
         cs.Iop = op;
         cs.Iflags = 0;
         cs.Iea = ea;
@@ -241,7 +241,7 @@ version (MARS)
 
     void genc1(uint op, uint ea, uint FL1, targ_size_t EV1)
     {
-        code cs = void;
+        code cs;
         assert(FL1 < FLMAX);
         cs.Iop = op;
         cs.Iflags = CFoff;
@@ -255,7 +255,7 @@ version (MARS)
 
     void genc(uint op, uint ea, uint FL1, targ_size_t EV1, uint FL2, targ_size_t EV2)
     {
-        code cs = void;
+        code cs;
         assert(FL1 < FLMAX);
         cs.Iop = op;
         cs.Iea = ea;
@@ -275,10 +275,11 @@ version (MARS)
      */
     void genlinnum(Srcpos srcpos)
     {
-        code cs = void;
+        code cs;
         //srcpos.print("genlinnum");
         cs.Iop = ESCAPE | ESClinnum;
         cs.Iflags = 0;
+        cs.Iea = 0;
         cs.IEV1.Vsrcpos = srcpos;
         gen(&cs);
     }
@@ -291,9 +292,10 @@ version (MARS)
     {
         if (!I16 && offset)
         {
-            code cs = void;
+            code cs;
             cs.Iop = ESCAPE | ESCadjesp;
             cs.Iflags = 0;
+            cs.Iea = 0;
             cs.IEV1.Vint = offset;
             gen(&cs);
         }
@@ -307,9 +309,10 @@ version (MARS)
     {
         if (!I16 && offset)
         {
-            code cs = void;
+            code cs;
             cs.Iop = ESCAPE | ESCadjfpu;
             cs.Iflags = 0;
+            cs.Iea = 0;
             cs.IEV1.Vint = offset;
             gen(&cs);
         }

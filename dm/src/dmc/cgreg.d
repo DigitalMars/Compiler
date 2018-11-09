@@ -968,7 +968,7 @@ static if (0 && TARGET_LINUX)
                 u.reglsw = reg;
                 u.regmsw = regmsw;
             }
-Ltried:     ;
+Ltried:
         }
 
         if (u.benefit > t.benefit)
