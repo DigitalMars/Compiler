@@ -334,7 +334,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	\
 	optabgen.d platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d \
-	cgcod.d cgcs.d dcgcv.d cgelem.d cgen.c cgobj.d \
+	cgcod.d cgcs.d dcgcv.d cgelem.d cgen.d cgobj.d \
 	cgreg.d var.d compress.d codebuilder.d \
 	cgsched.d cod1.d cod2.d cod3.d cod4.d cod5.d \
 	dcode.d symbol.d debugprint.d dt.d ee.d elem.d \
@@ -468,6 +468,9 @@ cg87.obj : cg87.d
 
 cgelem.obj : elxxx.d cgelem.d
         $(DMD) -c $(DFLAGS) -J. cgelem.d
+
+cgen.obj : cgen.d
+        $(DMD) -c $(DFLAGS) cgen.d
 
 cgobj.obj : cgobj.d
         $(DMD) -c $(DFLAGS) -J. cgobj.d
@@ -740,7 +743,7 @@ dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 #go.obj : $(DEP) $(go.dep) go.c
 #gflow.obj : $(DEP) $(gflow.dep) gflow.c
 #cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
-cgen.obj : $(DEP) $(cgen.dep) cgen.c
+#cgen.obj : $(DEP) $(cgen.dep) cgen.c
 #rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
 sizecheck.obj : $(DEP) $(sizecheck.dep) sizecheck.c
 #symbol.obj : $(DEP) $(symbol.dep) symbol.c
