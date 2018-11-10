@@ -9,30 +9,24 @@
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/tk.c
  */
 
-#include        <stdio.h>
-#include        <stdlib.h>
-#include        <string.h>
-#include        "cc.h"
-#include        "token.h"
-#include        "oper.h"
-#include        "global.h"
-#include        "parser.h"
-
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+#include <stdlib.h>
 
 #if !SPP
-//#include        "vec.c"
+    void *ph_malloc(size_t nbytes);
+    void *ph_calloc(size_t nbytes);
+    void ph_free(void *p);
+    void *ph_realloc(void *p , size_t nbytes);
 
-#define malloc          ph_malloc
-#define calloc(x,y)     ph_calloc((x) * (y))
-#define realloc         ph_realloc
-#define free            ph_free
+    #define malloc          ph_malloc
+    #define calloc(x,y)     ph_calloc((x) * (y))
+    #define realloc         ph_realloc
+    #define free            ph_free
 #endif
 
 #if !MEM_DEBUG
-#define MEM_NOMEMCOUNT 1
+    #define MEM_NOMEMCOUNT 1
 #endif
+
 #include        "mem.c"
 
 

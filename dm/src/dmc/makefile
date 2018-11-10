@@ -42,7 +42,8 @@ XFLG=
 OPT=
 DEBUG=-gl
 NTDLL=-WD
-PREC=-H -HP32 -HItotal.h -HO
+#PREC=-H -HP32 -HItotal.h -HO
+PREC=
 CFLAGS=$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -6 -D$(TARGET) -r -cpp
 
 ###### Flags for D compiler
@@ -274,7 +275,6 @@ test.obj : test.c
 ##################### INCLUDE MACROS #####################
 
 CCH= cc.h cdef.h ty.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
-TOTALH=$(CCH) total.sym
 
 ##################### GENERATED SOURCE #####################
 
@@ -311,7 +311,7 @@ HTODSRC= ppexp.d unialpha.d entity.d cpp.di dmcdll.di nspace.d dinit.d \
 	poptelem.d
 
 FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
-	tdb.h total.h \
+	tdb.h \
 	\
         errmsgs2.c tdbx.c \
         msgsx.c \
@@ -407,10 +407,6 @@ gitback: detab tolf $(BACKSRC)
 
 
 ##################### SPECIAL BUILDS #####################
-
-total.sym : $(CCH) token.h parser.h el.h scope.h global.h obj.h type.h oper.h cpp.h dmcdll.h \
- $(TK)\filespec.h dt.h msgs2.h bcomplex.h total.h
-        $(CC) -c $(CFLAGS) -HFtotal.sym total.h
 
 os.obj : os.c
         $(CC) -c $(CFLAGS) os.c
@@ -717,7 +713,7 @@ var.obj : tytab.d optab.d var.d
 
 ################# Source file dependencies ###############
 
-DEP=total.sym msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c
+DEP= msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d fltables.d tytab.c
 
 #backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 #cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
