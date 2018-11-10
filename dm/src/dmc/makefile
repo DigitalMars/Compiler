@@ -177,7 +177,7 @@ OBJ1b=evalu8.obj fp.obj poptelem.obj eh.obj exp.obj dexp2.obj dfile.obj filename
 OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj dtype.obj dt.obj phstring.obj
-OBJ1f=var.obj nteh.obj drtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj sizecheck.obj
+OBJ1f=var.obj nteh.obj drtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj
 OBJ1g=unialpha.obj entity.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj
@@ -346,7 +346,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	dwarfdbginf.d machobj.d\
 	strtold.c \
 	ph2.d util2.d \
-	mscoffobj.d pdata.d cv8.d backconfig.d sizecheck.c \
+	mscoffobj.d pdata.d cv8.d backconfig.d \
 	divcoeff.d dwarfeh.d dvarstats.d \
 	backend.txt
 
@@ -748,7 +748,7 @@ dmcdll.obj : $(DEP) $(dmcdll.dep) dmcdll.c
 #cgcod.obj : $(DEP) $(cgcod.dep) cgcod.c
 #cgen.obj : $(DEP) $(cgen.dep) cgen.c
 #rtlsym.obj : $(DEP) $(rtlsym.dep) rtlsym.c
-sizecheck.obj : $(DEP) $(sizecheck.dep) sizecheck.c
+#sizecheck.obj : $(DEP) $(sizecheck.dep) sizecheck.c
 #symbol.obj : $(DEP) $(symbol.dep) symbol.c
 #cg87.obj : $(DEP) $(cg87.dep) cg87.c
 #cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
