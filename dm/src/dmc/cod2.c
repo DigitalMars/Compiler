@@ -32,9 +32,11 @@ int cdcmp_flag;
 extern signed char regtorm[8];
 
 // from divcoeff.c
+extern "C"
+{
 extern bool choose_multiplier(int N, targ_ullong d, int prec, targ_ullong *pm, int *pshpost);
 extern bool udiv_coefficients(int N, targ_ullong d, int *pshpre, targ_ullong *pm, int *pshpost);
-
+}
 
 /*******************************
  * Swap two integers.

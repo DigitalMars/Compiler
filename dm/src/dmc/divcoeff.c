@@ -15,6 +15,7 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <assert.h>
 
 // This MUST MATCH typedef targ_ullong in cdef.h.

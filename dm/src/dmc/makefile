@@ -285,7 +285,7 @@ SRC=    tassert.h html.h html.c \
         bcomplex.h bcomplex.c adl.c castab.c unialpha.c entity.c \
         aa.h aa.c tinfo.h ti_achar.c htod.c md5.h speller.h speller.c utf.h utf.c \
         ti_pvoid.c xmm.h obj.h code_stub.h code_x86.h platform_stub.c pdata.c cv8.c \
-	backconfig.c ph2.c util2.c divcoeff.d dwarf.h dwarf.c dwarfeh.c \
+	backconfig.c ph2.c util2.c divcoeff.c dwarf.h dwarf.c dwarfeh.c \
 	elfobj.c elfobj1.c machobj.c compress.c varstats.h varstats.c gsroa.c
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
@@ -320,7 +320,7 @@ BACKSRC= cdef.h cc.h oper.h ty.h optabgen.c \
 	strtold.c aa.h aa.c tinfo.h ti_achar.c \
 	md5.h md5.c ti_pvoid.c xmm.h ph2.c util2.c \
 	mscoffobj.c obj.h pdata.c cv8.c backconfig.c \
-	divcoeff.d dwarfeh.c varstats.h varstats.c compress.c \
+	divcoeff. dwarfeh.c varstats.h varstats.c compress.c \
 	backend.txt
 
 VERSION=857
@@ -373,8 +373,8 @@ os.obj : os.c
 strtold.obj : strtold.c
         $(CC) -c -o strtold.c
 
-divcoeff.obj : divcoeff.d
-        $(DMD) -c -O -release -betterC divcoeff.d
+divcoeff.obj : divcoeff.c
+        $(CC) -c -o divcoeff.c
 
 loadline.obj : loadline.d msgs2.d
         $(DMD) -c -O -release -betterC loadline.d
