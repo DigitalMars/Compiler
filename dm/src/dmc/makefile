@@ -273,7 +273,7 @@ test.obj : test.c
 
 ##################### INCLUDE MACROS #####################
 
-CCH= cc.h cdef.h ty.h outbuf.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
+CCH= cc.h cdef.h ty.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
 TOTALH=$(CCH) total.sym
 
 ##################### GENERATED SOURCE #####################
@@ -321,7 +321,7 @@ FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
 # Back end
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
         dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
-        mscoff.d obj.d oper.d outbuf.d rtlsym.d ty.d type.d xmm.d \
+        mscoff.d obj.d oper.d rtlsym.d ty.d type.d xmm.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
 	glocal.d goh.d md5.d memh.d varstats.di aarray.d
 
@@ -330,7 +330,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	type.h dt.h cgcv.h cv4.h \
 	el.h dwarf.h dwarf2.h exh.h go.h \
 	melf.h mach.h md5.h mscoff.h bcomplex.h obj.h \
-	outbuf.h token.h tassert.h \
+	token.h tassert.h \
 	\
 	optabgen.d platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d \
@@ -340,7 +340,7 @@ BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
 	dcode.d symbol.d debugprint.d dt.d ee.d elem.d \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.d \
-	nteh.d os.c out.d outbuf.c ptrntab.d drtlsym.d \
+	nteh.d os.c out.d outbuf.d ptrntab.d drtlsym.d \
 	dtype.d \
 	elfobj.d aarray.d \
 	dwarfdbginf.d machobj.d\
@@ -670,6 +670,9 @@ objrecor.obj : objrecor.d
 out.obj : out.d
         $(DMD) -c $(DFLAGS) out.d
 
+outbuf.obj : outbuf.d
+        $(DMD) -c $(DFLAGS) outbuf.d
+
 pdata.obj : pdata.d
         $(DMD) -c $(DFLAGS) pdata.d
 
@@ -749,7 +752,7 @@ sizecheck.obj : $(DEP) $(sizecheck.dep) sizecheck.c
 #symbol.obj : $(DEP) $(symbol.dep) symbol.c
 #cg87.obj : $(DEP) $(cg87.dep) cg87.c
 #cgxmm.obj : $(DEP) xmm.h $(cgxmm.dep) cgxmm.c
-outbuf.obj : $(DEP) $(outbuf.dep) outbuf.c
+#outbuf.obj : $(DEP) $(outbuf.dep) outbuf.c
 #newman.obj : $(DEP) $(newman.dep) newman.c
 tdbx.obj : $(DEP) $(tdbx.dep) tdbx.c
 #var.obj : $(DEP) $(var.dep) var.c
