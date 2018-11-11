@@ -16,14 +16,48 @@
 #include        <string.h>
 #include        <stdlib.h>
 
-#include        "cc.h"
-#include        "parser.h"
-#include        "type.h"
-#include        "filespec.h"
-#include        "global.h"
-#include        "token.h"
+#define VERSION "9.00.0"        // for banner and imbedding in .OBJ file
+#define VERSIONHEX "0x900"      // for __DMC__ macro
+#define VERSIONINT 0x900        // for precompiled headers and DLL version
+
+
+#define USEDLLSHELL _WINDLL
+
+#if SPP
+#define COMPILER "Preprocessor"
+#define ACTIVITY "preprocessing..."
+#elif HTOD
+#define COMPILER ".h to D Migration Tool"
+#define ACTIVITY "migrating..."
+#else
+#define COMPILER "C/C++ Compiler"
+#define ACTIVITY "compiling..."
+#endif
+
+#if __clang__
+void err_exit() __attribute__((analyzer_noreturn));
+void err_nomem() __attribute__((analyzer_noreturn));
+void err_fatal(unsigned,...) __attribute__((analyzer_noreturn));
+#else
+void err_exit();
+void err_nomem();
+void err_fatal(unsigned,...);
+#if __DMC__
+#pragma ZTC noreturn(err_exit)
+#pragma ZTC noreturn(err_nomem)
+#pragma ZTC noreturn(err_fatal)
+#endif
+#endif
+
+//#include        "cc.h"
+//#include        "parser.h"
+//#include        "type.h"
+//#include        "filespec.h"
+//#include        "global.h"
+//#include        "token.h"
 #include        "scdll.h"
 #include        "dmcdll.h"
+#include        "list.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -159,7 +193,7 @@ bool dmcdll_Progress(int linnum)
 #if _WIN32 && _WINDLL
     return NetSpawnProgress(linnum == -1 ? kNoLineNumber : linnum) != NetSpawnOK;
 #else
-    return FALSE;
+    return 0;
 #endif
 }
 
