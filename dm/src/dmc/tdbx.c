@@ -16,10 +16,15 @@
 #include        <string.h>
 #include        <malloc.h>
 #include        <time.h>
-#include        "cc.h"
-#include        "global.h"
-#include        "cgcv.h"
+
+#include        "msgs2.h"
 #include        "tdb.h"
+
+void os_loadlibrary(const char *dllname);
+void *os_getprocaddress(const char *funcname);
+void err_fatal(unsigned,...);
+
+extern char *ftdbname;
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -30,7 +35,7 @@ static TDBhandle_t h;
  * Load TDB dll and set function pointers.
  */
 
-STATIC void tdb_loaddll()
+static void tdb_loaddll()
 {
 #if _WIN32
 #if !EXPLICIT

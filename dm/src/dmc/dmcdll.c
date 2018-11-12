@@ -49,12 +49,6 @@ void err_fatal(unsigned,...);
 #endif
 #endif
 
-//#include        "cc.h"
-//#include        "parser.h"
-//#include        "type.h"
-//#include        "filespec.h"
-//#include        "global.h"
-//#include        "token.h"
 #include        "scdll.h"
 #include        "dmcdll.h"
 #include        "list.h"
