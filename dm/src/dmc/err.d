@@ -53,6 +53,11 @@ void err_GPF()
     }
 }
 
+char* dlcmsgs(int n)
+{
+    return dlcmsgs2(n, configv.language);
+}
+
 /**************************************
  * Get filename, line number, and column number.
  * Params:

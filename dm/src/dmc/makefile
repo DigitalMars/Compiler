@@ -274,12 +274,12 @@ test.obj : test.c
 
 ##################### INCLUDE MACROS #####################
 
-CCH= cc.h cdef.h ty.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
+CCH= ty.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
 
 ##################### GENERATED SOURCE #####################
 
 elxxx.d cdxxx.d optab.d debtab.d fltables.d tytab.d : \
-        cdef.h cc.h oper.h ty.h optabgen.d
+        optabgen.d
         $(DMD) $(DFLAGS) optabgen
         optabgen
 
@@ -325,7 +325,7 @@ BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
 	glocal.d goh.d md5.d memh.d varstats.di aarray.d
 
-BACKSRC= aa.h cdef.h cc.h oper.h ty.h \
+BACKSRC= aa.h oper.h ty.h \
 	global.h code.h code_x86.h code_stub.h \
 	type.h dt.h cgcv.h cv4.h \
 	el.h dwarf.h dwarf2.h exh.h go.h \

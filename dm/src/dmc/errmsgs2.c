@@ -11,28 +11,22 @@
  */
 
 #include        <stdio.h>
-#include        <string.h>
-#include        <stdlib.h>
-#include        <time.h>
-
-#include        "cc.h"
-#include        "global.h"
-
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+#include        <assert.h>
 
 #include        "msgs2.c"
 
 void errmsgs_init();
 
+#define LANGenglish 0
+
 ///////////////////////////////////////////
 // Return pointer to string number.
 
-char *dlcmsgs(int n)
+char *dlcmsgs2(int n, int language)
 {
-    assert((unsigned)n < arraysize(msgtbl));
+    assert((unsigned)n < sizeof(msgtbl) / sizeof(msgtbl[0]));
     //errmsgs_init();
-    const char *p = msgtbl[n][configv.language];
+    const char *p = msgtbl[n][language];
     if (!p)
         p = msgtbl[n][LANGenglish];
 
@@ -52,7 +46,7 @@ void errmsgs_init()
     if (inited)
         return;
     inited++;
-    for (i = 0; i < arraysize(msgtbl); i++)
+    for (i = 0; i < sizeof(msgtbl) / sizeof(msgtbl[0]); i++)
     {
         printf("%d: %s\n",i,msgtbl[i][LANGenglish]);
     }

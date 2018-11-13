@@ -180,7 +180,7 @@ void comsubs();
 void cgcs_term();
 
 /* errmsgs.c */
-char *dlcmsgs(int);
+char *dlcmsgs2(int, int);
 void errmsgs_term();
 
 /* from evalu8.c */
@@ -196,6 +196,7 @@ elem *selecte1(elem *, type *);
 //extern       type *declar(type *,char *,int);
 
 /* from err.c */
+char *dlcmsgs(int);
 void err_message(const(char)* format,...);
 void dll_printf(const(char)* format,...);
 void cmderr(uint,...);
