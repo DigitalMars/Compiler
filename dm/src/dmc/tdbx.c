@@ -16,6 +16,7 @@
 #include        <string.h>
 #include        <malloc.h>
 #include        <time.h>
+#include        <assert.h>
 
 #include        "msgs2.h"
 #include        "tdb.h"
@@ -25,9 +26,6 @@ void *os_getprocaddress(const char *funcname);
 void err_fatal(unsigned,...);
 
 extern char *ftdbname;
-
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
 
 static TDBhandle_t h;
 

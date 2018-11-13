@@ -15,6 +15,7 @@
 #include        <ctype.h>
 #include        <string.h>
 #include        <stdlib.h>
+#include        <assert.h>
 
 #define VERSION "9.00.0"        // for banner and imbedding in .OBJ file
 #define VERSIONHEX "0x900"      // for __DMC__ macro
@@ -52,9 +53,6 @@ void err_fatal(unsigned,...);
 #include        "scdll.h"
 #include        "dmcdll.h"
 #include        "list.h"
-
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
 
 unsigned long netspawn_flags = 0;
 
