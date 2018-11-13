@@ -274,7 +274,7 @@ test.obj : test.c
 
 ##################### INCLUDE MACROS #####################
 
-CCH= ty.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
+CCH= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
 
 ##################### GENERATED SOURCE #####################
 
@@ -310,7 +310,7 @@ HTODSRC= ppexp.d unialpha.d entity.d cpp.di dmcdll.di nspace.d dinit.d \
 	dscope.d dmsc.d dutil.d diasm.d dfile.d err.d page.di stubobj.d \
 	poptelem.d
 
-FRONTSRC= allocast.h cpp.h dmcdll.h html.h parser.h scdll.h scope.h\
+FRONTSRC= dmcdll.h scdll.h \
 	tdb.h \
 	\
         errmsgs2.c tdbx.c \
@@ -325,12 +325,8 @@ BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
 	glocal.d goh.d md5.d memh.d varstats.di aarray.d
 
-BACKSRC= aa.h oper.h ty.h \
-	global.h code.h code_x86.h code_stub.h \
-	type.h dt.h cgcv.h cv4.h \
-	el.h dwarf.h dwarf2.h exh.h go.h \
-	melf.h mach.h md5.h mscoff.h bcomplex.h obj.h \
-	token.h tassert.h \
+BACKSRC= \
+	code_stub.h \
 	\
 	optabgen.d platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d \
