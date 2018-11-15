@@ -623,9 +623,9 @@ static if (0)
 
                             //printf("CAT pe = %s, a.length = %d, b.length = %d\n", pe - 1, len, strlen((char *)b));
 //printf("\t\t1: '%.*s'\n", pe - a, a);
-                            buffer.write(a, pe - a);
+                            buffer.write(a[0 .. pe - a]);
 //printf("\t\t2: '%.*s'\n", len - (pe + 1 - a), pe + 1);
-                            buffer.write(pe + 1, len - (pe + 1 - a));
+                            buffer.write((pe + 1)[0 .. len - (pe + 1 - a)]);
 //printf("\t\t3: '%s'\n", b);
                             buffer.write(b);
                             q += 4;
@@ -661,7 +661,7 @@ static if (0)
                     while (len && (p[len - 1] == ' ' || p[len - 1] == PRE_SPACE))
                         len--;
                 }
-                buffer.write(p, len);
+                buffer.write(p[0 .. len]);
             }
         }
         else
