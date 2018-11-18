@@ -184,7 +184,7 @@ OBJ1g=unialpha.obj entity.obj backconfig.obj dinline.obj oper.obj parser.obj dto
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj dcgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj codebuilder.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarfdbginf.obj stubobj.obj obj.obj
-OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj
+OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj barray.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj dspeller.obj utf.obj divcoeff.obj dvec.obj dlist.obj filespec.obj
 
 ALLOBJS= $(OBJ1a) $(OBJ1b) $(OBJ1c) $(OBJ1d) $(OBJ1e) $(OBJ1f) $(OBJ1g) \
@@ -338,7 +338,7 @@ BACKSRC= \
 	gother.d gloop.d newman.d \
 	nteh.d os.c out.d outbuf.d ptrntab.d drtlsym.d \
 	dtype.d \
-	elfobj.d aarray.d \
+	elfobj.d aarray.d barray.d \
 	dwarfdbginf.d machobj.d\
 	strtold.c \
 	ph2.d util2.d \
@@ -415,6 +415,9 @@ adl.obj : adl.d
 
 backconfig.obj : backconfig.d
         $(DMD) -c $(DFLAGS) backconfig.d
+
+barray.obj : barray.d
+        $(DMD) -c $(DFLAGS) barray.d
 
 bcomplex.obj : bcomplex.d
         $(DMD79) -c $(DFLAGS) bcomplex.d

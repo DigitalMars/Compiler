@@ -6123,4 +6123,11 @@ err:
 
 }
 
-
+extern (C)
+{
+    // dmd 2.074 generates unused references to these:
+    int D10TypeInfo_k6__initZ = 0;
+    int D14TypeInfo_Array6__vtblZ = 0;
+    int D14TypeInfo_Const6__vtblZ = 0;
+    int D15TypeInfo_Struct6__vtblZ = 0;
+}
