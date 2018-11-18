@@ -32,6 +32,7 @@ import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.memh;
@@ -66,13 +67,13 @@ version (Posix)
 {
     mem_free(go.expnod);
     mem_free(go.expblk);
-    mem_free(go.defnod);
+    go.defnod.dtor();
 }
 else
 {
     util_free(go.expnod);
     util_free(go.expblk);
-    util_free(go.defnod);
+    go.defnod.dtor();
 }
 }
 

@@ -36,6 +36,7 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
@@ -142,7 +143,7 @@ private void rd_compute()
     if (debugc) printf("constprop()\n");
     assert(dfo);
     flowrd();               /* compute reaching definitions (rd)    */
-    if (go.deftop == 0)     /* if no reaching defs                  */
+    if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
     assert(rellist == null && inclist == null && eqeqlist == null);
     block_clearvisit();
@@ -223,7 +224,6 @@ private void conpropwalk(elem *n,vec_t IN)
     elem *t;
 
     assert(n && IN);
-    /*chkvecdim(go.deftop,0);*/
     //printf("conpropwalk()\n"),elem_print(n);
     op = n.Eoper;
     if (op == OPcolon || op == OPcolon2)
@@ -642,7 +642,7 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
     unambig = s.Sflags & SFLunambig;
     if (f)
         vec_clear(f);
-    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.deftop; ++i)
+    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.defnod.length; ++i)
     {
         elem *d = go.defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");
@@ -1356,10 +1356,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
 
 private __gshared
 {
-    uint asstop,                /* # of assignment elems in assnod[]    */
-         assmax = 0,            /* size of assnod[]                     */
-         assnum;                /* current position in assnod[]         */
-    elem **assnod = null;       /* array of pointers to asg elems       */
+    Barray!(elem*) assnod;      /* array of pointers to asg elems       */
     vec_t ambigref;             /* vector of assignment elems that      */
                                 /* are referenced when an ambiguous     */
                                 /* reference is done (as in *p or call) */
@@ -1369,35 +1366,28 @@ void rmdeadass()
 {
     if (debugc) printf("rmdeadass()\n");
     flowlv();                       /* compute live variables       */
-    for (uint i = 0; i < dfotop; i++)    // for each block b
+    foreach (b; dfo[0 .. dfotop])       // for each block b
     {
-        block *b = dfo[i];
-
         if (!b.Belem)          /* if no elems at all           */
             continue;
         if (b.Btry)            // if in try-block guarded body
             continue;
-        asstop = numasg(b.Belem);      /* # of assignment elems */
-        if (asstop == 0)        /* if no assignment elems       */
+        const assnum = numasg(b.Belem);   // # of assignment elems
+        if (assnum == 0)                  // if no assignment elems
             continue;
-        if (asstop > assmax)    /* if we need to reallocate     */
-        {
-            assnod = cast(elem **)
-            realloc(assnod,(elem *).sizeof * asstop);
-            assert(assnod);
-            assmax = asstop;
-        }
-        /*setvecdim(asstop);*/
-        vec_t DEAD = vec_calloc(asstop);
-        vec_t POSS = vec_calloc(asstop);
-        ambigref = vec_calloc(asstop);
-        assnum = 0;
-        accumda(b.Belem,DEAD,POSS);    /* compute DEAD and POSS */
-        assert(assnum == asstop);
+
+        assnod.setLength(assnum);         // pre-allocate sufficient room
+        vec_t DEAD = vec_calloc(assnum);
+        vec_t POSS = vec_calloc(assnum);
+
+        ambigref = vec_calloc(assnum);
+        assnod.setLength(0);
+        accumda(b.Belem,DEAD,POSS);    // fill assnod[], compute DEAD and POSS
+        assert(assnum == assnod.length);
         vec_free(ambigref);
+
         vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
-        uint j;
-        for (j = 0; (j = cast(uint) vec_index(j, POSS)) < asstop; ++j) // for each possible dead asg.
+        for (uint j = 0; (j = cast(uint) vec_index(j, POSS)) < assnum; ++j) // for each possible dead asg.
         {
             Symbol *v;      /* v = target of assignment     */
             elem *n;
@@ -1433,9 +1423,6 @@ void rmdeadass()
         vec_free(DEAD);
         vec_free(POSS);
     } /* for */
-    free(assnod);
-    assnod = null;
-    assmax = 0;
 }
 
 /***************************
@@ -1540,27 +1527,24 @@ private uint numasg(elem *e)
 
 private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 {
-    vec_t Pl,Pr,Dl,Dr;
-    uint op,vecdim;
-
-    /*chkvecdim(asstop,0);*/
     assert(n && DEAD && POSS);
-    op = n.Eoper;
+    const op = n.Eoper;
     switch (op)
     {
         case OPcolon:
         case OPcolon2:
-            Pl = vec_clone(POSS);
-            Pr = vec_clone(POSS);
-            Dl = vec_calloc(asstop);
-            Dr = vec_calloc(asstop);
+        {
+            vec_t Pl = vec_clone(POSS);
+            vec_t Pr = vec_clone(POSS);
+            vec_t Dl = vec_calloc(vec_numbits(POSS));
+            vec_t Dr = vec_calloc(vec_numbits(POSS));
             accumda(n.EV.E1,Dl,Pl);
             accumda(n.EV.E2,Dr,Pr);
 
             /* D |= P & (Dl & Dr) | ~P & (Dl | Dr)  */
             /* P = P & (Pl & Pr) | ~P & (Pl | Pr)   */
             /*   = Pl & Pr | ~P & (Pl | Pr)         */
-            vecdim = cast(uint)vec_dim(DEAD);
+            const vecdim = cast(uint)vec_dim(DEAD);
             for (uint i = 0; i < vecdim; i++)
             {
                 DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
@@ -1569,21 +1553,24 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             }
             vec_free(Pl); vec_free(Pr); vec_free(Dl); vec_free(Dr);
             break;
+        }
 
         case OPandand:
         case OPoror:
+        {
             accumda(n.EV.E1,DEAD,POSS);
             // Substituting into the above equations Pl=P and Dl=0:
             // D |= Dr - P
             // P = Pr
-            Pr = vec_clone(POSS);
-            Dr = vec_calloc(asstop);
+            vec_t Pr = vec_clone(POSS);
+            vec_t Dr = vec_calloc(vec_numbits(POSS));
             accumda(n.EV.E2,Dr,Pr);
             vec_subass(Dr,POSS);
             vec_orass(DEAD,Dr);
             vec_copy(POSS,Pr);
             vec_free(Pr); vec_free(Dr);
             break;
+        }
 
         case OPvar:
         {
@@ -1594,7 +1581,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             // We have a reference. Clear all bits in POSS that
             // could be referenced.
 
-            for (uint i = 0; i < assnum; i++)
+            foreach (const i; 0 .. cast(uint)assnod.length)
             {
                 elem *ti = assnod[i].EV.E1;
                 if (v == ti.EV.Vsym &&
@@ -1612,7 +1599,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
         }
 
         case OPasm:         // reference everything
-            for (uint i = 0; i < assnum; i++)
+            foreach (const i; 0 .. cast(uint)assnod.length)
                 vec_clearbit(i,POSS);
             break;
 
@@ -1688,7 +1675,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                     uint tsz = tysize(t.Ety);
                     if (n.Eoper == OPstreq)
                         tsz = cast(uint)type_size(n.ET);
-                    for (uint i = 0; i < assnum; i++)
+                    foreach (const i; 0 .. cast(uint)assnod.length)
                     {
                         elem *ti = assnod[i].EV.E1;
 
@@ -1713,15 +1700,15 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 // if assignment operator, post this def to POSS
                 if (n.Nflags & NFLassign)
                 {
-                    assnod[assnum] = n;
-                    vec_setbit(assnum,POSS);
+                    const i = cast(uint)assnod.length;
+                    vec_setbit(i,POSS);
 
                     // if variable could be referenced by a pointer
                     // or a function call, mark the assignment in
                     // ambigref
                     if (!(t.EV.Vsym.Sflags & SFLunambig))
                     {
-                        vec_setbit(assnum,ambigref);
+                        vec_setbit(i,ambigref);
 
                         debug if (debugc)
                         {
@@ -1731,7 +1718,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         }
                     }
 
-                    assnum++;
+                    assnod.push(n);
                 }
             }
             else if (OTrtol(op))
