@@ -47,7 +47,7 @@ struct Barray(T)
             barray.array = p[0 .. length];
         }
 
-        if (length < capacity)
+        if (length <= capacity)
             array = array.ptr[0 .. length];     // the fast path
         else
             enlarge(this, length);              // the slow path

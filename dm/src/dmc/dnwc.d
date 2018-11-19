@@ -6131,4 +6131,6 @@ extern (C)
     int D14TypeInfo_Const6__vtblZ = 0;
     int D15TypeInfo_Struct6__vtblZ = 0;
     int D3dmd7backend2el4elem6__initZ = 0;
+    int D16TypeInfo_Pointer6__vtblZ = 0;
+    int D10TypeInfo_i6__initZ = 0;
 }
