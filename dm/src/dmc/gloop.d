@@ -1359,7 +1359,7 @@ void fillInDNunambig(vec_t v, elem *e)
 
 
     // for all unambig defs in go.defnod[]
-    foreach (uint i; 0 .. go.defnod.length)
+    foreach (const i; 0 .. go.defnod.length)
     {
         elem *tn = go.defnod[i].DNelem;
         elem *tn1;
@@ -1379,7 +1379,7 @@ void fillInDNunambig(vec_t v, elem *e)
         if (toff <= tn1.EV.Voffset &&
             tn1.EV.Voffset + tn1size <= ttop)
         {
-            vec_setbit(i, v);
+            vec_setbit(cast(uint)i, v);
         }
     }
 }
@@ -2150,7 +2150,7 @@ private void findbasivs(loop *l)
 
     /* for each def in go.defnod[] that is within loop l     */
 
-    foreach (uint i; 0 .. go.defnod.length)
+    foreach (const i; 0 .. go.defnod.length)
     {
         if (!vec_testbit(go.defnod[i].DNblock.Bdfoidx,l.Lloop))
             continue;               /* def is not in the loop       */

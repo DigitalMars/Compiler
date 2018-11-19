@@ -253,7 +253,7 @@ private void asgdefelems(block *b,elem *n)
         asgdefelems(b,n.EV.E1);
     if (OTdef(op))
     {
-        n.Edef = go.defnod.length;
+        n.Edef = cast(uint)go.defnod.length;
         go.defnod.push(DefNode(n, b, null));
     }
     else
@@ -271,7 +271,7 @@ private void initDNunambigVectors()
     const size_t dim = (numbits + (VECBITS - 1)) >> VECSHIFT;
 
     uint j = 0;
-    foreach (uint i; 0 .. go.defnod.length)
+    foreach (const i; 0 .. go.defnod.length)
     {
         elem *e = go.defnod[i].DNelem;
         if (OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar)
