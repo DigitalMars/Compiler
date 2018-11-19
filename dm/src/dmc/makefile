@@ -184,7 +184,7 @@ OBJ1g=unialpha.obj entity.obj backconfig.obj dinline.obj oper.obj parser.obj dto
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj dcgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj codebuilder.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarfdbginf.obj stubobj.obj obj.obj
-OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj barray.obj
+OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj barray.obj goh.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj dspeller.obj utf.obj divcoeff.obj dvec.obj dlist.obj filespec.obj
 
 ALLOBJS= $(OBJ1a) $(OBJ1b) $(OBJ1c) $(OBJ1d) $(OBJ1e) $(OBJ1f) $(OBJ1g) \
@@ -571,6 +571,9 @@ gloop.obj : gloop.d
 
 go.obj : go.d
         $(DMD) -c $(DFLAGS) go.d
+
+goh.obj : goh.d
+        $(DMD) -c $(DFLAGS) goh.d
 
 gother.obj : gother.d
         $(DMD) -c $(DFLAGS) gother.d
