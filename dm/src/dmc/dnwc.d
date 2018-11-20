@@ -6133,4 +6133,7 @@ extern (C)
     int D3dmd7backend2el4elem6__initZ = 0;
     int D16TypeInfo_Pointer6__vtblZ = 0;
     int D10TypeInfo_i6__initZ = 0;
+    int D3dmd7backend4code3CSE6__initZ = 0;
+
+    bool _adEq2() { assert(0); }
 }
