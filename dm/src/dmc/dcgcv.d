@@ -401,7 +401,7 @@ static if (0)
         hashi = 1;
 //printf(" add   %d\n",debtyp.length);
     d.prev = debtyphash[hashi];
-    debtyphash[hashi] = debtyp.length;
+    debtyphash[hashi] = cast(uint)debtyp.length;
 
     /* It's not already in the array, so add it */
 L1:
@@ -412,12 +412,12 @@ L1:
             err_fatal(EM_2manytypes,0xE000);         // too many types
     }
 
-    return debtyp.length - 1 + cgcv.deb_offset;
+    return cast(uint)debtyp.length - 1 + cgcv.deb_offset;
 }
 
 idx_t cv_numdebtypes()
 {
-    return debtyp.length;
+    return cast(idx_t)debtyp.length;
 }
 
 /****************************
