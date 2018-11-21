@@ -113,6 +113,13 @@ private void sliceStructs_Gather(SymInfo *sia, elem *e)
                             {
                                 sia[si].canSlice = false;
                             }
+                            // Disable SROA on OSX32 (because XMM registers?)
+                            // https://issues.dlang.org/show_bug.cgi?id=15206
+                            // https://github.com/dlang/dmd/pull/8034
+                            else if (!(config.exe & EX_OSX))
+                            {
+                                sliceStructs_Gather(sia, e.EV.E1);
+                            }
                         }
                         return;
                     }
