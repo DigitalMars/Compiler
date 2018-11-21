@@ -181,7 +181,7 @@ OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj dtype.obj dt.obj ph
 OBJ1f=var.obj nteh.obj drtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj
 OBJ1g=unialpha.obj entity.obj backconfig.obj dinline.obj oper.obj parser.obj dtoken.obj
 
-OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj
+OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj global.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj dcgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj codebuilder.obj
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarfdbginf.obj stubobj.obj obj.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj barray.obj goh.obj
@@ -565,6 +565,9 @@ gflow.obj : gflow.d
 
 glocal.obj : glocal.d
         $(DMD) -c $(DFLAGS) glocal.d
+
+global.obj : global.d
+        $(DMD) -c $(DFLAGS) global.d
 
 gloop.obj : gloop.d
         $(DMD) -c $(DFLAGS) gloop.d
