@@ -508,6 +508,8 @@ char *cpp_typetostring(type *t,char *prefix)
  *      pointer to mangled name (a static buffer)
  */
 
+version (SCPP)
+{
 char *cpp_mangle(Symbol *s)
 {
     symbol_debug(s);
@@ -537,6 +539,7 @@ version (SCPPorHTOD)
         assert(mangle.buf[BUFIDMAX + 1] == 0x55);
         return mangle.buf.ptr;
     }
+}
 }
 
 ///////////////////////////////////////////////////////
