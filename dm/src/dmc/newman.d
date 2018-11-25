@@ -508,7 +508,12 @@ char *cpp_typetostring(type *t,char *prefix)
  *      pointer to mangled name (a static buffer)
  */
 
-version (SCPP)
+version (HTOD)
+{
+}
+else
+{
+version (SCPPorMARS)
 {
 char *cpp_mangle(Symbol *s)
 {
@@ -539,6 +544,7 @@ version (SCPPorHTOD)
         assert(mangle.buf[BUFIDMAX + 1] == 0x55);
         return mangle.buf.ptr;
     }
+}
 }
 }
 
