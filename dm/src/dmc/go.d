@@ -50,8 +50,11 @@ version (OSX)
 clock_t clock() { return 0; }
 +/
 
-extern (C) clock_t os_clock();
+version (SCPP)
+    extern (C) clock_t os_clock();
 
+version (MARS)
+    extern (C++) clock_t os_clock();
 
 extern (C++):
 
