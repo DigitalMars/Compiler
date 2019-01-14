@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod1.d, backend/cod1.d)
@@ -401,7 +401,7 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
 void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 {
     //dbg_printf("genstackclean(numpara = %d, stackclean = %d)\n",numpara,cgstate.stackclean);
-    if (numpara && (cgstate.stackclean || STACKALIGN == 16))
+    if (numpara && (cgstate.stackclean || STACKALIGN >= 16))
     {
 /+
         if (0 &&                                // won't work if operand of scodelem
@@ -2699,7 +2699,7 @@ void callclib(ref CodeBuilder cdb,elem *e,uint clib,regm_t *pretregs,regm_t keep
         int nalign = 0;
         int pushebx = (cinfo.flags & INFpushebx) != 0;
         int pushall = (cinfo.flags & INFpusheabcdx) != 0;
-        if (STACKALIGN == 16)
+        if (STACKALIGN >= 16)
         {   // Align the stack (assume no args on stack)
             int npush = (npushed + pushebx + 4 * pushall) * REGSIZE + stackpush;
             if (npush & (STACKALIGN - 1))
@@ -3074,8 +3074,14 @@ void cdfunc(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         uint alignsize = el_alignsize(ep);
         parameters[i].numalign = 0;
         if (alignsize > stackalign &&
-            (I64 || (alignsize == 16 && tyvector(ep.Ety))))
+            (I64 || (alignsize >= 16 &&
+                (config.exe == EX_OSX && (tyaggregate(ep.Ety) || tyvector(ep.Ety))))))
         {
+            if (alignsize > STACKALIGN)
+            {
+                STACKALIGN = alignsize;
+                enforcealign = true;
+            }
             uint newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
             parameters[i].numalign = newnumpara - numpara;
             numpara = newnumpara;
@@ -3159,7 +3165,7 @@ void cdfunc(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     /* Adjust start of the stack so after all args are pushed,
      * the stack will be aligned.
      */
-    if (!usefuncarg && STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
+    if (!usefuncarg && STACKALIGN >= 16 && (numpara + stackpush) & (STACKALIGN - 1))
     {
         numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
         cod3_stackadj(cdb, numalign);
