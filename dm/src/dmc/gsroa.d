@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2016-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2016-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gsroa.c, backend/gsroa.d)
@@ -39,8 +39,8 @@ extern (C++):
 
 int REGSIZE();
 
-alias SliceSize = REGSIZE;  // slices are all register-sized
-enum MaxSlices = 2;         // max # of pieces we can slice an aggregate into
+alias SLICESIZE = REGSIZE;  // slices are all register-sized
+enum MAXSLICES = 2;         // max # of pieces we can slice an aggregate into
 
 /* This 'slices' a two register wide aggregate into two separate register-sized variables,
  * enabling much better enregistering.
@@ -51,7 +51,7 @@ struct SymInfo
 {
     bool canSlice;
     bool accessSlice;   // if Symbol was accessed as a slice
-    tym_t[MaxSlices] ty; // type of each slice
+    tym_t[MAXSLICES] ty; // type of each slice
     SYMIDX si0;          // index of first slice, the rest follow sequentially
 }
 
@@ -76,11 +76,11 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                     assert(si < symtab.top);
                     const n = nthSlice(e);
                     const sz = tysize(e.Ety);
-                    if (sz == 2 * SliceSize && !tyfv(e.Ety))
+                    if (sz == 2 * SLICESIZE && !tyfv(e.Ety))
                     {
                         // Rewritten as OPpair later
                     }
-                    else if (n != NotSlice)
+                    else if (n != NOTSLICE)
                     {
                         if (!sia[si].accessSlice)
                         {
@@ -114,7 +114,7 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                         if (si >= 0 && sia[si].canSlice)
                         {
                             assert(si < symtab.top);
-                            if (nthSlice(e) == NotSlice)
+                            if (nthSlice(e) == NOTSLICE)
                             {
                                 sia[si].canSlice = false;
                             }
@@ -169,7 +169,7 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
                 if (si >= 0 && sia[si].canSlice)
                 {
                     const n = nthSlice(e);
-                    if (tysize(e.Ety) == 2 * SliceSize)
+                    if (tysize(e.Ety) == 2 * SLICESIZE)
                     {
                         // Rewrite e as (si0 OPpair si0+1)
                         elem *e1 = el_calloc();
@@ -275,7 +275,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
         }
 
         const sz = type_size(s.Stype);
-        if (sz != 2 * SliceSize ||
+        if (sz != 2 * SLICESIZE ||
             tyfv(s.Stype.Tty) || tybasic(s.Stype.Tty) == TYhptr)    // because there is no TYseg
         {
             sia[si].canSlice = false;
@@ -347,7 +347,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
                 const idlen = 2 + strlen(sold.Sident.ptr) + 2;
                 char *id = cast(char *)malloc(idlen + 1);
                 assert(id);
-                sprintf(id, "__%s_%d", sold.Sident.ptr, SliceSize);
+                sprintf(id, "__%s_%d", sold.Sident.ptr, SLICESIZE);
                 if (debugc) printf("creating slice symbol %s\n", id);
                 Symbol *snew = symbol_calloc(id, cast(uint)idlen);
                 free(id);
@@ -403,20 +403,20 @@ Ldone:
  * Params:
  *      e = elem that may be a slice
  * Returns:
- *      slice number if it is, NotSlice if not
+ *      slice number if it is, NOTSLICE if not
  */
-enum NotSlice = -1;
+enum NOTSLICE = -1;
 int nthSlice(const(elem)* e)
 {
     const sz = tysize(e.Ety);
-    if (sz == SliceSize)
+    if (sz == SLICESIZE)
     {
         if (e.EV.Voffset == 0)
             return 0;
-        if (e.EV.Voffset == SliceSize)
+        if (e.EV.Voffset == SLICESIZE)
             return 1;
     }
-    return NotSlice;
+    return NOTSLICE;
 }
 
 }
