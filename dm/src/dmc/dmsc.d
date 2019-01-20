@@ -322,7 +322,7 @@ int type_chksize(uint u)
  * translation of a C++ type.
  */
 
-tym_t tym_conv(type *t)
+tym_t tym_conv(const type *t)
 {   tym_t tym = t.Tty;
     tym_t nty;
 

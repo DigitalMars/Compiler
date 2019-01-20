@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
@@ -206,7 +206,7 @@ struct Srcpos
     {
         const(char)* Sfilename;
 
-        const(char*) name() { return Sfilename; }
+        const(char*) name() const { return Sfilename; }
 
         static Srcpos create(const(char)* filename, uint linnum, int charnum)
         {
@@ -219,7 +219,7 @@ struct Srcpos
         }
     }
 
-    void print(const(char)* func) { Srcpos_print(this, func); }
+    void print(const(char)* func) const { Srcpos_print(this, func); }
 }
 
 version (SCPP)
@@ -238,7 +238,7 @@ version (HTOD)
     static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
 }
 
-void Srcpos_print(ref Srcpos srcpos, const(char)* func);
+void Srcpos_print(ref const Srcpos srcpos, const(char)* func);
 
 //#include "token.h"
 
@@ -608,7 +608,7 @@ struct block
     void setNthSucc(int n, block *b) { list_nth(Bsucc, n).ptr = b; }
 }
 
-block* list_block(list_t lst) { return cast(block*)list_ptr(lst); }
+inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
 
 /** Basic block control flow operators. **/
 
@@ -665,7 +665,7 @@ struct BlockRange
 
     block* front() return  { return b; }
     void popFront() { b = b.Bnext; }
-    bool empty()    { return !b; }
+    bool empty() const { return !b; }
 
   private:
     block* b;
@@ -883,7 +883,7 @@ struct mptr_t
     mptr_flags_t   MPflags;
 }
 
-mptr_t* list_mptr(list_t lst) { return cast(mptr_t*) list_ptr(lst); }
+inout(mptr_t)* list_mptr(inout(list_t) lst) { return cast(inout(mptr_t)*) list_ptr(lst); }
 
 
 /***********************************
@@ -1144,9 +1144,9 @@ struct struct_t
  * Symbol Table
  */
 
-Symbol* list_symbol(list_t lst) { return cast(Symbol*) list_ptr(lst); }
+inout(Symbol)* list_symbol(inout list_t lst) { return cast(inout(Symbol)*) list_ptr(lst); }
 void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
-Classsym* list_Classsym(list_t lst) { return cast(Classsym*) list_ptr(lst); }
+inout(Classsym)* list_Classsym(inout list_t lst) { return cast(inout(Classsym)*) list_ptr(lst); }
 
 enum
 {
@@ -1231,7 +1231,7 @@ struct Symbol
     { return Symbol_Salignsize(&this); }
 
     type* Stype;                // type of Symbol
-    tym_t ty() { return Stype.Tty; }
+    tym_t ty() const { return Stype.Tty; }
 
     union                       // variants for different Symbol types
     {
@@ -1419,7 +1419,7 @@ struct Symbol
     { return Symbol_Sisdead(&this, anyiasm); }
 }
 
-void symbol_debug(Symbol* s)
+void symbol_debug(const Symbol* s)
 {
     debug assert(s.id == s.IDsymbol);
 }
@@ -1428,7 +1428,7 @@ int Symbol_Salignsize(Symbol* s);
 bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm);
 int Symbol_needThis(Symbol* s);
 
-bool isclassmember(Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
+bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
 
 // Class, struct or union
 
@@ -1559,7 +1559,7 @@ param_t *param_t_search(param_t* p, char *id);
 int param_t_searchn(param_t* p, char *id);
 
 
-void param_debug(param_t *p)
+void param_debug(const param_t *p)
 {
     debug assert(p.id == p.IDparam);
 }
@@ -1662,7 +1662,7 @@ struct Sfile
     uint SFhashval;             // hash of file name
 }
 
-void sfile_debug(Sfile* sf)
+void sfile_debug(const Sfile* sf)
 {
     debug assert(sf.id == Sfile.IDsfile);
 }

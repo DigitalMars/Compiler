@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/type.d, backend/_type.d)
@@ -65,7 +65,7 @@ void type_setIdent(type* t, char* ident);
 void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
 
 // Return true if type is a struct, class or union
-bool type_struct(type* t) { return tybasic(t.Tty) == TYstruct; }
+bool type_struct(const type* t) { return tybasic(t.Tty) == TYstruct; }
 
 struct TYPE
 {
@@ -107,7 +107,7 @@ struct typetemp_t
     Symbol *Tsym;               // primary class template symbol
 }
 
-void type_debug(type* t)
+void type_debug(const type* t)
 {
     debug assert(t.id == t.IDtype);
 }
@@ -117,10 +117,10 @@ static if (__VERSION__ <= 2066)
     private enum computeEnumValue = TYMAX;
 
 // Return name mangling of type
-mangle_t type_mangle(type *t) { return t.Tmangle; }
+mangle_t type_mangle(const type *t) { return t.Tmangle; }
 
 // Return true if function type has a variable number of arguments
-bool variadic(type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
+bool variadic(const type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
 
 extern __gshared type*[TYMAX] tstypes;
 extern __gshared type*[TYMAX] tsptr2types;
