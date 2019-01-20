@@ -664,7 +664,7 @@ ubyte *macro_predefined(macro_t *m)
             )
     {
         if (funcsym_p)
-        {   char *p;
+        {   const(char)* p;
             size_t len;
 
             // This is obsolete per C99 6.4.2.2. Should use

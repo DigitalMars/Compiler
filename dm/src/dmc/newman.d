@@ -515,7 +515,7 @@ else
 {
 version (SCPPorMARS)
 {
-char *cpp_mangle(Symbol *s)
+const(char) *cpp_mangle(Symbol *s)
 {
     symbol_debug(s);
     //printf("cpp_mangle(s = %p, '%s')\n", s, s.Sident);

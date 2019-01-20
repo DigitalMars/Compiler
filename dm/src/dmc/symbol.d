@@ -296,7 +296,7 @@ int Symbol_needThis(Symbol* s)
  * Get user name of symbol.
  */
 
-char *symbol_ident(Symbol *s)
+const(char)* symbol_ident(const Symbol *s)
 {
 version (SCPP_HTOD)
 {
@@ -304,14 +304,14 @@ version (SCPP_HTOD)
     switch (s.Sclass)
     {   case SCstruct:
             if (s.Sstruct.Salias)
-                s = s.Sstruct.Salias;
+                return s.Sstruct.Salias.Sident.ptr;
             else if (s.Sstruct.Sflags & STRnotagname)
                 return noname;
             break;
         case SCenum:
             if (CPP)
             {   if (s.Senum.SEalias)
-                    s = s.Senum.SEalias;
+                    return s.Senum.SEalias.Sident.ptr;
                 else if (s.Senum.SEflags & SENnotagname)
                     return noname;
             }

@@ -2424,7 +2424,7 @@ else
 size_t OmfObj_mangle(Symbol *s,char *dest)
 {   size_t len;
     size_t ilen;
-    char *name;
+    const(char)* name;
     char *name2 = null;
 
     //printf("OmfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
@@ -2447,7 +2447,7 @@ else
         size_t len2;
 
         // Attempt to compress the name
-        name2 = id_compress(name, cast(int)len, &len2);
+        name2 = id_compress(cast(char*)name, cast(int)len, &len2);
 version (MARS)
 {
         if (len2 > LIBIDMAX)            // still too long
@@ -2469,9 +2469,9 @@ version (MARS)
                 c2 += (c2 < 10) ? '0' : 'A' - 10;
                 name2[LIBIDMAX - 32 + i * 2 + 1] = c2;
             }
-            name = name2;
             len = LIBIDMAX;
-            name[len] = 0;
+            name2[len] = 0;
+            name = name2;
             //printf("name = '%s', len = %d, strlen = %d\n", name, len, strlen(name));
         }
         else

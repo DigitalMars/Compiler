@@ -302,7 +302,7 @@ private char *pi_cat(const(char)* s2)
     return cpp_pi;
 }
 
-char *cpp_prettyident(Symbol *s)
+const(char)* cpp_prettyident(const Symbol *s)
 {   int func;
     uint fflags;
     const(char)* p;
@@ -340,7 +340,7 @@ char *cpp_prettyident(Symbol *s)
                 pi_cat("operator ");
                 if (fflags & Fcast)
                 {
-                    type *tret = s.Stype.Tnext;       // function return type
+                    auto tret = s.Stype.Tnext;       // function return type
 
                     type_debug(tret);
                     if (!tret.Tnext)

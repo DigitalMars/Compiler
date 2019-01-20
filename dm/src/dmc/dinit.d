@@ -2338,7 +2338,7 @@ Ldtor:
 private Symbol* init_staticflag(Symbol *s)
 {
     // Generate name as _flag_%s
-    char* sid = cpp_mangle(s);
+    auto sid = cpp_mangle(s);
     char* name = cast(char *)alloca(6 + strlen(sid) + 1);
     memcpy(name, cast(const(char)*)"_flag_", 6);
     strcpy(name + 6, sid);

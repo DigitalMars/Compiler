@@ -2303,7 +2303,7 @@ void func_noreturnvalue()
     // Interrupt functions return values in other ways than using
     // the 'return' statement.
     if (tybasic(funcsym_p.Stype.Tty) != TYifunc)
-    {   char *p = cpp_prettyident(funcsym_p);
+    {   auto p = cpp_prettyident(funcsym_p);
 
         if (config.ansi_c)
             synerr(EM_implied_ret,p);   // implied return

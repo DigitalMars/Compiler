@@ -485,8 +485,9 @@ void chkassign(elem *e)
      */
     e1 = e.EV.E1;
     if (e1.ET.Tty & mTYconst)
-    {   char *p;
+    {   const(char)* p;
         bool freeit = false;
+        char* s;
 
         if (e1.Eoper == OPvar)
             p = prettyident(e1.EV.Vsym);
@@ -495,17 +496,17 @@ void chkassign(elem *e)
             {
                 //p = alloca_strdup2("*",p);
                 size_t len = strlen(p);
-                char* s = cast(char*)mem_malloc(1 + len + 1);
+                s = cast(char*)mem_malloc(1 + len + 1);
                 s[0] = '*';
-                p = cast(char*)memcpy(s + 1, p, len + 1);
+                p = cast(const(char)*)memcpy(s + 1, p, len + 1);
                 freeit = true;
             }
         }
         else
-            p = cast(char*)"".ptr;
+            p = "".ptr;
         synerr(EM_const_assign,p);      // can't assign to const variable
         if (freeit)
-            mem_free(p);
+            mem_free(s);
     }
 
     if (OTopeq(e.Eoper))

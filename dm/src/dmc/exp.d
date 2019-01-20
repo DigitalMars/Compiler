@@ -1839,7 +1839,7 @@ L6:         // Look for case of #if defined(identifier)
                     {
                         s = symbol_calloc("__func__");
                         s.Sclass = SCstatic;
-                        char *id = prettyident(funcsym_p);
+                        auto id = prettyident(funcsym_p);
                         size_t dim = strlen(id) + 1;
                         auto dtb = DtBuilder(0);
                         dtb.nbytes(dim, id);

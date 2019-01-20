@@ -1414,15 +1414,15 @@ version (SCPP)
             {
 version (SCPP)
 {
-                objmod.codeseg(cpp_mangle(funcsym_p),1);
+                objmod.codeseg(cast(char*)cpp_mangle(funcsym_p),1);
 }
 else static if (TARGET_WINDOS)
 {
-                objmod.codeseg(cpp_mangle(funcsym_p),1);
+                objmod.codeseg(cast(char*)cpp_mangle(funcsym_p),1);
 }
 else
 {
-                objmod.codeseg(funcsym_p.Sident.ptr, 1);
+                objmod.codeseg(cast(char*)funcsym_p.Sident.ptr, 1);
 }
                                         // generate new code segment
             }
