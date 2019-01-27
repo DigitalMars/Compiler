@@ -1311,22 +1311,39 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 {
                     if (keepmsk & RMload)
                     {
+                        auto voffset = e.EV.Voffset;
                         if (sz <= REGSIZE)
                         {
-                            reg_t preg = s.Spreg;
-                            if (e.EV.Voffset == REGSIZE)
-                                preg = s.Spreg2;
+                            const reg_t preg = (voffset >= REGSIZE) ? s.Spreg2 : s.Spreg;
+                            if (voffset >= REGSIZE)
+                                voffset -= REGSIZE;
+
                             /* preg could be NOREG if it's a variadic function and we're
                              * in Win64 shadow regs and we're offsetting to get to the start
                              * of the variadic args.
                              */
                             if (preg != NOREG && regcon.params & mask(preg))
                             {
-                                pcs.Irm = modregrm(3,0,preg & 7);
-                                if (preg & 8)
-                                    pcs.Irex |= REX_B;
-                                regcon.used |= mask(preg);
-                                break;
+                                //printf("sz %d, preg %s, Voffset %d\n", cast(int)sz, regm_str(mask(preg)), cast(int)voffset);
+                                if (mask(preg) & XMMREGS && sz != REGSIZE)
+                                {
+                                }
+                                else if (voffset == 0)
+                                {
+                                    pcs.Irm = modregrm(3, 0, preg & 7);
+                                    if (preg & 8)
+                                        pcs.Irex |= REX_B;
+                                    if (I64 && sz == 1 && preg >= 4)
+                                        pcs.Irex |= REX;
+                                    regcon.used |= mask(preg);
+                                    break;
+                                }
+                                else if (voffset == 1 && sz == 1 && preg < 4)
+                                {
+                                    pcs.Irm = modregrm(3, 0, 4 | preg); // use H register
+                                    regcon.used |= mask(preg);
+                                    break;
+                                }
                             }
                         }
                     }
