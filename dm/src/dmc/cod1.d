@@ -1311,7 +1311,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 {
                     if (keepmsk & RMload)
                     {
-                        if (sz == REGSIZE)      // could this be (sz <= REGSIZE) ?
+                        if (sz <= REGSIZE)
                         {
                             reg_t preg = s.Spreg;
                             if (e.EV.Voffset == REGSIZE)
@@ -4990,7 +4990,10 @@ void loaddata(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             forregs = mask(reg);
 
             if (debugr)
-                printf("%s is fastpar and using register %s\n", e.EV.Vsym.Sident.ptr, regm_str(forregs));
+                printf("%s.%d is fastpar and using register %s\n",
+                       e.EV.Vsym.Sident.ptr,
+                       cast(int)e.EV.Voffset,
+                       regm_str(forregs));
 
             mfuncreg &= ~forregs;
             regcon.used |= forregs;
