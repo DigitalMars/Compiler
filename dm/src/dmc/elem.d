@@ -3436,7 +3436,7 @@ void el_check(elem *e)
  * Write out expression elem.
  */
 
-void elem_print(elem* e)
+void elem_print(const elem* e)
 {
   __gshared int nestlevel = 0;
   int i;
