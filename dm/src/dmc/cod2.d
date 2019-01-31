@@ -1731,6 +1731,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    printf("cdnot()\n");
     uint reg;
     tym_t forflags;
     regm_t retregs;
@@ -1765,15 +1766,17 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             tysize(e.Ety) == 1)
         {
             if (reghasvalue((sz == 1) ? BYTEREGS : ALLREGS,0,&reg))
+            {
                 cs.Iop = 0x39;
+                if (I64 && (sz == 1) && reg >= 4)
+                    cs.Irex |= REX;
+            }
             else
             {   cs.Iop = 0x81;
                 reg = 7;
                 cs.IFL2 = FLconst;
                 cs.IEV2.Vint = 0;
             }
-            if (I64 && (sz == 1) && reg >= 4)
-                cs.Irex |= REX;
             cs.Iop ^= (sz == 1);
             code_newreg(&cs,reg);
             cdb.gen(&cs);                             // CMP e1,0
@@ -1792,7 +1795,7 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             {
                 iop = 0x0F94;   // SETZ rm8
             }
-            cdb.gen2(iop,grex | modregrmx(3,0,reg));
+            cdb.gen2(iop, modregrmx(3,0,reg));
             if (reg >= 4)
                 code_orrex(cdb.last(), REX);
             if (op == OPbool)
@@ -5105,7 +5108,7 @@ void cderr(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     //printf("op = %d, %d\n", e.Eoper, OPstring);
     //printf("string = %p, len = %d\n", e.EV.ss.Vstring, e.EV.ss.Vstrlen);
-    //printf("string = '%.*s'\n", e.EV.ss.Vstrlen, e.EV.ss.Vstring);
+    //printf("string = '%.*s'\n", cast(int)e.EV.ss.Vstrlen, e.EV.ss.Vstring);
     assert(0);
 }
 
