@@ -369,7 +369,7 @@ version (all) {
                 char *id = cast(char *)malloc(idlen + 1);
                 assert(id);
                 sprintf(id, "__%s_%d", sold.Sident.ptr, SLICESIZE);
-                if (1 || debugc) printf("creating slice symbol %s\n", id);
+                if (debugc) printf("creating slice symbol %s\n", id);
                 Symbol *snew = symbol_calloc(id, cast(uint)idlen);
                 free(id);
                 snew.Sclass = sold.Sclass;
