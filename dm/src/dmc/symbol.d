@@ -252,7 +252,7 @@ int Symbol_Salignsize(Symbol* s)
  *      true if symbol is dead.
  */
 
-bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm)
+bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm)
 {
     version (MARS)
         enum vol = false;
@@ -278,7 +278,7 @@ bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm)
  * Determine if symbol needs a 'this' pointer.
  */
 
-int Symbol_needThis(Symbol* s)
+int Symbol_needThis(const Symbol* s)
 {
     //printf("needThis() '%s'\n", Sident.ptr);
 
@@ -536,7 +536,7 @@ Symbol * defsy(const(char)* p,Symbol **parent)
 debug
 {
 
-void symbol_check(Symbol *s)
+void symbol_check(const Symbol *s)
 {
     //printf("symbol_check('%s',%p)\n",s.Sident.ptr,s);
     symbol_debug(s);
@@ -551,7 +551,7 @@ version (SCPP_HTOD)
 }
 }
 
-void symbol_tree_check(Symbol *s)
+void symbol_tree_check(const(Symbol)* s)
 {
     while (s)
     {   symbol_check(s);

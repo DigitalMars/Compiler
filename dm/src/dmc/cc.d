@@ -1425,8 +1425,8 @@ void symbol_debug(const Symbol* s)
 }
 
 int Symbol_Salignsize(Symbol* s);
-bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm);
-int Symbol_needThis(Symbol* s);
+bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm);
+int Symbol_needThis(const Symbol* s);
 
 bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
 
