@@ -422,7 +422,7 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 
             if (scratchm)
             {
-                uint r;
+                reg_t r;
                 allocreg(cdb,&scratchm,&r,TYint);
                 cdb.gen1(0x58 + r);           // POP r
             }
@@ -823,7 +823,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
     elem *e11;
     elem *e12;
     bool e1isadd,e1free;
-    uint reg;
+    reg_t reg;
     tym_t e1ty;
     Symbol *s;
 
@@ -965,7 +965,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                         else
                         {
                             int rbase;
-                            uint r;
+                            reg_t r;
 
                             scratchm = ALLREGS & ~keepmsk;
                             allocreg(cdb,&scratchm,&r,TYint);
@@ -1081,7 +1081,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     /* to load another register with the segment of v       */
                     if (e1ty == TYfptr)
                     {
-                        uint msreg;
+                        reg_t msreg;
 
                         idxregs |= mMSW & ALLREGS & ~keepmsk;
                         allocreg(cdb,&idxregs,&msreg,TYfptr);
@@ -1616,7 +1616,7 @@ void fltregs(ref CodeBuilder cdb,code *pcs,tym_t tym)
 
 void tstresult(ref CodeBuilder cdb,regm_t regm,tym_t tym,uint saveflag)
 {
-    uint scrreg;                      // scratch register
+    reg_t scrreg;                      // scratch register
     regm_t scrregm;
 
     //if (!(regm & (mBP | ALLREGS)))
@@ -1637,7 +1637,7 @@ void tstresult(ref CodeBuilder cdb,regm_t regm,tym_t tym,uint saveflag)
     }
     if (regm & XMMREGS)
     {
-        uint xreg;
+        reg_t xreg;
         regm_t xregs = XMMREGS & ~regm;
         allocreg(cdb,&xregs, &xreg, TYdouble);
         uint op = 0;
@@ -1800,7 +1800,7 @@ void fixresult(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
         }
     }
 
-    uint reg,rreg;
+    reg_t reg,rreg;
     if ((retregs & forregs) == retregs)   // if already in right registers
         *pretregs = retregs;
     else if (forregs)             // if return the result in registers
@@ -3930,7 +3930,7 @@ private void movParams(ref CodeBuilder cdb,elem *e,uint stackalign, uint funcarg
                 do
                 {   int regsize = REGSIZE;
                     regm_t retregs = (sz == 1) ? BYTEREGS : allregs;
-                    uint reg;
+                    reg_t reg;
                     if (reghasvalue(retregs,*p,&reg))
                     {
                         cs.Iop = (cs.Iop & 1) | 0x88;
@@ -4089,7 +4089,7 @@ void pushParams(ref CodeBuilder cdb,elem *e,uint stackalign, tym_t tyf)
             // allocated on the stack by OPstrctor.
         {
             regm_t retregs = allregs;
-            uint reg;
+            reg_t reg;
             allocreg(cdb,&retregs,&reg,TYoffset);
             genregs(cdb,0x89,SP,reg);        // MOV reg,SP
             if (I64)
@@ -4495,7 +4495,7 @@ void pushParams(ref CodeBuilder cdb,elem *e,uint stackalign, tym_t tyf)
                 cdb.genadjesp(cast(int)sz);
                 for (int i = 0; i < 3; ++i)
                 {
-                    uint reg;
+                    reg_t reg;
                     if (reghasvalue(allregs, value, &reg))
                         cdb.gen1(0x50 + reg);           // PUSH reg
                     else
@@ -4562,7 +4562,7 @@ void pushParams(ref CodeBuilder cdb,elem *e,uint stackalign, tym_t tyf)
                         assert(0);
                 }
 
-                uint reg;
+                reg_t reg;
                 if (pushi)
                 {
                     if (I64 && regsize == 8 && value != cast(int)value)
@@ -4655,7 +4655,7 @@ void pushParams(ref CodeBuilder cdb,elem *e,uint stackalign, tym_t tyf)
             else
             {
                 retregs = IDXREGS;                             // get an index reg
-                uint reg;
+                reg_t reg;
                 allocreg(cdb,&retregs,&reg,TYoffset);
                 genregs(cdb,0x89,SP,reg);         // MOV reg,SP
                 pop87();
@@ -4695,7 +4695,7 @@ void pushParams(ref CodeBuilder cdb,elem *e,uint stackalign, tym_t tyf)
 
 void offsetinreg(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
-    uint reg;
+    reg_t reg;
     regm_t retregs = mLSW;                     // want only offset
     if (e.Ecount && e.Ecount != e.Ecomsub)
     {
@@ -4727,7 +4727,9 @@ L3:
 
 void loaddata(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-    uint reg,nreg,op,sreg;
+    reg_t reg;
+    reg_t nreg;
+    uint op, sreg;
     tym_t tym;
     code cs;
     regm_t flags,forregs,regm;
@@ -4901,7 +4903,7 @@ void loaddata(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                  * in the data segment, because they are x87 opcodes.
                  * Not so efficient. We should at least do a PXOR for 0.
                  */
-                uint r;
+                reg_t r;
                 targ_size_t unsvalue = e.EV.Vuns;
                 if (sz == 8)
                     unsvalue = cast(targ_size_t)e.EV.Vullong;
@@ -4955,7 +4957,7 @@ void loaddata(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                      * in the data segment, because they are x87 opcodes.
                      * Not so efficient. We should at least do a PXOR for 0.
                      */
-                    uint r;
+                    reg_t r;
                     regm_t rm = ALLREGS;
                     allocreg(cdb,&rm,&r,TYint);    // allocate scratch register
                     movregconst(cdb,r,p[0],0);
