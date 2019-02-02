@@ -490,7 +490,7 @@ int movOnly(elem *e);
 regm_t idxregm(code *c);
 void opdouble(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint clib);
 void WRcodlst(code *c);
-void getoffset(ref CodeBuilder cdb, elem *e, uint reg);
+void getoffset(ref CodeBuilder cdb, elem *e, reg_t reg);
 
 /* cod3.c */
 
