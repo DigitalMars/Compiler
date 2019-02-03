@@ -93,12 +93,12 @@ int isscaledindex(elem *e)
     while (e.Eoper == OPcomma)
     {
         regm_t r = 0;
-        scodelem(cdb,e.EV.E1,&r,keepmsk,true);
+        scodelem(cdb, e.EV.E1, &r, keepmsk, true);
         freenode(e);
         e = e.EV.E2;
     }
     assert(e.Eoper == OPshl);
-    scodelem(cdb,e.EV.E1,pidxregs,keepmsk,true);
+    scodelem(cdb, e.EV.E1, pidxregs, keepmsk, true);
     freenode(e.EV.E2);
     freenode(e);
 }
@@ -127,31 +127,31 @@ struct Ssindex
 
 private __gshared const Ssindex[21] ssindex_array =
 [
-    {   0, 0,0},               // [0] is a place holder
+    { 0, 0, 0 },               // [0] is a place holder
 
-    {   3, 1,0,SSFLnobp | SSFLlea},
-    {   5, 2,0,SSFLnobp | SSFLlea},
-    {   9, 3,0,SSFLnobp | SSFLlea},
+    { 3,  1, 0, SSFLnobp | SSFLlea },
+    { 5,  2, 0, SSFLnobp | SSFLlea },
+    { 9,  3, 0, SSFLnobp | SSFLlea },
 
-    {   6, 1,1,SSFLnobase},
-    {   12,1,2,SSFLnobase},
-    {   24,1,3,SSFLnobase},
-    {   10,2,1,SSFLnobase},
-    {   20,2,2,SSFLnobase},
-    {   40,2,3,SSFLnobase},
-    {   18,3,1,SSFLnobase},
-    {   36,3,2,SSFLnobase},
-    {   72,3,3,SSFLnobase},
+    { 6,  1, 1, SSFLnobase },
+    { 12, 1, 2, SSFLnobase },
+    { 24, 1, 3, SSFLnobase },
+    { 10, 2, 1, SSFLnobase },
+    { 20, 2, 2, SSFLnobase },
+    { 40, 2, 3, SSFLnobase },
+    { 18, 3, 1, SSFLnobase },
+    { 36, 3, 2, SSFLnobase },
+    { 72, 3, 3, SSFLnobase },
 
-    {   15,2,1,SSFLnobp},
-    {   25,2,2,SSFLnobp},
-    {   27,3,1,SSFLnobp},
-    {   45,3,2,SSFLnobp},
-    {   81,3,3,SSFLnobp},
+    { 15, 2, 1, SSFLnobp },
+    { 25, 2, 2, SSFLnobp },
+    { 27, 3, 1, SSFLnobp },
+    { 45, 3, 2, SSFLnobp },
+    { 81, 3, 3, SSFLnobp },
 
-    {   16,3,1,SSFLnobase1 | SSFLnobase},
-    {   32,3,2,SSFLnobase1 | SSFLnobase},
-    {   64,3,3,SSFLnobase1 | SSFLnobase},
+    { 16, 3, 1, SSFLnobase1 | SSFLnobase },
+    { 32, 3, 2, SSFLnobase1 | SSFLnobase },
+    { 64, 3, 3, SSFLnobase1 | SSFLnobase },
 ];
 
 int ssindex(int op,targ_uns product)
@@ -212,24 +212,24 @@ void buildEA(code *c,int base,int index,int scale,targ_size_t disp)
         {
             if (base == SP)
             {
-                rm  = modregrm(2,0,4);
-                sib = modregrm(0,4,SP);
+                rm  = modregrm(2, 0, 4);
+                sib = modregrm(0, 4, SP);
             }
             else
-            {   rm = modregrm(2,0,base & 7);
+            {   rm = modregrm(2, 0, base & 7);
                 if (base & 8)
                 {   rex |= REX_B;
                     if (base == R12)
                     {
-                        rm = modregrm(2,0,4);
-                        sib = modregrm(0,4,4);
+                        rm  = modregrm(2, 0, 4);
+                        sib = modregrm(0, 4, 4);
                     }
                 }
             }
         }
         else
         {
-            rm  = modregrm(2,0,4);
+            rm  = modregrm(2, 0, 4);
             sib = modregrm(ss,index & 7,base & 7);
             if (index & 8)
                 rex |= REX_X;
@@ -303,12 +303,12 @@ void genEEcode()
     cod3_stackadj(cdb, cast(int)(EEStack.offset - REGSIZE));
     cdb.gen1(0x50 + SI);                      // PUSH ESI
     cdb.genadjesp(cast(int)EEStack.offset);
-    gencodelem(cdb,eecontext.EEelem,&retregs, false);
+    gencodelem(cdb, eecontext.EEelem, &retregs, false);
     code *c = cdb.finish();
     assignaddrc(c);
     pinholeopt(c,null);
     jmpaddr(c);
-    eecontext.EEcode = gen1(c,0xCC);        // INT 3
+    eecontext.EEcode = gen1(c, 0xCC);        // INT 3
     eecontext.EEin--;
 }
 
@@ -413,7 +413,8 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
             genregs(cdb,0x89,BP,SP);  // MOV SP,BP
         else
 +/
-        {   regm_t scratchm = 0;
+        {
+            regm_t scratchm = 0;
 
             if (numpara == REGSIZE && config.flags4 & CFG4space)
             {
@@ -423,7 +424,7 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
             if (scratchm)
             {
                 reg_t r;
-                allocreg(cdb,&scratchm,&r,TYint);
+                allocreg(cdb, &scratchm, &r, TYint);
                 cdb.gen1(0x58 + r);           // POP r
             }
             else
@@ -446,11 +447,11 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
  *      targ    either code or block pointer to destination
  */
 
-void logexp(ref CodeBuilder cdb,elem *e,int jcond,uint fltarg,code *targ)
+void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
 {
     //printf("logexp(e = %p, jcond = %d)\n", e, jcond);
     int no87 = (jcond & 2) == 0;
-    docommas(cdb,&e);             // scan down commas
+    docommas(cdb, &e);             // scan down commas
     cgstate.stackclean++;
 
     code* c, ce;
@@ -463,16 +464,16 @@ void logexp(ref CodeBuilder cdb,elem *e,int jcond,uint fltarg,code *targ)
                 con_t regconsave;
                 if (jcond & 1)
                 {
-                    logexp(cdb,e.EV.E1,jcond,fltarg,targ);
+                    logexp(cdb, e.EV.E1, jcond, fltarg, targ);
                     regconsave = regcon;
-                    logexp(cdb,e.EV.E2,jcond,fltarg,targ);
+                    logexp(cdb, e.EV.E2, jcond, fltarg, targ);
                 }
                 else
                 {
                     code *cnop = gennop(null);
-                    logexp(cdb,e.EV.E1,jcond | 1,FLcode,cnop);
+                    logexp(cdb, e.EV.E1, jcond | 1, FLcode, cnop);
                     regconsave = regcon;
-                    logexp(cdb,e.EV.E2,jcond,fltarg,targ);
+                    logexp(cdb, e.EV.E2, jcond, fltarg, targ);
                     cdb.append(cnop);
                 }
                 andregcon(&regconsave);
@@ -487,16 +488,16 @@ void logexp(ref CodeBuilder cdb,elem *e,int jcond,uint fltarg,code *targ)
                 if (jcond & 1)
                 {
                     code *cnop = gennop(null);    // a dummy target address
-                    logexp(cdb,e.EV.E1,jcond & ~1,FLcode,cnop);
+                    logexp(cdb, e.EV.E1, jcond & ~1, FLcode, cnop);
                     regconsave = regcon;
-                    logexp(cdb,e.EV.E2,jcond,fltarg,targ);
+                    logexp(cdb, e.EV.E2, jcond, fltarg, targ);
                     cdb.append(cnop);
                 }
                 else
                 {
-                    logexp(cdb,e.EV.E1,jcond,fltarg,targ);
+                    logexp(cdb, e.EV.E1, jcond, fltarg, targ);
                     regconsave = regcon;
-                    logexp(cdb,e.EV.E2,jcond,fltarg,targ);
+                    logexp(cdb, e.EV.E2, jcond, fltarg, targ);
                 }
                 andregcon(&regconsave);
                 freenode(e);
@@ -517,7 +518,7 @@ void logexp(ref CodeBuilder cdb,elem *e,int jcond,uint fltarg,code *targ)
             case OPu32_64:
             case OPu32_d:
             case OPd_ld:
-                logexp(cdb,e.EV.E1,jcond,fltarg,targ);
+                logexp(cdb, e.EV.E1, jcond, fltarg, targ);
                 freenode(e);
                 cgstate.stackclean--;
                 return;
@@ -526,16 +527,16 @@ void logexp(ref CodeBuilder cdb,elem *e,int jcond,uint fltarg,code *targ)
             {
                 code *cnop2 = gennop(null);   // addresses of start of leaves
                 code *cnop = gennop(null);
-                logexp(cdb,e.EV.E1,false,FLcode,cnop2);   // eval condition
+                logexp(cdb, e.EV.E1, false, FLcode, cnop2);   // eval condition
                 con_t regconold = regcon;
-                logexp(cdb,e.EV.E2.EV.E1,jcond,fltarg,targ);
-                genjmp(cdb,JMP,FLcode,cast(block *) cnop); // skip second leaf
+                logexp(cdb, e.EV.E2.EV.E1, jcond, fltarg, targ);
+                genjmp(cdb, JMP, FLcode, cast(block *) cnop); // skip second leaf
 
                 con_t regconsave = regcon;
                 regcon = regconold;
 
                 cdb.append(cnop2);
-                logexp(cdb,e.EV.E2.EV.E2,jcond,fltarg,targ);
+                logexp(cdb, e.EV.E2.EV.E2, jcond, fltarg, targ);
                 andregcon(&regconold);
                 andregcon(&regconsave);
                 freenode(e.EV.E2);
@@ -559,7 +560,7 @@ void logexp(ref CodeBuilder cdb,elem *e,int jcond,uint fltarg,code *targ)
           (I32 && tybasic(e.EV.E1.Ety) == TYllong && tybasic(e.EV.E2.Ety) == TYllong))
        )
     {
-        longcmp(cdb,e,jcond != 0,fltarg,targ);
+        longcmp(cdb, e, jcond != 0, fltarg, targ);
         cgstate.stackclean--;
         return;
     }
@@ -568,10 +569,10 @@ void logexp(ref CodeBuilder cdb,elem *e,int jcond,uint fltarg,code *targ)
     uint op = jmpopcode(e);           // get jump opcode
     if (!(jcond & 1))
         op ^= 0x101;                      // toggle jump condition(s)
-    codelem(cdb,e,&retregs,true);         // evaluate elem
+    codelem(cdb, e, &retregs, true);         // evaluate elem
     if (no87)
         cse_flush(cdb,no87);              // flush CSE's to memory
-    genjmp(cdb,op,fltarg,cast(block *) targ); // generate jmp instruction
+    genjmp(cdb, op, fltarg, cast(block *) targ); // generate jmp instruction
     cgstate.stackclean--;
 }
 
@@ -592,14 +593,14 @@ void logexp(ref CodeBuilder cdb,elem *e,int jcond,uint fltarg,code *targ)
  */
 
 void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t offset,
-        regm_t keepmsk,regm_t desmsk)
+            regm_t keepmsk,regm_t desmsk)
 {
-    code* c,cg,cd;
+    code* c, cg, cd;
 
     debug
     if (debugw)
         printf("loadea: e=%p cs=%p op=x%x reg=%d offset=%lld keepmsk=%s desmsk=%s\n",
-               e,cs,op,reg,cast(ulong)offset,regm_str(keepmsk),regm_str(desmsk));
+               e, cs, op, reg, cast(ulong)offset, regm_str(keepmsk), regm_str(desmsk));
 
     assert(e);
     cs.Iflags = 0;
@@ -648,13 +649,13 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
                         if (op != 0x8B)
                             break;      // not a load
                         cs.Iop = 0x8C; /* MOV reg,ES   */
-                        cs.Irm = modregrm(3,0,reg & 7);
+                        cs.Irm = modregrm(3, 0, reg & 7);
                         if (reg & 8)
                             code_orrex(cs, REX_B);
                     }
                     else    // XXX reg,i
                     {
-                        cs.Irm = modregrm(3,reg & 7,i & 7);
+                        cs.Irm = modregrm(3, reg & 7, i & 7);
                         if (reg & 8)
                             cs.Irex |= REX_R;
                         if (i & 8)
@@ -671,7 +672,7 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
         }
     }
 
-    getlvalue(cdb,cs,e,keepmsk);
+    getlvalue(cdb, cs, e, keepmsk);
     if (offset == REGSIZE)
         getlvalue_msw(cs);
     else
@@ -700,7 +701,7 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
     else if ((op & 0xFFF8) == 0xD8 && ADDFWAIT())
         cs.Iflags |= CFwait;
 L2:
-    getregs(cdb,desmsk);                  // save any regs we destroy
+    getregs(cdb, desmsk);                  // save any regs we destroy
 
     /* KLUDGE! fix up DX for divide instructions */
     if (op == 0xF7 && desmsk == (mAX|mDX))        /* if we need to fix DX */
@@ -712,7 +713,7 @@ L2:
                 code_orrex(cdb.last(), REX_W);
         }
         else if (reg == 6)                      // if DIV
-            genregs(cdb,0x33,DX,DX);        // XOR DX,DX
+            genregs(cdb, 0x33, DX, DX);        // XOR DX,DX
     }
 
     // Eliminate MOV reg,reg
