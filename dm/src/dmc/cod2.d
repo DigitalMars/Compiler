@@ -2709,8 +2709,8 @@ version (SCPP)
             else if (sz == 2 * REGSIZE &&
                      config.target_cpu >= TARGET_80386)
             {
-                uint hreg = resreg;
-                uint lreg = sreg;
+                reg_t hreg = resreg;
+                reg_t lreg = sreg;
                 uint rex = I64 ? (REX_W << 16) : 0;
                 if (e2isconst)
                 {
@@ -4541,7 +4541,7 @@ void cdneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-            const reg = (sz == 8) ? cast(uint) AX : findregmsw(retregs);
+            const reg = (sz == 8) ? AX : findregmsw(retregs);
             cdb.genc2(0x81,modregrm(3,6,reg),0x8000);     // XOR AX,0x8000
         }
         fixresult(cdb,e,retregs,pretregs);
@@ -4614,7 +4614,7 @@ void cdabs(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
         }
         else
         {
-            const reg = (sz == 8) ? cast(int) AX : findregmsw(retregs);
+            const reg = (sz == 8) ? AX : findregmsw(retregs);
             cdb.genc2(0x81,modregrm(3,4,reg),0x7FFF);     // AND AX,0x7FFF
         }
         fixresult(cdb,e,retregs,pretregs);
