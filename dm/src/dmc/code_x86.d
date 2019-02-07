@@ -20,6 +20,9 @@ import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.ty : I64;
 
+alias opcode_t = uint;          // CPU opcode
+enum opcode_t NoOpcode = 0xFFFF;              // not a valid opcode_t
+
 /* Register definitions */
 
 enum
@@ -313,7 +316,7 @@ struct code
 
     union
     {
-        uint Iop;
+        opcode_t Iop;
         struct Svex
         {
           align(1):
@@ -411,6 +414,7 @@ enum
     SEGFS   = 0x64,
     SEGGS   = 0x65,
 
+    CMP     = 0x3B,
     CALL    = 0xE8,
     JMP     = 0xE9,    // Intra-Segment Direct
     JMPS    = 0xEB,    // JMP SHORT
