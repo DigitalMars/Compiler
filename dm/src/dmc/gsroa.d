@@ -255,7 +255,6 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
 
 void sliceStructs(symtab_t* symtab, block* startblock)
 {
-version (all) {
     if (debugc) printf("sliceStructs() %s\n", funcsym_p.Sident.ptr);
     const sia_length = symtab.top;
     /* 3 is because it is used for two arrays, sia[] and sia2[].
@@ -305,8 +304,10 @@ version (all) {
 
         switch (s.Sclass)
         {
+            case SCfastpar:
             case SCregister:
             case SCauto:
+            case SCshadowreg:
             case SCparameter:
                 anySlice = true;
                 sia[si].canSlice = true;
@@ -319,8 +320,6 @@ version (all) {
                 }
                 break;
 
-            case SCshadowreg:
-            case SCfastpar:
             case SCstack:
             case SCpseudo:
             case SCstatic:
@@ -416,7 +415,6 @@ version (all) {
 Ldone:
     if (sip != tmp.ptr)
         free(sip);
-}
 }
 
 
