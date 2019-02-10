@@ -84,7 +84,7 @@ debug
     elem_debug(e);
     type_debug(e.ET);
 
-    uint op = e.Eoper;
+    const OPER op = e.Eoper;
 
 debug
 {

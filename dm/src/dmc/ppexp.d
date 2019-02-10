@@ -356,8 +356,7 @@ private targ_long mul_exp()
 
     e = una_exp();
     while (1)
-    {   int op;
-
+    {
         switch (tok.TKval)
         {
             case TKstar:
