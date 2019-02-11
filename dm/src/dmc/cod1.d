@@ -4243,46 +4243,8 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     break;
 
                 case OPpair:
-                    const op1 = e1.EV.E1.Eoper;
-                    const op2 = e1.EV.E2.Eoper;
-                    if ((op1 == OPvar || op1 == OPconst || op1 == OPrelconst) &&
-                        (op2 == OPvar || op2 == OPconst || op2 == OPrelconst))
-                    {
-                        pushParams(cdb, e1.EV.E2, stackalign, tyf);
-                        pushParams(cdb, e1.EV.E1, stackalign, tyf);
-                        freenode(e1);
-                    }
-                    else
-                    {
-                        regm_t regs = allregs;
-                        codelem(cdb, e1, &regs, false);
-                        genpush(cdb, findregmsw(regs)); // PUSH msreg
-                        genpush(cdb, findreglsw(regs)); // PUSH lsreg
-                        cdb.genadjesp(cast(int)sz);
-                        stackpush += sz;
-                    }
-                    freenode(e);
-                    return;
-
                 case OPrpair:
-                    const op1 = e1.EV.E1.Eoper;
-                    const op2 = e1.EV.E2.Eoper;
-                    if ((op1 == OPvar || op1 == OPconst || op1 == OPrelconst) &&
-                        (op2 == OPvar || op2 == OPconst || op2 == OPrelconst))
-                    {
-                        pushParams(cdb, e1.EV.E1, stackalign, tyf);
-                        pushParams(cdb, e1.EV.E2, stackalign, tyf);
-                        freenode(e1);
-                    }
-                    else
-                    {
-                        regm_t regs = allregs;
-                        codelem(cdb, e1, &regs, false);
-                        genpush(cdb, findreglsw(regs)); // PUSH lsreg
-                        genpush(cdb, findregmsw(regs)); // PUSH msreg
-                        cdb.genadjesp(cast(int)sz);
-                        stackpush += sz;
-                    }
+                    pushParams(cdb, e1, stackalign, tyf);
                     freenode(e);
                     return;
 
@@ -4644,6 +4606,69 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             freenode(e);
             return;
         }
+
+        case OPpair:
+        {
+            if (e.Ecount)
+                break;
+            const op1 = e.EV.E1.Eoper;
+            const op2 = e.EV.E2.Eoper;
+            if ((op1 == OPvar || op1 == OPconst || op1 == OPrelconst) &&
+                (op2 == OPvar || op2 == OPconst || op2 == OPrelconst))
+            {
+                pushParams(cdb, e.EV.E2, stackalign, tyf);
+                pushParams(cdb, e.EV.E1, stackalign, tyf);
+                freenode(e);
+            }
+            else if (tyfloating(e.EV.E1.Ety) ||
+                     tyfloating(e.EV.E2.Ety))
+            {
+                // Need special handling because of order of evaluation of e1 and e2
+                break;
+            }
+            else
+            {
+                regm_t regs = allregs;
+                codelem(cdb, e, &regs, false);
+                genpush(cdb, findregmsw(regs)); // PUSH msreg
+                genpush(cdb, findreglsw(regs)); // PUSH lsreg
+                cdb.genadjesp(cast(int)sz);
+                stackpush += sz;
+            }
+            return;
+        }
+
+        case OPrpair:
+        {
+            if (e.Ecount)
+                break;
+            const op1 = e.EV.E1.Eoper;
+            const op2 = e.EV.E2.Eoper;
+            if ((op1 == OPvar || op1 == OPconst || op1 == OPrelconst) &&
+                (op2 == OPvar || op2 == OPconst || op2 == OPrelconst))
+            {
+                pushParams(cdb, e.EV.E1, stackalign, tyf);
+                pushParams(cdb, e.EV.E2, stackalign, tyf);
+                freenode(e);
+            }
+            else if (tyfloating(e.EV.E1.Ety) ||
+                     tyfloating(e.EV.E2.Ety))
+            {
+                // Need special handling because of order of evaluation of e1 and e2
+                break;
+            }
+            else
+            {
+                regm_t regs = allregs;
+                codelem(cdb, e, &regs, false);
+                genpush(cdb, findregmsw(regs)); // PUSH msreg
+                genpush(cdb, findreglsw(regs)); // PUSH lsreg
+                cdb.genadjesp(cast(int)sz);
+                stackpush += sz;
+            }
+            return;
+        }
+
         default:
             break;
     }
