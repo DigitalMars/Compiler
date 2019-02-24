@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -213,14 +213,13 @@ private void rd_compute()
 
 private void conpropwalk(elem *n,vec_t IN)
 {
-    uint op;
     Elemdata *pdata;
     vec_t L,R;
     elem *t;
 
     assert(n && IN);
     //printf("conpropwalk()\n"),elem_print(n);
-    op = n.Eoper;
+    const op = n.Eoper;
     if (op == OPcolon || op == OPcolon2)
     {
         L = vec_clone(IN);
@@ -641,7 +640,7 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
     {
         elem *d = go.defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");
-        uint op = d.Eoper;
+        const op = d.Eoper;
         if (op == OPasm)                // assume ASM elems define everything
             goto listit;
         if (OTassign(op))
