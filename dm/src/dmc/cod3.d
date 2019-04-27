@@ -221,7 +221,7 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint *pid
         i = regsave.idx;
         regsave.idx += 16;
         // MOVD idx[RBP],xmm
-        uint op = STOAPD;
+        opcode_t op = STOAPD;
         if (0)
             /* This is because the regsave does not get properly aligned
              * to 16 on 32 bit machines.
@@ -255,7 +255,7 @@ void REGSAVE_restore(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint i
     {
         assert(regsave.alignment == 16);
         // MOVD xmm,index[RBP]
-        uint op = LODAPD;
+        opcode_t op = LODAPD;
         if (0)
             op = LODUPD;
         cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) index);
@@ -309,7 +309,7 @@ ubyte vex_inssize(code *c)
 int cod3_EA(code *c)
 {   uint ins;
 
-    uint op1 = c.Iop & 0xFF;
+    opcode_t op1 = c.Iop & 0xFF;
     if (op1 == ESCAPE)
         ins = 0;
     else if ((c.Iop & 0xFFFD00) == 0x0F3800)
@@ -2136,7 +2136,6 @@ void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
     ubyte sib;
     reg_t reg;
     uint flagsave;
-    uint opsave;
 
     assert(!I64);
     if (!I16 && pcs.Iflags & (CFes | CFss | CFcs | CFds | CFfs | CFgs))
@@ -2158,11 +2157,11 @@ void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
        )
     {
         // Load the offset into a register, so we can push the address
-        idxregs = (I16 ? IDXREGS : ALLREGS) & ~keepmsk; // only these can be index regs
-        assert(idxregs);
-        allocreg(cdb,&idxregs,&reg,TYoffset);
+        regm_t idxregs2 = (I16 ? IDXREGS : ALLREGS) & ~keepmsk; // only these can be index regs
+        assert(idxregs2);
+        allocreg(cdb,&idxregs2,&reg,TYoffset);
 
-        opsave = pcs.Iop;
+        const opsave = pcs.Iop;
         flagsave = pcs.Iflags;
         pcs.Iop = LEA;
         pcs.Irm |= modregrm(0,reg,0);
@@ -2373,7 +2372,7 @@ void gen_testcse(ref CodeBuilder cdb, uint sz, targ_uns i)
 
 void gen_loadcse(ref CodeBuilder cdb, reg_t reg, targ_uns i)
 {
-    uint op = 0x8B;
+    opcode_t op = 0x8B;
     if (reg == ES)
     {
         op = 0x8E;
@@ -2516,7 +2515,7 @@ private int obj_namestring(char *p,const(char)* name)
 }
 }
 
-void genregs(ref CodeBuilder cdb,uint op,uint dstreg,uint srcreg)
+void genregs(ref CodeBuilder cdb,opcode_t op,uint dstreg,uint srcreg)
 {
     return cdb.gen2(op,modregxrmx(3,dstreg,srcreg));
 }
@@ -2547,7 +2546,7 @@ void genpop(ref CodeBuilder cdb, reg_t reg)
 void gensavereg(ref CodeBuilder cdb, ref reg_t reg, targ_uns slot)
 {
     // MOV i[BP],reg
-    uint op = 0x89;              // normal mov
+    opcode_t op = 0x89;              // normal mov
     if (reg == ES)
     {
         reg = 0;            // the real reg number
@@ -2943,7 +2942,7 @@ L1:
  * Generate a jump instruction.
  */
 
-void genjmp(ref CodeBuilder cdb,uint op,uint fltarg,block *targ)
+void genjmp(ref CodeBuilder cdb,opcode_t op,uint fltarg,block *targ)
 {
     code cs;
     cs.Iop = op & 0xFF;
@@ -3530,7 +3529,14 @@ void prolog_trace(ref CodeBuilder cdb, bool farfunc, uint* regsaved)
 }
 }
 
-void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
+/******************************
+ * Generate special varargs prolog for Posix 64 bit systems.
+ * Params:
+ *      cdb = sink for generated code
+ *      sv = symbol for __va_argsave
+ *      namedargs = registers that named parameters (not ... arguments) were passed in.
+ */
+void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
 {
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
@@ -3572,8 +3578,11 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
         MOV     9[RAX],R11                  // set __va_argsave.stack_args
         SUB     RAX,6*8+0x7F                // point to start of __va_argsave
         MOV     6*8+8*16+4+4+8[RAX],RAX     // set __va_argsave.reg_args
-        MOV     RDX,R11
+    * RAX and R11 are destroyed.
     */
+
+    /* Save registers into the voff area on the stack
+     */
     targ_size_t voff = Auto.size + BPoff + sv.Soffset;  // EBP offset of start of sv
     const int vregnum = 6;
     const uint vsize = vregnum * 8 + 8 * 16;
@@ -3582,10 +3591,11 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
 
     if (!hasframe || enforcealign)
         voff += EBPtoESP;
+
     for (int i = 0; i < vregnum; i++)
     {
         uint r = regs[i];
-        if (!(mask(r) & *namedargs))         // named args are already dealt with
+        if (!(mask(r) & namedargs))  // unnamed arguments would be the ... ones
         {
             uint ea = (REX_W << 16) | modregxrm(2,r,BPRM);
             if (!hasframe || enforcealign)
@@ -3624,14 +3634,14 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
     for (int i = AX; i <= XMM7; i++)
     {
         regm_t m = mask(i);
-        if (m & *namedargs)
+        if (m & namedargs)
         {
             if (m & (mDI|mSI|mDX|mCX|mR8|mR9))
                 offset_regs += 8;
             else if (m & XMMREGS)
                 offset_fpregs += 16;
-            *namedargs &= ~m;
-            if (!*namedargs)
+            namedargs &= ~m;
+            if (!namedargs)
                 break;
         }
     }
@@ -3674,7 +3684,14 @@ void prolog_gen_win64_varargs(ref CodeBuilder cdb)
      */
 }
 
-void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* namedargs)
+/************************************
+ * Params:
+ *      cdb = generated code sink
+ *      tf = what's the type of the function
+ *      pushalloc = use PUSH to allocate on the stack rather than subtracting from SP
+ *      namedargs = set to the registers that named parameters were passed in
+ */
+void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_t namedargs)
 {
     //printf("prolog_loadparams()\n");
     debug
@@ -3683,7 +3700,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
         Symbol *s = globsym.tab[si];
         if (debugr && (s.Sclass == SCfastpar || s.Sclass == SCshadowreg))
         {
-            printf("symbol '%s' is fastpar in register [%s,%s]\n", s.Sident.ptr,
+            printf("symbol '%s' is fastpar in register [l %s, m %s]\n", s.Sident.ptr,
                 regm_str(mask(s.Spreg)),
                 (s.Spreg2 == NOREG ? "NOREG" : regm_str(mask(s.Spreg2))));
             if (s.Sfl == FLreg)
@@ -3732,7 +3749,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
                 for (int i = 0; i < 2; ++i)     // twice, once for each possible parameter register
                 {
                     shadowregm |= mask(preg);
-                    int op = 0x89;                  // MOV x[EBP],preg
+                    opcode_t op = 0x89;                  // MOV x[EBP],preg
                     if (XMM0 <= preg && preg <= XMM15)
                         op = xmmstore(t.Tty);
                     if (!(pushalloc && preg == pushallocreg) || s.Sclass == SCshadowreg)
@@ -3828,7 +3845,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
         uint sz = cast(uint)type_size(s.Stype);
 
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
-            *namedargs |= s.Spregm();
+            namedargs |= s.Spregm();
 
         if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl == FLreg)
         {   // Argument is passed in a register
@@ -3852,9 +3869,12 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
                 assignregs |= mask(r);
 
                 // MOV reg,preg
-                if (mask(preg) & XMMREGS)
+                if (r == preg)
                 {
-                    uint op = xmmload(t.Tty);      // MOVSS/D xreg,preg
+                }
+                else if (mask(preg) & XMMREGS)
+                {
+                    const op = xmmload(t.Tty);      // MOVSS/D xreg,preg
                     uint xreg = r - XMM0;
                     cdb.gen2(op,modregxrmx(3,xreg,preg - XMM0));
                 }
@@ -3893,7 +3913,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
             //assert(refparam);
             if (mask(s.Sreglsw) & XMMREGS)
             {
-                uint op = xmmload(s.Stype.Tty);  // MOVSS/D xreg,mem
+                const op = xmmload(s.Stype.Tty);  // MOVSS/D xreg,mem
                 uint xreg = s.Sreglsw - XMM0;
                 cdb.genc1(op,modregxrm(2,xreg,BPRM),FLconst,Para.size + s.Soffset);
                 if (!hasframe)
@@ -3954,7 +3974,6 @@ void epilog(block *b)
     reg_t reg;
     reg_t regx;                      // register that's not a return reg
     regm_t topop,regm;
-    int op;
     targ_size_t xlocalsize = localsize;
 
     CodeBuilder cdbx; cdbx.ctor();
@@ -4137,7 +4156,7 @@ void epilog(block *b)
     if (b.BC == BCret || b.BC == BCretexp)
     {
 Lret:
-        op = tyfarfunc(tym) ? 0xCA : 0xC2;
+        opcode_t op = tyfarfunc(tym) ? 0xCA : 0xC2;
         if (tym == TYhfunc)
         {
             cdbx.genc2(0xC2,0,4);                       // RET 4
@@ -5011,6 +5030,7 @@ void assignaddrc(code *c)
                 break;
 
             case FLpara:
+//printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d\n", s.Sident.ptr, s.Soffset, Para.size, BPoff, EBPtoESP);
                 soff = Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
 
@@ -5237,7 +5257,7 @@ targ_size_t cod3_bpoffset(Symbol *s)
 void pinholeopt(code *c,block *b)
 {
     targ_size_t a;
-    uint op,mod;
+    uint mod;
     ubyte ins;
     int usespace;
     int useopsize;
@@ -5273,7 +5293,7 @@ void pinholeopt(code *c,block *b)
     for (; c; c = code_next(c))
     {
     L1:
-        op = c.Iop;
+        opcode_t op = c.Iop;
         if (c.Iflags & CFvex && c.Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((op & 0xFFFD00) == 0x0F3800)
@@ -5933,13 +5953,12 @@ void jmpaddr(code *c)
 {
     code* ci,cn,ctarg,cstart;
     targ_size_t ad;
-    uint op;
 
     //printf("jmpaddr()\n");
     cstart = c;                           /* remember start of code       */
     while (c)
     {
-        op = c.Iop;
+        const op = c.Iop;
         if (op <= 0xEB &&
             inssize[op] & T &&   // if second operand
             c.IFL2 == FLcode &&
@@ -6025,7 +6044,6 @@ uint calcblksize(code *c)
 uint calccodsize(code *c)
 {
     uint size;
-    uint op;
     ubyte rm,mod,ins;
     uint iflags;
     uint i32 = I32 || I64;
@@ -6035,7 +6053,7 @@ uint calccodsize(code *c)
     assert((a32 & ~1) == 0);
 
     iflags = c.Iflags;
-    op = c.Iop;
+    opcode_t op = c.Iop;
     if (iflags & CFvex && c.Ivex.pfx == 0xC4)
     {
         ins = vex_inssize(c);
@@ -6363,7 +6381,6 @@ private void do64bit(MiniCodeBuf *pbuf, FL, evc *,int);
 
 uint codout(int seg, code *c)
 {
-    uint op;
     ubyte rm,mod;
     ubyte ins;
     code *cn;
@@ -6386,7 +6403,7 @@ uint codout(int seg, code *c)
         uint startoffset = ggen.getOffset();
         }
 
-        op = c.Iop;
+        opcode_t op = c.Iop;
         ins = inssize[op & 0xFF];
         switch (op & 0xFF)
         {
@@ -7582,7 +7599,7 @@ extern (C) void code_print(code* c)
         return;
     }
 
-    uint op = c.Iop;
+    const op = c.Iop;
     if (c.Iflags & CFvex && c.Ivex.pfx == 0xC4)
         ins = vex_inssize(c);
     else if ((c.Iop & 0xFFFD00) == 0x0F3800)
