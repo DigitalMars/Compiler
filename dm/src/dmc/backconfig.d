@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.d, backend/backconfig.d)
@@ -113,8 +113,10 @@ static if (TARGET_LINUX)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
+
     config.objfmt = OBJ_ELF;
 }
 static if (TARGET_OSX)
@@ -135,8 +137,11 @@ static if (TARGET_OSX)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
+        if (model == 64)
+            config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
     config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_MACH;
 }
@@ -159,8 +164,9 @@ static if (TARGET_FREEBSD)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
     config.objfmt = OBJ_ELF;
 }
 static if (TARGET_OPENBSD)

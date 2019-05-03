@@ -3109,6 +3109,12 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     if (e.EV.E1.Eoper == OPvar)
         sf = e.EV.E1.EV.Vsym;
 
+    /* Assume called function access statics
+     */
+    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64) &&
+        config.flags3 & CFG3pic)
+        cgstate.accessedTLS = true;
+
     /* Special handling for call to __tls_get_addr, we must save registers
      * before evaluating the parameter, so that the parameter load and call
      * are adjacent.
@@ -5028,7 +5034,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 flags |= 2;
             if (sz == 8)
                 flags |= 64;
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {   /* This comes about because 0, 1, pi, etc., constants don't get stored
                  * in the data segment, because they are x87 opcodes.
                  * Not so efficient. We should at least do a PXOR for 0.
@@ -5082,7 +5088,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             if (I32)
             {
                 targ_long *p = cast(targ_long *)cast(void*)&e.EV.Vdouble;
-                if (reg >= XMM0)
+                if (isXMMreg(reg))
                 {   /* This comes about because 0, 1, pi, etc., constants don't get stored
                      * in the data segment, because they are x87 opcodes.
                      * Not so efficient. We should at least do a PXOR for 0.

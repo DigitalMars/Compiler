@@ -236,6 +236,7 @@ tryagain:
     cgstate.stackclean = 1;
     cgstate.funcarg.init();
     cgstate.funcargtos = ~0;
+    cgstate.accessedTLS = false;
     STACKALIGN = TARGET_STACKALIGN;
 
     regsave.reset();
@@ -811,6 +812,7 @@ void prolog(ref CodeBuilder cdb)
          * so need frame if function can possibly throw
          */
         !(config.exe == EX_WIN32) && !(funcsym_p.Sfunc.Fflags3 & Fnothrow) ||
+        cgstate.accessedTLS ||
         sv64
        )
         needframe = 1;
@@ -1861,7 +1863,7 @@ reg_t findreg(regm_t regm, int line, const(char)* file)
     printf("findreg(%s, line=%d, file='%s', function = '%s')\n",regm_str(regmsave),line,file,funcsym_p.Sident.ptr);
     fflush(stdout);
 
-    //*(char*)0=0;
+//    *(char*)0=0;
     assert(0);
 }
 
