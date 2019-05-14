@@ -305,10 +305,6 @@ int convidx(OPER op) { return op - CNVOPMIN; }
  *      OTboolnop       operation is a nop if boolean result is desired
  */
 
-// Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066)
-    private enum computeEnumValue = OPMAX;
-
 extern (C)
 {
     extern __gshared ubyte[OPMAX] optab1;
@@ -378,6 +374,8 @@ OPER opeqtoop(OPER opx)   { return opx - OPaddass + OPadd; }
 
 /* Convert op to op=    */
 OPER optoopeq(OPER opx)   { return opx - OPadd + OPaddass; }
+
+OPER swaprel(OPER);
 
 /***************************
  * Determine properties of an elem.

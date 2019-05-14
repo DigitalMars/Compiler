@@ -451,7 +451,6 @@ char *sym_ident(SYMIDX si);
 /* cgelem.c     */
 elem *doptelem(elem *, goal_t);
 void postoptelem(elem *);
-uint swaprel(uint);
 int elemisone(elem *);
 
 /* msc.c */
