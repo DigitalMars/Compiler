@@ -25,6 +25,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 alias segidx_t = int;           // index into SegData[]
 
 /**********************************
@@ -111,6 +113,7 @@ struct REGSAVE
     uint idx;                   // current number in use
     int alignment;              // 8 or 16
 
+  nothrow:
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
     void save(ref CodeBuilder cdb, reg_t reg, uint *pidx) { REGSAVE_save(this, cdb, reg, *pidx); }
     void restore(ref CodeBuilder cdb, reg_t reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
@@ -130,6 +133,7 @@ struct LocalSection
     targ_size_t size;           // size of section
     int alignment;              // alignment size
 
+  nothrow:
     void init()                 // initialize
     {   offset = 0;
         size = 0;
@@ -264,6 +268,7 @@ struct seg_data
     uint             SDlinnum_max;
     linnum_data     *SDlinnum_data;     // array of line number / offset data
 
+  nothrow:
     version (Windows)
         int isCode() { return seg_data_isCode(this); }
     version (OSX)
