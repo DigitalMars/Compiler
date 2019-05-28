@@ -208,7 +208,7 @@ private __gshared ubyte[256] inssize2 =
 ];
 
 /*************************************************
- * Generate code to save `reg` in `regsave`E stack area.
+ * Generate code to save `reg` in `regsave` stack area.
  * Params:
  *      regsave = register save areay on stack
  *      cdb = where to write generated code
@@ -226,13 +226,8 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
         regsave.idx += 16;
         // MOVD idx[RBP],xmm
         opcode_t op = STOAPD;
-        if (0)
-            /* This is because the regsave does not get properly aligned
-             * to 16 on 32 bit machines.
-             * Doing so wreaks havoc with the location of vthis, which messes
-             * up testcontracts.d, which is likely broken anyway for this same
-             * reason. Need to fix.
-             */
+        if (TARGET_LINUX && I32)
+            // Haven't yet figured out why stack is not aligned to 16
             op = STOUPD;
         cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) idx);
     }
@@ -254,6 +249,7 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
 
 /*******************************
  * Restore `reg` from `regsave` area.
+ * Complement REGSAVE_save().
  */
 
 void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint idx)
@@ -263,7 +259,8 @@ void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, 
         assert(regsave.alignment == 16);
         // MOVD xmm,idx[RBP]
         opcode_t op = LODAPD;
-        if (0)
+        if (TARGET_LINUX && I32)
+            // Haven't yet figured out why stack is not aligned to 16
             op = LODUPD;
         cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) idx);
     }
@@ -374,17 +371,10 @@ void cod3_set32()
     if (config.flags3 & CFG3eseqds)
         fregsaved |= mES;
 
-    for (uint i = 0x80; i < 0x90; i++)
-        inssize2[i] = W|T|6;
+    foreach (ref v; inssize2[0x80 .. 0x90])
+        v = W|T|6;
 
-static if (TARGET_OSX)
-{
-    TARGET_STACKALIGN = 16;   // 16 for OSX because OSX uses SIMD
-}
-else
-{
-    TARGET_STACKALIGN = 4;
-}
+    TARGET_STACKALIGN = config.fpxmmregs ? 16 : 4;
 }
 
 /********************************
@@ -410,15 +400,14 @@ else
     FLOATREGS = FLOATREGS_64;
     FLOATREGS2 = FLOATREGS2_64;
     DOUBLEREGS = DOUBLEREGS_64;
-    TARGET_STACKALIGN = 16;
 
     ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI|  mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
     BYTEREGS = ALLREGS;
 
-    for (uint i = 0x80; i < 0x90; i++)
-        inssize2[i] = W|T|6;
+    foreach (ref v; inssize2[0x80 .. 0x90])
+        v = W|T|6;
 
-    TARGET_STACKALIGN = 16;   // 16 rather than 8 because of SIMD alignment
+    TARGET_STACKALIGN = config.fpxmmregs ? 16 : 8;
 }
 
 /*********************************
@@ -3324,7 +3313,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
         {
             reg_t reg = findreg(topush);
             topush &= ~mask(reg);
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {
                 if (hasframe && !enforcealign)
                 {
@@ -3372,7 +3361,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
         {
             reg_t reg = findreg(topush);
             topush &= ~mask(reg);
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {
                 // SUB RSP,16
                 cod3_stackadj(cdb, 16);
@@ -3426,7 +3415,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
         {
             reg_t reg = findreg(topop);
             topop &= ~mask(reg);
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {
                 if (hasframe && !enforcealign)
                 {
@@ -3468,7 +3457,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
         while (topop)
         {   if (topop & regm)
             {
-                if (reg >= XMM0)
+                if (isXMMreg(reg))
                 {
                     // MOVUPD xmm,0[RSP]
                     cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
@@ -3752,12 +3741,12 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                 if (!hasframe || (enforcealign && s.Sclass != SCshadowreg))
                     offset += EBPtoESP;
 
-                uint preg = s.Spreg;
+                reg_t preg = s.Spreg;
                 for (int i = 0; i < 2; ++i)     // twice, once for each possible parameter register
                 {
                     shadowregm |= mask(preg);
                     opcode_t op = 0x89;                  // MOV x[EBP],preg
-                    if (XMM0 <= preg && preg <= XMM15)
+                    if (isXMMreg(preg))
                         op = xmmstore(t.Tty);
                     if (!(pushalloc && preg == pushallocreg) || s.Sclass == SCshadowreg)
                     {
@@ -3765,7 +3754,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                         {
                             // MOV x[EBP],preg
                             cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
-                            if (XMM0 <= preg && preg <= XMM15)
+                            if (isXMMreg(preg))
                             {
                             }
                             else
@@ -3783,7 +3772,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                             cdb.genc1(op,
                                       (modregrm(0,4,SP) << 8) |
                                        modregxrm(2,preg,4),FLconst,offset);
-                            if (preg >= XMM0 && preg <= XMM15)
+                            if (isXMMreg(preg))
                             {
                             }
                             else

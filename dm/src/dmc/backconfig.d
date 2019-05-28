@@ -96,11 +96,11 @@ static if (TARGET_WINDOS)
 }
 static if (TARGET_LINUX)
 {
+    config.fpxmmregs = true;
+    config.avx = avx;
     if (model == 64)
     {   config.exe = EX_LINUX64;
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-        config.fpxmmregs = true;
-        config.avx = avx;
     }
     else
     {
@@ -125,7 +125,6 @@ static if (TARGET_OSX)
     config.avx = avx;
     if (model == 64)
     {   config.exe = EX_OSX64;
-        config.fpxmmregs = true;
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
     else
