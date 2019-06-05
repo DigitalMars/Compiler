@@ -356,7 +356,7 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
         if (regm & 1)
         {
             code *cs2;
-            if (i == ES)
+            if (i == ES && I16)
             {
                 stackused += REGSIZE;
                 cdbsave.gen1(0x06);                     // PUSH ES
@@ -2921,8 +2921,8 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
  * Params:
  *      t = type, valid only if ty is TYstruct or TYarray
  * Returns:
- *      0       not allocated to any register
- *      1       *preg1, *preg2 set to allocated register pair
+ *      false       not allocated to any register
+ *      true        *preg1, *preg2 set to allocated register pair
  */
 
 //int type_jparam2(type* t, tym_t ty);
@@ -3158,7 +3158,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         parameters[i].numalign = 0;
         if (alignsize > stackalign &&
             (I64 || (alignsize >= 16 &&
-                (config.exe == EX_OSX && (tyaggregate(ep.Ety) || tyvector(ep.Ety))))))
+                (config.exe & (EX_OSX | EX_LINUX) && (tyaggregate(ep.Ety) || tyvector(ep.Ety))))))
         {
             if (alignsize > STACKALIGN)
             {

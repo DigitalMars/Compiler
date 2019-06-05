@@ -47,15 +47,18 @@ bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }
 
 /*************************************
  * Determine if floating point should be cse'd.
+ * Returns:
+ *      true if should be cse'd
  */
 
-int cse_float(elem *e)
+private bool cse_float(elem *e)
 {
     // Don't CSE floating stuff if generating
     // inline 8087 code, the code generator
     // can't handle it yet
     return !(tyfloating(e.Ety) && config.inline8087 &&
-           e.Eoper != OPvar && e.Eoper != OPconst);
+             e.Eoper != OPvar && e.Eoper != OPconst) ||
+           (tyxmmreg(e.Ety) && config.fpxmmregs);
 }
 
 /************************************
@@ -533,6 +536,22 @@ L1:
         // This CSE is too easy to regenerate
         else if (op == OPu16_32 && I16 && e.Ecount)
             e = delcse(pe);
+
+        else if (op == OPd_ld && e.EV.E1.Ecount > 0)
+            delcse(&e.EV.E1);
+
+        else if (op == OPd_f && e.EV.E1.Ecount > 0 &&
+                 (e.EV.E1.Eoper == OPs32_d ||
+                  e.EV.E1.Eoper == OPs64_d && I64 ||
+                  e.EV.E1.Eoper == OPs32_d && I64) &&
+                 config.fpxmmregs)
+            delcse(&e.EV.E1);
+
+        else if ((op == OPd_s32 ||op == OPd_u32 || op == OPd_s64) &&
+                 e.EV.E1.Ecount &&
+                 e.EV.E1.Eoper == OPf_d &&
+                 config.fpxmmregs)
+            delcse(&e.EV.E1);
 
         // OPremquo is only worthwhile if its result is used more than once
         else if (e.EV.E1.Eoper == OPremquo &&
