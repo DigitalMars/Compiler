@@ -186,9 +186,10 @@ OBJ2b= cg.obj cgelem.obj cgcs.obj dcgcv.obj tytostr.obj cgen.obj cgreg.obj compr
 OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarfdbginf.obj stubobj.obj obj.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj barray.obj goh.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj dspeller.obj utf.obj divcoeff.obj dvec.obj dlist.obj filespec.obj
+OBJ2f= cgcse.obj
 
 ALLOBJS= $(OBJ1a) $(OBJ1b) $(OBJ1c) $(OBJ1d) $(OBJ1e) $(OBJ1f) $(OBJ1g) \
-         $(OBJ2a) $(OBJ2b) $(OBJ2c) $(OBJ2d) $(OBJ2e)
+         $(OBJ2a) $(OBJ2b) $(OBJ2c) $(OBJ2d) $(OBJ2e) $(OBJ2f)
 
 #########################################
 
@@ -236,7 +237,8 @@ $(TARGET)n.lnk : makefile
         echo $(OBJ2b)+                          >> $*.lnk
         echo $(OBJ2c)+                          >> $*.lnk
         echo $(OBJ2d)+                          >> $*.lnk
-        echo $(OBJ2e)$(LFLAGS)                  >> $*.lnk
+        echo $(OBJ2e)+                          >> $*.lnk
+        echo $(OBJ2f)$(LFLAGS)                  >> $*.lnk
         echo $*                                 >> $*.lnk
         echo $*                                 >> $*.lnk
         echo tdb+                               >> $*.lnk
@@ -258,7 +260,8 @@ $(TARGET)nd.lnk : makefile
         echo $(OBJ2b)+                          >> $*.lnk
         echo $(OBJ2c)+                          >> $*.lnk
         echo $(OBJ2d)+                          >> $*.lnk
-        echo $(OBJ2e)$(LFLAGS)/base:$(BASE)     >> $*.lnk
+        echo $(OBJ2e)+                          >> $*.lnk
+        echo $(OBJ2f)$(LFLAGS)/base:$(BASE)     >> $*.lnk
         echo $*.dll                             >> $*.lnk
         echo $*                                 >> $*.lnk
         echo $(NTDLLSHELL)\lib\spwnlnd+         >> $*.lnk
@@ -329,7 +332,7 @@ BACKSRC= \
 	code_stub.h \
 	\
 	optabgen.d platform_stub.c \
-	blockopt.d cg.d cg87.d cgxmm.d \
+	blockopt.d cg.d cg87.d cgxmm.d cgcse.d \
 	cgcod.d cgcs.d dcgcv.d cgelem.d cgen.d cgobj.d \
 	cgreg.d var.d compress.d codebuilder.d \
 	cgsched.d cod1.d cod2.d cod3.d cod4.d cod5.d \
@@ -460,6 +463,9 @@ cg.obj : fltables.d cg.d
 
 cg87.obj : cg87.d
         $(DMD) -c $(DFLAGS) -J. cg87.d
+
+cgcse.obj : cgcse.d
+        $(DMD) -c $(DFLAGS) cgcse.d
 
 cgelem.obj : elxxx.d cgelem.d
         $(DMD) -c $(DFLAGS) -J. cgelem.d
