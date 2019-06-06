@@ -12,6 +12,8 @@ import dmd.backend.memh;
 
 extern (C++):
 
+nothrow:
+
 /*********************************
  * String compare of filenames.
  */

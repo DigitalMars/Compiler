@@ -63,6 +63,8 @@ struct CSE
     uint slotSize;          // size of each slot in table
     uint alignment;         // alignment for the table
 
+  nothrow:
+
     /********************************
      * Update slot size and alignment to worst case.
      * A bit wasteful of stack space.

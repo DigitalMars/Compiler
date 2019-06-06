@@ -44,6 +44,8 @@ import scopeh;
 
 extern (C++):
 
+nothrow:
+
 extern void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 
 // fp.c

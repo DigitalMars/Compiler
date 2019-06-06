@@ -15,6 +15,7 @@
 module precomp;
 
 extern (C++):
+nothrow:
 
 version (_WINDLL)
     enum MEMORYHX = 1;     // HX and SYM files are cached in memory

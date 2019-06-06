@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:    Copyright (C) 2012-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:    Copyright (C) 2012-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv8.d, backend/cv8.d)
@@ -19,7 +19,7 @@ version (MARS)
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
-extern (C) char* getcwd(char*, size_t);
+extern (C) nothrow char* getcwd(char*, size_t);
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -41,6 +41,8 @@ import dmd.backend.varstats;
 import dmd.backend.xmm;
 
 extern (C++):
+
+nothrow:
 
 static if (TARGET_WINDOS)
 {
@@ -451,6 +453,7 @@ void cv8_func_term(Symbol *sfunc)
 
     struct cv8
     {
+    nothrow:
         // record for CV record S_BLOCK_V3
         struct block_v3_data
         {

@@ -20,9 +20,12 @@ import dmd.backend.code;
 import dmd.backend.el;
 
 extern (C++):
+nothrow:
 
 class Obj
 {
+  nothrow:
+
   static
   {
     void termfile() { }

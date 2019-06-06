@@ -40,6 +40,8 @@ version (SCPP)
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 
 uint mask(uint m);

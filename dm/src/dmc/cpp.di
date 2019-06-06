@@ -15,6 +15,7 @@
 module cpp;
 
 extern (C++):
+nothrow:
 
 import dtoken;
 import parser;

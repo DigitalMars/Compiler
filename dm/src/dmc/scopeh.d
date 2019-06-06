@@ -22,6 +22,7 @@ import dmd.backend.cc;
 import dmd.backend.dlist;
 
 extern (C++):
+nothrow:
 
 alias scope_fp = Symbol *function(const(char)* id,void *root);
 

@@ -29,6 +29,7 @@ import dmd.backend.type;
 import dmd.backend.dlist;
 
 extern (C++):
+nothrow:
 
 version (MARS)
 {
@@ -77,6 +78,8 @@ struct Match
     Symbol *s;          // user defined conversion function or constructor
     int _ref;           // !=0 if reference binding
     tym_t toplevelcv;
+
+  nothrow:
 
     static int cmp(ref Match m1, ref Match m2)
     {

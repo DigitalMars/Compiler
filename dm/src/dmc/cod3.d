@@ -53,6 +53,8 @@ version (SCPP)
 
 extern (C++):
 
+nothrow:
+
 version (MARS)
     enum MARS = true;
 else
@@ -1248,6 +1250,9 @@ version (MARS)
  * Struct necessary for sorting switch cases.
  */
 
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+
 extern (C)  // qsort cmp functions need to be "C"
 {
 struct CaseVal
@@ -1256,7 +1261,7 @@ struct CaseVal
     block *target;
 
     /* Sort function for qsort() */
-    extern (C) static int cmp(scope const(void*) p, scope const(void*) q)
+    extern (C) static nothrow int cmp(scope const(void*) p, scope const(void*) q)
     {
         const(CaseVal)* c1 = cast(const(CaseVal)*)p;
         const(CaseVal)* c2 = cast(const(CaseVal)*)q;
@@ -6364,6 +6369,7 @@ nomatch:
 
 struct MiniCodeBuf
 {
+nothrow:
     size_t index;
     size_t offset;
     int seg;

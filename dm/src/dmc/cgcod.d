@@ -57,6 +57,11 @@ version (SCPP)
 
 extern (C++):
 
+nothrow:
+
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+
 version (MARS)
     enum MARS = true;
 else

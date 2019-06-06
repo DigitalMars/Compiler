@@ -42,6 +42,7 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 
 extern (C++):
+nothrow:
 
 // Keyword tokens. Needn't be ascii sorted
 alias enum_TK = ubyte;

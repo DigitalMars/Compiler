@@ -56,11 +56,13 @@ version (SCPP_HTOD)
     import parser;
     import precomp;
 
-    extern (C++) void baseclass_free(baseclass_t *b);
+    extern (C++) nothrow void baseclass_free(baseclass_t *b);
 }
 
 
 extern (C++):
+
+nothrow:
 
 alias MEM_PH_MALLOC = mem_malloc;
 alias MEM_PH_CALLOC = mem_calloc;
@@ -654,9 +656,7 @@ debug
    }
    /* not in table, so insert into table        */
    *parent = s;                         /* link new symbol into tree    */
-L1:
 }
-
 }
 
 /*************************************

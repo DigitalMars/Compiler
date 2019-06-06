@@ -21,7 +21,7 @@ version (COMPILE)
 import core.stdc.stdio;
 import core.stdc.string;
 
-version (SCPP) extern (C) char* strlwr(return char* s);
+version (SCPP) extern (C) nothrow char* strlwr(return char* s);
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -36,6 +36,7 @@ import dmd.backend.cdef;
 import dmd.backend.dlist;
 import dmd.backend.ty;
 
+nothrow:
 
 //
 // NOTE: For 0 operand instructions, the opcode is taken from

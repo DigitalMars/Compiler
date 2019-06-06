@@ -38,6 +38,7 @@ import dmd.backend.dvec;
 
 extern (C++):
 
+nothrow:
 
 enum Aetype { cse, arraybounds }
 
@@ -538,19 +539,6 @@ L1:
             e = delcse(pe);
 
         else if (op == OPd_ld && e.EV.E1.Ecount > 0)
-            delcse(&e.EV.E1);
-
-        else if (op == OPd_f && e.EV.E1.Ecount > 0 &&
-                 (e.EV.E1.Eoper == OPs32_d ||
-                  e.EV.E1.Eoper == OPs64_d && I64 ||
-                  e.EV.E1.Eoper == OPs32_d && I64) &&
-                 config.fpxmmregs)
-            delcse(&e.EV.E1);
-
-        else if ((op == OPd_s32 ||op == OPd_u32 || op == OPd_s64) &&
-                 e.EV.E1.Ecount &&
-                 e.EV.E1.Eoper == OPf_d &&
-                 config.fpxmmregs)
             delcse(&e.EV.E1);
 
         // OPremquo is only worthwhile if its result is used more than once

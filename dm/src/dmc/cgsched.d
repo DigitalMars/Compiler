@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1995-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgsched.c, backend/cgsched.d)
@@ -34,6 +34,8 @@ import dmd.backend.ty;
 import dmd.backend.barray;
 
 extern (C++):
+
+nothrow:
 
 int REGSIZE();
 code *gen1(code *c, uint op);
@@ -94,7 +96,7 @@ struct Cinfo
     int fpuadjust;      // if !=0, then amount FPU stack changes as a result
                         // of this instruction being executed
 
-    void print()        // pretty-printer
+    nothrow void print()        // pretty-printer
     {
         Cinfo *ci = &this;
 
@@ -2234,6 +2236,7 @@ enum TBLMAX = 2*3*20;        // must be divisible by both 2 and 3
 
 struct Schedule
 {
+nothrow:
     Cinfo*[TBLMAX] tbl;         // even numbers are U pipe, odd numbers are V
     int tblmax;                 // max number of slots used
 

@@ -44,6 +44,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 version (SCPP)
 {
     import filespec;
@@ -458,7 +460,7 @@ version (X86ASM)
 {
 int insidx(char *p,uint index)
 {
-    asm
+    asm nothrow
     {
         naked                           ;
         mov     EAX,index - [ESP+4]     ;
@@ -3788,7 +3790,7 @@ void OmfObj_far16thunk(Symbol *s)
         0x8B,0xC4,                      //      MOV     EAX,ESP
         0x16,                           //      PUSH    SS
         0x50,                           //      PUSH    EAX
-        LEA, 0x75,0x08,                 //      LEA     ESI,8[EBP]
+        LEA,0x75,0x08,                  //      LEA     ESI,8[EBP]
         0x81,0xEC,0x00,0x00,0x00,0x00,  //      SUB     ESP,numparam
         0x8B,0xFC,                      //      MOV     EDI,ESP
         0xB9,0x00,0x00,0x00,0x00,       //      MOV     ECX,numparam
