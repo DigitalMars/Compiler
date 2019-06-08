@@ -124,9 +124,9 @@ enum ELF_COMDAT = TARGET_LINUX;
 /******************************************
  */
 
-__gshared Symbol *GOTsym; // global offset table reference
+private __gshared Symbol *GOTsym; // global offset table reference
 
-Symbol *Obj_getGOTsym()
+private Symbol *Obj_getGOTsym()
 {
     if (!GOTsym)
     {
@@ -251,9 +251,6 @@ private IDXSEC secidx_note;      // Final table index for note data
 
 // Comment data for compiler version
 private Outbuffer *comment_data;
-private const(char)* compiler = "\0Digital Mars C/C++" ~
-        " 2.083" //VERSION
-        ;       // compiled by ...
 
 // Each compiler segment is an elf section
 // Predefined compiler segments CODE,DATA,CDATA,UDATA map to indexes
@@ -1637,8 +1634,15 @@ void Obj_compiler()
     comment_data = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
     assert(comment_data);
 
+    enum maxVersionLength = 40;  // hope enough to store `git describe --dirty`
+    enum compilerHeader = "\0Digital Mars C/C++ ";
+    enum n = compilerHeader.length;
+    char[n + maxVersionLength] compiler = compilerHeader;
 
-    comment_data.write(.compiler,(.compiler).sizeof);
+    assert(config._version.length < maxVersionLength);
+    const newLength = n + config._version.length;
+    compiler[n .. newLength] = config._version;
+    comment_data.write(compiler[0 .. newLength]);
     //dbg_printf("Comment data size %d\n",comment_data.size());
 }
 

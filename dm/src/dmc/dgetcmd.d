@@ -333,10 +333,10 @@ else
             case 'B':
                 switch (*p)
                 {   case 0:
-                    case 'e':   configv.language = LANGenglish; break;
-                    case 'f':   configv.language = LANGfrench;  break;
-                    case 'g':   configv.language = LANGgerman;  break;
-                    case 'j':   configv.language = LANGjapanese;        break;
+                    case 'e':   configv.language = LANG.english; break;
+                    case 'f':   configv.language = LANG.french;  break;
+                    case 'g':   configv.language = LANG.german;  break;
+                    case 'j':   configv.language = LANG.japanese;        break;
                     default:
                         break; // goto badflag ?
                 }

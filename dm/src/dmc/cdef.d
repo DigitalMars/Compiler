@@ -51,7 +51,7 @@ version (XVERSION)
     enum TARGET_OPENBSD = xversion!`OpenBSD`;
     enum TARGET_SOLARIS = xversion!`Solaris`;
     enum TARGET_WINDOS  = xversion!`Windows`;
-    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFly`;
+    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
 }
 
 
@@ -243,6 +243,8 @@ enum EXIT_BREAK = 255;     // aborted compile with ^C
  * Target machine data types as they appear on the host.
  */
 
+import core.stdc.stdint : int64_t, uint64_t;
+
 alias targ_char = byte;
 alias targ_uchar = ubyte;
 alias targ_schar = byte;
@@ -250,8 +252,8 @@ alias targ_short = short;
 alias targ_ushort= ushort;
 alias targ_long = int;
 alias targ_ulong = uint;
-alias targ_llong = long;
-alias targ_ullong = ulong;
+alias targ_llong = int64_t;
+alias targ_ullong = uint64_t;
 alias targ_float = float;
 alias targ_double = double;
 alias targ_ldouble = real;
@@ -303,8 +305,8 @@ else version (HTOD)
 else
 {
     // Support 64 bit targets
-    alias targ_ptrdiff_t = targ_llong;  // ptrdiff_t for target machine
-    alias targ_size_t = targ_ullong;    // size_t for the target machine
+    alias targ_ptrdiff_t = int64_t;  // ptrdiff_t for target machine
+    alias targ_size_t = uint64_t;    // size_t for the target machine
 }
 
 /* Enable/disable various features
@@ -327,7 +329,7 @@ enum MACHOBJ = TARGET_OSX;
 version (XVERSION)
 {
     enum SYMDEB_CODEVIEW = TARGET_WINDOS;
-    enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX;
+    enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX;
 }
 
 //#define TOOLKIT_H
@@ -383,7 +385,7 @@ else
 {
     debug
     {
-        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright
 *****BETA TEST VERSION*****";
     }
@@ -391,12 +393,12 @@ Written by Walter Bright
     {
         version (linux)
         {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright, Linux version by Pat Nelson";
         }
         else
         {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright";
         }
     }
@@ -680,7 +682,7 @@ enum
 struct Config
 {
     char language;              // 'C' = C, 'D' = C++
-    char[8] _version;           // = VERSION
+    string _version;            /// Compiler version
     char[3] exetype;            // distinguish exe types so PH
                                 // files are distinct (= SUFFIX)
 
@@ -730,12 +732,11 @@ struct Config
 enum THRESHMAX = 0xFFFF;
 
 // Language for error messages
-alias LANG = int;
-enum
-{       LANGenglish,
-        LANGgerman,
-        LANGfrench,
-        LANGjapanese,
+enum LANG
+{       english,
+        german,
+        french,
+        japanese,
 }
 
 // Configuration that is not saved in precompiled header
