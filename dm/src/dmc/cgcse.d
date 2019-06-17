@@ -106,7 +106,9 @@ struct CSE
 
     /********************************
      * Update slot size and alignment to worst case.
+     *
      * A bit wasteful of stack space.
+     * Params: e = elem with a size and an alignment
      */
     static void updateSizeAndAlign(elem* e)
     {
@@ -133,6 +135,7 @@ struct CSE
     /****
      * Get range of all CSEs filtered by matching `e`,
      * starting with most recent.
+     * Params: e = elem to match
      * Returns:
      *  input range
      */
@@ -166,6 +169,7 @@ struct CSE
 
     /*********************
      * Remove instances of `e` from CSE table.
+     * Params: e = elem to remove
      */
     static void remove(const elem* e)
     {
@@ -178,6 +182,7 @@ struct CSE
 
     /************************
      * Create mask of registers from CSEs that refer to `e`.
+     * Params: e = elem to match
      * Returns:
      *  mask
      */
@@ -196,6 +201,7 @@ struct CSE
 
     /***
      * Finish generating code for this function.
+     *
      * Get rid of unused cse temporaries by shrinking the array.
      * References: loaded()
      */

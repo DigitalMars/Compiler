@@ -246,8 +246,8 @@ type *exp2_hiddentype(type *tfunc)
 
     debug assert(exp2_retmethod(tfunc) & (RET_STACK | RET_PSTACK));
     if (!type_struct(tfunc.Tnext))
-        thidden.Tty = TYsptr;
-    else if (thidden.Tty == TYnptr)
+        thidden.Tty = I16 ? TYsptr : TYnptr;
+    else if (thidden.Tty == TYnptr && I16)
         thidden.Tty = TYsptr;  /* always stack relative        */
     return thidden;
 }
