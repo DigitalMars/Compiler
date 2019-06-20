@@ -175,7 +175,7 @@ debppnd:
 
 OBJ1a=dblklst.obj blockopt.obj dcpp.obj debugprint.obj ee.obj elem.obj denum.obj err.obj rawstring.obj
 OBJ1b=evalu8.obj fp.obj poptelem.obj eh.obj exp.obj dexp2.obj dfile.obj filename.obj func.obj adl.obj
-OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj
+OBJ1c=dgetcmd.obj ini.obj dinit.obj loadline.obj dmsc.obj precomp.obj dmcdll.obj elpicpie.obj
 OBJ1d=nspace.obj dnwc.obj os.obj out.obj dph.obj ppexp.obj dpragma.obj pseudo.obj
 OBJ1e=dstruct.obj symbol.obj dtemplate.obj tk.obj xtoken.obj dtype.obj dt.obj phstring.obj
 OBJ1f=var.obj nteh.obj drtlsym.obj rtti.obj dscope.obj tdbx.obj dutil.obj html.obj
@@ -336,7 +336,7 @@ BACKSRC= \
 	cgcod.d cgcs.d dcgcv.d cgelem.d cgen.d cgobj.d \
 	cgreg.d var.d compress.d codebuilder.d \
 	cgsched.d cod1.d cod2.d cod3.d cod4.d cod5.d \
-	dcode.d symbol.d debugprint.d dt.d ee.d elem.d \
+	dcode.d symbol.d debugprint.d dt.d ee.d elem.d elpicpie.d \
 	fp.c gflow.d gdag.d \
 	gother.d gloop.d newman.d \
 	nteh.d os.c out.d outbuf.d ptrntab.d drtlsym.d \
@@ -553,6 +553,9 @@ dwarfeh.obj : dwarfeh.d
 
 elem.obj : elem.d
         $(DMD) -c $(DFLAGS) elem.d
+
+elpicpie.obj : elpicpie.d
+        $(DMD) -c $(DFLAGS) elpicpie.d
 
 evalu8.obj : evalu8.d
         $(DMD) -c $(DFLAGS) evalu8.d
