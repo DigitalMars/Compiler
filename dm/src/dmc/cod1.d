@@ -2973,14 +2973,14 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
  *      true        *preg1, *preg2 set to allocated register pair
  */
 
-//int type_jparam2(type* t, tym_t ty);
+//bool type_jparam2(type* t, tym_t ty);
 
-private int type_jparam2(type* t, tym_t ty)
+private bool type_jparam2(type* t, tym_t ty)
 {
     ty = tybasic(ty);
 
     if (tyfloating(ty))
-    { }
+        return false;
     else if (ty == TYstruct || ty == TYarray)
     {
         type_debug(t);
@@ -2989,8 +2989,8 @@ private int type_jparam2(type* t, tym_t ty)
                (config.exe == EX_WIN64 || sz == 1 || sz == 2 || sz == 4 || sz == 8);
     }
     else if (tysize(ty) <= _tysize[TYnptr])
-        return 1;
-    return 0;
+        return true;
+    return false;
 }
 
 int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, reg_t* preg2)
