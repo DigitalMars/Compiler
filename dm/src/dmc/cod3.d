@@ -616,6 +616,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYstruct:
         case TYarray:
             return 0;
+
         case TYbool:
         case TYwchar_t:
         case TYchar16:
@@ -631,6 +632,8 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYnref:
         case TYsptr:
         case TYcptr:
+        case TYimmutPtr:
+        case TYsharePtr:
             return mAX;
 
         case TYfloat:
@@ -2300,7 +2303,6 @@ regm_t cod3_useBP()
            )
             goto Lcant;
     }
-Lcan:
     return mBP;
 
 Lcant:
@@ -4780,7 +4782,6 @@ void cod3_adjSymOffsets()
 
             case SCauto:
             case SCregister:
-            case_auto:
                 if (s.Sfl == FLfast)
                     s.Soffset += Fast.size + BPoff;
                 else
@@ -5556,7 +5557,11 @@ void pinholeopt(code *c,block *b)
                 if (op == 0xF7 && rm >= modregrm(3,0,AX) && rm <= modregrm(3,0,7) && (I64 || ereg < 4))
                 {
                     if (u == 0xFF)
+                    {
+                        if (ereg & 4) // SIL,DIL,BPL,SPL need REX prefix
+                            c.Irex |= REX;
                         goto L4;
+                    }
                     if ((u & 0xFFFF) == 0xFF00 && shortop && !c.Irex && ereg < 4)
                     {
                         ereg |= 4;                /* to regH      */
