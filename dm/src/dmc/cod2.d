@@ -3318,8 +3318,10 @@ void cdstrcmp(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     switch (tybasic(ty1))
     {
         case TYnptr:
+        case TYimmutPtr:
             need_DS = false;
             break;
+
         case TYsptr:
             if (config.wflags & WFssneds)       // if sptr can't use DS segment
                 segreg = SEG_SS;
@@ -3427,8 +3429,10 @@ void cdmemcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     switch (tybasic(ty1))
     {
         case TYnptr:
+        case TYimmutPtr:
             need_DS = false;
             break;
+
         case TYsptr:
             if (config.wflags & WFssneds)       // if sptr can't use DS segment
                 segreg = SEG_SS;
@@ -3537,8 +3541,10 @@ void cdstrcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     switch (ty2)
     {
         case TYnptr:
+        case TYimmutPtr:
             need_DS = false;
             break;
+
         case TYsptr:
             if (config.wflags & WFssneds)       // if sptr can't use DS segment
                 segreg = SEG_SS;
@@ -3647,6 +3653,7 @@ void cdmemcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     switch (tybasic(ty2))
     {
         case TYnptr:
+        case TYimmutPtr:
             need_DS = false;
             break;
 
@@ -4214,7 +4221,6 @@ void cdrelconst(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-        loadreg:
             const fl = (s.ty() & mTYcs) ? FLcsdata : s.Sfl;
             cdb.gen2(0x8C,            // MOV mreg,SEG REGISTER
                 modregrm(3,segfl[fl],mreg));
@@ -4281,7 +4287,9 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
                     assert(reg == AX);
                     load_localgot(cdb);
                     code css = void;
+                    css.Iflags = 0;
                     css.Iop = LEA;             // LEA
+                    css.Irex = 0;
                     css.Irm = modregrm(0,AX,4);
                     css.Isib = modregrm(0,BX,5);
                     css.IFL1 = cast(ubyte)fl;

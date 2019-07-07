@@ -197,6 +197,7 @@ char *type_tostring(Outbuffer *buf,type *t)
             case TYref:
             case TYimmutPtr:
             case TYsharePtr:
+            case TYfgPtr:
                 if (ty == pointertype)
                     s = tystring[TYptr];
                 else
