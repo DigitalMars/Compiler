@@ -727,7 +727,7 @@ var.obj : tytab.d optab.d var.d
 
 ################# Source file dependencies ###############
 
-DEP= msgs2.h msgs2.c elxxx.d cdxxx.d optab.c debtab.d tytab.d
+DEP= msgs2.h msgs2.c elxxx.d cdxxx.d optab.d debtab.d tytab.d
 
 #backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 #cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
