@@ -291,11 +291,12 @@ else
  * If type is an array, look for what it's an array of.
  */
 
-type *type_arrayroot(type *t)
+inout(type)* type_arrayroot(inout type *t)
 {
     type_debug(t);
     while (tybasic(t.Tty) == TYarray)
-    {   t = t.Tnext;
+    {
+        *(cast(type**)(&t)) = cast(type*)t.Tnext;
         type_debug(t);
     }
     return t;
@@ -472,8 +473,7 @@ L1:
  */
 
 void chkassign(elem *e)
-{   elem *e1;
-
+{
     chklvalue(e);                       // e.EV.E1 must be an lvalue
 
     /* e.EV.E1 must be a modifiable lvalue. That is (ANSI 3.2.2.1):
@@ -483,7 +483,7 @@ void chkassign(elem *e)
         o       Not a struct or union with a const-qualified member
                 (applied recursively)
      */
-    e1 = e.EV.E1;
+    const e1 = e.EV.E1;
     if (e1.ET.Tty & mTYconst)
     {   const(char)* p;
         bool freeit = false;
@@ -518,7 +518,7 @@ void chkassign(elem *e)
 /*****************************
  */
 
-void chknosu(elem *e)
+void chknosu(const elem *e)
 {
     elem_debug(e);
     switch (tybasic(e.ET.Tty))
@@ -539,7 +539,7 @@ void chknosu(elem *e)
 /*****************************
  */
 
-void chkunass(elem *e)
+void chkunass(const elem *e)
 {
     elem_debug(e);
     if (e.Eoper == OPeq)
@@ -550,13 +550,13 @@ void chkunass(elem *e)
  * Prevent instances of abstract classes.
  */
 
-void chknoabstract(type *t)
+void chknoabstract(const type *t)
 {
     /* Cannot create instance of abstract class */
-    t = type_arrayroot(t);
-    if (tybasic(t.Tty) == TYstruct &&
-        t.Ttag.Sstruct.Sflags & STRabstract)
-        cpperr(EM_create_abstract,prettyident(t.Ttag));        // abstract class
+    auto tr = type_arrayroot(t);
+    if (tybasic(tr.Tty) == TYstruct &&
+        tr.Ttag.Sstruct.Sflags & STRabstract)
+        cpperr(EM_create_abstract,prettyident(tr.Ttag));        // abstract class
 }
 
 /**********************************
@@ -589,18 +589,17 @@ targ_llong msc_getnum()
  * Align sizes of 0, as we may not know array sizes yet.
  */
 
-targ_size_t alignmember(type *t,targ_size_t size,targ_size_t offset)
+targ_size_t alignmember(const type *t,targ_size_t size,targ_size_t offset)
 {   uint salign;
 
-    t = type_arrayroot(t);
-    if (type_struct(t))
-        salign = t.Ttag.Sstruct.Sstructalign;
+    const tr = type_arrayroot(t);
+    if (type_struct(tr))
+        salign = tr.Ttag.Sstruct.Sstructalign;
     else
         salign = structalign;
     //printf("salign = %d, size = %d, offset = %d\n",salign,size,offset);
     if (salign)
-    {   int sa;
-
+    {
         switch (size)
         {   case 1:
                 break;
