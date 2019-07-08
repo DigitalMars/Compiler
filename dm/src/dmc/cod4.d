@@ -43,7 +43,7 @@ nothrow:
 int REGSIZE();
 
 extern __gshared CGstate cgstate;
-extern __gshared ubyte[FLMAX] datafl;
+extern __gshared bool[FLMAX] datafl;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
@@ -2073,7 +2073,6 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         default:
         L2:
             scodelem(cdb,e1,&retregs,0,true);      // compute left leaf
-        L1:
             rretregs = allregs & ~retregs;
             if (isbyte)
                 rretregs &= BYTEREGS;
