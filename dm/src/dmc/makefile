@@ -281,7 +281,7 @@ CCH= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
 
 ##################### GENERATED SOURCE #####################
 
-elxxx.d cdxxx.d optab.d debtab.d tytab.d : \
+optab.d debtab.d tytab.d : \
         optabgen.d
         $(DMD) $(DFLAGS) optabgen
         optabgen
@@ -437,7 +437,7 @@ cgcs.obj : cgcs.d
 dcode.obj : dcode.d
         $(DMD) -c $(DFLAGS) dcode.d
 
-cgcod.obj : cdxxx.d cgcod.d
+cgcod.obj : cgcod.d
         $(DMD) -c $(DFLAGS) -J. cgcod.d
 
 cod1.obj : cod1.d
@@ -467,7 +467,7 @@ cg87.obj : cg87.d
 cgcse.obj : cgcse.d
         $(DMD) -c $(DFLAGS) cgcse.d
 
-cgelem.obj : elxxx.d cgelem.d
+cgelem.obj : cgelem.d
         $(DMD) -c $(DFLAGS) -J. cgelem.d
 
 cgen.obj : cgen.d
@@ -727,7 +727,7 @@ var.obj : tytab.d optab.d var.d
 
 ################# Source file dependencies ###############
 
-DEP= msgs2.h msgs2.c elxxx.d cdxxx.d optab.d debtab.d tytab.d
+DEP= msgs2.h msgs2.c optab.d debtab.d tytab.d
 
 #backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 #cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
@@ -784,6 +784,6 @@ clean:
         del *.exp
         del *.dbg
         del *.res
-        del msgs.c msgs2.d msgs2.h msgs2.c elxxx.d cdxxx.d optab.d debtab.d tytab.d
+        del msgs.c msgs2.d msgs2.h msgs2.c optab.d debtab.d tytab.d
 
 ###################################

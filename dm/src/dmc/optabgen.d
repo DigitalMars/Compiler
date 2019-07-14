@@ -12,7 +12,7 @@
 module optabgen;
 
 /* Generate op-code tables
- * Creates optab.d,tytab.d,debtab.d,cdxxx.d,elxxx.d
+ * Creates optab.d,tytab.d,debtab.d
  */
 
 import core.stdc.stdio;
@@ -153,13 +153,13 @@ void doreltables(FILE *f)
 /********************************************************
  */
 
-string[OPMAX] debtab, cdxxx, elxxx;
+string[OPMAX] debtab;
 
 void dotab()
 { int i;
   FILE *f;
 
-  void X(string d, string e, string c) { debtab[i]=d; cdxxx[i]=c; elxxx[i]=e; }
+  void X(string d, string e, string c) { debtab[i]=d; }
 
   for (i = 0; i < OPMAX; i++)
   {
@@ -365,108 +365,11 @@ void dotab()
   for (i = 0; i < OPMAX - 1; i++)
         fprintf(fdeb,"\t\"%.*s\",\n",cast(int)debtab[i].length, debtab[i].ptr);
   fprintf(fdeb,"\t\"%.*s\"\n\t];\n",cast(int)debtab[i].length, debtab[i].ptr);
-
-  f = fopen("cdxxx.d","w");
-  fprintf(f,"__gshared void function (ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx = \n\t[\n");
-  for (i = 0; i < OPMAX - 1; i++)
-        fprintf(f,"\t&%.*s,\n",cast(int)cdxxx[i].length, cdxxx[i].ptr);
-  fprintf(f,"\t&%.*s\n\t];\n", cast(int)cdxxx[i].length, cdxxx[i].ptr);
-  fclose(f);
-
-static if (1)
-{
-    {
-        f = fopen("elxxx.d","w");
-        fprintf(f,"extern (C++) __gshared nothrow elem *function(elem *, goal_t)[OPMAX] elxxx = \n\t[\n");
-        for (i = 0; i < OPMAX - 1; i++)
-            fprintf(f,"\t&%s,\n",elxxx[i].ptr);
-        fprintf(f,"\t&%s\n\t];\n",elxxx[i].ptr);
-        fclose(f);
-    }
-}
-else
-{
-    {
-        f = fopen("elxxx.c","w");
-        fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *, goal_t) = \n\t{\n");
-        for (i = 0; i < OPMAX - 1; i++)
-            fprintf(f,"\t%s,\n",elxxx[i].ptr);
-        fprintf(f,"\t%s\n\t};\n",elxxx[i].ptr);
-        fclose(f);
-    }
-}
 }
 
 
 void dotytab()
 {
-    static tym_t[] _ptr      = [ TYnptr ];
-    static tym_t[] _ptr_nflat= [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr,TYfgPtr ];
-    static tym_t[] _real     = [ TYfloat,TYdouble,TYdouble_alias,TYldouble,
-                                 TYfloat4,TYdouble2,
-                                 TYfloat8,TYdouble4,
-                                 TYfloat16,TYdouble8,
-                               ];
-    static tym_t[] _imaginary = [
-                                 TYifloat,TYidouble,TYildouble,
-                               ];
-    static tym_t[] _complex =  [
-                                 TYcfloat,TYcdouble,TYcldouble,
-                               ];
-    static tym_t[] _integral = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
-                                 TYwchar_t,TYushort,TYenum,TYint,TYuint,
-                                 TYlong,TYulong,TYllong,TYullong,TYdchar,
-                                 TYschar16,TYuchar16,TYshort8,TYushort8,
-                                 TYlong4,TYulong4,TYllong2,TYullong2,
-                                 TYschar32,TYuchar32,TYshort16,TYushort16,
-                                 TYlong8,TYulong8,TYllong4,TYullong4,
-                                 TYschar64,TYuchar64,TYshort32,TYushort32,
-                                 TYlong16,TYulong16,TYllong8,TYullong8,
-                                 TYchar16,TYcent,TYucent,
-                               ];
-    static tym_t[] _ref      = [ TYnref,TYref ];
-    static tym_t[] _func     = [ TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc ];
-    static tym_t[] _ref_nflat = [ TYfref ];
-    static tym_t[] _func_nflat= [ TYffunc,TYfpfunc,TYf16func,TYfsfunc,TYnsysfunc,TYfsysfunc, ];
-    static tym_t[] _uns     = [ TYuchar,TYushort,TYuint,TYulong,
-                                TYwchar_t,
-                                TYuchar16,TYushort8,TYulong4,TYullong2,
-                                TYdchar,TYullong,TYucent,TYchar16 ];
-    static tym_t[] _mptr    = [ TYmemptr ];
-    static tym_t[] _nullptr = [ TYnullptr ];
-    static tym_t[] _fv      = [ TYfptr, TYvptr ];
-    static tym_t[] _farfunc = [ TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc ];
-    static tym_t[] _pasfunc = [ TYnpfunc,TYnsfunc,TYmfunc,TYjfunc ];
-    static tym_t[] _pasfunc_nf = [ TYfpfunc,TYf16func,TYfsfunc, ];
-    static tym_t[] _revfunc = [ TYnpfunc,TYjfunc ];
-    static tym_t[] _revfunc_nf = [ TYfpfunc,TYf16func, ];
-    static tym_t[] _short     = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
-                                  TYwchar_t,TYushort,TYchar16 ];
-    static tym_t[] _aggregate = [ TYstruct,TYarray ];
-    static tym_t[] _xmmreg = [
-                                 TYfloat,TYdouble,TYifloat,TYidouble,
-                                 TYfloat4,TYdouble2,
-                                 TYschar16,TYuchar16,TYshort8,TYushort8,
-                                 TYlong4,TYulong4,TYllong2,TYullong2,
-                                 TYfloat8,TYdouble4,
-                                 TYschar32,TYuchar32,TYshort16,TYushort16,
-                                 TYlong8,TYulong8,TYllong4,TYullong4,
-                                 TYschar64,TYuchar64,TYshort32,TYushort32,
-                                 TYlong16,TYulong16,TYllong8,TYullong8,
-                                 TYfloat16,TYdouble8,
-                             ];
-    static tym_t[] _simd = [
-                                 TYfloat4,TYdouble2,
-                                 TYschar16,TYuchar16,TYshort8,TYushort8,
-                                 TYlong4,TYulong4,TYllong2,TYullong2,
-                                 TYfloat8,TYdouble4,
-                                 TYschar32,TYuchar32,TYshort16,TYushort16,
-                                 TYlong8,TYulong8,TYllong4,TYullong4,
-                                 TYschar64,TYuchar64,TYshort32,TYushort32,
-                                 TYlong16,TYulong16,TYllong8,TYullong8,
-                                 TYfloat16,TYdouble8,
-                             ];
-
     struct TypeTab
     {
         string str;     /* name of type                 */
@@ -587,7 +490,6 @@ void dotytab()
     ];
 
     FILE *f;
-    static uint[64 * 4] tytab;
     static tym_t[64 * 4] tytouns;
     static tym_t[TYMAX] _tyrelax;
     static tym_t[TYMAX] _tyequiv;
@@ -597,58 +499,7 @@ void dotytab()
     static ushort[TYMAX] dttab4;
     int i;
 
-    static void T1(tym_t[] arr, uint mask) { for (int i=0; i< arr.length; i++)
-                     {  tytab[arr[i]] |= mask; }
-                     }
-    static void T2(tym_t[] arr, uint mask) { for (int i=0; i< arr.length; i++)
-                     {  tytab[arr[i]] |= mask; }
-                     }
-
-    T1(_ptr,      TYFLptr);
-    T1(_ptr_nflat,TYFLptr);
-    T1(_real,     TYFLreal);
-    T1(_integral, TYFLintegral);
-    T1(_imaginary,TYFLimaginary);
-    T1(_complex,  TYFLcomplex);
-    T1(_uns,      TYFLuns);
-    T1(_mptr,     TYFLmptr);
-
-    T1(_fv,       TYFLfv);
-    T2(_farfunc,  TYFLfarfunc);
-    T2(_pasfunc,  TYFLpascal);
-    T2(_revfunc,  TYFLrevparam);
-    T2(_short,    TYFLshort);
-    T2(_aggregate,TYFLaggregate);
-    T2(_ref,      TYFLref);
-    T2(_func,     TYFLfunc);
-    T2(_nullptr,  TYFLnullptr);
-    T2(_pasfunc_nf, TYFLpascal);
-    T2(_revfunc_nf, TYFLrevparam);
-    T2(_ref_nflat,  TYFLref);
-    T2(_func_nflat, TYFLfunc);
-    T1(_xmmreg,    TYFLxmmreg);
-    T1(_simd,      TYFLsimd);
-
     f = fopen("tytab.d","w");
-
-    fprintf(f,"__gshared uint[256] tytab =\n[ ");
-    for (i = 0; i < tytab.length; i++)
-    {   fprintf(f,"0x%02x,",tytab[i]);
-        if ((i & 7) == 7 && i < tytab.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-static if (0)
-{
-    fprintf(f,"__gshared ubyte[TYMAX] tytab2 =\n[ ");
-    for (i = 0; i < tytab2.length; i++)
-    {   fprintf(f,"0x%02x,",tytab2[i]);
-        if ((i & 7) == 7 && i < tytab2.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-}
 
     for (i = 0; i < typetab.length; i++)
     {   tytouns[typetab[i].ty] = typetab[i].unsty;
