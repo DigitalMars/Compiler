@@ -281,7 +281,7 @@ CCH= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
 
 ##################### GENERATED SOURCE #####################
 
-debtab.d tytab.d : \
+tytab.d : \
         optabgen.d
         $(DMD) $(DFLAGS) optabgen
         optabgen
@@ -497,8 +497,8 @@ dcgcv.obj : dcgcv.d
 dcpp.obj : msgs2.d dcpp.d
         $(DMD) -c $(DFLAGS) dcpp.d
 
-debugprint.obj : debtab.d debugprint.d
-        $(DMD) -c $(DFLAGS) -J. debugprint.d
+debugprint.obj : debugprint.d
+        $(DMD) -c $(DFLAGS) debugprint.d
 
 denum.obj : denum.d
         $(DMD) -c $(DFLAGS) denum.d
@@ -727,7 +727,7 @@ var.obj : tytab.d var.d
 
 ################# Source file dependencies ###############
 
-DEP= msgs2.h msgs2.c debtab.d tytab.d
+DEP= msgs2.h msgs2.c tytab.d
 
 #backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 #cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
@@ -784,6 +784,6 @@ clean:
         del *.exp
         del *.dbg
         del *.res
-        del msgs.c msgs2.d msgs2.h msgs2.c debtab.d tytab.d
+        del msgs.c msgs2.d msgs2.h msgs2.c tytab.d
 
 ###################################
