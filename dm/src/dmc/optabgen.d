@@ -171,17 +171,6 @@ void dotytab()
     f = fopen("tytab.d","w");
 
     for (i = 0; i < typetab.length; i++)
-    {   tytouns[typetab[i].ty] = typetab[i].unsty;
-    }
-    fprintf(f,"__gshared tym_t[256] tytouns =\n[ ");
-    for (i = 0; i < tytouns.length; i++)
-    {   fprintf(f,"0x%02x,",tytouns[i]);
-        if ((i & 7) == 7 && i < tytouns.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-    for (i = 0; i < typetab.length; i++)
     {   _tysize[typetab[i].ty | 0x00] = cast(byte)typetab[i].size;
         /*printf("_tysize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
     }
@@ -240,10 +229,13 @@ else
     }
     fprintf(f,"\n];\n");
 
+/+
     for (i = 0; i < typetab.length; i++)
     {   _tyrelax[typetab[i].ty] = typetab[i].relty;
         /*printf("_tyrelax[%d] = %d\n",typetab[i].ty,typetab[i].relty);*/
     }
++/
+/*
     fprintf(f,"__gshared ubyte[TYMAX] _tyrelax =\n[ ");
     for (i = 0; i < _tyrelax.length; i++)
     {   fprintf(f,"0x%02x,",_tyrelax[i]);
@@ -251,8 +243,10 @@ else
             fprintf(f,"\n  ");
     }
     fprintf(f,"\n];\n");
+*/
 
     /********** tyequiv ************/
+/+
     for (i = 0; i < _tyequiv.length; i++)
         _tyequiv[i] = i;
     _tyequiv[TYchar] = TYschar;         /* chars are signed by default  */
@@ -268,7 +262,9 @@ else
             fprintf(f,"\n  ");
     }
     fprintf(f,"\n];\n");
++/
 
+/+
     for (i = 0; i < typetab.length; i++)
         dttab[typetab[i].ty] = cast(ubyte)typetab[i].debtyp;
     fprintf(f,"__gshared ubyte[TYMAX] dttab =\n[ ");
@@ -288,6 +284,6 @@ else
             fprintf(f,"\n  ");
     }
     fprintf(f,"\n];\n");
-
++/
     fclose(f);
 }
