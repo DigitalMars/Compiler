@@ -281,11 +281,6 @@ CCH= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
 
 ##################### GENERATED SOURCE #####################
 
-tytab.d : \
-        optabgen.d
-        $(DMD) $(DFLAGS) optabgen
-        optabgen
-
 msgs2.d msgs2.h msgs2.c : msgsx.exe
         msgsx
 
@@ -331,7 +326,7 @@ BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
 BACKSRC= \
 	code_stub.h \
 	\
-	optabgen.d platform_stub.c \
+	platform_stub.c \
 	blockopt.d cg.d cg87.d cgxmm.d cgcse.d \
 	cgcod.d cgcs.d dcgcv.d cgelem.d cgen.d cgobj.d \
 	cgreg.d var.d compress.d codebuilder.d \
@@ -722,12 +717,12 @@ unialpha.obj : unialpha.d
 utf.obj : utf.d
         $(DMD) -c $(DFLAGS) utf.d
 
-var.obj : tytab.d var.d
-        $(DMD) -c $(DFLAGS) -J. var.d
+var.obj : var.d
+        $(DMD) -c $(DFLAGS) var.d
 
 ################# Source file dependencies ###############
 
-DEP= msgs2.h msgs2.c tytab.d
+DEP= msgs2.h msgs2.c
 
 #backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
 #cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
@@ -777,13 +772,12 @@ clean:
         del *.def
 #       del *.bak
         del msgsx.exe
-        del optabgen.exe
         del *.map
         del *.tmp
         del *.lst
         del *.exp
         del *.dbg
         del *.res
-        del msgs.c msgs2.d msgs2.h msgs2.c tytab.d
+        del msgs.c msgs2.d msgs2.h msgs2.c
 
 ###################################
