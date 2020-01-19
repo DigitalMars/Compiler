@@ -4489,7 +4489,7 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
 
 
 /******************
- * Negate, sqrt operator
+ * OPneg, OPsqrt, OPsin, OPcos, OPrint
  */
 
 void cdneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
