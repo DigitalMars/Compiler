@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code.d, backend/_code.d)
@@ -524,6 +524,7 @@ void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t i);
 void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot);
 code *genmovreg(uint to, uint from);
 void genmovreg(ref CodeBuilder cdb, uint to, uint from);
+void genmovreg(ref CodeBuilder cdb, uint to, uint from, tym_t tym);
 void genmulimm(ref CodeBuilder cdb,uint r1,uint r2,targ_int imm);
 void genshift(ref CodeBuilder cdb);
 void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags);
@@ -635,7 +636,6 @@ void cnvt87(ref CodeBuilder cdb, elem *e , regm_t *pretregs );
 void neg87(ref CodeBuilder cdb, elem *e , regm_t *pretregs);
 void neg_complex87(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void cdind87(ref CodeBuilder cdb,elem *e,regm_t *pretregs);
-extern __gshared { int stackused; }
 void cload87(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void cdd_u64(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void cdd_u32(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
