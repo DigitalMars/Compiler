@@ -1167,6 +1167,9 @@ else
     debug if (debugy)
         printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,symtab.top);
 
+    debug if (s.Ssymnum != -1)
+        printf("symbol %s already added\n", s.Sident.ptr);
+
     assert(s.Ssymnum == -1);
     return s.Ssymnum = symtab.top++;
 }

@@ -397,9 +397,9 @@ private extern (D) void findloops(block*[] dfo, loop **ploops)
 private uint loop_weight(uint weight, int factor) pure
 {
     // Be careful not to overflow
-    if (weight < 0x10000)
+    if (weight < 0x1_0000)
         weight *= 10 * factor;
-    else if (weight < 0x100000)
+    else if (weight < 0x10_0000)
         weight *= 2 * factor;
     else
         weight += factor;
