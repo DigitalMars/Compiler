@@ -1107,14 +1107,13 @@ static if (TX86)
 private macro_t * macro_calloc(const(char)* p)
 {   size_t len = strlen(p);
     macro_t *m;
-    __gshared macro_t mzero;
 
 static if (TX86)
     m = cast(macro_t *) mem_fmalloc(macro_t.sizeof + len);
 else
     m = cast(macro_t *) MEM_PH_MALLOC(macro_t.sizeof + len);
 
-    *m = mzero;
+    *m = macro_t();
     debug m.id = macro_t.IDmacro;
     memcpy(m.Mid.ptr,p,len + 1);           /* copy in identifier           */
     return m;

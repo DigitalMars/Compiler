@@ -85,8 +85,6 @@ __gshared
     block *block_last;      // last block read in
 
     block *block_freelist;
-
-    block blkzero;          // storage allocator
 }
 
 pragma(inline, true) block *block_calloc_i()
@@ -97,7 +95,7 @@ pragma(inline, true) block *block_calloc_i()
     {
         b = block_freelist;
         block_freelist = b.Bnext;
-        *b = blkzero;
+        *b = block();
     }
     else
         b = cast(block *) mem_calloc(block.sizeof);
