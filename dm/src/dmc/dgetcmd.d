@@ -20,7 +20,6 @@ import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.time;
 
-extern (Pascal) int response_expand(int*, char***);     // from dmc dos.h
 extern (C) char* strupr(char*);                         // from dmc string.h
 
 import dmd.backend.cdef;
@@ -40,6 +39,14 @@ import parser;
 import phstring;
 import precomp;
 import dmcdll;
+
+version (Windows)
+{
+    version (DigitalMars)
+    {
+        mixin("extern (Pascal) int response_expand(int*, char***);");     // from dmc dos.h
+    }
+}
 
 
 extern (C++):
@@ -163,11 +170,15 @@ else
 version (SPP)
     getcmd_cflags(&argc,&argv);         // handle CFLAGS
 
-version (Windows)
-{
-    if (response_expand(&argc,&argv))   /* expand response files        */
-        cmderr(EM_response_file);       // can't open response file
-}
+    version (Windows)
+    {
+        version (DigitalMars)
+        {
+            if (response_expand(&argc,&argv))   /* expand response files        */
+                cmderr(EM_response_file);       // can't open response file
+        }
+    }
+
     configv.verbose = 1;
     configv.errmax = 5;
     dmcdll_command_line(argc,argv,copyright);

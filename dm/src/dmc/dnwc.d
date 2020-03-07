@@ -22,7 +22,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.time;
 
-version (DigitalMars)
+version (Windows) version (DigitalMars)
 {
     extern (C) extern FILE[_NFILE] _iob; // it's private in core.stdc.stdio
     extern (C) extern __gshared int _8087;
@@ -146,19 +146,22 @@ extern (C) int main(int argc,char** argv)
     }
     else
     {
-        version (DigitalMars)
-        {
-            _8087 = 0;                  // no fuzzy floating point
-                                        // (use emulation only)
-        }
         version (Windows)
         {
+            version (DigitalMars)
+            {
+                _8087 = 0;                  // no fuzzy floating point
+                                            // (use emulation only)
+            }
+
             // Set unbuffered output in case output is redirected to a file
             // and we need to see how far it got before a crash.
+
             //stdout._flag |= _IONBF;
             //core.stdc.stdio.setvbuf(stdout, null, _IONBF, 0);
             core.stdc.stdio.setvbuf(&_iob[1], null, _IONBF, 0);
         }
+
         mem_init();
         mem_setexception(MEM_E.MEM_CALLFP,&err_nomem);
         list_init();

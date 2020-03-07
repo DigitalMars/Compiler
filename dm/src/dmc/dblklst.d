@@ -19,12 +19,6 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-version (DigitalMars)
-{
-    extern (C) extern FILE[_NFILE] _iob; // it's private in core.stdc.stdio
-    extern (C) extern __gshared int _8087;
-}
-
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.global;
@@ -87,7 +81,10 @@ int expflag;                /* != 0 means not expanding list file   */
 }
 
 version (linux)
+{
+    extern (C) int fputc_unlocked(int, FILE*);
     alias FPUTC = fputc_unlocked;
+}
 else
     alias FPUTC = fputc;
 
