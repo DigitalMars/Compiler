@@ -1712,7 +1712,8 @@ L1:
             }
             if (sfunc.Stype.Tty & mTYimport)
             {
-                Obj._import(e);                  // do deferred import
+		static if (TARGET_WINDOS)
+		    Obj._import(e);              // do deferred import
             }
 
             // No longer needed
@@ -3074,7 +3075,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     }
                     if (s.Stype.Tty & mTYimport)
                     {
-                        Obj._import(e);                  // do deferred import
+			static if (TARGET_WINDOS)
+			    Obj._import(e);              // do deferred import
                     }
                 }
             }
