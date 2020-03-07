@@ -47,7 +47,6 @@ import parser;
 import precomp;
 import scopeh;
 
-
 extern (C++):
 
 alias dbg_printf = printf;
@@ -4587,16 +4586,8 @@ enum SHTLNG  = OPs16_32;
 enum USHLNG  = OPu16_32;
 enum DBLLNG  = OPd_s32;
 enum LNGDBL  = OPs32_d;
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-enum DBLULNG = LNGLNG;
-enum ULNGDBL = LNGLNG;
-}
-else
-{
 enum DBLULNG = OPd_u32;
 enum ULNGDBL = OPu32_d;
-}
 enum DBLSHT  = OPd_s16;
 enum SHTDBL  = OPs16_d;
 enum DBLUSH  = OPd_u16;

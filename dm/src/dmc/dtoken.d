@@ -177,13 +177,11 @@ enum {
         TK_syscall,
         TK_try,
 //#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-/+
         TK_attribute,
         TK_extension,
         TK_format,
         TK_restrict,
         TK_bltin_const,
-+/
 //#endif
 //#else
 /+

@@ -320,7 +320,7 @@ elem *rtti_typeid(type *t,elem *e)
         e = el_bint(OPadd,t,e,emos);               // ethis + mos
         e = el_unat(OPind,svptr.Stype,e);      // *(ethis + mos)
 
-        e = el_bint(OPadd,e.ET,e,el_longt(tstypes[TYint],-tysize(st.ptrtype)));
+        e = el_bint(OPadd,e.ET,e,el_longt(tstypes[TYint],-cast(int)tysize(st.ptrtype)));
         e = el_unat(OPind,tref,e);
     }
     else

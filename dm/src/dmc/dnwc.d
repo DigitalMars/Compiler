@@ -4574,7 +4574,7 @@ version (Posix)
 {
         if (!CPP && !ClassInline(sc_specifier) && !SymInline(s))
         {
-            s.Sclass = sc_specifier;   /* force current storage class  */
+            s.Sclass = cast(char)sc_specifier;   /* force current storage class  */
         }
 }
 else

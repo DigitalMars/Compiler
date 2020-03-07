@@ -150,11 +150,11 @@ void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
 void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
 void util_free(void *p) { mem_free(p); }
 void *util_realloc(void *oldp,uint n,uint size) { return mem_realloc(oldp, n * size); }
-//#define parc_malloc     mem_malloc
-//#define parc_calloc     mem_calloc
-//#define parc_realloc    mem_realloc
-//#define parc_strdup     mem_strdup
-//#define parc_free       mem_free
+void *parc_malloc(size_t len);
+void *parc_calloc(size_t len);
+void *parc_realloc(void *oldp,size_t len);
+char *parc_strdup(const(char)* s);
+void parc_free(void *p);
 }
 else
 {
