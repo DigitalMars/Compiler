@@ -2156,6 +2156,8 @@ if (!bColcol)
             e = el_longt(tstypes[TYbool],(tok.TKval == TKtrue));
             stoken();
             break;
+
+	static if (0)
         static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
         {
         case TKnull:
@@ -2163,6 +2165,7 @@ if (!bColcol)
             stoken();
             break;
         }
+
         case TKnullptr:
             e = el_longt(tstypes[TYnullptr], 0);
             e.Eoper = OPnullptr;

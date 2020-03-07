@@ -845,8 +845,8 @@ void nwc_mustwrite(Symbol *sfunc)
     assert(tyfunc(sfunc.Stype.Tty));
 version (Posix)
 {
-        if (sfunc.Sfunc.Fflags3 & Fnowrite)
-            return;
+        //if (sfunc.Sfunc.Fflags3 & Fnowrite)
+            //return;
 }
     if (sfunc.Sflags & SFLimplem)              /* if body already read in */
     {
@@ -993,6 +993,7 @@ int declaration_specifier(type **ptyp_spec, int *pclass, uint *pclassm)
   /* inlines and templates).                                                      ILR */
 
   msbug = 0;
+static if (0)
 static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 {
   if (tok.TKval == TK_extension)
@@ -2986,6 +2987,7 @@ version (Posix)
                 stoken();
                 continue;
 
+static if (0)
 version (Posix)
 {
             case TK_attribute:
@@ -3177,6 +3179,7 @@ ret:
 
     tym |= initial;
 
+static if (0)
 version (Posix)
 {
     if (tok.TKval == TK_attribute)
@@ -3588,6 +3591,8 @@ ret:
 
     chktok(TKrpar,EM_param_rpar);       // closing parenthesis
 ret2:
+
+static if (0)
 version (Posix)
 {
     if (tok.TKval == TK_attribute)

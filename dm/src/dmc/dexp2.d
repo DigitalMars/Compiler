@@ -199,6 +199,7 @@ int exp2_retmethod(type *tfunc)
                 return RET_STACK;
         }
 
+static if (0)
 static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 {
         if (!OPT_IS_SET(OPTfreg_struct_return))

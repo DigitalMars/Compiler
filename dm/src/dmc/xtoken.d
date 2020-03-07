@@ -994,6 +994,7 @@ version (SPP)
 else
 {
     auto kwtab1_length = kwtab1.length;
+static if (0)
 static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 {
     kwtab1_length -=
