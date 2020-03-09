@@ -22,6 +22,8 @@
    terminology or not.
  */
 
+version (Windows)
+{
 version (SPP)
 {
 }
@@ -2096,4 +2098,9 @@ void ph_add_global_symdef(Symbol *s, uint sctype)
     }
 }
 
+}
+}
+else
+{
+import dmd.backend.ph2;
 }
