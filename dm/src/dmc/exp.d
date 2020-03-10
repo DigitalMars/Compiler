@@ -2157,7 +2157,7 @@ if (!bColcol)
             stoken();
             break;
 
-	static if (0)
+        static if (0)
         static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
         {
         case TKnull:
