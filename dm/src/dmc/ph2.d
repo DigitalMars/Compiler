@@ -14,6 +14,11 @@
 
 module dmd.backend.ph2;
 
+version (SCPP) { }
+else version (SPP) { }
+else
+{
+
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -137,4 +142,5 @@ void err_nomem()
 {
     printf("Error: out of memory\n");
     err_exit();
+}
 }
