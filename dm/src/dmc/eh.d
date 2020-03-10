@@ -908,9 +908,9 @@ Symbol *except_gentables()
                 tsym.Tty |= mTYfar;
             else if (MEMMODELS != 1 && config.memmodel != Vmodel)     // table can't be in overlay
             {   tsym.Tty |= mTYcs;
-		static if (TARGET_WINDOS)
-		    if (SegData[cseg].segidx < 0)
-			ehsym.Sxtrnnum = funcsym_p.Sxtrnnum;
+                static if (TARGET_WINDOS)
+                    if (SegData[cseg].segidx < 0)
+                        ehsym.Sxtrnnum = funcsym_p.Sxtrnnum;
             }
         }
 
