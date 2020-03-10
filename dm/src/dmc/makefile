@@ -183,7 +183,7 @@ OBJ1g=unialpha.obj entity.obj backconfig.obj dinline.obj oper.obj parser.obj dto
 
 OBJ2a= cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj cg87.obj cgxmm.obj dcode.obj global.obj
 OBJ2b= cg.obj cgelem.obj cgcs.obj dcgcv.obj tytostr.obj cgen.obj cgreg.obj compress.obj codebuilder.obj
-OBJ2c= cgobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarfdbginf.obj stubobj.obj obj.obj
+OBJ2c= cgobj.obj mscoffobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarfdbginf.obj stubobj.obj obj.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj barray.obj goh.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj dspeller.obj utf.obj divcoeff.obj dvec.obj dlist.obj filespec.obj
 OBJ2f= cgcse.obj code_x86.obj
@@ -474,6 +474,9 @@ cgen.obj : cgen.d
 cgobj.obj : cgobj.d
         $(DMD) -c $(DFLAGS) -J. cgobj.d
 
+mscoffobj.obj : mscoffobj.d
+        $(DMD) -c $(DFLAGS) -J. mscoffobj.d
+
 cgreg.obj : cgreg.d
         $(DMD) -c $(DFLAGS) cgreg.d
 
@@ -728,7 +731,6 @@ var.obj : var.d
 DEP= msgs2.h msgs2.c
 
 #backconfig.obj : $(DEP) $(backconfig.dep) backconfig.c
-#cgobj.obj : $(DEP) $(cgobj.dep) cgobj.c
 #cgreg.obj : $(DEP) $(cgreg.dep) cgreg.c
 #cod1.obj : $(DEP) $(cod1.dep) cod1.c
 #cod2.obj : $(DEP) $(cod2.dep) cod2.c

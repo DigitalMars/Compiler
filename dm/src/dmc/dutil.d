@@ -142,11 +142,14 @@ extern (C) void crlf(FILE *fstream)
  * pointer to that string.
  */
 
+version (none)
+{
 char *unsstr(uint i)
 { __gshared char[uint.sizeof * 3 + 1] string;
 
   sprintf(string.ptr,"%u",i);
   return string.ptr;
+}
 }
 
 /*************************

@@ -30,11 +30,11 @@ version (Windows)
 {
     version (SCPP)
     {
-        version = OMF;
+        version = OMFandMSCOFF;
     }
     version (SPP)
     {
-        version = OMF;
+        version = STUB;
     }
     version (HTOD)
     {

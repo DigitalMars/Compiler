@@ -12,6 +12,11 @@
 module stubobj;
 
 version (HTOD)
+    version = COMPILE;
+version (SPP)
+    version = COMPILE;
+
+version (COMPILE)
 {
 
 import dmd.backend.cdef;
