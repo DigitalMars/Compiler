@@ -365,7 +365,6 @@ void cv8_func_start(Symbol *sfunc)
         currentfuncdata.f1fixup.enlarge(128);
     }
 
-    version (MARS) // do varstats later
     varStats_startFunction();
 }
 
@@ -499,7 +498,6 @@ void cv8_func_term(Symbol *sfunc)
             buf.writeWord(S_END);
         }
     }
-    version (MARS) // do varstats later
     varStats_writeSymbolTable(&globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
 
     /* Put out function return record S_RETURN
@@ -528,7 +526,6 @@ void cv8_linnum(Srcpos srcpos, uint offset)
     if (!sfilename)
         return;
 
-    version (MARS) // do varstats later
     varStats_recordLineOffset(srcpos, offset);
 
     __gshared uint lastoffset;

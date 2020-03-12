@@ -186,7 +186,7 @@ OBJ2b= cg.obj cgelem.obj cgcs.obj dcgcv.obj tytostr.obj cgen.obj cgreg.obj compr
 OBJ2c= cgobj.obj mscoffobj.obj cgsched.obj objrecor.obj diasm.obj ptrntab.obj newman.obj dwarfdbginf.obj stubobj.obj obj.obj
 OBJ2d= go.obj gloop.obj gother.obj gflow.obj gdag.obj glocal.obj gsroa.obj pdata.obj cv8.obj barray.obj goh.obj
 OBJ2e= errmsgs2.obj outbuf.obj bcomplex.obj htod.obj dspeller.obj utf.obj divcoeff.obj dvec.obj dlist.obj filespec.obj
-OBJ2f= cgcse.obj code_x86.obj
+OBJ2f= cgcse.obj code_x86.obj dvarstats.obj
 
 ALLOBJS= $(OBJ1a) $(OBJ1b) $(OBJ1c) $(OBJ1d) $(OBJ1e) $(OBJ1f) $(OBJ1g) \
          $(OBJ2a) $(OBJ2b) $(OBJ2c) $(OBJ2d) $(OBJ2e) $(OBJ2f)
@@ -476,6 +476,9 @@ cgobj.obj : cgobj.d
 
 mscoffobj.obj : mscoffobj.d
         $(DMD) -c $(DFLAGS) -J. mscoffobj.d
+
+dvarstats.obj : dvarstats.d
+        $(DMD) -c $(DFLAGS) -J. dvarstats.d
 
 cgreg.obj : cgreg.d
         $(DMD) -c $(DFLAGS) cgreg.d
