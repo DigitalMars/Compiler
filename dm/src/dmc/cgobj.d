@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgobj.d, backend/cgobj.d)
@@ -418,8 +418,9 @@ public seg_data **SegData;
  *      reclen  =       # of bytes in record
  */
 
-void objrecord(uint rectyp,const(char)* record,uint reclen)
-{   Outbuffer *o = obj.buf;
+void objrecord(uint rectyp, const(char)* record, uint reclen)
+{
+    Outbuffer *o = obj.buf;
 
     //printf("rectyp = x%x, record[0] = x%x, reclen = x%x\n",rectyp,record[0],reclen);
     o.reserve(reclen + 4);
@@ -495,7 +496,8 @@ int insidx(char *p,uint index)
      * "library is corrupted" messages. Unverified. See Bugzilla 3601
      */
     if (index < 0x7F)
-    {   *p = cast(char)index;
+    {
+        *p = cast(char)index;
         return 1;
     }
     else if (index <= 0x7FFF)
@@ -505,7 +507,8 @@ int insidx(char *p,uint index)
         return 2;
     }
     else
-    {   too_many_symbols();
+    {
+        too_many_symbols();
         return 0;
     }
 }
@@ -925,7 +928,8 @@ static if (TERMCODE)
 
         // Update any out-of-date far segment sizes
         for (size_t i = 0; i <= seg_count; i++)
-        {   seg_data *f = SegData[i];
+        {
+            seg_data* f = SegData[i];
             if (f.isfarseg && f.origsize != f.SDoffset)
             {   obj.buf.setsize(cast(int)f.seek);
                 objsegdef(f.attr,f.SDoffset,f.lnameidx,f.classidx);
@@ -982,7 +986,8 @@ else
                 (!(srcpos_sfile(srcpos).SFflags & SFtop) || (seg_is_comdat(SegData[seg].segidx) && !obj.term));
 }
     if (cond)
-    {   // Not original source file, or a COMDAT.
+    {
+        // Not original source file, or a COMDAT.
         // Save data away and deal with it at close of compile.
         // It is done this way because presumably 99% of the lines
         // will be in the original source file, so we wish to minimize
@@ -1115,22 +1120,26 @@ static if (MULTISCOPE)
 private void linnum_flush()
 {
     if (obj.linreclist)
-    {   list_t list;
+    {
+        list_t list;
         size_t len;
 
         obj.linrec = cast(char *) list_ptr(obj.linreclist);
         TOWORD(obj.linrec + 6,obj.linrecnum);
         list = obj.linreclist;
         while (1)
-        {   obj.linrec = cast(char *) list_ptr(list);
+        {
+            obj.linrec = cast(char *) list_ptr(list);
 
             list = list_next(list);
             if (list)
-            {   objrecord(obj.mlinnum,obj.linrec,LINRECMAX);
+            {
+                objrecord(obj.mlinnum,obj.linrec,LINRECMAX);
                 mem_free(obj.linrec);
             }
             else
-            {   objrecord(obj.mlinnum,obj.linrec,obj.linreci);
+            {
+                objrecord(obj.mlinnum,obj.linrec,obj.linreci);
                 break;
             }
         }
@@ -1148,7 +1157,8 @@ private void linnum_flush()
         obj.linrec = null;
     }
     else if (obj.linrec)                        // if some line numbers to send
-    {   objrecord(obj.mlinnum,obj.linrec,obj.linreci);
+    {
+        objrecord(obj.mlinnum,obj.linrec,obj.linreci);
         mem_free(obj.linrec);
         obj.linrec = null;
     }
@@ -1164,7 +1174,8 @@ static if (MULTISCOPE)
  */
 
 private void linnum_term()
-{   list_t ll;
+{
+    list_t ll;
 
 version (SCPP)
     Sfile *lastfilptr = null;
@@ -1278,9 +1289,10 @@ void OmfObj_startaddress(Symbol *s)
  */
 
 void OmfObj_dosseg()
-{   static immutable char[2] dosseg = [ 0x80,0x9E ];
+{
+    static immutable char[2] dosseg = [ 0x80,0x9E ];
 
-    objrecord(COMENT,dosseg.ptr,dosseg.sizeof);
+    objrecord(COMENT, dosseg.ptr, dosseg.sizeof);
 }
 
 /*******************************
@@ -1310,7 +1322,8 @@ private void obj_comment(ubyte x, const(char)* string, size_t len)
  */
 
 bool OmfObj_includelib(const(char)* name)
-{   const(char)* p;
+{
+    const(char)* p;
     size_t len = strlen(name);
 
     p = filespecdotext(name);
@@ -1450,7 +1463,8 @@ void OmfObj_wkext(Symbol *s1,Symbol *s2)
  */
 
 void OmfObj_lzext(Symbol *s1,Symbol *s2)
-{   char[2+2+2] buffer = void;
+{
+    char[2+2+2] buffer = void;
     int i;
 
     outextdata();
@@ -1467,8 +1481,9 @@ void OmfObj_lzext(Symbol *s1,Symbol *s2)
  */
 
 void OmfObj_alias(const(char)* n1,const(char)* n2)
-{   uint len;
-    char *buffer;
+{
+    uint len;
+    char* buffer;
 
     buffer = cast(char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
     len = obj_namestring(buffer,n1);
@@ -1536,9 +1551,9 @@ private void objheader(char *csegname)
         "\07$$TYPES\06DEBTYP\011$$SYMBOLS\06DEBSYM";
     assert(lnames[lnames.length - 2] == 'M');
 
-  // Include debug segment names if inserting type information
-  int lnamesize = config.fulltypes ? lnames.sizeof - 1 : lnames.sizeof - 1 - 32;
-  int texti = 8;                                // index of _TEXT
+    // Include debug segment names if inserting type information
+    int lnamesize = config.fulltypes ? lnames.sizeof - 1 : lnames.sizeof - 1 - 32;
+    int texti = 8;                                // index of _TEXT
 
     __gshared char[5] comment = [0,0x9D,'0','?','O']; // memory model
     __gshared char[5+1] model = "smclv";
@@ -1546,7 +1561,8 @@ private void objheader(char *csegname)
     __gshared char[7] pmdeb = [0x80,0xA1,1,'H','L','L',0];    // IBM PM debug format
 
     if (I32)
-    {   if (config.flags & CFGeasyomf)
+    {
+        if (config.flags & CFGeasyomf)
         {
             // Indicate we're in EASY OMF (hah!) format
             static immutable char[7] easy_omf = [ 0x80,0xAA,'8','0','3','8','6' ];
@@ -1554,24 +1570,25 @@ private void objheader(char *csegname)
         }
     }
 
-  // Send out a comment record showing what memory model was used
-  comment[2] = cast(char)(config.target_cpu + '0');
-  comment[3] = model[config.memmodel];
-  if (I32)
-  {     if (config.exe == EX_WIN32)
+    // Send out a comment record showing what memory model was used
+    comment[2] = cast(char)(config.target_cpu + '0');
+    comment[3] = model[config.memmodel];
+    if (I32)
+    {
+        if (config.exe == EX_WIN32)
             comment[3] = 'n';
         else if (config.exe == EX_OS2)
             comment[3] = 'f';
         else
             comment[3] = 'x';
-  }
-  objrecord(COMENT,comment.ptr,comment.sizeof);
+    }
+    objrecord(COMENT,comment.ptr,comment.sizeof);
 
     // Send out comment indicating we're using extensions to .OBJ format
     if (config.exe == EX_OS2)
-        objrecord(COMENT,pmdeb.ptr,pmdeb.sizeof);
+        objrecord(COMENT, pmdeb.ptr, pmdeb.sizeof);
     else
-        objrecord(COMENT,exten.ptr,exten.sizeof);
+        objrecord(COMENT, exten.ptr, exten.sizeof);
 
     // Change DGROUP to FLAT if we are doing flat memory model
     // (Watch out, objheader() is called twice!)
