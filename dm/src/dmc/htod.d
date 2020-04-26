@@ -752,6 +752,7 @@ char *htod_type_tostring(Outbuffer *buf,type *t)
             case TYvptr:
             case TYimmutPtr:
             case TYsharePtr:
+            case TYrestrictPtr:
             case TYfgPtr:
                 if (tyfunc(t.Tnext.Tty))
                 {

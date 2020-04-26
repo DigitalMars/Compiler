@@ -584,11 +584,13 @@ void block_appendexp(block *b,elem *e)
 version (COMPILE)
 {
 
+extern (C) int D3dmd7backend2cc6Symbol6__initZ = 0;
+
 //#undef block_initvar
 
 void block_initvar(Symbol *s)
 {
-    symbol_debug(s);
+    //symbol_debug(s);
     curblock.Binitvar = s;
 }
 

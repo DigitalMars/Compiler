@@ -477,6 +477,7 @@ void cv_init()
             dttab4[TYsptr] = 0x600;
             dttab4[TYimmutPtr] = 0x600;
             dttab4[TYsharePtr] = 0x600;
+            dttab4[TYrestrictPtr] = 0x600;
             dttab4[TYfgPtr] = 0x600;
         }
         else
@@ -486,6 +487,7 @@ void cv_init()
             dttab4[TYnptr] = 0x400;
             dttab4[TYimmutPtr] = 0x400;
             dttab4[TYsharePtr] = 0x400;
+            dttab4[TYrestrictPtr] = 0x400;
             dttab4[TYfgPtr] = 0x400;
         }
         dttab4[TYcptr] = 0x400;
@@ -1929,6 +1931,7 @@ L1:
         case TYnptr:
         case TYimmutPtr:
         case TYsharePtr:
+        case TYrestrictPtr:
 version (MARS)
 {
             if (t.Tkey)
