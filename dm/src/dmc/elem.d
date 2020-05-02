@@ -1640,7 +1640,7 @@ elem *el_convstring(elem *e)
     // Remember the string for possible reuse later
     //printf("Adding %d, '%s'\n",stable_si,p);
     mem_free(stable[stable_si].str.ptr);
-    stable[stable_si].str = p[0 .. len];
+    stable[stable_si].str = p[0 .. cast(size_t)len];
     stable[stable_si].sym = s;
     stable_si = (stable_si + 1) & (stable.length - 1);
 
