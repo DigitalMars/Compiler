@@ -703,7 +703,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
                 vec_free(b.Bkill2);
                 elem* e;
                 for (e = b.Belem; e.Eoper == OPcomma; e = e.EV.E2)
-                    accumaecp(b.Bgen,b.Bkill,e);
+                    accumaecp(b.Bgen,b.Bkill,e.EV.E1);
                 if (e.Eoper == OPandand || e.Eoper == OPoror)
                 {
                     accumaecp(b.Bgen,b.Bkill,e.EV.E1);
@@ -793,29 +793,28 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
 
 private void defstarkill()
 {
-    vec_free(go.vptrkill);
-    vec_free(go.defkill);
-    vec_free(go.starkill);             /* dump any existing ones       */
-    go.defkill = vec_calloc(go.exptop);
-    if (flowxx != CP)
+    const exptop = go.exptop;
+    vec_recycle(go.defkill, exptop);
+    if (flowxx == CP)
     {
-        go.starkill = vec_calloc(go.exptop);      /* and create new ones  */
-        go.vptrkill = vec_calloc(go.exptop);      /* and create new ones  */
+        vec_recycle(go.starkill, 0);
+        vec_recycle(go.vptrkill, 0);
     }
-    else /* CP */
+    else
     {
-        go.starkill = null;
-        go.vptrkill = null;
+        vec_recycle(go.starkill, exptop);      // and create new ones
+        vec_recycle(go.vptrkill, exptop);      // and create new ones
     }
 
-    if (!go.exptop)
+    if (!exptop)
         return;
+
+    auto defkill = go.defkill;
 
     if (flowxx == CP)
     {
-        foreach (uint i; 1 .. go.exptop)
+        foreach (i, n; go.expnod[1 .. exptop])
         {
-            elem *n = go.expnod[i];
             const op = n.Eoper;
             assert(op == OPeq || op == OPstreq);
             assert(n.EV.E1.Eoper==OPvar && n.EV.E2.Eoper==OPvar);
@@ -826,21 +825,24 @@ private void defstarkill()
             if (Symbol_isAffected(*n.EV.E1.EV.Vsym) ||
                 Symbol_isAffected(*n.EV.E2.EV.Vsym))
             {
-                vec_setbit(i,go.defkill);
+                vec_setbit(i + 1,defkill);
             }
         }
     }
     else
     {
-        foreach (uint i; 1 .. go.exptop)
+        auto starkill = go.starkill;
+        auto vptrkill = go.vptrkill;
+
+        foreach (j, n; go.expnod[1 .. exptop])
         {
-            elem *n = go.expnod[i];
+            const i = j + 1;
             const op = n.Eoper;
             switch (op)
             {
                 case OPvar:
                     if (Symbol_isAffected(*n.EV.Vsym))
-                        vec_setbit(i,go.defkill);
+                        vec_setbit(i,defkill);
                     break;
 
                 case OPind:         // if a 'starred' ref
@@ -852,32 +854,32 @@ private void defstarkill()
                 case OPstrcmp:
                 case OPmemcmp:
                 case OPbt:          // OPbt is like OPind
-                    vec_setbit(i,go.defkill);
-                    vec_setbit(i,go.starkill);
+                    vec_setbit(i,defkill);
+                    vec_setbit(i,starkill);
                     break;
 
                 case OPvp_fp:
                 case OPcvp_fp:
-                    vec_setbit(i,go.vptrkill);
+                    vec_setbit(i,vptrkill);
                     goto Lunary;
 
                 default:
                     if (OTunary(op))
                     {
                     Lunary:
-                        if (vec_testbit(n.EV.E1.Eexp,go.defkill))
-                                vec_setbit(i,go.defkill);
-                        if (vec_testbit(n.EV.E1.Eexp,go.starkill))
-                                vec_setbit(i,go.starkill);
+                        if (vec_testbit(n.EV.E1.Eexp,defkill))
+                            vec_setbit(i,defkill);
+                        if (vec_testbit(n.EV.E1.Eexp,starkill))
+                            vec_setbit(i,starkill);
                     }
                     else if (OTbinary(op))
                     {
-                        if (vec_testbit(n.EV.E1.Eexp,go.defkill) ||
-                            vec_testbit(n.EV.E2.Eexp,go.defkill))
-                                vec_setbit(i,go.defkill);
-                        if (vec_testbit(n.EV.E1.Eexp,go.starkill) ||
-                            vec_testbit(n.EV.E2.Eexp,go.starkill))
-                                vec_setbit(i,go.starkill);
+                        if (vec_testbit(n.EV.E1.Eexp,defkill) ||
+                            vec_testbit(n.EV.E2.Eexp,defkill))
+                                vec_setbit(i,defkill);
+                        if (vec_testbit(n.EV.E1.Eexp,starkill) ||
+                            vec_testbit(n.EV.E2.Eexp,starkill))
+                                vec_setbit(i,starkill);
                     }
                     break;
             }
