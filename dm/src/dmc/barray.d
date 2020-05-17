@@ -91,6 +91,7 @@ struct Barray(T)
         array = null;
         capacity = 0;
     }
+    alias __dtor = dtor;
 
     alias array this;
     T[] array;
