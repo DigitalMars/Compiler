@@ -62,7 +62,7 @@ nothrow:
     block *Lhead;       // Pointer to header of loop
     block *Ltail;       // Pointer to tail
     block *Lpreheader;  // Pointer to preheader (if any)
-    list_t Llis;        // loop invariant elems moved to Lpreheader, so
+    Barray!(elem*) Llis; // loop invariant elems moved to Lpreheader, so
                         // redundant temporaries aren't created
     Barray!Iv Livlist;        // basic induction variables
     Barray!Iv Lopeqlist;      // list of other op= variables
@@ -207,7 +207,7 @@ private void freeloop(ref Barray!(loop*) loops)
     {
         vec_free(l.Lloop);
         vec_free(l.Lexit);
-        list_free(&l.Llis);
+        l.Llis.__dtor();
         l.Lnext = loop.freelist;
         loop.freelist = l;
     }
@@ -924,7 +924,7 @@ restart:
         L1:
             if (dfo[i].Belem)
             {   // If there is any hope of making an improvement
-                if (domexit || l.Llis)
+                if (domexit || l.Llis.length)
                 {
                     //if (dfo[i] != l.Lhead)
                         //domexit |= 2;
@@ -932,7 +932,6 @@ restart:
                 }
             }
         }
-        //list_free(&l.Llis,FPnull);
         if (debugc) printf("...Loop %p done...\n",l);
 
         if (go.mfoptim & MFliv)
@@ -1680,13 +1679,13 @@ Lnextlis:
 
                 // We have an LI assignment, n.
                 // Check to see if the rvalue is already in the preheader.
-                foreach (nl; ListRange(l.Llis))
+                foreach (e; l.Llis)
                 {
-                    if (el_match(n.EV.E2,list_elem(nl).EV.E2))
+                    if (el_match(n.EV.E2, e.EV.E2))
                     {
                         el_free(n.EV.E2);
                         n.EV.E2 = el_calloc();
-                        el_copy(n.EV.E2,list_elem(nl).EV.E1);
+                        el_copy(n.EV.E2, e.EV.E1);
                         if (debugc) printf("LI assignment rvalue was replaced\n");
                         doflow = true;
                         go.changes++;
@@ -1710,7 +1709,7 @@ Lnextlis:
                 el_copy(ne,n);                  // create assignment elem
                 assert(l.Lpreheader);          // make sure there is one
                 appendelem(ne,&(l.Lpreheader.Belem)); // append ne to preheader
-                list_prepend(&l.Llis,ne);
+                l.Llis.push(ne);
 
                 el_copy(n,ne.EV.E1);      // replace n with just a reference to v
                 goto Lret;
@@ -1822,9 +1821,8 @@ L3:
             s = el_basesym(n.EV.E1);
             if (s)
             {
-                foreach (nl; ListRange(l.Llis))
+                foreach (el; l.Llis)
                 {
-                    elem *el = list_elem(nl);
                     el = el.EV.E2;
                     elem_print(el);
                     if (el.Eoper == OPind && el_basesym(el.EV.E1) == s)
@@ -1853,12 +1851,10 @@ L3:
 
     // See if it's already been moved
     ty = n.Ety;
-    foreach (nl; ListRange(l.Llis))
+    foreach (el; l.Llis)
     {
-        elem *el;
         tym_t ty2;
 
-        el = list_elem(nl);
         //printf("existing LI: "); WReqn(el); printf("\n");
         ty2 = el.EV.E2.Ety;
         if (tysize(ty) == tysize(ty2))
@@ -1933,7 +1929,7 @@ L3:
     el_copy(n,t);                                 /* replace this elem with t */
 
     // Remember LI expression in elem list
-    list_prepend(&l.Llis,ne);
+    l.Llis.push(ne);
 
 Lret:
 
