@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2018-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/barrayf.d, backend/barray.d)
@@ -66,6 +66,20 @@ struct Barray(T)
         array[i] = t;
     }
 
+    /*******************
+     * Append a 0-initialized element of T to array
+     * Returns:
+     *  pointer to appended element
+     */
+    T* push()
+    {
+        const i = length;
+        setLength(i + 1);
+        auto p = &array[i];
+        memset(p, 0, T.sizeof);
+        return p;
+    }
+
     /**********************
      * Move the last element from the array into [i].
      * Reduce the array length by one.
@@ -91,7 +105,6 @@ struct Barray(T)
         array = null;
         capacity = 0;
     }
-    alias __dtor = dtor;
 
     alias array this;
     T[] array;
@@ -108,9 +121,14 @@ unittest
     a.setLength(4);
     assert(a.length == 4);
     foreach (i, ref v; a[])
-        v = i * 2;
+        v = cast(int) i * 2;
     foreach (i, ref const v; a[])
         assert(v == i * 2);
+    a.remove(3);
+    assert(a.length == 3);
+    a.push(50);
+    a.remove(1);
+    assert(a[1] == 50);
     a.dtor();
     assert(a.length == 0);
 }
