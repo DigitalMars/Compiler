@@ -49,6 +49,9 @@ extern (C++):
 
 bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc);
 
+alias Loops = Barray!loop;
+
+
 /*********************************
  * Loop data structure.
  */
@@ -56,7 +59,6 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc);
 struct loop
 {
 nothrow:
-    loop *Lnext;        // Next loop in list (startloop -> start of list)
     vec_t Lloop;        // Vector of blocks in this loop
     vec_t Lexit;        // Vector of exit blocks of loop
     block *Lhead;       // Pointer to header of loop
@@ -102,26 +104,6 @@ nothrow:
             printf("\tLexit "); vec_println(l.Lexit);
         }
     }
-
-    /***************************
-     * Allocate loop.
-     */
-
-    static loop *mycalloc()
-    {   loop *l;
-
-        if (freelist)
-        {
-            l = freelist;
-            freelist = l.Lnext;
-            memset(l,0,loop.sizeof);
-        }
-        else
-            l = cast(loop *) mem_calloc(loop.sizeof);
-        return l;
-    }
-
-    __gshared loop *freelist;
 }
 
 struct famlist
@@ -213,14 +195,8 @@ void makeLI(elem *n) { n.Nflags |= NFLli; }
  * Free loops.
  */
 
-private void freeloop(ref Barray!(loop*) loops)
+private void freeloop(ref Loops loops)
 {
-    foreach (l; loops)
-    {
-        l.dtor();
-        l.Lnext = loop.freelist;
-        loop.freelist = l;
-    }
     loops.dtor();
 }
 
@@ -348,7 +324,7 @@ bool dom(block *A,block *B)
  * Find all the loops.
  */
 
-private extern (D) void findloops(block*[] dfo, ref Barray!(loop*) loops)
+private extern (D) void findloops(block*[] dfo, ref Loops loops)
 {
     freeloop(loops);
 
@@ -371,7 +347,7 @@ private extern (D) void findloops(block*[] dfo, ref Barray!(loop*) loops)
 
     debug if (debugc)
     {
-        foreach (l; loops)
+        foreach (ref l; loops)
             l.print();
     }
 }
@@ -398,13 +374,13 @@ private uint loop_weight(uint weight, int factor) pure
  * Note that head dom tail.
  */
 
-private void buildloop(ref Barray!(loop*) ploops,block *head,block *tail)
+private void buildloop(ref Loops ploops,block *head,block *tail)
 {
     loop *l;
 
     //printf("buildloop()\n");
     /* See if this is part of an existing loop. If so, merge the two.     */
-    foreach (lp; ploops)
+    foreach (ref lp; ploops)
         if (lp.Lhead == head)           /* two loops with same header   */
         {
             vec_t v;
@@ -421,13 +397,12 @@ private void buildloop(ref Barray!(loop*) ploops,block *head,block *tail)
             vec_free(v);
 
             vec_clear(lp.Lexit);        // recompute exit blocks
-            l = lp;
+            l = &lp;
             goto L1;
         }
 
     /* Allocate loop entry        */
-    l = loop.mycalloc();
-    ploops.push(l);
+    l = ploops.push();
 
     l.Lloop = vec_calloc(maxblks);       /* allocate loop bit vector     */
     l.Lexit = vec_calloc(maxblks);       /* bit vector for exit blocks   */
@@ -704,7 +679,7 @@ private __gshared
 void loopopt()
 {
     vec_t rd;
-    Barray!(loop*) startloop;
+    Loops startloop;
 
     if (debugc) printf("loopopt()\n");
 restart:
@@ -721,9 +696,9 @@ restart:
   L3:
     while (1)
     {
-        foreach (l; startloop)
+        foreach (ref l; startloop)
         {
-            if (looprotate(l))              // rotate the loop
+            if (looprotate(&l))              // rotate the loop
             {
                 compdfo();
                 blockinit();
@@ -738,7 +713,7 @@ restart:
     // Make sure there is a preheader for each loop.
 
     addblk = false;                     /* assume no blocks added        */
-    foreach (l; startloop)
+    foreach (ref l; startloop)
     {
         //if (debugc) l.print();
 
@@ -777,7 +752,7 @@ restart:
             list_append(&(p.Bsucc),h); /* only successor is h          */
             p.Btry = h.Btry;
 
-            if (debugc) printf("Adding preheader %p to loop %p\n",p,l);
+            if (debugc) printf("Adding preheader %p to loop %p\n",p,&l);
 
             // Move preds of h that aren't in the loop to preds of p
             for (list_t bl = h.Bpred; bl;)
@@ -821,9 +796,9 @@ restart:
     L2:
         while (1)
         {
-            foreach (l; startloop)
+            foreach (ref l; startloop)
             {
-                if (loopunroll(l))
+                if (loopunroll(&l))
                 {
                     compdfo();                      // compute depth-first order
                     blockinit();
@@ -843,7 +818,7 @@ restart:
      */
     if (debugc) printf("Starting loop invariants\n");
 
-    foreach_reverse (l; startloop)
+    foreach_reverse (ref l; startloop)
     {
         uint i,j;
 
@@ -861,7 +836,7 @@ restart:
                 break;              /* no need to optimize          */
         }
         lv = l.Lloop;
-        if (debugc) printf("...Loop %p start...\n",l);
+        if (debugc) printf("...Loop %p start...\n",&l);
 
         /* Unmark all elems in this loop         */
         for (i = 0; (i = cast(uint) vec_index(i, lv)) < dfo.length; ++i)
@@ -938,15 +913,15 @@ restart:
                 {
                     //if (dfo[i] != l.Lhead)
                         //domexit |= 2;
-                    movelis(dfo[i].Belem, dfo[i], l, &domexit);
+                    movelis(dfo[i].Belem, dfo[i], &l, &domexit);
                 }
             }
         }
-        if (debugc) printf("...Loop %p done...\n",l);
+        if (debugc) printf("...Loop %p done...\n",&l);
 
         if (go.mfoptim & MFliv)
         {
-            loopiv(l);              /* induction variables          */
+            loopiv(&l);             /* induction variables          */
             if (addblk)             /* if we added a block          */
             {
                 compdfo();
