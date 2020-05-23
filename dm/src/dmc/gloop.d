@@ -125,7 +125,7 @@ nothrow:
         el_free(c2);
     }
 
-    void print()
+    void print() const
     {
         debug
         {
@@ -161,7 +161,7 @@ nothrow:
         IVfamily.dtor();
     }
 
-    void print()
+    void print() const
     {
         debug
         {
@@ -176,10 +176,10 @@ nothrow:
 private __gshared bool addblk;                    /* if TRUE, then we added a block */
 
 /* is elem loop invariant?      */
-int isLI(elem *n) { return n.Nflags & NFLli; }
+int isLI(const elem* n) { return n.Nflags & NFLli; }
 
 /* make elem loop invariant     */
-void makeLI(elem *n) { n.Nflags |= NFLli; }
+void makeLI(elem* n) { n.Nflags |= NFLli; }
 
 /******************************
  *      Only variables that could only be unambiguously defined
@@ -314,7 +314,7 @@ private extern (D) void compdom(block*[] dfo)
  * Return !=0 if block A dominates block B.
  */
 
-bool dom(block *A,block *B)
+bool dom(const block* A, const block* B)
 {
     assert(A && B && dfo && dfo[A.Bdfoidx] == A);
     return vec_testbit(A.Bdfoidx,B.Bdom) != 0;
@@ -419,8 +419,8 @@ L1:
      * successors outside the loop).
      */
 
-    uint i;
-    for (i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in this loop
+    // for each block in this loop
+    for (uint i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)
     {
         if (dfo[i].BC == BCret || dfo[i].BC == BCretexp || dfo[i].BC == BCexit)
             vec_setbit(i,l.Lexit); /* ret blocks are exit blocks */
@@ -537,7 +537,7 @@ private void insert(block *b, vec_t lv)
  *      true need to recompute loop data
  */
 
-private int looprotate(loop *l)
+private int looprotate(ref loop l)
 {
     block *tail = l.Ltail;
     block *head = l.Lhead;
@@ -569,11 +569,8 @@ private int looprotate(loop *l)
     {   // Duplicate the header past the tail (but doing
         // switches would be too expensive in terms of code
         // generated).
-           block *head2;
-           list_t *pbl2;
-           list_t *pbln;
 
-        head2 = block_calloc(); // create new head block
+        auto head2 = block_calloc(); // create new head block
         numblks++;                      // number of blocks in existence
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
@@ -588,7 +585,8 @@ private int looprotate(loop *l)
 
         // pred(head1) = pred(head) outside loop
         // pred(head2) = pred(head) inside loop
-        pbl2 = &(head2.Bpred);
+        list_t *pbln;
+        auto pbl2 = &(head2.Bpred);
         for (list_t *pbl = &(head.Bpred); *pbl; pbl = pbln)
         {
             if (vec_testbit(list_block(*pbl).Bdfoidx, l.Lloop))
@@ -619,7 +617,7 @@ private int looprotate(loop *l)
             list_append(&(head2.Bsucc),list_block(bl));
             list_append(&(list_block(bl).Bpred),head2);
         }
-        if (debugc) printf("1Rotated loop %p\n", l);
+        if (debugc) printf("1Rotated loop %p\n", &l);
         go.changes++;
         return true;
     }
@@ -698,7 +696,7 @@ restart:
     {
         foreach (ref l; startloop)
         {
-            if (looprotate(&l))              // rotate the loop
+            if (looprotate(l))              // rotate the loop
             {
                 compdfo();
                 blockinit();
@@ -734,15 +732,16 @@ restart:
                 startblock = p;
             else
             {
-                block *ph;
-                for (ph = startblock; 1; ph = ph.Bnext)
+                for (auto ph = startblock; 1; ph = ph.Bnext)
                 {
                     assert(ph);         /* should have found it         */
                     if (ph.Bnext == h)
+                    {
+                        // Link p into block list between ph and h
+                        ph.Bnext = p;
                         break;
+                    }
                 }
-                /* Link p into block list between ph and h      */
-                ph.Bnext = p;
             }
             p.Bnext = h;
 
@@ -798,7 +797,7 @@ restart:
         {
             foreach (ref l; startloop)
             {
-                if (loopunroll(&l))
+                if (loopunroll(l))
                 {
                     compdfo();                      // compute depth-first order
                     blockinit();
@@ -820,8 +819,6 @@ restart:
 
     foreach_reverse (ref l; startloop)
     {
-        uint i,j;
-
         //if (debugc) l.print();
 
         file_progress();
@@ -839,14 +836,14 @@ restart:
         if (debugc) printf("...Loop %p start...\n",&l);
 
         /* Unmark all elems in this loop         */
-        for (i = 0; (i = cast(uint) vec_index(i, lv)) < dfo.length; ++i)
+        for (uint i = 0; (i = cast(uint) vec_index(i, lv)) < dfo.length; ++i)
             if (dfo[i].Belem)
                 unmarkall(dfo[i].Belem);       /* unmark all elems     */
 
         /* Find & mark all LIs   */
         gin = vec_clone(l.Lpreheader.Bout);
         rd = vec_calloc(go.defnod.length);        /* allocate our running RD vector */
-        for (i = 0; (i = cast(uint) vec_index(i, lv)) < dfo.length; ++i) // for each block in loop
+        for (uint i = 0; (i = cast(uint) vec_index(i, lv)) < dfo.length; ++i) // for each block in loop
         {
             block *b = dfo[i];
 
@@ -891,12 +888,12 @@ restart:
         vec_free(gin);
 
         /* Move loop invariants  */
-        for (i = 0; (i = cast(uint) vec_index(i, lv)) < dfo.length; ++i)
+        for (uint i = 0; (i = cast(uint) vec_index(i, lv)) < dfo.length; ++i)
         {
-            int domexit;                // true if this block dominates all
+            uint domexit;               // true if this block dominates all
                                         // exit blocks of the loop
 
-            for (j = 0; (j = cast(uint) vec_index(j, l.Lexit)) < dfo.length; ++j) // for each exit block
+            for (uint j = 0; (j = cast(uint) vec_index(j, l.Lexit)) < dfo.length; ++j) // for each exit block
             {
                 if (!vec_testbit (i, dfo[j].Bdom))
                 {
@@ -913,7 +910,7 @@ restart:
                 {
                     //if (dfo[i] != l.Lhead)
                         //domexit |= 2;
-                    movelis(dfo[i].Belem, dfo[i], &l, &domexit);
+                    movelis(dfo[i].Belem, dfo[i], l, domexit);
                 }
             }
         }
@@ -921,7 +918,7 @@ restart:
 
         if (go.mfoptim & MFliv)
         {
-            loopiv(&l);             /* induction variables          */
+            loopiv(l);              /* induction variables          */
             if (addblk)             /* if we added a block          */
             {
                 compdfo();
@@ -1539,7 +1536,7 @@ private bool refs(Symbol *v,elem *n,elem *nstop)
  *      revised domexit
  */
 
-private void movelis(elem *n,block *b,loop *l,int *pdomexit)
+private void movelis(elem* n, block* b, ref loop l, ref uint pdomexit)
 {
     vec_t tmp;
     elem *ne;
@@ -1550,7 +1547,7 @@ private void movelis(elem *n,block *b,loop *l,int *pdomexit)
 
 Lnextlis:
     //if (isLI(n)) { printf("movelis(B%d, ", b.Bdfoidx); WReqn(n); printf(")\n"); }
-    assert(l && n);
+    assert(n);
     elem_debug(n);
     const op = n.Eoper;
     switch (op)
@@ -1564,12 +1561,12 @@ Lnextlis:
         case OPoror:
         case OPcond:
         {
-            int domexit;
+            uint domexit;
 
             movelis(n.EV.E1,b,l,pdomexit);        // always executed
-            domexit = *pdomexit & ~1;   // sometimes executed
-            movelis(n.EV.E2,b,l,&domexit);
-            *pdomexit |= domexit & 2;
+            domexit = pdomexit & ~1;   // sometimes executed
+            movelis(n.EV.E2,b,l,domexit);
+            pdomexit |= domexit & 2;
             goto Lret;
         }
 
@@ -1595,7 +1592,7 @@ Lnextlis:
 
                 // If case 1 or case 2 is not satisfied, return
 
-                if (!(*pdomexit & 1))                   // if not case 1
+                if (!(pdomexit & 1))                   // if not case 1
                 {
                     uint i;
                     for (i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < dfo.length; ++i)  // for each exit block
@@ -1703,7 +1700,7 @@ Lnextlis:
 
         case OPcall:
         case OPucall:
-            *pdomexit |= 2;
+            pdomexit |= 2;
             break;
 
         case OPpair:
@@ -1759,7 +1756,7 @@ L3:
             if (b.Btry || !(n1.Eoper == OPvar && symbol_isintab(n1.EV.Vsym)))
             {
                 //printf("assign to global => domexit |= 2\n");
-                *pdomexit |= 2;
+                pdomexit |= 2;
             }
         }
         else if (OTunary(op))
@@ -1792,8 +1789,8 @@ L3:
 
     static if (0)
     {
-        printf("*pdomexit = %d\n",*pdomexit);
-        if (*pdomexit & 2)
+        printf("*pdomexit = %u\n", pdomexit);
+        if (pdomexit & 2)
         {
             // If any indirections, can't LI it
 
@@ -1874,7 +1871,7 @@ L3:
         }
     }
 
-    if (!(*pdomexit & 1))                       // if only sometimes executed
+    if (!(pdomexit & 1))                       // if only sometimes executed
     {
         if (debugc) printf(" doesn't dominate exit\n");
         goto Lret;                              // don't move LI
@@ -2032,7 +2029,7 @@ private void newfamlist(famlist* fl, tym_t ty)
  * Loop invariant removal should have been done just previously.
  */
 
-private void loopiv(loop *l)
+private void loopiv(ref loop l)
 {
     if (debugc) printf("loopiv(%p)\n",l);
     assert(l.Livlist.length == 0 && l.Lopeqlist.length == 0);
@@ -2075,13 +2072,12 @@ private void loopiv(loop *l)
  *      go.defnod[] loaded with all the definition elems of the loop
  */
 
-private void findbasivs(loop *l)
+private void findbasivs(ref loop l)
 {
     vec_t poss,notposs;
     elem *n;
     bool ambdone;
 
-    assert(l);
     ambdone = false;
     poss = vec_calloc(globsym.top);
     notposs = vec_calloc(globsym.top);  /* vector of all variables      */
@@ -2214,13 +2210,12 @@ private void findbasivs(loop *l)
  *      go.defnod[] loaded with all the definition elems of the loop
  */
 
-private void findopeqs(loop *l)
+private void findopeqs(ref loop l)
 {
     vec_t poss,notposs;
     elem *n;
     bool ambdone;
 
-    assert(l);
     ambdone = false;
     poss = vec_calloc(globsym.top);
     notposs = vec_calloc(globsym.top);  // vector of all variables
@@ -2348,9 +2343,9 @@ private void findopeqs(loop *l)
  * Note that we do not do divides, because of roundoff error problems.
  */
 
-private void findivfams(loop *l)
+private void findivfams(ref loop l)
 {
-    if (debugc) printf("findivfams(%p)\n",l);
+    if (debugc) printf("findivfams(%p)\n", &l);
     foreach (ref biv; l.Livlist)
     {
         for (uint i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop
@@ -2374,12 +2369,11 @@ private void findivfams(loop *l)
 private void ivfamelems(Iv *biv,elem **pn)
 {
     tym_t ty,c2ty;
-    elem *n;
     elem *n1;
     elem *n2;
 
     assert(pn);
-    n = *pn;
+    elem* n = *pn;
     assert(biv && n);
     const op = n.Eoper;
     if (OTunary(op))
@@ -2558,7 +2552,7 @@ private void ivfamelems(Iv *biv,elem **pn)
  * differ from it only by a constant.
  */
 
-private void elimfrivivs(loop *l)
+private void elimfrivivs(ref loop l)
 {
     foreach (ref biv; l.Livlist)
     {
@@ -2611,7 +2605,7 @@ private void elimfrivivs(loop *l)
  * Introduce new variables.
  */
 
-private void intronvars(loop *l)
+private void intronvars(ref loop l)
 {
     elem *T;
     elem *ne;
@@ -2620,7 +2614,7 @@ private void intronvars(loop *l)
     elem *cmul;
     tym_t ty,tyr;
 
-    if (debugc) printf("intronvars(%p)\n",l);
+    if (debugc) printf("intronvars(%p)\n", &l);
     foreach (ref biv; l.Livlist)
     {
         elem *bivinc = *biv.IVincr;   /* ptr to increment elem */
@@ -2843,9 +2837,9 @@ private bool funcprev(ref Iv biv, ref famlist fl)
  * Eliminate basic IVs.
  */
 
-private void elimbasivs(loop *l)
+private void elimbasivs(ref loop l)
 {
-    if (debugc) printf("elimbasivs(%p)\n",l);
+    if (debugc) printf("elimbasivs(%p)\n", &l);
     foreach (ref biv; l.Livlist)
     {
         /* Can't eliminate this basic IV if we have a goal for the      */
@@ -3166,13 +3160,13 @@ private void elimbasivs(loop *l)
  * Eliminate opeq IVs that are not used outside the loop.
  */
 
-private void elimopeqs(loop *l)
+private void elimopeqs(ref loop l)
 {
     elem **pref;
     Symbol *X;
     int refcount;
 
-    if (debugc) printf("elimopeqs(%p)\n",l);
+    if (debugc) printf("elimopeqs(%p)\n", &l);
     //foreach (ref biv; l.Lopeqlist) elem_print(*(biv.IVincr));
 
     foreach (ref biv; l.Lopeqlist)
@@ -3387,7 +3381,7 @@ private __gshared
     Symbol *X;
 }
 
-private elem ** onlyref(Symbol *x,loop *l,elem *incn,int *prefcount)
+private elem ** onlyref(Symbol *x, ref loop l,elem *incn,int *prefcount)
 {
     uint i;
 
@@ -3397,10 +3391,10 @@ private elem ** onlyref(Symbol *x,loop *l,elem *incn,int *prefcount)
     sincn = incn;
 
     debug
-      if (!(X.Ssymnum < globsym.top && l && incn))
-          printf("X = %d, globsym.top = %d, l = %p, incn = %p\n",X.Ssymnum,globsym.top,l,incn);
+      if (!(X.Ssymnum < globsym.top && incn))
+          printf("X = %d, globsym.top = %d, l = %p, incn = %p\n",X.Ssymnum,globsym.top,&l,incn);
 
-    assert(X.Ssymnum < globsym.top && l && incn);
+    assert(X.Ssymnum < globsym.top && incn);
     count = 0;
     nd = null;
     for (i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop
@@ -3495,7 +3489,7 @@ private int countrefs2(elem *e)
  * Eliminate some special cases.
  */
 
-private void elimspec(loop *l)
+private void elimspec(ref loop l)
 {
     uint i;
 
@@ -3690,10 +3684,10 @@ nothrow:
 }
 
 
-bool loopunroll(loop *l)
+bool loopunroll(ref loop l)
 {
     const bool log = false;
-    if (log) printf("loopunroll(%p)\n", l);
+    if (log) printf("loopunroll(%p)\n", &l);
 
     /* Do not repeatedly unroll the same loop,
      * or waste time attempting to
