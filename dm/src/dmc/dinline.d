@@ -32,6 +32,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 
 void n2_instantiate_memfunc(Symbol* s);
@@ -39,7 +40,7 @@ void nwc_mustwrite(Symbol*);
 void queue_func(Symbol*);
 elem* cpp_destructor(type* tclass, elem* eptr, elem* enelems, int dtorflag);
 
-extern __gshared list_t cpp_stidtors;
+extern __gshared Barray!(elem*) cpp_stidtors;
 
 enum DTORmostderived = 4;
 
@@ -189,7 +190,7 @@ private elem* inline_do_walk(elem *e)
                     elem* edtor = cpp_destructor(s.Stype,eptr,null,DTORmostderived);
                     assert(edtor);
                     edtor = inline_do_walk(edtor);
-                    list_append(&cpp_stidtors,edtor);
+                    cpp_stidtors.push(edtor);
                 }
             }
             if (tyfunc(s.ty()))

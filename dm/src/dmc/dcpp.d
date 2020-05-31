@@ -36,6 +36,7 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.memh;
 
@@ -66,7 +67,7 @@ __gshared
 list_t constructor_list;         // for _STIxxxx
 list_t destructor_list;          // for _STDxxxx
 
-list_t cpp_stidtors;            /* auto destructors that go in _STIxxxx */
+Barray!(elem*) cpp_stidtors;            // auto destructors that go in _STIxxxx
 
 /* Special predefined functions */
 private Symbol* s_vec_new,s_vec_ctor,s_vec_cpct,s_vec_delete;

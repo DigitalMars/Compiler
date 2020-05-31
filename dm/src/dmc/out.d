@@ -38,6 +38,8 @@ import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
+
 version (SCPP)
 {
     import cpp;
@@ -1203,13 +1205,11 @@ version (SCPP)
     if (cpp_stidtors && memcmp("__SI".ptr,sfunc.Sident.ptr,4) == 0)
     {
         assert(startblock.Bnext == null);
-        list_t el = cpp_stidtors;
-        do
+        foreach (e; cpp_stidtors)
         {
-            startblock.Belem = el_combine(startblock.Belem,list_elem(el));
-            el = list_next(el);
-        } while (el);
-        list_free(&cpp_stidtors,FPNULL);
+            startblock.Belem = el_combine(startblock.Belem, e);
+        }
+        cpp_stidtors.dtor();
     }
 }
     assert(funcsym_p == null);

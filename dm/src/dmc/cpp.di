@@ -26,6 +26,7 @@ import dmd.backend.el;
 import dmd.backend.oper;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 
 alias char_p = char*;
@@ -52,7 +53,7 @@ extern __gshared
     char[10] cpp_name_none;
     char[12] cpp_name_invariant;
 
-    list_t cpp_stidtors;     // auto destructors that go in _STIxxxx
+    Barray!(elem*) cpp_stidtors;     // auto destructors that go in _STIxxxx
 }
 
 /* From init.c */
