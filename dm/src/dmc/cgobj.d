@@ -691,10 +691,10 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         if (reset_symbuf)
         {
             Symbol **p = cast(Symbol **)reset_symbuf.buf;
-            const size_t n = reset_symbuf.size() / (Symbol *).sizeof;
+            const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
             for (size_t i = 0; i < n; ++i)
                 symbol_reset(p[i]);
-            reset_symbuf.setsize(0);
+            reset_symbuf.reset();
         }
         else
         {
@@ -919,8 +919,8 @@ static if (TERMCODE)
         linnum_term();
         obj_modend();
 
-        size = cast(uint)obj.buf.size();
-        obj.buf.setsize(0);            // rewind file
+        size = cast(uint)obj.buf.length();
+        obj.buf.reset();            // rewind file
         OmfObj_theadr(obj.modname);
         objheader(obj.csegname);
         mem_free(obj.csegname);
@@ -1040,35 +1040,38 @@ else version (SCPP)
             linnum_flush();
 
         if (!obj.linrec)                        // if not allocated
-        {       obj.linrec = cast(char *) mem_calloc(LINRECMAX);
-                obj.linrec[0] = 0;              // base group / flags
-                obj.linrecheader = 1 + insidx(obj.linrec + 1,seg_is_comdat(SegData[seg].segidx) ? obj.pubnamidx : SegData[seg].segidx);
-                obj.linreci = obj.linrecheader;
-                obj.recseg = seg;
+        {
+            obj.linrec = cast(char* ) mem_calloc(LINRECMAX);
+            obj.linrec[0] = 0;              // base group / flags
+            obj.linrecheader = 1 + insidx(obj.linrec + 1,seg_is_comdat(SegData[seg].segidx) ? obj.pubnamidx : SegData[seg].segidx);
+            obj.linreci = obj.linrecheader;
+            obj.recseg = seg;
 static if (MULTISCOPE)
 {
-                if (!obj.linvec)
-                {   obj.linvec = vec_calloc(1000);
-                    obj.offvec = vec_calloc(1000);
-                }
+            if (!obj.linvec)
+            {
+                obj.linvec = vec_calloc(1000);
+                obj.offvec = vec_calloc(1000);
+            }
 }
-                if (linos2)
-                {
-                    if (!obj.linreclist)        // if first line number record
-                        obj.linreci += 8;       // leave room for header
-                    list_append(&obj.linreclist,obj.linrec);
-                }
+            if (linos2)
+            {
+                if (!obj.linreclist)        // if first line number record
+                    obj.linreci += 8;       // leave room for header
+                list_append(&obj.linreclist,obj.linrec);
+            }
 
-                // Select record type to use
-                obj.mlinnum = seg_is_comdat(SegData[seg].segidx) ? LINSYM : LINNUM;
-                if (I32 && !(config.flags & CFGeasyomf))
-                    obj.mlinnum++;
+            // Select record type to use
+            obj.mlinnum = seg_is_comdat(SegData[seg].segidx) ? LINSYM : LINNUM;
+            if (I32 && !(config.flags & CFGeasyomf))
+                obj.mlinnum++;
         }
         else if (obj.linreci > LINRECMAX - (2 + _tysize[TYint]))
-        {       objrecord(obj.mlinnum,obj.linrec,obj.linreci);  // output data
-                obj.linreci = obj.linrecheader;
-                if (seg_is_comdat(SegData[seg].segidx))        // if LINSYM record
-                    obj.linrec[0] |= 1;         // continuation bit
+        {
+            objrecord(obj.mlinnum,obj.linrec,obj.linreci);  // output data
+            obj.linreci = obj.linrecheader;
+            if (seg_is_comdat(SegData[seg].segidx))        // if LINSYM record
+                obj.linrec[0] |= 1;         // continuation bit
         }
 static if (MULTISCOPE)
 {
@@ -1099,7 +1102,8 @@ static if (MULTISCOPE)
 }
             TOWORD(obj.linrec + obj.linreci,linnum);
             if (linos2)
-            {   obj.linrec[obj.linreci + 2] = 1;        // source file index
+            {
+                obj.linrec[obj.linreci + 2] = 1;        // source file index
                 TOLONG(obj.linrec + obj.linreci + 4,cast(uint)offset);
                 obj.linrecnum++;
                 obj.linreci += 8;
@@ -1595,8 +1599,9 @@ private void objheader(char *csegname)
     if (config.exe & EX_flat)
     {
         if (lnames[2] != 'F')                   // do not do this twice
-        {   memcpy(lnames.ptr + 1,"\04FLAT".ptr,5);
-            memmove(lnames.ptr + 6,lnames.ptr + 8,lnames.sizeof - 8);
+        {
+            memcpy(lnames.ptr + 1, "\04FLAT".ptr, 5);
+            memmove(lnames.ptr + 6, lnames.ptr + 8, lnames.sizeof - 8);
         }
         lnamesize -= 2;
         texti -= 2;
@@ -1625,12 +1630,14 @@ private void objheader(char *csegname)
  *      mem_malloc'd code seg name
  */
 
-private char * objmodtoseg(const(char)* modname)
-{   char *csegname = null;
+private char*  objmodtoseg(const(char)* modname)
+{
+    char* csegname = null;
 
     if (LARGECODE)              // if need to add in module name
-    {   int i;
-        char *m;
+    {
+        int i;
+        char* m;
         static immutable char[6] suffix = "_TEXT";
 
         // Prepend the module name to the beginning of the _TEXT
@@ -1658,7 +1665,8 @@ private void objsegdef(int attr,targ_size_t size,int segnamidx,int classnamidx)
       //attr,size,segnamidx,classnamidx);
     sd[0] = cast(char)attr;
     if (attr & 1 || config.flags & CFGeasyomf)
-    {   TOLONG(sd.ptr + 1,cast(uint)size);          // store segment size
+    {
+        TOLONG(sd.ptr + 1, cast(uint)size);          // store segment size
         reclen = 5;
     }
     else
@@ -1676,7 +1684,8 @@ private void objsegdef(int attr,targ_size_t size,int segnamidx,int classnamidx)
     if (attr & 1)                       // if USE32
     {
         if (config.flags & CFGeasyomf)
-        {   // Translate to Pharlap format
+        {
+            // Translate to Pharlap format
             sd[0] &= ~1;                // turn off P bit
 
             // Translate A: 4.6
@@ -1698,7 +1707,8 @@ version (MARS)
 else
 {
         if (size & ~0xFFFFL)
-        {   if (size == 0x10000)        // if exactly 64Kb
+        {
+            if (size == 0x10000)        // if exactly 64Kb
                 sd[0] |= 2;             // set "B" bit
             else
                 synerr(EM_seg_gt_64k,size);     // segment exceeds 64Kb
@@ -1760,11 +1770,13 @@ else
               : SEG_ATTR(SEG_ALIGN1,SEG_C_ABS,0,USE16);
 
         if (config.exe & EX_flat)
-        {   // IBM's version of CV uses dword aligned segments
+        {
+            // IBM's version of CV uses dword aligned segments
             dsymattr = SEG_ATTR(SEG_ALIGN4,SEG_C_ABS,0,USE32);
         }
         else if (config.fulltypes == CV4)
-        {   // Always use 32 bit segments
+        {
+            // Always use 32 bit segments
             dsymattr |= USE32;
             assert(!(config.flags & CFGeasyomf));
         }
@@ -1778,12 +1790,14 @@ else
 static if (0)
 {
     // Define fixup threads, we don't use them
-    {   static immutable char[12] thread = [ 0,3,1,2,2,1,3,4,0x40,1,0x45,1 ];
+    {
+        static immutable char[12] thread = [ 0,3,1,2,2,1,3,4,0x40,1,0x45,1 ];
         objrecord(obj.mfixupp,thread.ptr,thread.sizeof);
     }
     // This comment appears to indicate that no more PUBDEFs, EXTDEFs,
     // or COMDEFs are coming.
-    {   static immutable char[3] cv = [0,0xA2,1];
+    {
+        static immutable char[3] cv = [0,0xA2,1];
         objrecord(COMENT,cv.ptr,cv.sizeof);
     }
 }
@@ -1823,7 +1837,8 @@ void OmfObj_staticctor(Symbol *s,int dtor,int seg)
         : SEG_ATTR(SEG_ALIGN2,SEG_C_PUBLIC,0,USE16);
 
     for (int i = 0; i < 5; i++)
-    {   int sz;
+    {
+        int sz;
 
         sz = (i == seg) ? 4 : 0;
 
@@ -1842,7 +1857,8 @@ void OmfObj_staticctor(Symbol *s,int dtor,int seg)
     }
 
     if (dtor)
-    {   // Leave space in XOF segment so that __fatexit() can insert a
+    {
+        // Leave space in XOF segment so that __fatexit() can insert a
         // pointer to the static destructor in XOF.
 
         // Put out LNAMES record
@@ -2067,7 +2083,8 @@ int OmfObj_readonly_comdat(Symbol *s)
 }
 
 static int generate_comdat(Symbol *s, bool is_readonly_comdat)
-{   char[IDMAX+IDOHD+1] lnames = void; // +1 to allow room for strcpy() terminating 0
+{
+    char[IDMAX+IDOHD+1] lnames = void; // +1 to allow room for strcpy() terminating 0
     char[2+2] cextdef = void;
     char *p;
     size_t lnamesize;
@@ -2121,10 +2138,12 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
         }
     }
     else
-    {   ubyte atyp;
+    {
+        ubyte atyp;
 
         switch (ty & mTYLINK)
-        {   case 0:
+        {
+            case 0:
             case mTYnear:       lr.pubbase = DATA;
 static if (0)
                                 atyp = 0;       // only one instance is allowed
@@ -2229,17 +2248,19 @@ int OmfObj_codeseg(const char *name,int suffix)
  *      segment for TLS segment
  */
 
-seg_data *OmfObj_tlsseg_bss() { return OmfObj_tlsseg(); }
+seg_data* OmfObj_tlsseg_bss() { return OmfObj_tlsseg(); }
 
-seg_data *OmfObj_tlsseg()
-{   //static char tlssegname[] = "\04$TLS\04$TLS";
+seg_data* OmfObj_tlsseg()
+{
+    //static char tlssegname[] = "\04$TLS\04$TLS";
     //static char tlssegname[] = "\05.tls$\03tls";
     static immutable char[25] tlssegname = "\05.tls$\03tls\04.tls\010.tls$ZZZ";
 
     assert(tlssegname[tlssegname.length - 5] == '$');
 
     if (obj.tlssegi == 0)
-    {   int segattr;
+    {
+        int segattr;
 
         objrecord(LNAMES,tlssegname.ptr,tlssegname.sizeof - 1);
 
@@ -2350,7 +2371,7 @@ private int obj_newfarseg(targ_size_t size,int classidx)
 {
     seg_data *f = getsegment();
     f.isfarseg = true;
-    f.seek = cast(int)obj.buf.size();
+    f.seek = cast(int)obj.buf.length();
     f.attr = obj.fdsegattr;
     f.origsize = size;
     f.SDoffset = size;
@@ -2378,8 +2399,9 @@ else
         (s = e.EV.Vsym).ty() & mTYimport &&
         (s.Sclass == SCextern || s.Sclass == SCinline)
        )
-    {   char *name;
-        char *p;
+    {
+        char* name;
+        char* p;
         size_t len;
         char[IDMAX + IDOHD + 1] buffer = void;
 
@@ -2525,7 +2547,8 @@ else
     if (ilen > (255-2-int.sizeof*3))
         dest += 3;
     switch (type_mangle(s.Stype))
-    {   case mTYman_pas:                // if upper case
+    {
+        case mTYman_pas:                // if upper case
         case mTYman_for:
             memcpy(dest + 1,name,len);  // copy in name
             dest[1 + len] = 0;
@@ -2571,7 +2594,8 @@ else
             assert(0);
     }
     if (ilen > (255-2-int.sizeof*3))
-    {   dest -= 3;
+    {
+        dest -= 3;
         dest[0] = 0xFF;
         dest[1] = 0;
         debug
@@ -2581,7 +2605,8 @@ else
         len += 4;
     }
     else
-    {   *dest = cast(char)len;
+    {
+        *dest = cast(char)len;
         len++;
     }
     if (name2)
@@ -2594,8 +2619,9 @@ else
  * Export a function name.
  */
 
-void OmfObj_export_symbol(Symbol *s,uint argsize)
-{   char *coment;
+void OmfObj_export_symbol(Symbol* s, uint argsize)
+{
+    char* coment;
     size_t len;
 
     coment = cast(char *) alloca(4 + 1 + (IDMAX + IDOHD) + 1); // allow extra byte for mangling
@@ -2635,7 +2661,8 @@ int OmfObj_data_start(Symbol *sdata, targ_size_t datasize, int seg)
         seg = sdata.Sseg;
     targ_size_t offset = SegData[seg].SDoffset;
     if (sdata.Salignment > 0)
-    {   if (SegData[seg].SDalignment < sdata.Salignment)
+    {
+        if (SegData[seg].SDalignment < sdata.Salignment)
             SegData[seg].SDalignment = sdata.Salignment;
         alignbytes = ((offset + sdata.Salignment - 1) & ~(sdata.Salignment - 1)) - offset;
     }
@@ -2676,14 +2703,16 @@ void OmfObj_func_term(Symbol *sfunc)
 private void outpubdata()
 {
     if (obj.pubdatai)
-    {   objrecord(obj.mpubdef,obj.pubdata.ptr,obj.pubdatai);
+    {
+        objrecord(obj.mpubdef,obj.pubdata.ptr,obj.pubdatai);
         obj.pubdatai = 0;
     }
 }
 
 void OmfObj_pubdef(int seg,Symbol *s,targ_size_t offset)
-{   uint reclen,len;
-    char *p;
+{
+    uint reclen, len;
+    char* p;
     uint ti;
 
     assert(offset < 100000000);
@@ -2725,13 +2754,15 @@ void OmfObj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsi
 private void outextdata()
 {
     if (obj.extdatai)
-    {   objrecord(EXTDEF,obj.extdata.ptr,obj.extdatai);
+    {
+        objrecord(EXTDEF, obj.extdata.ptr, obj.extdatai);
         obj.extdatai = 0;
     }
 }
 
 int OmfObj_external_def(const(char)* name)
-{   uint len;
+{
+    uint len;
     char *e;
 
     //printf("OmfObj_external_def('%s', %d)\n",name,obj.extidx + 1);
@@ -3305,8 +3336,9 @@ void OmfObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
  *      nbytes
  */
 
-uint OmfObj_bytes(int seg,targ_size_t offset,uint nbytes, void *p)
-{   uint n = nbytes;
+uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, void* p)
+{
+    uint n = nbytes;
 
     //dbg_printf("OmfObj_bytes(seg=%d, offset=x%lx, nbytes=x%x, p=%p)\n",seg,offset,nbytes,p);
     Ledatarec *lr = cast(Ledatarec*)SegData[seg].ledata;
@@ -3320,7 +3352,8 @@ uint OmfObj_bytes(int seg,targ_size_t offset,uint nbytes, void *p)
      )
     {
         while (nbytes)
-        {   OmfObj_byte(seg,offset,*cast(char *)p);
+        {
+            OmfObj_byte(seg, offset, *cast(char*)p);
             offset++;
             p = (cast(char *)p) + 1;
             nbytes--;
@@ -3528,7 +3561,8 @@ void OmfObj_reftofarseg(int seg,targ_size_t offset,targ_size_t val,
  */
 
 void OmfObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
-{   uint framedatum;
+{
+    uint framedatum;
     uint lcfd;
 
     int idx = SegData[cseg].segidx;
@@ -3591,7 +3625,8 @@ static if (0)
     while (1)
     {
         switch (flags & (CFseg | CFoff))
-        {   case 0:
+        {
+            case 0:
                 // Select default
                 flags |= CFoff;
                 if (tyfunc(ty))
@@ -3647,7 +3682,8 @@ static if (0)
         case SCextern:
         case SCcomdef:
             if (s.Sxtrnnum)            // identifier is defined somewhere else
-            {   external = s.Sxtrnnum;
+            {
+                external = s.Sxtrnnum;
 
                 debug
                 if (external > obj.extidx)
@@ -3659,7 +3695,8 @@ static if (0)
                 assert(external <= obj.extidx);
             }
             else
-            {   // Don't know yet, worry about it later
+            {
+                // Don't know yet, worry about it later
              Ladd:
                 size_t byteswritten = addtofixlist(s,offset,seg,val,flags);
                 assert(byteswritten == numbytes);
@@ -3796,7 +3833,8 @@ void OmfObj_far16thunk(Symbol *s)
     assert(cod32_1[cod32_1.length - 1] == 0x3D);
 
     static ubyte[22 + 46] cod32_2 =
-    [   0x0F,0x85,0x10,0x00,0x00,0x00,  //      JNE     L1
+    [
+        0x0F,0x85,0x10,0x00,0x00,0x00,  //      JNE     L1
         0x8B,0xC4,                      //      MOV     EAX,ESP
         0x66,0x3D,0x00,0x08,            //      CMP     AX,2048
         0x0F,0x83,0x04,0x00,0x00,0x00,  //      JAE     L1
