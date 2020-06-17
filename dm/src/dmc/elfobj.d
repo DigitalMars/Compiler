@@ -98,6 +98,13 @@ else
     enum DMDV2 = false;
 enum REQUIRE_DSO_REGISTRY = (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD || TARGET_DRAGONFLYBSD));
 
+/**
+ * If set, produce .init_array/.fini_array instead of legacy .ctors/.dtors .
+ * OpenBSD added the support in Aug 2016. Other supported platforms has
+ * supported .init_array for years.
+ */
+enum USE_INIT_ARRAY = !TARGET_OPENBSD;
+
 /******
  * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
  *  /usr/bin/ld: BFD 2.15 [FreeBSD] 2004-05-23 internal error, aborting at
@@ -2724,13 +2731,10 @@ static if (0)
             //seg,offset,nbytes,p);
     buf.position(cast(uint)offset, nbytes);
     if (p)
-    {
-        buf.writen(p,nbytes);
-    }
-    else
-    {   // Zero out the bytes
+        buf.writen(p, nbytes);
+    else // Zero out the bytes
         buf.clearn(nbytes);
-    }
+
     if (save > offset+nbytes)
         buf.setsize(save);
     else
@@ -3561,7 +3565,7 @@ private void obj_rtinit()
          *      call      _d_dso_registry@PLT32
          *      leave
          *      ret
-         * and then put a pointer to that function in .ctors and in .dtors so it'll
+         * and then put a pointer to that function in .init_array and in .fini_array so it'll
          * get executed once upon loading and once upon unloading the DSO.
          */
         const codseg = Obj_getsegment(".text.d_dso_init", null, SHT_PROGBITS,
@@ -3799,7 +3803,7 @@ else
         off += 2;
         Offset(codseg) = off;
 
-        // put a reference into .ctors/.dtors each
+        // put a reference into .init_array/.fini_array each
         // needs to be writeable for PIC code, see Bugzilla 13117
         const int flags = SHF_ALLOC | SHF_WRITE | SHF_GROUP;
         foreach (name; [".dtors.d_dso_dtor", ".ctors.d_dso_ctor"])
@@ -3809,7 +3813,6 @@ else
 
             // add to section group
             SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
-
             // relocation
             const reltype2 = I64 ? R_X86_64_64 : R_386_32;
             SegData[cdseg].SDoffset += Obj_writerel(cdseg, 0, reltype2, MAP_SEG2SYMIDX(codseg), 0);

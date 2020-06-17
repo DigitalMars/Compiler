@@ -1521,14 +1521,16 @@ version (SCPP)
     foffset = elf_align(I64 ? 8 : 4, foffset);
     dysymtab_cmd.indirectsymoff = foffset;
     if (indirectsymbuf1)
-    {   dysymtab_cmd.nindirectsyms += indirectsymbuf1.length() / (Symbol *).sizeof;
+    {
+        dysymtab_cmd.nindirectsyms += indirectsymbuf1.length() / (Symbol *).sizeof;
         for (int i = 0; i < dysymtab_cmd.nindirectsyms; i++)
         {   Symbol *s = (cast(Symbol **)indirectsymbuf1.buf)[i];
             fobjbuf.write32(s.Sxtrnnum);
         }
     }
     if (indirectsymbuf2)
-    {   int n = cast(int)(indirectsymbuf2.length() / (Symbol *).sizeof);
+    {
+        int n = cast(int)(indirectsymbuf2.length() / (Symbol *).sizeof);
         dysymtab_cmd.nindirectsyms += n;
         for (int i = 0; i < n; i++)
         {   Symbol *s = (cast(Symbol **)indirectsymbuf2.buf)[i];
@@ -1808,12 +1810,14 @@ void Obj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
 
     Outbuffer *buf = SegData[seg].SDbuf;
     if (I64)
-    {   Obj_reftoident(seg, buf.length(), sfunc, 0, CFoff | CFoffset64);
+    {
+        Obj_reftoident(seg, buf.length(), sfunc, 0, CFoff | CFoffset64);
         Obj_reftoident(seg, buf.length(), ehsym, 0, CFoff | CFoffset64);
         buf.write64(sfunc.Ssize);
     }
     else
-    {   Obj_reftoident(seg, buf.length(), sfunc, 0, CFoff);
+    {
+        Obj_reftoident(seg, buf.length(), sfunc, 0, CFoff);
         Obj_reftoident(seg, buf.length(), ehsym, 0, CFoff);
         buf.write32(cast(int)sfunc.Ssize);
     }
@@ -2560,13 +2564,10 @@ static if (0)
             //seg,offset,nbytes,p);
     buf.position(cast(uint)offset, nbytes);
     if (p)
-    {
-        buf.writen(p,nbytes);
-    }
-    else
-    {   // Zero out the bytes
+        buf.writen(p, nbytes);
+    else // Zero out the bytes
         buf.clearn(nbytes);
-    }
+
     if (save > offset+nbytes)
         buf.setsize(save);
     else

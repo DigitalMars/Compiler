@@ -921,7 +921,6 @@ version (SCPP)
             debug
             if (sz && foffset != psechdr.PointerToRelocations)
                 printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x, foffset = x%x\n", seg, pseg.SDshtidx, psechdr, cast(uint)psechdr.PointerToRelocations, cast(uint)foffset);
-
             assert(sz == 0 || foffset == psechdr.PointerToRelocations);
             for (; r != rend; r++)
             {   reloc rel;
@@ -2168,13 +2167,10 @@ static if (0)
     buf.setsize(cast(uint)offset);
     buf.reserve(nbytes);
     if (p)
-    {
-        buf.writen(p,nbytes);
-    }
-    else
-    {   // Zero out the bytes
+        buf.writen(p, nbytes);
+    else // Zero out the bytes
         buf.clearn(nbytes);
-    }
+
     if (save > offset+nbytes)
         buf.setsize(save);
     else
