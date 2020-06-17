@@ -82,9 +82,9 @@ nothrow:
         foreach (ref iv; Lopeqlist)
             iv.reset();
 
-        Llis.dtor();
-        Livlist.dtor();
-        Lopeqlist.dtor();
+        Llis.reset();
+        Livlist.reset();
+        Lopeqlist.reset();
     }
 
     /***********************
@@ -1145,7 +1145,7 @@ private void markinvar(elem *n,vec_t rd)
                 {
                     tmp = vec_calloc(go.defnod.length);
                     //filterrd(tmp,rd,v);
-                    listrds(rd,n1,tmp);
+                    listrds(rd,n1,tmp,null);
                     for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)
                         if (go.defnod[i].DNelem != n &&
                             vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
@@ -1252,7 +1252,7 @@ private void markinvar(elem *n,vec_t rd)
             {
                 tmp = vec_calloc(go.defnod.length);
                 //filterrd(tmp,rd,v);       // only the RDs pertaining to v
-                listrds(rd,n,tmp);  // only the RDs pertaining to v
+                listrds(rd,n,tmp,null);  // only the RDs pertaining to v
 
                 // if (no RDs within loop)
                 //  then it's loop invariant
@@ -1628,7 +1628,7 @@ Lnextlis:
                     //        return;
 
                     //filterrd(tmp,dfo[i].Binrd,v);
-                    listrds(dfo[i].Binrd,n.EV.E1,tmp);
+                    listrds(dfo[i].Binrd,n.EV.E1,tmp,null);
                     uint j;
                     for (j = 0; (j = cast(uint) vec_index(j, tmp)) < go.defnod.length; ++j)  // for each RD of v in Binrd
                     {
@@ -1650,7 +1650,7 @@ Lnextlis:
                 //         <can't move this assignment>
 
                 //filterrd(tmp,b.Binrd,v);
-                listrds(b.Binrd,n.EV.E1,tmp);
+                listrds(b.Binrd,n.EV.E1,tmp,null);
                 uint j;
                 for (j = 0; (j = cast(uint) vec_index(j, tmp)) < go.defnod.length; ++j)  // for each RD of v in Binrd
                 {
