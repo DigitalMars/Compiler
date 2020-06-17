@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfdbginf.d, backend/dwarfdbginf.d)
@@ -88,7 +88,7 @@ int REGSIZE();
 
 __gshared
 {
-extern int seg_count;
+extern int seg_length;
 
 static if (MACHOBJ)
 {
@@ -1301,7 +1301,7 @@ void dwarf_termfile()
     // file_names
     uint last_filenumber = 0;
     const(char)* last_filename = null;
-    for (uint seg = 1; seg <= seg_count; seg++)
+    for (uint seg = 1; seg < seg_length; seg++)
     {
         for (uint i = 0; i < SegData[seg].SDlinnum_count; i++)
         {
@@ -1336,7 +1336,7 @@ else
 
     debugline.prologue_length = cast(uint)debug_line.buf.size() - 10;
 
-    for (uint seg = 1; seg <= seg_count; seg++)
+    for (uint seg = 1; seg < seg_length; seg++)
     {
         seg_data *sd = SegData[seg];
         uint addressmax = 0;
