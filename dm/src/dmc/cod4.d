@@ -3602,6 +3602,9 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
 
     tym_t ty1 = tybasic(e1.Ety);
+    const sz = tysize(e1.Ety);
+    const rex = 0; //(I64 && sz == 8) ? REX_W : 0;
+    const grex = 0; //rex << 16;
     ubyte word = (!I16 && _tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
 
 //    if (e2.Eoper == OPconst && e2.EV.Vuns < 0x100)  // should do this instead?
@@ -3662,7 +3665,8 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
             {
                 getregs(cdb,retregs);
                 genregs(cdb,0x19,reg,reg);     // SBB reg,reg
-                cdb.gen2(0xF7,modregrmx(3,3,reg));          // NEG reg
+                code_orrex(cdb.last(), rex);
+                cdb.gen2(0xF7,grex | modregrmx(3,3,reg));          // NEG reg
             }
             else
             {
