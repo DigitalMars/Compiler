@@ -18,6 +18,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.ctype;
 
+import dmd.backend.barray;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.cgcv;
@@ -46,7 +47,7 @@ alias dbg_printf = printf;
 
 __gshared
 {
-seg_data **SegData;
+Rarray!(seg_data*) SegData;
 }
 
 /* ======================= cgcv stub ======================================= */
