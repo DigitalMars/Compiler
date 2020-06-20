@@ -301,8 +301,6 @@ enum
  * Line number support.
  */
 
-enum LINNUMMAX = 512;
-
 struct Linnum
 {
 version (MARS)
@@ -312,8 +310,12 @@ else
 
         int cseg;               // our internal segment number
         int seg;                // segment/public index
-        int i;                  // used in data[]
-        ubyte[LINNUMMAX] data;  // linnum/offset data
+        Outbuffer data;         // linnum/offset data
+
+        void reset() nothrow
+        {
+            data.reset();
+        }
 }
 
 enum LINRECMAX = 2 + 255 * 2;   // room for 255 line numbers
@@ -396,7 +398,7 @@ version (MARS)
     // The rest don't get re-zeroed for each object file, they get reset
 
     Rarray!(Ledatarec*) ledatas;
-    Barray!(Linnum) linnum_list;
+    Rarray!(Linnum) linnum_list;
     Barray!(char*) linreclist;  // array of line records
 }
 
@@ -998,8 +1000,7 @@ else
                 bool cond2 = rln.filptr == *srcpos.Sfilptr;
 
             if (cond2 &&
-                rln.cseg == seg &&
-                rln.i < LINNUMMAX - 6)
+                rln.cseg == seg)
             {
                 ln = &rln;      // found existing entry with room
                 goto L1;
@@ -1014,12 +1015,15 @@ else
 
         ln.cseg = seg;
         ln.seg = obj.pubnamidx;
+        ln.reset();
 
     L1:
         //printf("offset = x%x, line = %d\n", (int)offset, linnum);
-        TOWORD(&ln.data[ln.i],linnum);
-        TOOFFSET(&ln.data[ln.i + 2],offset);
-        ln.i += 2 + _tysize[TYint];
+        ln.data.writeWord(linnum);
+        if (_tysize[TYint] == 2)
+            ln.data.writeWord(offset);
+        else
+            ln.data.write32(offset);
     }
     else
     {
@@ -1172,7 +1176,7 @@ version (MARS)
     while (li)
     {
         Linnum* ln = &obj.linnum_list[li - 1];
-        if (!ln.i)
+        if (ln.seg == UNKNOWN)
         {
             --li;
             continue;
@@ -1214,19 +1218,25 @@ version (MARS)
             else
                 srcpos.Sfilptr = &ln.filptr;
 
-            for (uint u = 0; u < ln.i; )
+            ubyte* pend = ln.data.p;
+            for (ubyte* p = ln.data.buf; p < pend; )
             {
-                srcpos.Slinnum = *cast(ushort *)&ln.data[u];
-                u += 2;
+                srcpos.Slinnum = *cast(ushort *)p;
+                p += 2;
                 targ_size_t offset;
                 if (I32)
-                    offset = *cast(uint *)&ln.data[u];
+                {
+                    offset = *cast(uint *)p;
+                    p += 4;
+                }
                 else
-                    offset = *cast(ushort *)&ln.data[u];
+                {
+                    offset = *cast(ushort *)p;
+                    p += 2;
+                }
                 OmfObj_linnum(srcpos,cseg,offset);
-                u += _tysize[TYint];
             }
-            ln.i = 0;
+            ln.seg = UNKNOWN;
             linnum_flush();
             if (ll == li)       // if ll is at the end of the array
                 --li;           // shrink the end of the array
@@ -1253,6 +1263,7 @@ version (MARS)
             break;
         }
     }
+
     obj.linnum_list.reset();
     cseg = csegsave;
     assert(cseg > 0);
