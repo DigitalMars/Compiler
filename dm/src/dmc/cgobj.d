@@ -1021,9 +1021,9 @@ else
         //printf("offset = x%x, line = %d\n", (int)offset, linnum);
         ln.data.writeWord(linnum);
         if (_tysize[TYint] == 2)
-            ln.data.writeWord(offset);
+            ln.data.writeWord(cast(int)offset);
         else
-            ln.data.write32(offset);
+            ln.data.write32(cast(int)offset);
     }
     else
     {
