@@ -318,6 +318,15 @@ else
         }
 }
 
+/*****************************
+ */
+struct PtrRef
+{
+  align(4):
+    Symbol* sym;
+    uint offset;
+}
+
 enum LINRECMAX = 2 + 255 * 2;   // room for 255 line numbers
 
 /************************************
@@ -347,7 +356,6 @@ struct Objstate
     int segidx;                 // index of next SEGDEF record
     int extidx;                 // index of next EXTDEF record
     int pubnamidx;              // index of COMDAT public name index
-    Outbuffer *reset_symbuf;    // Keep pointers to reset symbols
 
     Symbol *startaddress;       // if !null, then Symbol is start address
 
@@ -375,8 +383,6 @@ version (MARS)
     int fmsegi;                 // SegData[] of FM segment
     int datrefsegi;             // SegData[] of DATA pointer ref segment
     int tlsrefsegi;             // SegData[] of TLS pointer ref segment
-
-    Outbuffer *ptrref_buf;      // buffer for pointer references
 }
 
     int tlssegi;                // SegData[] of tls segment
@@ -398,8 +404,14 @@ version (MARS)
     // The rest don't get re-zeroed for each object file, they get reset
 
     Rarray!(Ledatarec*) ledatas;
+    Barray!(Symbol*) resetSymbols;  // reset symbols
     Rarray!(Linnum) linnum_list;
     Barray!(char*) linreclist;  // array of line records
+
+version (MARS)
+{
+    Barray!PtrRef ptrrefs;      // buffer for pointer references
+}
 }
 
 __gshared
@@ -685,31 +697,17 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         //printf("OmfObj_init()\n");
         Obj mobj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
 
-        Outbuffer *reset_symbuf = obj.reset_symbuf;
-        if (reset_symbuf)
-        {
-            Symbol **p = cast(Symbol **)reset_symbuf.buf;
-            const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
-            for (size_t i = 0; i < n; ++i)
-                symbol_reset(p[i]);
-            reset_symbuf.reset();
-        }
-        else
-        {
-            reset_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
-            assert(reset_symbuf);
-            reset_symbuf.enlarge(50 * (Symbol *).sizeof);
-        }
-
         // Zero obj up to ledatas
         memset(&obj,0,obj.ledatas.offsetof);
 
         obj.ledatas.reset();    // recycle the memory used by ledatas
 
+        foreach (s; obj.resetSymbols)
+            symbol_reset(s);
+        obj.resetSymbols.reset();
+
         obj.buf = objbuf;
         obj.buf.reserve(40000);
-
-        obj.reset_symbuf = reset_symbuf; // reuse buffer
 
         obj.lastfardatasegi = -1;
 
@@ -1172,18 +1170,8 @@ version (MARS)
     linnum_flush();
     obj.term = 1;
 
-    size_t li = obj.linnum_list.length;
-    while (li)
+    foreach (ref ln; obj.linnum_list)
     {
-        Linnum* ln = &obj.linnum_list[li - 1];
-        if (ln.seg == UNKNOWN)
-        {
-            --li;
-            continue;
-        }
-
-        size_t ll = li;
-
         version (SCPP)
         {
             Sfile *filptr = ln.filptr;
@@ -1204,64 +1192,35 @@ version (MARS)
                 lastfilename = filename;
             }
         }
+        cseg = ln.cseg;
+        assert(cseg > 0);
+        obj.pubnamidx = ln.seg;
 
-    SameFileLoop:
-        while (1)
+        Srcpos srcpos;
+        version (MARS)
+            srcpos.Sfilename = ln.filename;
+        else
+            srcpos.Sfilptr = &ln.filptr;
+
+        ubyte* pend = ln.data.p;
+        for (ubyte* p = ln.data.buf; p < pend; )
         {
-            cseg = ln.cseg;
-            assert(cseg > 0);
-            obj.pubnamidx = ln.seg;
-
-            Srcpos srcpos;
-            version (MARS)
-                srcpos.Sfilename = ln.filename;
-            else
-                srcpos.Sfilptr = &ln.filptr;
-
-            ubyte* pend = ln.data.p;
-            for (ubyte* p = ln.data.buf; p < pend; )
+            srcpos.Slinnum = *cast(ushort *)p;
+            p += 2;
+            targ_size_t offset;
+            if (I32)
             {
-                srcpos.Slinnum = *cast(ushort *)p;
+                offset = *cast(uint *)p;
+                p += 4;
+            }
+            else
+            {
+                offset = *cast(ushort *)p;
                 p += 2;
-                targ_size_t offset;
-                if (I32)
-                {
-                    offset = *cast(uint *)p;
-                    p += 4;
-                }
-                else
-                {
-                    offset = *cast(ushort *)p;
-                    p += 2;
-                }
-                OmfObj_linnum(srcpos,cseg,offset);
             }
-            ln.seg = UNKNOWN;
-            linnum_flush();
-            if (ll == li)       // if ll is at the end of the array
-                --li;           // shrink the end of the array
-
-            // Find next entry with a matching file name
-            version (SCPP)
-            {
-                while (--ll)
-                {
-                    ln = &obj.linnum_list[ll - 1];
-                    if (filptr == ln.filptr)
-                        continue SameFileLoop;
-                }
-            }
-            else
-            {
-                while (--ll)
-                {
-                    ln = &obj.linnum_list[ll - 1];
-                    if (filename == ln.filename)
-                        continue SameFileLoop;
-                }
-            }
-            break;
+            OmfObj_linnum(srcpos,cseg,offset);
         }
+        linnum_flush();
     }
 
     obj.linnum_list.reset();
@@ -2088,7 +2047,7 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
     tym_t ty;
 
     symbol_debug(s);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
     ty = s.ty();
     isfunc = tyfunc(ty) != 0 || is_readonly_comdat;
 
@@ -2711,7 +2670,7 @@ void OmfObj_pubdef(int seg,Symbol *s,targ_size_t offset)
     uint ti;
 
     assert(offset < 100000000);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
 
     int idx = SegData[seg].segidx;
     if (obj.pubdatai + 1 + (IDMAX + IDOHD) + 4 + 2 > obj.pubdata.sizeof ||
@@ -2786,7 +2745,7 @@ int OmfObj_external(Symbol *s)
 {
     //printf("OmfObj_external('%s', %d)\n",s.Sident.ptr, obj.extidx + 1);
     symbol_debug(s);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
     if (obj.extdatai + (IDMAX + IDOHD) + 3 > obj.extdata.sizeof)
         outextdata();
 
@@ -2853,7 +2812,7 @@ int OmfObj_common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
   uint ti;
 
     //printf("OmfObj_common_block('%s',%d,%d,%d, %d)\n",s.Sident.ptr,flag,size,count, obj.extidx + 1);
-    obj.reset_symbuf.write((&s)[0 .. 1]);
+    obj.resetSymbols.push(s);
     outextdata();               // borrow the extdata[] storage
     i = cast(uint)OmfObj_mangle(s,obj.extdata.ptr);
 
@@ -2989,7 +2948,7 @@ private void obj_modend()
         // Turn startaddress into a fixup.
         // Borrow heavilly from OmfObj_reftoident()
 
-        obj.reset_symbuf.write((&s)[0 .. 1]);
+        obj.resetSymbols.push(s);
         symbol_debug(s);
         offset = 0;
         ty = s.ty();
@@ -3987,15 +3946,8 @@ void OmfObj_write_pointerRef(Symbol* s, uint soff)
 {
 version (MARS)
 {
-    if (!obj.ptrref_buf)
-    {
-        obj.ptrref_buf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
-        assert(obj.ptrref_buf);
-    }
-
     // defer writing pointer references until the symbols are written out
-    obj.ptrref_buf.write(&s, s.sizeof);
-    obj.ptrref_buf.write32(soff);
+    obj.ptrrefs.push(PtrRef(s, soff));
 }
 }
 
@@ -4058,20 +4010,9 @@ private void objflush_pointerRefs()
 {
 version (MARS)
 {
-    if (!obj.ptrref_buf)
-        return;
-
-    ubyte *p = obj.ptrref_buf.buf;
-    ubyte *end = obj.ptrref_buf.p;
-    while (p < end)
-    {
-        Symbol* s = *cast(Symbol**)p;
-        p += s.sizeof;
-        uint soff = *cast(uint*)p;
-        p += soff.sizeof;
-        objflush_pointerRef(s, soff);
-    }
-    obj.ptrref_buf.reset();
+    foreach (ref pr; obj.ptrrefs)
+        objflush_pointerRef(pr.sym, pr.offset);
+    obj.ptrrefs.reset();
 }
 }
 
