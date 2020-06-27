@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod4.d, backend/cod4.d)
@@ -3614,11 +3614,11 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         cs.Irm |= modregrm(0,mode,0);
         cs.Iflags |= CFpsw | word;
         cs.IFL2 = FLconst;
-        if (_tysize[ty1] == SHORTSIZE)
+        if (sz <= SHORTSIZE)
         {
             cs.IEV2.Vint = e2.EV.Vint & 15;
         }
-        else if (_tysize[ty1] == 4)
+        else if (sz == 4)
         {
             cs.IEV2.Vint = e2.EV.Vint & 31;
         }
@@ -3633,6 +3633,18 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     else
     {
         retregs = ALLREGS & ~idxregs;
+
+        /* A register variable may not have its upper 32
+         * bits 0, so pick a different register to force
+         * a MOV which will clear it
+         */
+        if (I64 && sz == 8 && tysize(e2.Ety) == 4)
+        {
+            regm_t rregm;
+            if (isregvar(e2, &rregm, null))
+                retregs &= ~rregm;
+        }
+
         scodelem(cdb,e2,&retregs,idxregs,true);
         reg = findreg(retregs);
 
