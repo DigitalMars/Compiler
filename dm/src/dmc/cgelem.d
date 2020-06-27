@@ -1471,7 +1471,8 @@ private elem * elbitwise(elem *e, goal_t goal)
                 e.Eoper == OPand &&
                 ul == 1 &&
                 (e.EV.E1.Eoper == OPshr || e.EV.E1.Eoper == OPashr) &&
-                sz <= REGSIZE
+                sz <= REGSIZE &&
+                tysize(e1.Ety) >= 2     // BT doesn't work on byte operands
                )
             {
                 e.EV.E1.Eoper = OPbtst;
@@ -1516,7 +1517,7 @@ private elem * elbitwise(elem *e, goal_t goal)
             e2.EV.E1.Eoper == OPadd &&
             e2.EV.E1.EV.E1.Eoper == OPshl &&
             ELCONST(e2.EV.E1.EV.E1.EV.E2,pow2sz) &&
-            (((e2111 = e2.EV.E1.EV.E1.EV.E1).Eoper == OPu32_64 ? (e2111 = e2111.EV.E1) : e2111).Eoper == OPshr) &&
+            (((e2111 = e2.EV.E1.EV.E1.EV.E1).Eoper == OPu32_64 ? (e2111 = e2111.EV.E1) : e2111).Eoper == OPashr) &&
             ELCONST(e2111.EV.E2,pow2sz + 3)
            )
         {
