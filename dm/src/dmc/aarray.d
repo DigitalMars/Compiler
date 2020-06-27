@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright), Dave Fladebo
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -16,6 +16,9 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 alias hash_t = size_t;
+
+version (MARS)
+    import dmd.root.hash;
 
 nothrow:
 
@@ -403,11 +406,19 @@ nothrow:
 
     static hash_t getHash(Key* pk)
     {
-        auto buf = *pk;
-        hash_t hash = 0;
-        foreach (v; buf)
-            hash = hash * 11 + v;
-        return hash;
+        version (MARS)
+        {
+            auto buf = *pk;
+            return calcHash(cast(const(ubyte[]))buf);
+        }
+        else
+        {
+            auto buf = *pk;
+            hash_t hash = 0;
+            foreach (v; buf)
+                hash = hash * 11 + v;
+            return hash;
+        }
     }
 
     static bool equals(Key* pk1, Key* pk2)
@@ -466,11 +477,19 @@ nothrow:
 
     hash_t getHash(Key* pk)
     {
-        auto buf = (*pbase)[pk.start .. pk.end];
-        hash_t hash = 0;
-        foreach (v; buf)
-            hash = hash * 11 + v;
-        return hash;
+        version (MARS)
+        {
+            auto buf = (*pbase)[pk.start .. pk.end];
+            return calcHash(buf);
+        }
+        else
+        {
+            auto buf = (*pbase)[pk.start .. pk.end];
+            hash_t hash = 0;
+            foreach (v; buf)
+                hash = hash * 11 + v;
+            return hash;
+        }
     }
 
     bool equals(Key* pk1, Key* pk2)
