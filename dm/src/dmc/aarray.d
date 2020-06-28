@@ -466,7 +466,7 @@ nothrow:
 
 // Key is the slice specified by (*TinfoPair.pbase)[Pair.start .. Pair.end]
 
-struct Pair { uint start, end; }
+public struct Pair { uint start, end; }
 
 public struct TinfoPair
 {
@@ -526,6 +526,39 @@ nothrow:
     }
 
     uint* get(uint start, uint end)
+    {
+        auto p = Pair(start, end);
+        return aa.get(&p);
+    }
+
+    uint length()
+    {
+        return cast(uint)aa.length();
+    }
+}
+
+// Interface for C++ code
+public extern (C++) struct AApair2
+{
+nothrow:
+    alias AA = AArray!(TinfoPair, Pair);
+    AA aa;
+
+    static AApair* create(ubyte** pbase)
+    {
+        auto a = cast(AApair*)calloc(1, AApair.sizeof);
+        assert(a);
+        a.aa.tkey.pbase = pbase;
+        return a;
+    }
+
+    static void destroy(AApair* aap)
+    {
+        aap.aa.destroy();
+        free(aap);
+    }
+
+    Pair* get(uint start, uint end)
     {
         auto p = Pair(start, end);
         return aa.get(&p);
