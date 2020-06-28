@@ -26,7 +26,7 @@ import dmd.backend.outbuf;
 
 import filespec;
 import dmd.backend.dlist;
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 import dtoken;
 import parser;

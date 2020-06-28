@@ -38,7 +38,7 @@ import dmd.backend.type;
 
 import dmd.backend.barray;
 import dmd.backend.dlist;
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 import cpp;
 import dtoken;

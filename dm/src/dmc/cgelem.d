@@ -37,7 +37,7 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 version (SCPP)
-    import dmd.backend.memh;
+    import dmd.backend.mem;
 else
 {
     extern (C)

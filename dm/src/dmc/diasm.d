@@ -65,7 +65,7 @@ import dmd.backend.type;
 import dmd.backend.xmm;
 
 import dmd.backend.dlist;
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 import cpp;
 import dtoken;

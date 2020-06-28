@@ -25,7 +25,7 @@ else
 
 import dmd.backend.global;
 
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 import msgs2;
 

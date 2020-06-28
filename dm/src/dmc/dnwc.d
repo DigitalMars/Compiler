@@ -43,7 +43,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.dlist;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dvec;
 
 import cpp;

@@ -34,7 +34,7 @@ import parser;
 
 import dmd.backend.dlist;
 import filespec;
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 extern (C) void crlf(FILE*);
 

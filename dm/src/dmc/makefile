@@ -321,7 +321,7 @@ BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
         dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
         mscoff.d obj.d oper.d rtlsym.d ty.d type.d xmm.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
-	glocal.d goh.d md5.d memh.d varstats.di aarray.d
+	glocal.d goh.d md5.d mem.d varstats.di aarray.d
 
 BACKSRC= \
 	code_stub.h \

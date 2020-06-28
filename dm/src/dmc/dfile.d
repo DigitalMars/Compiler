@@ -29,7 +29,7 @@ import dmd.backend.outbuf;
 
 import dmd.backend.dlist;
 import filespec;
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 import html;
 import msgs2;

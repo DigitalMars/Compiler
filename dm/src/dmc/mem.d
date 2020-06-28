@@ -11,7 +11,7 @@
  */
 
 
-module dmd.backend.memh;
+module dmd.backend.mem;
 
 
 extern (C):

@@ -21,7 +21,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import filespec;
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 extern (C++):
 
