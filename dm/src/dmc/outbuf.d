@@ -58,9 +58,38 @@ struct Outbuffer
         p = buf;
     }
 
-    // Reserve nbytes in buffer
+    // Returns: A slice to the data written so far
+    extern(D) inout(ubyte)[] opSlice(size_t from, size_t to) inout
+        @trusted pure nothrow @nogc
+    {
+        assert(this.buf, "Attempt to dereference a null pointer");
+        assert(from < to, "First index must be <= to second one");
+        assert(this.length() <= (to - from), "Out of bound access");
+        return this.buf[from .. to];
+    }
+
+    /// Ditto
+    extern(D) inout(ubyte)[] opSlice() inout @trusted pure nothrow @nogc
+    {
+        return this.buf[0 .. this.p - this.buf];
+    }
+
+    extern(D) ubyte[] extractSlice() @safe pure nothrow @nogc
+    {
+        auto ret = this[];
+        this.buf = this.p = this.pend = null;
+        return ret;
+    }
+
+    /********************
+     * Make sure we have at least `nbytes` available for writing,
+     * allocate more if necessary.
+     * This is the inlinable fast path. Prefer `enlarge` if allocation
+     * will always happen.
+     */
     void reserve(size_t nbytes)
     {
+        // Keep small so it is inlined
         if (pend - p < nbytes)
             enlarge(nbytes);
     }
@@ -68,6 +97,7 @@ struct Outbuffer
     // Reserve nbytes in buffer
     void enlarge(size_t nbytes)
     {
+        pragma(inline, false);  // do not inline slow path
         const size_t oldlen = pend - buf;
         const size_t used = p - buf;
 
@@ -99,8 +129,7 @@ struct Outbuffer
     // Write n zeros; return pointer to start of zeros
     void *writezeros(size_t n)
     {
-        if (pend - p < n)
-            reserve(n);
+        reserve(n);
         void *pstart = memset(p,0,n);
         p += n;
         return pstart;
@@ -111,7 +140,7 @@ struct Outbuffer
     {
         if (offset + nbytes > pend - buf)
         {
-            enlarge(offset + nbytes - (p - buf));
+            reserve(offset + nbytes - (p - buf));
         }
         p = buf + offset;
 
@@ -138,8 +167,7 @@ struct Outbuffer
     extern (D)
     void write(const(void)[] b)
     {
-        if (pend - p < b.length)
-            reserve(b.length);
+        reserve(b.length);
         memcpy(p, b.ptr, b.length);
         p += b.length;
     }
@@ -170,8 +198,7 @@ struct Outbuffer
      */
     void writeByte(int v)
     {
-        if (pend == p)
-            reserve(1);
+        reserve(1);
         *p++ = cast(ubyte)v;
     }
 
@@ -192,6 +219,14 @@ struct Outbuffer
         p += 2;
     }
 
+    /**
+     * Writes a 16 bit value, no reserve check.
+     */
+    void write16n(int v)
+    {
+        *(cast(ushort *) p) = cast(ushort)v;
+        p += 2;
+    }
 
     /**
      * Writes a 16 bit little-end short.
@@ -225,12 +260,20 @@ struct Outbuffer
     }
 
     /**
+     * Writes a 16 bit value.
+     */
+    void write16(int v)
+    {
+        reserve(2);
+        write16n(v);
+    }
+
+    /**
      * Writes a 32 bit int.
      */
     void write32(int v)
     {
-        if (pend - p < 4)
-            reserve(4);
+        reserve(4);
         *cast(int *)p = v;
         p += 4;
     }
@@ -240,8 +283,7 @@ struct Outbuffer
      */
     void write64(long v)
     {
-        if (pend - p < 8)
-            reserve(8);
+        reserve(8);
         *cast(long *)p = v;
         p += 8;
     }
@@ -252,8 +294,7 @@ struct Outbuffer
      */
     void writeFloat(float v)
     {
-        if (pend - p < float.sizeof)
-            reserve(float.sizeof);
+        reserve(float.sizeof);
         *cast(float *)p = v;
         p += float.sizeof;
     }
@@ -263,8 +304,7 @@ struct Outbuffer
      */
     void writeDouble(double v)
     {
-        if (pend - p < double.sizeof)
-            reserve(double.sizeof);
+        reserve(double.sizeof);
         *cast(double *)p = v;
         p += double.sizeof;
     }
@@ -291,6 +331,19 @@ struct Outbuffer
     void writeString(const(char)* s)
     {
         write(s[0 .. strlen(s)+1]);
+    }
+
+    /// Ditto
+    extern(D) void writeString(const(char)[] s)
+    {
+        write(s);
+        writeByte(0);
+    }
+
+    /// Disembiguation for `string`
+    extern(D) void writeString(string s)
+    {
+        writeString(cast(const(char)[])(s));
     }
 
     /**
