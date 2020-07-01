@@ -244,12 +244,12 @@ struct ElfObj
     // Symbol Table
     Barray!Elf32_Sym SymbolTable;
     Barray!Elf64_Sym SymbolTable64;
+
+    Barray!(Symbol*) resetSyms; // Keep pointers to reset symbols
 }
 
-ElfObj elfobj;
+private ElfObj elfobj;
 
-// This should be renamed, even though it is private it conflicts with other reset_symbuf's
-extern (D) private Outbuffer *reset_symbuf; // Keep pointers to reset symbols
 
 // Extended section header indices
 private Outbuffer *shndx_data;
@@ -437,9 +437,7 @@ static if (0)
         name = s.Sfunc.Fredirect;
         len = strlen(name);
     }
-    symtab_strings.reserve(cast(uint)len+1);
-    memcpy(cast(char *)symtab_strings.p, name, len + 1);
-    symtab_strings.setsize(cast(uint)(namidx+len+1));
+    symtab_strings.write(name, len + 1);
     if (destr != dest.ptr)                  // if we resized result
         mem_free(destr);
     //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings.length());
@@ -482,7 +480,7 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         {
             shndx_data = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(shndx_data);
-            shndx_data.enlarge(50 * (Elf64_Word).sizeof);
+            shndx_data.reserve(50 * (Elf64_Word).sizeof);
         }
         // fill with zeros up to symbol_idx
         const size_t shndx_idx = shndx_data.length() / Elf64_Word.sizeof;
@@ -726,8 +724,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         symtab_strings = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(symtab_strings);
-        symtab_strings.enlarge(1024);
-
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
     }
@@ -765,8 +761,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         {
             section_names = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(section_names);
-            section_names.enlarge(512);
-
             section_names.reserve(1024);
             section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
         }
@@ -809,8 +803,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         {
             section_names = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(section_names);
-            section_names.enlarge(512);
-
             section_names.reserve(100*1024);
             section_names.writen(section_names_init.ptr, section_names_init.sizeof);
         }
@@ -845,20 +837,10 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     elfobj.SymbolTable.reset();
     elfobj.SymbolTable64.reset();
 
-    if (reset_symbuf)
-    {
-        Symbol **p = cast(Symbol **)reset_symbuf.buf;
-        const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
-        for (size_t i = 0; i < n; ++i)
-            symbol_reset(p[i]);
-        reset_symbuf.reset();
-    }
-    else
-    {
-        reset_symbuf = cast(Outbuffer*) calloc(1, (Outbuffer).sizeof);
-        assert(reset_symbuf);
-        reset_symbuf.enlarge(50 * (Symbol *).sizeof);
-    }
+    foreach (s; elfobj.resetSyms)
+        symbol_reset(s);
+    elfobj.resetSyms.reset();
+
     if (shndx_data)
         shndx_data.reset();
     symbol_idx = 0;
@@ -1409,7 +1391,6 @@ debug
         fobjbuf.write(&h32, hdrsize);
     }
     fobjbuf.position(foffset, 0);
-    fobjbuf.flush();
 }
 
 /*****************************
@@ -1710,7 +1691,7 @@ static if (!ELF_COMDAT)
 }
 else
 {
-        reset_symbuf.write((&s)[0 .. 1]);
+        elfobj.resetSyms.push(s);
 
         const(char)* p = cpp_mangle2(s);
 
@@ -1925,8 +1906,6 @@ private segidx_t elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
         {
             pseg.SDbuf = cast(Outbuffer*) calloc(1, (Outbuffer).sizeof);
             assert(pseg.SDbuf);
-            pseg.SDbuf.enlarge(OB_XTRA_STR);
-
             pseg.SDbuf.reserve(1024);
         }
     }
@@ -2423,7 +2402,7 @@ void Obj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
     //symbol_print(s);
 
     symbol_debug(s);
-    reset_symbuf.write((&s)[0 .. 1]);
+    elfobj.resetSyms.push(s);
     const namidx = elf_addmangled(s);
     //printf("\tnamidx %d,section %d\n",namidx,MAP_SEG2SECIDX(seg));
     if (tyfunc(s.ty()))
@@ -2476,7 +2455,7 @@ int Obj_external(Symbol *s)
 
     //dbg_printf("Obj_external('%s') %x\n",s.Sident.ptr,s.Svalue);
     symbol_debug(s);
-    reset_symbuf.write((&s)[0 .. 1]);
+    elfobj.resetSyms.push(s);
     const namidx = elf_addmangled(s);
 
 version (SCPP)
@@ -2552,7 +2531,7 @@ int Obj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
     }
 static if (0)
 {
-    reset_symbuf.write(s);
+    elfobj.resetSyms(s);
     const namidx = elf_addmangled(s);
     alignOffset(UDATA,size);
     const symidx = elf_addsym(namidx, SegData[UDATA].SDoffset, size*count,
@@ -2666,7 +2645,7 @@ static if (0)
     int save = cast(int)buf.length();
     //dbg_printf("Obj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
-    buf.position(cast(uint)offset, nbytes);
+    buf.position(cast(size_t)offset, nbytes);
     if (p)
         buf.writen(p, nbytes);
     else // Zero out the bytes
