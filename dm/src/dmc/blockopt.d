@@ -478,6 +478,7 @@ void blocklist_dehydrate(block **pb)
         /*printf(" %p\n",*pb);*/
         el_dehydrate(&b.Belem);
         list_dehydrate(&b.Bsucc,FPNULL);
+        assert(!b.Bpred);
         list_dehydrate(&b.Bpred,FPNULL);
         ph_dehydrate(&b.Btry);
         ph_dehydrate(&b.Bendscope);
@@ -644,6 +645,7 @@ void blockopt(int iter)
             bltailmerge();              // do tail merging
             brtailrecursion();          // do tail recursion
             brcombine();                // convert graph to expressions
+            blexit();
             if (iter >= 2)
                 brmin();                // minimize branching
             do
@@ -1598,10 +1600,26 @@ private void blreturn()
 }
 
 /*****************************************
- * Convert expression into a list.
- * Construct the list in reverse, that is, so that the right-most
- * expression occurs first in the list.
+ * Convert comma-expressions into an array of expressions.
  */
+
+extern (D)
+private void bl_enlist2(ref Barray!(elem*) elems, elem* e)
+{
+    if (e)
+    {
+        elem_debug(e);
+        if (e.Eoper == OPcomma)
+        {
+            bl_enlist2(elems, e.EV.E1);
+            bl_enlist2(elems, e.EV.E2);
+            e.EV.E1 = e.EV.E2 = null;
+            el_free(e);
+        }
+        else
+            elems.push(e);
+    }
+}
 
 private list_t bl_enlist(elem *e)
 {
@@ -1633,6 +1651,17 @@ private list_t bl_enlist(elem *e)
 /*****************************************
  * Take a list of expressions and convert it back into an expression tree.
  */
+
+extern (D)
+private elem* bl_delist2(elem*[] elems)
+{
+    elem* result = null;
+    foreach (e; elems)
+    {
+        result = el_combine(result, e);
+    }
+    return result;
+}
 
 private elem * bl_delist(list_t el)
 {
@@ -2203,6 +2232,8 @@ private int el_anyframeptr(elem *e)
 
 private void blassertsplit()
 {
+    debug if (debugc) printf("blassertsplit()\n");
+    Barray!(elem*) elems;
     for (block *b = startblock; b; b = b.Bnext)
     {
         /* Not sure of effect of jumping out of a try block
@@ -2213,119 +2244,206 @@ private void blassertsplit()
         if (b.BC == BCexit)
             continue;
 
-        list_t bel = list_reverse(bl_enlist(b.Belem));
+        elems.reset();
+        bl_enlist2(elems, b.Belem);
+        auto earray = elems[];
     L1:
         int dctor = 0;
-        foreach (el; ListRange(bel))
-        {
-            elem *e = list_elem(el);
 
-            int accumDctor(elem *e)
+        int accumDctor(elem *e)
+        {
+            while (1)
             {
-                while (1)
+                if (OTunary(e.Eoper))
                 {
-                    if (OTunary(e.Eoper))
-                    {
-                        e = e.EV.E1;
-                        continue;
-                    }
-                    else if (OTbinary(e.Eoper))
-                    {
-                        accumDctor(e.EV.E1);
-                        e = e.EV.E2;
-                        continue;
-                    }
-                    else if (e.Eoper == OPdctor)
-                        ++dctor;
-                    else if (e.Eoper == OPddtor)
-                        --dctor;
+                    e = e.EV.E1;
+                    continue;
+                }
+                else if (OTbinary(e.Eoper))
+                {
+                    accumDctor(e.EV.E1);
+                    e = e.EV.E2;
+                    continue;
+                }
+                else if (e.Eoper == OPdctor)
+                    ++dctor;
+                else if (e.Eoper == OPddtor)
+                    --dctor;
+                break;
+            }
+            return dctor;
+        }
+
+        foreach (i, e; earray)
+        {
+            if (!(dctor == 0 &&   // don't split block between a dctor..ddtor pair
+                e.Eoper == OPoror && e.EV.E2.Eoper == OPcall && e.EV.E2.EV.E1.Eoper == OPvar))
+            {
+                accumDctor(e);
+                continue;
+            }
+            Symbol *f = e.EV.E2.EV.E1.EV.Vsym;
+            if (!(f.Sflags & SFLexit))
+            {
+                accumDctor(e);
+                continue;
+            }
+
+            if (accumDctor(e.EV.E1))
+            {
+                accumDctor(e.EV.E2);
+                continue;
+            }
+
+            // Create exit block
+            ++numblks;
+            maxblks += 3;
+            block *bexit = block_calloc();
+            bexit.BC = BCexit;
+            bexit.Belem = e.EV.E2;
+
+            /* Append bexit to block list
+             */
+            for (block *bx = b; 1; )
+            {
+                block* bxn = bx.Bnext;
+                if (!bxn)
+                {
+                    bx.Bnext = bexit;
                     break;
                 }
-                return dctor;
+                bx = bxn;
             }
 
-            if (dctor == 0 &&   // don't split block between a dctor..ddtor pair
-                e.Eoper == OPoror && e.EV.E2.Eoper == OPcall && e.EV.E2.EV.E1.Eoper == OPvar)
+            earray[i] = e.EV.E1;
+            e.EV.E1 = null;
+            e.EV.E2 = null;
+            el_free(e);
+
+            /* Split b into two blocks, [b,b2]
+             */
+            ++numblks;
+            maxblks += 3;
+            block *b2 = block_calloc();
+            b2.Bnext = b.Bnext;
+            b.Bnext = b2;
+            b2.BC = b.BC;
+            b2.BS = b.BS;
+
+            b.Belem = bl_delist2(earray[0 .. i + 1]);
+
+            /* Transfer successors of b to b2.
+             * Fix up predecessors of successors to b2 to point to b2 instead of b
+             */
+            b2.Bsucc = b.Bsucc;
+            b.Bsucc = null;
+            foreach (b2sl; ListRange(b2.Bsucc))
             {
-                Symbol *f = e.EV.E2.EV.E1.EV.Vsym;
-                if (f.Sflags & SFLexit)
+                block *b2s = list_block(b2sl);
+                foreach (b2spl; ListRange(b2s.Bpred))
                 {
-                    if (accumDctor(e.EV.E1))
-                    {
-                        accumDctor(e.EV.E2);
-                        continue;
-                    }
-
-                    // Create exit block
-                    ++numblks;
-                    maxblks += 3;
-                    block *bexit = block_calloc();
-                    bexit.BC = BCexit;
-                    bexit.Belem = e.EV.E2;
-
-                    /* Append bexit to block list
-                     */
-                    for (block *bx = b; 1; )
-                    {
-                        block* bxn = bx.Bnext;
-                        if (!bxn)
-                        {
-                            bx.Bnext = bexit;
-                            break;
-                        }
-                        bx = bxn;
-                    }
-
-                    el.ptr = cast(void *)e.EV.E1;
-                    e.EV.E1 = null;
-                    e.EV.E2 = null;
-                    el_free(e);
-
-                    /* Split b into two blocks, [b,b2]
-                     */
-                    ++numblks;
-                    maxblks += 3;
-                    block *b2 = block_calloc();
-                    b2.Bnext = b.Bnext;
-                    b.Bnext = b2;
-                    b2.BC = b.BC;
-                    b2.BS = b.BS;
-                    list_t bex = list_next(el);
-                    el.next = null;
-                    b.Belem = bl_delist(list_reverse(bel));
-
-                    /* Transfer successors of b to b2.
-                     * Fix up predecessors of successors to b2 to point to b2 instead of b
-                     */
-                    b2.Bsucc = b.Bsucc;
-                    b.Bsucc = null;
-                    foreach (b2sl; ListRange(b2.Bsucc))
-                    {
-                        block *b2s = list_block(b2sl);
-                        foreach (b2spl; ListRange(b2s.Bpred))
-                        {
-                            if (list_block(b2spl) == b)
-                                b2spl.ptr = cast(void *)b2;
-                        }
-                    }
-
-                    b.BC = BCiftrue;
-                    assert(b.Belem);
-                    list_append(&b.Bsucc, b2);
-                    list_append(&b2.Bpred, b);
-                    list_append(&b.Bsucc, bexit);
-                    list_append(&bexit.Bpred, b);
-
-                    b = b2;
-                    bel = bex;  // remainder of expression list goes into b2
-                    go.changes++;
-                    goto L1;
+                    if (list_block(b2spl) == b)
+                        b2spl.ptr = cast(void *)b2;
                 }
             }
-            accumDctor(e);
+
+            b.BC = BCiftrue;
+            assert(b.Belem);
+            list_append(&b.Bsucc, b2);
+            list_append(&b2.Bpred, b);
+            list_append(&b.Bsucc, bexit);
+            list_append(&bexit.Bpred, b);
+
+            b = b2;
+            earray = earray[i + 1 .. earray.length];  // rest of expressions go into b2
+            debug if (debugc)
+            {
+                printf(" split off assert\n");
+            }
+            go.changes++;
+            goto L1;
         }
-        b.Belem = bl_delist(list_reverse(bel));
+        b.Belem = bl_delist2(earray);
     }
+    elems.dtor();
+}
+
+/*************************************************
+ * Detect exit blocks and move them to the end.
+ */
+private void blexit()
+{
+    debug if (debugc) printf("blexit()\n");
+
+    Barray!(block*) bexits;
+    for (block *b = startblock; b; b = b.Bnext)
+    {
+        /* Not sure of effect of jumping out of a try block
+         */
+        if (b.Btry)
+            continue;
+
+        if (b.BC == BCexit)
+            continue;
+
+        if (b.Belem && !el_returns(b.Belem))
+
+        {
+            b.BC = BCexit;
+
+            foreach (bsl; ListRange(b.Bsucc))
+            {
+                block *bs = list_block(bsl);
+                list_subtract(&bs.Bpred, b);
+            }
+            list_free(&b.Bsucc, FPNULL);
+
+            if (b != startblock && b.Bnext)
+                bexits.push(b);
+            debug if (debugc)
+            {
+                printf(" to exit block\n");
+            }
+            go.changes++;
+        }
+    }
+
+    /* Move all the newly detected Bexit blocks in bexits[] to the end
+     */
+
+    /* First remove them from the list of blocks
+     */
+    size_t i = 0;
+    block** pb = &startblock.Bnext;
+    while (1)
+    {
+        if (i == bexits.length)
+            break;
+
+        if (*pb == bexits[i])
+        {
+            *pb = (*pb).Bnext;
+            ++i;
+        }
+        else
+            pb = &(*pb).Bnext;
+    }
+
+    /* Advance pb to point to the last Bnext
+     */
+    while (*pb)
+        pb = &(*pb).Bnext;
+
+    /* Append the bexits[] to the end
+     */
+    foreach (b; bexits[])
+    {
+        *pb = b;
+        pb = &b.Bnext;
+    }
+    *pb = null;
+
+    bexits.dtor();
 }
 
 } //!SPP
