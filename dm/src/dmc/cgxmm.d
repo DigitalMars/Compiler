@@ -274,7 +274,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     if (!(regvar && reg == XMM0 + ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0))))
     {
         cdb.gen(&cs);         // MOV EA+offset,reg
-        if (op == OPeq)
+//<<>>        if (op == OPeq)
             checkSetVex(cdb.last(), tyml);
     }
 
@@ -1608,6 +1608,7 @@ void checkSetVex3(code *c)
 
 void checkSetVex(code *c, tym_t ty)
 {
+    //printf("checkSetVex() %d %x\n", tysize(ty), c.Iop);
     if (config.avx || tysize(ty) == 32)
     {
         uint vreg = (c.Irm >> 3) & 7;
