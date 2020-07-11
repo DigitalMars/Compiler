@@ -5,7 +5,7 @@
  * Compute common subexpressions for non-optimized builds.
  *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.d
@@ -395,7 +395,7 @@ void ecom(elem **pe)
         case OPld_u64:
         case OPsqrt: case OPsin: case OPcos:
         case OPoffset: case OPnp_fp: case OPnp_f16p: case OPf16p_np:
-        case OPvecfill:
+        case OPvecfill: case OPtoprec:
             ecom(&e.EV.E1);
             break;
 
@@ -456,7 +456,7 @@ void ecom(elem **pe)
         {
             debug if (debugx)
                 printf("i: %2d Hhash: %6d Helem: %p\n",
-                       i,hcs.Hhash,hcs.Helem);
+                       cast(int) i,hcs.Hhash,hcs.Helem);
 
             elem* ehash;
             if (hash == hcs.Hhash && (ehash = hcs.Helem) != null)

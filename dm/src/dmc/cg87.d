@@ -326,7 +326,7 @@ L1:
             }
 
             debug if (j >= global87.save.length)
-                printf("e = %p, global87.save.length = %d\n",e,global87.save.length);
+                printf("e = %p, global87.save.length = %llu\n",e, cast(ulong) global87.save.length);
 
             assert(j < global87.save.length);
             //printf("\tglobal87.save[%d] = %p, .offset = %d\n", j, global87.save[j].e, global87.save[j].offset);
@@ -344,7 +344,7 @@ L1:
                 i--;
             }
         }
-        global87.save[j] = NDP();                // back in 8087
+        global87.save[j] = NDP();               // back in 8087
     }
     //global87.stack[i].e = null;
 }
@@ -3844,6 +3844,34 @@ void loadPair87(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         cdb.genf2(0xD9, 0xC8 + 1);   // FXCH ST(1)
     retregs = mST01;
     fixresult_complex87(cdb, e, retregs, pretregs);
+}
+
+/**********************************************
+ * Round 80 bit precision to 32 or 64 bits.
+ * OPtoprec
+ */
+void cdtoprec(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+{
+    //printf("cdtoprec: *pretregs = %s\n", regm_str(*pretregs));
+    if (!*pretregs)
+    {
+        codelem(cdb,e.EV.E1,pretregs,false);
+        return;
+    }
+
+    assert(config.inline8087);
+    regm_t retregs = mST0;
+    codelem(cdb,e.EV.E1, &retregs, false);
+    if (*pretregs & mST0)
+    {
+        const tym = tybasic(e.Ety);
+        const sz = _tysize[tym];
+        uint mf = (sz == FLOATSIZE) ? MFfloat : MFdouble;
+        cdb.genfltreg(ESC(mf,1),3,0);   // FSTP float/double ptr fltreg
+        genfwait(cdb);
+        cdb.genfltreg(ESC(mf,1),0,0);   // FLD float/double ptr fltreg
+    }
+    fixresult87(cdb, e, retregs, pretregs);
 }
 
 }
