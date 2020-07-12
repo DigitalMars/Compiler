@@ -5012,7 +5012,7 @@ private elem *elu64_d(elem *e, goal_t goal)
         el_free(e);
         return optelem(r, GOALvalue);
     }
-    else if (config.inline8087)
+    if (config.inline8087)
     {
         /* Rewrite for x87 as:
          *  u < 0 ? OPs64_d(u) : OPs64_d(u) + 0x1p+64
@@ -5022,15 +5022,18 @@ private elem *elu64_d(elem *e, goal_t goal)
         if (!OTleaf(u.Eoper))
             fixside(&u, &u1);
 
-        elem* eop1 = el_una(OPs64_d, TYldouble, u1);
+        elem* eop1 = el_una(OPs64_d, TYdouble, u1);
+        eop1 = el_una(OPd_ld, TYldouble, eop1);
 
         elem* eoff = el_calloc();
         eoff.Eoper = OPconst;
-        eoff.Ety = TYdouble;
-        eoff.EV.Vdouble = 0x1p+64;
+        eoff.Ety = TYldouble;
+        eoff.EV.Vldouble = 0x1p+64;
 
         elem* u2 = el_copytree(u1);
-        u2 = el_una(OPs64_d, TYldouble, u2);
+        u2 = el_una(OPs64_d, TYdouble, u2);
+        u2 = el_una(OPd_ld, TYldouble, u2);
+
         elem* eop2 = el_bin(OPadd, TYldouble, u2, eoff);
 
         elem* r = el_bin(OPcond, TYldouble,
