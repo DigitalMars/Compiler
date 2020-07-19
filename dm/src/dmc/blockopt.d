@@ -2446,4 +2446,88 @@ private void blexit()
     bexits.dtor();
 }
 
+
+/*********************************************
+ * Split comma expressions into multiple blocks.
+ * This is because register allocation is done on blocks,
+ * and more blocks mean more granular register allocation.
+ */
+void commasToBlocks()
+{
+    debug if (debugc) printf("commasToBlocks()\n");
+    bool changes;
+    Barray!(elem*) elems;
+    for (block* b = startblock; b; b = b.Bnext)
+    {
+        static bool hasDtors(elem* e)
+        {
+            while (1)
+            {
+                if (OTbinary(e.Eoper))
+                {
+                    if (hasDtors(e.EV.E2))
+                        return true;
+                }
+                else if (OTunary(e.Eoper))
+                {
+                }
+                else if (e.Eoper == OPdctor ||
+                         e.Eoper == OPddtor)
+                    return true;
+                else
+                    return false;
+                e = e.EV.E1;
+            }
+        }
+
+        if (!(b.Belem && b.Belem.Eoper == OPcomma) ||
+            b.Btry ||
+            !(b.BC == BCgoto || b.BC == BCiftrue || b.BC == BCret || b.BC == BCretexp) ||
+            hasDtors(b.Belem))
+        {
+            continue;
+        }
+
+        elems.reset();
+        bl_enlist2(elems, b.Belem);
+
+        auto bstart = b;
+        auto bstartBC = b.BC;
+        auto bstartBsucc = b.Bsucc;
+        auto bstartBnext = b.Bnext;
+        b.Bsucc = null;
+
+        auto earray = elems[];
+        assert(earray.length >= 2);
+        foreach (i, e; earray)
+        {
+            b.Belem = e;
+            b.Bweight = bstart.Bweight;
+            if (i == earray.length - 1)
+            {
+                b.BC = bstartBC;
+                b.Bsucc = bstartBsucc;
+                b.Bnext = bstartBnext;
+            }
+            else
+            {
+                b.BC = BCgoto;
+                block* bn = block_calloc();
+                b.Bnext = bn;
+                list_append(&b.Bsucc, bn);
+                b = bn;
+            }
+        }
+        numblks += earray.length - 1;
+        maxblks += (earray.length - 1) * 3;
+
+        changes = true;
+    }
+    if (changes)
+    {
+        block_pred();
+        compdfo();
+    }
+}
+
 } //!SPP

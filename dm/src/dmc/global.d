@@ -431,6 +431,7 @@ void block_endfunc(int flag);
 void brcombine();
 void blockopt(int);
 void compdfo();
+void commasToBlocks();
 
 //#define block_initvar(s) (curblock->Binitvar = (s))
 

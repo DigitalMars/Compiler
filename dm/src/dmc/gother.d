@@ -1750,6 +1750,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
  */
 void deadvar()
 {
+        commasToBlocks();  // for more granular live ranges
         assert(dfo);
 
         /* First, mark each candidate as dead.  */
