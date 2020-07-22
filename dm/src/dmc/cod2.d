@@ -3782,56 +3782,60 @@ void cdmemcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 
 /*********************************
- * Generate code for memset(s,val,n) intrinsic.
- *      (s OPmemset (n OPparam val))
+ * Generate code for memset(s,value,numbytes) intrinsic.
+ *      (s OPmemset (numbytes OPparam value))
  */
 
 void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     regm_t retregs1;
-    regm_t retregs2;
     regm_t retregs3;
     reg_t reg;
     reg_t vreg;
     tym_t ty1;
     int segreg;
-    uint remainder;
-    targ_uns numbytes,numwords;
-    targ_size_t value;
+    targ_uns numbytes;
     uint m;
 
     //printf("cdmemset(*pretregs = %s)\n", regm_str(*pretregs));
     elem *e2 = e.EV.E2;
     assert(e2.Eoper == OPparam);
 
-    ubyte rex = I64 ? REX_W : 0;
+    elem* evalue = e2.EV.E2;
+    elem* enumbytes = e2.EV.E1;
 
-    bool e2E2isConst = false;
-    if (e2.EV.E2.Eoper == OPconst)
+    const grex = I64 ? (REX_W << 16) : 0;
+
+    bool valueIsConst = false;
+    targ_size_t value;
+    if (evalue.Eoper == OPconst)
     {
-        value = cast(targ_size_t)el_tolong(e2.EV.E2);
-        value &= 0xFF;
+        value = el_tolong(evalue) & 0xFF;
         value |= value << 8;
-        value |= value << 16;
-        static if (value.sizeof > 4)
-            value |= value << 32;
-        e2E2isConst = true;
+        if (I32 || I64)
+        {
+            value |= value << 16;
+            static if (value.sizeof == 8)
+            if (I64)
+                value |= value << 32;
+        }
+        valueIsConst = true;
     }
-    else if (e2.EV.E2.Eoper == OPstrpar)  // happens if e2.EV.E2 is a struct of 0 size
+    else if (evalue.Eoper == OPstrpar)  // happens if evalue is a struct of 0 size
     {
         value = 0;
-        e2E2isConst = true;
+        valueIsConst = true;
     }
     else
         value = 0xDEADBEEF;     // stop annoying false positives that value is not inited
 
-    if (e2.EV.E1.Eoper == OPconst)
+    if (enumbytes.Eoper == OPconst)
     {
         static uint REP_THRESHOLD() { return REGSIZE * (6 + (REGSIZE == 4)); }
-        numbytes = cast(uint)cast(targ_size_t)el_tolong(e2.EV.E1);
+        numbytes = cast(uint)cast(targ_size_t)el_tolong(enumbytes);
         if (numbytes <= REP_THRESHOLD &&
             !I16 &&                     // doesn't work for 16 bits
-            e2E2isConst)
+            valueIsConst)
         {
             targ_uns offset = 0;
             retregs1 = *pretregs;
@@ -3839,7 +3843,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 retregs1 = ALLREGS;
             codelem(cdb,e.EV.E1,&retregs1,false);
             reg = findreg(retregs1);
-            if (e2.EV.E2.Eoper == OPconst)
+            if (evalue.Eoper == OPconst)
             {
                 const uint mrm = buildModregrm(0,0,reg);
                 switch (numbytes)
@@ -3861,10 +3865,10 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             }
 
             regwithvalue(cdb, BYTEREGS & ~retregs1, value, &vreg, I64 ? 64 : 0);
-            freenode(e2.EV.E2);
+            freenode(evalue);
             freenode(e2);
 
-            m = (rex << 16) | buildModregrm(2,vreg,reg);
+            m = grex | buildModregrm(2,vreg,reg);
             while (numbytes >= REGSIZE)
             {                           // MOV dword ptr offset[reg],vreg
                 cdb.gen2(0x89,m);
@@ -3873,7 +3877,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 numbytes -= REGSIZE;
                 offset += REGSIZE;
             }
-            m &= ~(rex << 16);
+            m &= ~grex;
             if (numbytes & 4)
             {                           // MOV dword ptr offset[reg],vreg
                 cdb.gen2(0x89,m);
@@ -3903,43 +3907,42 @@ fixres:
         }
     }
 
-    opcode_t op;
     // Get nbytes into CX
-    retregs2 = mCX;
-    if (!I16 && e2.EV.E1.Eoper == OPconst && e2E2isConst)
+    regm_t retregs2 = 0;
+    if (enumbytes.Eoper != OPconst)
     {
-        remainder = numbytes & (4 - 1);
-        numwords  = numbytes / 4;               // number of words
-        op = 0xAB;                              // moving by words
-        getregs(cdb,mCX);
-        movregconst(cdb,CX,numwords,I64?64:0);     // # of bytes/words
-    }
-    else
-    {
-        remainder = 0;
-        op = 0xAA;                              // must move by bytes
-        codelem(cdb,e2.EV.E1,&retregs2,false);
+        retregs2 = mCX;
+        codelem(cdb,enumbytes,&retregs2,false);
     }
 
-    // Get val into AX
-
+    // Get value into AX
     retregs3 = mAX;
-    if (!I16 && e2E2isConst)
+    if (valueIsConst)
     {
         regwithvalue(cdb, mAX, value, null, I64?64:0);
-        freenode(e2.EV.E2);
+        freenode(evalue);
     }
     else
     {
-        scodelem(cdb,e2.EV.E2,&retregs3,retregs2,false);
+        scodelem(cdb,evalue,&retregs3,retregs2,false);
 
-        if (0 && I32)
+        getregs(cdb,mAX);
+        if (I16)
         {
-            cdb.gen2(0x8A,modregrm(3,AH,AL));       // MOV AH,AL
-            cdb.genc2(0xC1,modregrm(3,4,AX),8);     // SHL EAX,8
-            cdb.gen2(0x8A,modregrm(3,AL,AH));       // MOV AL,AH
-            cdb.genc2(0xC1,modregrm(3,4,AX),8);     // SHL EAX,8
-            cdb.gen2(0x8A,modregrm(3,AL,AH));       // MOV AL,AH
+            cdb.gen2(0x8A,modregrm(3,AH,AL)); // MOV AH,AL
+        }
+        else if (I32)
+        {
+            genregs(cdb,0x0FB6,AX,AX);                    // MOVZX EAX,AL
+            cdb.genc2(0x69,modregrm(3,AX,AX),0x01010101); // IMUL EAX,EAX,0x01010101
+        }
+        else
+        {
+            genregs(cdb,0x0FB6,AX,AX);                    // MOVZX EAX,AL
+            regm_t regm = allregs & ~(mAX | retregs2);
+            reg_t r;
+            regwithvalue(cdb,regm,cast(targ_size_t)0x01010101_01010101,&r,64); // MOV reg,0x01010101_01010101
+            cdb.gen2(0x0FAF,grex | modregrmx(3,AX,r));        // IMUL RAX,reg
         }
     }
     freenode(e2);
@@ -3958,43 +3961,93 @@ fixres:
     if (*pretregs)                              // if need return value
     {
         getregs(cdb,mBX);
-        genmovreg(cdb,BX,DI);
+        genmovreg(cdb,BX,DI);                   // MOV EBX,EDI
+    }
+
+
+    if (enumbytes.Eoper == OPconst)
+    {
+        getregs(cdb,mDI);
+        if (const numwords = numbytes / REGSIZE)
+        {
+            regwithvalue(cdb,mCX,numwords,null, I64 ? 64 : 0);
+            getregs(cdb,mCX);
+            cdb.gen1(0xF3);                     // REP
+            cdb.gen1(STOS);                     // STOSW/D/Q
+            if (I64)
+                code_orrex(cdb.last(), REX_W);
+            regimmed_set(CX, 0);                // CX is now 0
+        }
+
+        auto remainder = numbytes & (REGSIZE - 1);
+        if (I64 && remainder >= 4)
+        {
+            cdb.gen1(STOS);                     // STOSD
+            remainder -= 4;
+        }
+        for (; remainder; --remainder)
+            cdb.gen1(STOSB);                    // STOSB
+        fixresult(cdb,e,mES|mBX,pretregs);
+        return;
     }
 
     getregs(cdb,mDI | mCX);
-    if (I16 && config.flags4 & CFG4speed)      // if speed optimization
+    if (I16)
     {
-        getregs(cdb,mAX);
-        cdb.gen2(0x8A,modregrm(3,AH,AL));   // MOV AH,AL
-        cdb.gen2(0xD1,modregrm(3,5,CX));    // SHR CX,1
-        cdb.gen1(0xF3);                     // REP
-        cdb.gen1(0xAB);                     // STOSW
-        cdb.gen2(0x11,modregrm(3,CX,CX));   // ADC CX,CX
-        op = 0xAA;
+        if (config.flags4 & CFG4speed)      // if speed optimization
+        {
+            cdb.gen2(0xD1,modregrm(3,5,CX));  // SHR CX,1
+            cdb.gen1(0xF3);                   // REP
+            cdb.gen1(STOS);                   // STOSW
+            cdb.gen2(0x11,modregrm(3,CX,CX)); // ADC CX,CX
+        }
+        cdb.gen1(0xF3);                       // REP
+        cdb.gen1(STOSB);                      // STOSB
+        regimmed_set(CX, 0);                  // CX is now 0
+        fixresult(cdb,e,mES|mBX,pretregs);
+        return;
     }
 
-    cdb.gen1(0xF3);                         // REP
-    cdb.gen1(op);                           // STOSD
-    m = buildModregrm(2,AX,reg);
-    if (remainder & 4)
+    /*  MOV   sreg,ECX
+        SHR   ECX,n
+        REP
+        STOSD/Q
+
+        ADC   ECX,ECX
+        REP
+        STOSD
+
+        MOV   ECX,sreg
+        AND   ECX,3
+        REP
+        STOSB
+     */
+    regm_t regs = allregs & (*pretregs ? ~(mAX|mBX|mCX|mDI) : ~(mAX|mCX|mDI));
+    reg_t sreg;
+    allocreg(cdb,&regs,&sreg,TYint);
+    genregs(cdb,0x89,CX,sreg);                        // MOV sreg,ECX (32 bits only)
+
+    const n = I64 ? 3 : 2;
+    cdb.genc2(0xC1, grex | modregrm(3,5,CX), n);      // SHR ECX,n
+
+    cdb.gen1(0xF3);                                   // REP
+    cdb.gen1(STOS);                                   // STOSD/Q
+    if (I64)
+        code_orrex(cdb.last(), REX_W);
+
+    if (I64)
     {
-        cdb.gen2(0x89,m);
-        cdb.last().IFL1 = FLconst;
+        cdb.gen2(0x11,modregrm(3,CX,CX));             // ADC ECX,ECX
+        cdb.gen1(0xF3);                               // REP
+        cdb.gen1(STOS);                               // STOSD
     }
-    if (remainder & 2)
-    {
-        cdb.gen2(0x89,m);
-        cdb.last().Iflags = CFopsize;
-        cdb.last().IEV1.Voffset = remainder & 4;
-        cdb.last().IFL1 = FLconst;
-    }
-    if (remainder & 1)
-    {
-        cdb.gen2(0x88,m);
-        cdb.last().IEV1.Voffset = remainder & ~1;
-        cdb.last().IFL1 = FLconst;
-    }
-    regimmed_set(CX,0);
+
+    genregs(cdb,0x89,sreg,CX);                        // MOV ECX,sreg (32 bits only)
+    cdb.genc2(0x81, modregrm(3,4,CX), 3);             // AND ECX,3
+    cdb.gen1(0xF3);                                   // REP
+    cdb.gen1(STOSB);                                  // STOSB
+
+    regimmed_set(CX, 0);                    // CX is now 0
     fixresult(cdb,e,mES|mBX,pretregs);
 }
 
