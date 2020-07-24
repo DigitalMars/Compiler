@@ -925,7 +925,8 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             config.fpxmmregs && oper != OPmod && tyxmmreg(tyml) &&
             !(*pretregs & mST0) &&
             !(ty == TYldouble || ty == TYildouble) &&  // watch out for shrinkLongDoubleConstantIfPossible()
-            !tycomplex(ty) // SIMD code is not set up to deal with complex mul/div
+            !tycomplex(ty) && // SIMD code is not set up to deal with complex mul/div
+            !(ty == TYllong)  //   or passing to function through integer register
            )
         {
             orthxmm(cdb,e,pretregs);
@@ -1365,6 +1366,9 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 I32 // not set up for I64 cent yet
                )
             {
+                if (pow2 == 63 && !(retregs & BYTEREGS & mLSW))
+                    retregs = (retregs & mMSW) | (BYTEREGS & mLSW);  // because of SETZ
+
                 codelem(cdb,e.EV.E1,&retregs,false);  // eval left leaf
                 const rhi = findregmsw(retregs);
                 const rlo = findreglsw(retregs);
@@ -1463,6 +1467,8 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 getregs(cdb,retregs);
 
                 regm_t scratchm = allregs & ~retregs;
+                if (pow2 == 63)
+                    scratchm &= BYTEREGS;               // because of SETZ
                 reg_t r1;
                 allocreg(cdb,&scratchm,&r1,TYint);
 
@@ -1508,7 +1514,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     assert(pow2 == 63);
 
                     cdb.genc1(LEA,grex | modregxrmx(2,r1,rhi), FLconst, 0x8000_0000); // LEA r1,0x8000_0000[rhi]
-                    cdb.genregs(0x09,rlo,r1);                                 // OR   r1,rlo
+                    cdb.gen2(0x0B,grex | modregxrmx(3,r1,rlo));               // OR   r1,rlo
                     cdb.gen2(0x0F94,modregrmx(3,0,r1));                       // SETZ r1
                     cdb.genc2(0xC1,grex | modregrmx(3,4,r1),REGSIZE * 8 - 1); // SHL  r1,31
                     cdb.gen2(0x2B,grex | modregxrmx(3,rhi,r1));               // SUB  rhi,r1
