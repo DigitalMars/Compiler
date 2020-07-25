@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2011-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2011-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgxmm.d, backend/cgxmm.d)
@@ -337,6 +337,7 @@ Lp:
 
 void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    //printf("xmmconvt: %p, %s\n", e, regm_str(*pretregs));
     opcode_t op = NoOpcode;
     regm_t regs;
     tym_t ty;
@@ -646,6 +647,44 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     getregs(cdb,retregs);
     const op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
+    cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    fixresult(cdb,e,retregs,pretregs);
+}
+
+/******************
+ * Absolute value operator OPabs
+ */
+
+void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+{
+    //printf("xmmabs()\n");
+    //elem_print(e);
+    assert(*pretregs);
+    tym_t tyml = tybasic(e.EV.E1.Ety);
+    int sz = _tysize[tyml];
+
+    regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
+
+    /* Generate:
+     *    MOV reg,e1
+     *    MOV rreg,mask
+     *    AND reg,rreg
+     */
+    codelem(cdb,e.EV.E1,&retregs,false);
+    getregs(cdb,retregs);
+    const reg = findreg(retregs);
+    regm_t rretregs = XMMREGS & ~retregs;
+    reg_t rreg;
+    allocreg(cdb,&rretregs,&rreg,tyml);
+    targ_size_t mask = 0x7FFF_FFFF;
+    if (sz == 8)
+        mask = cast(targ_size_t)0x7FFF_FFFF_FFFF_FFFFL;
+    movxmmconst(cdb,rreg, sz, mask, 0);
+
+    getregs(cdb,retregs);
+    const op = (sz == 8) ? ANDPD : ANDPS;       // ANDPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
     fixresult(cdb,e,retregs,pretregs);
 }
