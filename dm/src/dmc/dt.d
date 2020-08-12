@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/dt.d
+ * Documentation:  https://dlang.org/phobos/dmd_backend_dt.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/dt.d
  */
 
 module dmd.backend.dt;
-
-// Online documentation: https://dlang.org/phobos/dmd_backend_dt.html
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -262,13 +262,17 @@ nothrow:
 
     /*****************************************
      * Write a reference to the data ptr[0..size+nzeros]
+     * Params:
+     *  nzeros = number of zero bytes to add to the end
+     *  _align = alignment of pointed-to data
      */
-    void abytes(tym_t ty, uint offset, uint size, const(char)* ptr, uint nzeros)
+    void abytes(tym_t ty, uint offset, uint size, const(char)* ptr, uint nzeros, ubyte _align)
     {
         dt_t *dt = dt_calloc(DT_abytes);
         dt.DTnbytes = size + nzeros;
         dt.DTpbytes = cast(byte *) mem_malloc(size + nzeros);
         dt.Dty = cast(ubyte)ty;
+        dt.DTalign = _align;
         dt.DTabytes = offset;
         memcpy(dt.DTpbytes,ptr,size);
         if (nzeros)
@@ -280,9 +284,9 @@ nothrow:
         assert(!*pTail);
     }
 
-    void abytes(uint offset, uint size, const(char)* ptr, uint nzeros)
+    void abytes(uint offset, uint size, const(char)* ptr, uint nzeros, ubyte _align)
     {
-        abytes(TYnptr, offset, size, ptr, nzeros);
+        abytes(TYnptr, offset, size, ptr, nzeros, _align);
     }
 
     /**************************************

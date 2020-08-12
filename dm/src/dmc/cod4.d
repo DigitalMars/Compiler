@@ -9,6 +9,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod4.d, backend/cod4.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cod4.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod4.d
  */
 
 module dmd.backend.cod4;
@@ -1769,8 +1771,10 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             const bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
 
             freenode(e2);
+
+            getlvalue(cdb,&cs,e1,mAX | mDX);
             reg_t reg;
-            opAssLoadReg(cdb, cs, e, reg, allregs, mAX|mDX);    // MOV reg,EA
+            opAssLoadReg(cdb, cs, e, reg, allregs & ~( mAX | mDX | idxregm(&cs)));    // MOV reg,EA
             getregs(cdb, mAX|mDX);
 
             /* Algorithm 5.2
@@ -4760,15 +4764,12 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  *      e = assignment expression that will be evaluated
  *      reg = set to register loaded from EA
  *      retregs = register candidates for reg
- *      keepmsk = registers to not modify
  */
 private
-void opAssLoadReg(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t reg, regm_t retregs, regm_t keepmsk)
+void opAssLoadReg(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t reg, regm_t retregs)
 {
-    getlvalue(cdb,&cs,e.EV.E1,keepmsk);
-    const tym_t tyml = tybasic(e.EV.E1.Ety);              // type of lvalue
-    retregs &= ~(keepmsk | idxregm(&cs));
-    allocreg(cdb,&retregs,&reg,tyml);
+    allocreg(cdb,&retregs,&reg,TYoffset);
+    modEA(cdb, &cs);
 
     cs.Iop = LOD;
     code_newreg(&cs,reg);

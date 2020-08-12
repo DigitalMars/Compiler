@@ -1680,7 +1680,7 @@ Lagain:
 
     case OPstring:
         size = e.EV.Vstrlen;
-        dtb.abytes(e.ET.Tty, e.EV.Voffset, size, e.EV.Vstring, 0);
+        dtb.abytes(e.ET.Tty, e.EV.Voffset, size, e.EV.Vstring, 0, 0);
         dsout += tysize(e.ET.Tty);
         break;
 
