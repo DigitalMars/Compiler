@@ -445,7 +445,7 @@ RETRY:
                         }
                         if ((asmstate.ucItype == ITimmed) &&
                             asm_match_flags(usFlags1,
-                                CONSTRUCT_FLAGS(_8 | _16 | _32, _imm, _normal,
+                                CONSTRUCT_FLAGS(OpndSize._32_16_8, _imm, _normal,
                                                  0)) &&
                                 popnd1.disp == pptb1.usFlags)
                             break;
@@ -485,7 +485,7 @@ RETRY:
 TYPE_SIZE_ERROR:
                         if (popnd1 && ASM_GET_aopty(popnd1.usFlags) != _reg)
                         {
-                            usFlags1 = popnd1.usFlags |= _anysize;
+                            usFlags1 = popnd1.usFlags |= OpndSize._anysize;
                             if (asmstate.ucItype == ITjump)
                             {
                                 if (bRetry && popnd1.s && popnd1.s.Sclass != SClabel)
@@ -507,13 +507,13 @@ TYPE_SIZE_ERROR:
                             }
                         }
                         if (popnd2 && ASM_GET_aopty(popnd2.usFlags) != _reg) {
-                            usFlags2 = popnd2.usFlags |= (_anysize);
+                            usFlags2 = popnd2.usFlags |= (OpndSize._anysize);
                             if (asmstate.ucItype == ITjump)
                                 popnd2.usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
                                         _fanysize);
                         }
                         if (popnd3 && ASM_GET_aopty(popnd3.usFlags) != _reg) {
-                            usFlags3 = popnd3.usFlags |= (_anysize);
+                            usFlags3 = popnd3.usFlags |= (OpndSize._anysize);
                             if (asmstate.ucItype == ITjump)
                                 popnd3.usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
                                         _fanysize);
@@ -552,10 +552,10 @@ TYPE_SIZE_ERROR:
 // is a signed 8 bit constant.  If so, then do not match, otherwise match
 //
                             if (!bRetry &&
-                                !((ASM_GET_uSizemask(pptb2.usOp1) & _8) ||
+                                !((isOneOf(OpndSize._8, getOpndSize(pptb2.usOp1))) ||
                                   (ASM_GET_uRegmask(pptb2.usOp1) & _al)) &&
                                 (ASM_GET_aopty(pptb2.usOp2) == _imm) &&
-                                (ASM_GET_uSizemask(pptb2.usOp2) & _8))
+                                (isOneOf(OpndSize._8, getOpndSize(pptb2.usOp2))))
                             {
 
                                 if (popnd2.disp <= SCHAR_MAX)
@@ -591,7 +591,7 @@ static if (0)
                             !pptb2.usOp2 &&
                             bMatch1 && popnd2.disp == 1 &&
                             asm_match_flags(usFlags2,
-                                CONSTRUCT_FLAGS(_8|_16|_32, _imm,_normal,0))
+                                CONSTRUCT_FLAGS(OpndSize._32_16_8, _imm,_normal,0))
                           )
                             break;
 }
@@ -721,17 +721,18 @@ private opflag_t asm_determine_float_flags(OPND *popnd)
     // register.
 
         if (popnd.base &&
-                !popnd.s && !popnd.disp && !popnd.vreal
-                && !(popnd.base.ty & (_r8 | _r16 | _r32))) {
+            !popnd.s && !popnd.disp && !popnd.vreal
+            && !isOneOf(getOpndSize(popnd.base.ty), OpndSize._32_16_8))
+        {
                 return( popnd.base.ty );
         }
-        if (popnd.pregDisp1 && !popnd.base) {
-                us = asm_float_type_size(popnd.ptype, &usFloat);
-                if (popnd.pregDisp1.ty & _r32)
-                    return( CONSTRUCT_FLAGS( us, _m, _addr32, usFloat ));
-                else
-                if (popnd.pregDisp1.ty & _r16)
-                    return( CONSTRUCT_FLAGS( us, _m, _addr16, usFloat ));
+        if (popnd.pregDisp1 && !popnd.base)
+        {
+            us = asm_float_type_size(popnd.ptype, &usFloat);
+            if (getOpndSize(popnd.pregDisp1.ty) == OpndSize._16)
+                return CONSTRUCT_FLAGS(us, _m, _addr16, usFloat);
+            else
+                return CONSTRUCT_FLAGS(us, _m, _addr32, usFloat);
         }
         else
         if ((ps = popnd.s) !is null)
@@ -793,18 +794,18 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
         sz = asm_type_size(popnd.ptype);
         if (popnd.pregDisp1 && !popnd.base)
         {
-            if (ps && ps.Sclass == SClabel && sz == _anysize)
-                sz = I32 ? _32 : _16;
-            return (popnd.pregDisp1.ty & _r32)
-                ? CONSTRUCT_FLAGS( sz, _m, _addr32, 0 )
-                : CONSTRUCT_FLAGS( sz, _m, _addr16, 0 );
+            if (ps && ps.Sclass == SClabel && sz == OpndSize._anysize)
+                sz = I32 ? OpndSize._32 : OpndSize._16;
+            return getOpndSize(popnd.pregDisp1.ty) == OpndSize._16
+                ? CONSTRUCT_FLAGS(sz, _m, _addr16, 0)
+                : CONSTRUCT_FLAGS(sz, _m, _addr32, 0);
         }
         else if (ps)
         {
                 if (popnd.bOffset || popnd.bSeg || ps.Sfl == FLlocalsize)
                     return I32
-                        ? CONSTRUCT_FLAGS( _32, _imm, _normal, 0 )
-                        : CONSTRUCT_FLAGS( _16, _imm, _normal, 0 );
+                        ? CONSTRUCT_FLAGS( OpndSize._32, _imm, _normal, 0 )
+                        : CONSTRUCT_FLAGS( OpndSize._16, _imm, _normal, 0 );
 
                 if (ps.Sclass == SClabel)
                 {
@@ -815,40 +816,40 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
                             {
                                 if (popnd.disp >= CHAR_MIN &&
                                     popnd.disp <= CHAR_MAX)
-                                    us = CONSTRUCT_FLAGS(_8, _rel, _flbl,0);
+                                    us = CONSTRUCT_FLAGS(OpndSize._8, _rel, _flbl,0);
                                 else
                                 if (popnd.disp >= SHRT_MIN &&
                                     popnd.disp <= SHRT_MAX)
-                                    us = CONSTRUCT_FLAGS(_16, _rel, _flbl,0);
+                                    us = CONSTRUCT_FLAGS(OpndSize._16, _rel, _flbl,0);
                                 else
-                                    us = CONSTRUCT_FLAGS(_32, _rel, _flbl,0);
+                                    us = CONSTRUCT_FLAGS(OpndSize._32, _rel, _flbl,0);
                             }
                             else if (asmstate.ucItype != ITjump)
-                            {   if (sz == _8)
-                                {   us = CONSTRUCT_FLAGS(_8,_rel,_flbl,0);
+                            {   if (sz == OpndSize._8)
+                                {   us = CONSTRUCT_FLAGS(OpndSize._8,_rel,_flbl,0);
                                     break;
                                 }
                                 goto case_near;
                             }
                             else
                                 us = I32
-                                    ? CONSTRUCT_FLAGS(_8|_32, _rel, _flbl,0)
-                                    : CONSTRUCT_FLAGS(_8|_16, _rel, _flbl,0);
+                                    ? CONSTRUCT_FLAGS(OpndSize._32_8, _rel, _flbl,0)
+                                    : CONSTRUCT_FLAGS(OpndSize._16_8, _rel, _flbl,0);
                             break;
 
                         case ASM_JUMPTYPE_NEAR:
                         case_near:
                             us = I32
-                                ? CONSTRUCT_FLAGS( _32, _rel, _flbl, 0 )
-                                : CONSTRUCT_FLAGS( _16, _rel, _flbl, 0 );
+                                ? CONSTRUCT_FLAGS( OpndSize._32, _rel, _flbl, 0 )
+                                : CONSTRUCT_FLAGS( OpndSize._16, _rel, _flbl, 0 );
                             break;
                         case ASM_JUMPTYPE_SHORT:
-                            us = CONSTRUCT_FLAGS( _8, _rel, _flbl, 0 );
+                            us = CONSTRUCT_FLAGS( OpndSize._8, _rel, _flbl, 0 );
                             break;
                         case ASM_JUMPTYPE_FAR:
                             us = I32
-                                ? CONSTRUCT_FLAGS( _48, _rel, _flbl, 0 )
-                                : CONSTRUCT_FLAGS( _32, _rel, _flbl, 0 );
+                                ? CONSTRUCT_FLAGS( OpndSize._48, _rel, _flbl, 0 )
+                                : CONSTRUCT_FLAGS( OpndSize._32, _rel, _flbl, 0 );
                             break;
                         default:
                             assert(0);
@@ -861,25 +862,25 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
                         ty = popnd.ptype.Tnext.Tty;
                         if (tyfarfunc( tybasic (ty ))) {
                             return I32
-                                ? CONSTRUCT_FLAGS( _48, _mnoi, _fn32, 0 )
-                                : CONSTRUCT_FLAGS( _32, _mnoi, _fn32, 0 );
+                                ? CONSTRUCT_FLAGS( OpndSize._48, _mnoi, _fn32, 0 )
+                                : CONSTRUCT_FLAGS( OpndSize._32, _mnoi, _fn32, 0 );
                         }
                         else {
                             return I32
-                                ? CONSTRUCT_FLAGS( _32, _m, _fn16, 0 )
-                                : CONSTRUCT_FLAGS( _16, _m, _fn16, 0 );
+                                ? CONSTRUCT_FLAGS( OpndSize._32, _m, _fn16, 0 )
+                                : CONSTRUCT_FLAGS( OpndSize._16, _m, _fn16, 0 );
                         }
                 }
                 else if (tyfunc( ty))
                 {
                     if (tyfarfunc( tybasic( ty )))
                         return I32
-                            ? CONSTRUCT_FLAGS( _48, _p, _fn32, 0 )
-                            : CONSTRUCT_FLAGS( _32, _p, _fn32, 0 );
+                            ? CONSTRUCT_FLAGS( OpndSize._48, _p, _fn32, 0 )
+                            : CONSTRUCT_FLAGS( OpndSize._32, _p, _fn32, 0 );
                     else
                         return I32
-                            ? CONSTRUCT_FLAGS( _32, _rel, _fn16, 0 )
-                            : CONSTRUCT_FLAGS( _16, _rel, _fn16, 0 );
+                            ? CONSTRUCT_FLAGS( OpndSize._32, _rel, _fn16, 0 )
+                            : CONSTRUCT_FLAGS( OpndSize._16, _rel, _fn16, 0 );
                 }
                 else if (asmstate.ucItype == ITjump)
                 {   amod = _normal;
@@ -896,12 +897,12 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
             L1:
                 opty = _m;
                 if (I32)
-                {   if (sz == _48)
+                {   if (sz == OpndSize._48)
                         opty = _mnoi;
                 }
                 else
                 {
-                    if (sz == _32)
+                    if (sz == OpndSize._32)
                         opty = _mnoi;
                 }
                 us = CONSTRUCT_FLAGS(sz,opty,amod,0);
@@ -916,11 +917,11 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
             us = CONSTRUCT_FLAGS( sz, _imm, _normal, 0 );
 
         else if (popnd.disp >= CHAR_MIN && popnd.disp <= UCHAR_MAX)
-            us = CONSTRUCT_FLAGS( _8 | _16 | _32, _imm, _normal, 0 );
+            us = CONSTRUCT_FLAGS( OpndSize._32_16_8, _imm, _normal, 0 );
         else if (popnd.disp >= SHRT_MIN && popnd.disp <= USHRT_MAX)
-            us = CONSTRUCT_FLAGS( _16 | _32, _imm, _normal, 0);
+            us = CONSTRUCT_FLAGS( OpndSize._32_16, _imm, _normal, 0);
         else
-            us = CONSTRUCT_FLAGS( _32, _imm, _normal, 0 );
+            us = CONSTRUCT_FLAGS( OpndSize._32, _imm, _normal, 0 );
         return us;
 }
 
@@ -952,15 +953,15 @@ private void asm_emit( Srcpos srcpos,
         elem *e;
         OPND *  popndTmp;
         ASM_OPERAND_TYPE    aoptyTmp;
-        uint        uSizemaskTmp;
+        OpndSize uSizemaskTmp;
         REG     *pregSegment;
         code    *pcPrefix = null;
-        uint            uSizemask1 =0, uSizemask2 =0, uSizemask3 =0;
+        OpndSize        uSizemask1, uSizemask2, uSizemask3;
         //ASM_OPERAND_TYPE    aopty1 = _reg , aopty2 = 0, aopty3 = 0;
         ASM_MODIFIERS       amod1 = _normal, amod2 = _normal, amod3 = _normal;
         uint            uRegmask1 = 0, uRegmask2 =0, uRegmask3 =0;
-        uint            uSizemaskTable1 =0, uSizemaskTable2 =0,
-                            uSizemaskTable3 =0;
+        OpndSize        uSizemaskTable1, uSizemaskTable2,
+                            uSizemaskTable3;
         ASM_OPERAND_TYPE    aoptyTable1 = _reg, aoptyTable2 = _reg, aoptyTable3 = _reg;
         ASM_MODIFIERS       amodTable1 = _normal,
                             amodTable2 = _normal,
@@ -972,12 +973,12 @@ private void asm_emit( Srcpos srcpos,
         pc.Iflags |= CFpsw;            // assume we want to keep the flags
         if (popnd1)
         {
-            uSizemask1 = ASM_GET_uSizemask( popnd1.usFlags );
+            uSizemask1 = getOpndSize( popnd1.usFlags );
             //aopty1 = ASM_GET_aopty(popnd1.usFlags );
             amod1 = ASM_GET_amod( popnd1.usFlags );
             uRegmask1 = ASM_GET_uRegmask( popnd1.usFlags );
 
-            uSizemaskTable1 = ASM_GET_uSizemask( ptb.pptb1.usOp1 );
+            uSizemaskTable1 = getOpndSize( ptb.pptb1.usOp1 );
             aoptyTable1 = ASM_GET_aopty(ptb.pptb1.usOp1 );
             amodTable1 = ASM_GET_amod( ptb.pptb1.usOp1 );
             uRegmaskTable1 = ASM_GET_uRegmask( ptb.pptb1.usOp1 );
@@ -994,24 +995,24 @@ private void asm_emit( Srcpos srcpos,
             printf("\n");
             }
 
-            uSizemask2 = ASM_GET_uSizemask( popnd2.usFlags );
+            uSizemask2 = getOpndSize( popnd2.usFlags );
             //aopty2 = ASM_GET_aopty(popnd2.usFlags );
             amod2 = ASM_GET_amod( popnd2.usFlags );
             uRegmask2 = ASM_GET_uRegmask( popnd2.usFlags );
 
-            uSizemaskTable2 = ASM_GET_uSizemask( ptb.pptb2.usOp2 );
+            uSizemaskTable2 = getOpndSize( ptb.pptb2.usOp2 );
             aoptyTable2 = ASM_GET_aopty(ptb.pptb2.usOp2 );
             amodTable2 = ASM_GET_amod( ptb.pptb2.usOp2 );
             uRegmaskTable2 = ASM_GET_uRegmask( ptb.pptb2.usOp2 );
         }
         if (popnd3)
         {
-            uSizemask3 = ASM_GET_uSizemask( popnd3.usFlags );
+            uSizemask3 = getOpndSize( popnd3.usFlags );
             //aopty3 = ASM_GET_aopty(popnd3.usFlags );
             amod3 = ASM_GET_amod( popnd3.usFlags );
             uRegmask3 = ASM_GET_uRegmask( popnd3.usFlags );
 
-            uSizemaskTable3 = ASM_GET_uSizemask( ptb.pptb3.usOp3 );
+            uSizemaskTable3 = getOpndSize( ptb.pptb3.usOp3 );
             aoptyTable3 = ASM_GET_aopty(ptb.pptb3.usOp3 );
             amodTable3 = ASM_GET_amod( ptb.pptb3.usOp3 );
             uRegmaskTable3 = ASM_GET_uRegmask( ptb.pptb3.usOp3 );
@@ -1089,15 +1090,15 @@ L386_WARNING2:
             case 2:
                 if ( (I32 &&
                       (amod2 == _addr16 ||
-                       (uSizemaskTable2 & _16 && aoptyTable2 == _rel) ||
-                       (uSizemaskTable2 & _32 && aoptyTable2 == _mnoi) ||
+                       (isOneOf(OpndSize._16, uSizemaskTable2) && aoptyTable2 == _rel ) ||
+                       (isOneOf(OpndSize._32, uSizemaskTable2) && aoptyTable2 == _mnoi) ||
                        (ptb.pptb2.usFlags & _16_bit_addr)
                       )
                      ) ||
                      (!I32 &&
                        (amod2 == _addr32 ||
-                        (uSizemaskTable2 & _32 && aoptyTable2 == _rel) ||
-                        (uSizemaskTable2 & _48 && aoptyTable2 == _mnoi) ||
+                        (isOneOf(OpndSize._32, uSizemaskTable2) && aoptyTable2 == _rel ) ||
+                        (isOneOf(OpndSize._48, uSizemaskTable2) && aoptyTable2 == _mnoi) ||
                         (ptb.pptb2.usFlags & _32_bit_addr)))
                    )
                 {
@@ -1122,13 +1123,13 @@ L386_WARNING2:
             case 1:
                 if ( (I32 &&
                       (amod1 == _addr16 ||
-                       (uSizemaskTable1 & _16 && aoptyTable1 == _rel) ||
-                        (uSizemaskTable1 & _32 && aoptyTable1 == _mnoi) ||
+                       (isOneOf(OpndSize._16, uSizemaskTable1) && aoptyTable1 == _rel ) ||
+                       (isOneOf(OpndSize._32, uSizemaskTable1) && aoptyTable1 == _mnoi) ||
                         (ptb.pptb1.usFlags & _16_bit_addr))) ||
                      (!I32 &&
                       (amod1 == _addr32 ||
-                        (uSizemaskTable1 & _32 && aoptyTable1 == _rel) ||
-                        (uSizemaskTable1 & _48 && aoptyTable1 == _mnoi) ||
+                        (isOneOf(OpndSize._32, uSizemaskTable1) && aoptyTable1 == _rel) ||
+                        (isOneOf(OpndSize._48, uSizemaskTable1) && aoptyTable1 == _mnoi) ||
                          (ptb.pptb1.usFlags & _32_bit_addr))))
                 {
                         emit(0x67);     // address size prefix
@@ -1284,9 +1285,9 @@ L386_WARNING2:
             if (isdollar(&s.Sident[0]))
             {
                 pc.IFL2 = FLconst;
-                if (uSizemaskTable1 & (_8 | _16))
+                if (isOneOf(OpndSize._16_8, uSizemaskTable1))
                     pc.IEV2.Vint = cast(int)popnd1.disp;
-                else if (uSizemaskTable1 & _32)
+                else if (isOneOf(OpndSize._32, uSizemaskTable1))
                     pc.IEV2.Vpointer = cast(targ_size_t) popnd1.disp;
             }
             else
@@ -1345,7 +1346,7 @@ L1:
                             asmerr(EM_bad_addr_mode);   // illegal addressing mode
                         }
                     switch (uSizemaskTmp) {
-                        case _8:
+                        case OpndSize._8:
                             if (popndTmp.s) {
                                 if ((pc.IFL2 = popndTmp.s.Sfl) == 0)
                                     pc.IFL2 = FLauto;
@@ -1362,7 +1363,7 @@ L1:
                                 pc.IFL2 = FLconst;
                             }
                             break;
-                        case _16:
+                        case OpndSize._16:
                             if (popndTmp.s) {
                                 if ((pc.IFL2 = popndTmp.s.Sfl) == 0)
                                     pc.IFL2 = FLauto;
@@ -1379,7 +1380,7 @@ L1:
                                 pc.IFL2 = FLconst;
                             }
                             break;
-                        case _32:
+                        case OpndSize._32:
                             if (popndTmp.s) {
                                 if ((pc.IFL2 = popndTmp.s.Sfl) == 0)
                                     pc.IFL2 = FLauto;
@@ -1641,15 +1642,15 @@ private opflag_t asm_float_type_size( type * ptype, opflag_t *pusFloat )
 
     if (!ptype) {
         *pusFloat = _fanysize;
-        return _anysize;
+        return OpndSize._anysize;
     }
 
     if (tyscalar(ptype.Tty)) {
         switch (type_size(ptype)) {
             case 2:
-                return( _16 );
+                return( OpndSize._16 );
             case 4:
-                return( _32 );
+                return( OpndSize._32 );
             case 8:
                 *pusFloat = _f64;
                 return 0;
@@ -1658,12 +1659,12 @@ private opflag_t asm_float_type_size( type * ptype, opflag_t *pusFloat )
                 return 0;
             default:
                 *pusFloat = _fanysize;
-                return( _anysize );
+                return( OpndSize._anysize );
         }
     }
     else {
         *pusFloat = _fanysize;
-        return _anysize;
+        return OpndSize._anysize;
     }
 }
 
@@ -1754,7 +1755,7 @@ ILLEGAL_ADDRESS_ERROR:
                 if (o1.pregDisp1) {
                         if (o1.uchMultiplier ||
                                 (o2.pregDisp1.val == _ESP &&
-                                (o2.pregDisp1.ty & _r32) &&
+                                (getOpndSize(o2.pregDisp1.ty) == OpndSize._32) &&
                                 !o2.uchMultiplier )) {
                                 o1.pregDisp2 = o1.pregDisp1;
                                 o1.pregDisp1 = o2.pregDisp1;
@@ -1911,13 +1912,12 @@ private void asm_make_modrm_byte(
         char            bModset = false;
         Symbol *        s;
 
-        uint            uSizemask =0;
         ASM_OPERAND_TYPE    aopty;
         ASM_MODIFIERS       amod;
         uint            uRegmask;
         ubyte       bOffsetsym = false;
 
-        uSizemask = ASM_GET_uSizemask( popnd.usFlags );
+        const OpndSize uSizemask = getOpndSize( popnd.usFlags );
         aopty = ASM_GET_aopty(popnd.usFlags );
         amod = ASM_GET_amod( popnd.usFlags );
         uRegmask = ASM_GET_uRegmask( popnd.usFlags );
@@ -1960,9 +1960,9 @@ private void asm_make_modrm_byte(
                         if (isdollar(&s.Sident[0]))
                         {
                             pc.IFL1 = FLconst;
-                            if (uSizemask & (_8 | _16))
+                            if (isOneOf(uSizemask, OpndSize._16_8))
                                 pc.IEV1.Vint = cast(int)popnd.disp;
-                            else if (uSizemask & _32)
+                            else if (isOneOf(uSizemask, OpndSize._32))
                                 pc.IEV1.Vpointer = cast(targ_size_t) popnd.disp;
                         }
                         else
@@ -2377,7 +2377,7 @@ private regm_t asm_modify_regs( PTRNTAB ptb, OPND * popnd1, OPND * popnd2 )
     if (popnd1 && ASM_GET_aopty(popnd1.usFlags) == _reg) {
         switch (ASM_GET_amod( popnd1.usFlags)) {
         default:
-            if (ASM_GET_uSizemask(popnd1.usFlags) == _8) {
+            if (getOpndSize(popnd1.usFlags) == OpndSize._8) {
                 switch( popnd1.base.val ) {
                     case _AL:
                     case _AH:
@@ -2456,22 +2456,18 @@ private ubyte asm_match_flags( opflag_t usOp,
     uint            uRegmaskOp;
     ubyte       bRegmatch;
     ubyte       bRetval = false;
-    uint            uSizemaskOp;
-    uint            uSizemaskTable;
-    uint            bSizematch;
 
     //printf("asm_match_flags(usOp = x%x, usTable = x%x)\n", usOp, usTable);
     if (asmstate.ucItype == ITfloat)
     {
-        bRetval = asm_match_float_flags(usOp, usTable);
-        goto EXIT;
+        return asm_match_float_flags(usOp, usTable);
     }
 
-    uSizemaskOp = ASM_GET_uSizemask(usOp);
-    uSizemaskTable = ASM_GET_uSizemask(usTable);
+    const OpndSize uSizemaskOp = getOpndSize(usOp);
+    const OpndSize uSizemaskTable = getOpndSize(usTable);
 
     // Check #1, if the sizes do not match, NO match
-    bSizematch =  (uSizemaskOp & uSizemaskTable);
+    const bSizematch =  isOneOf(uSizemaskOp, uSizemaskTable);
 
     amodOp = ASM_GET_amod(usOp);
 
@@ -2483,7 +2479,7 @@ private ubyte asm_match_flags( opflag_t usOp,
     {
         if (usOp == _mm)
             goto Lmatch;
-        if (aoptyOp == _m && (bSizematch || uSizemaskOp == _anysize))
+        if (aoptyOp == _m && (bSizematch || uSizemaskOp == OpndSize._anysize))
             goto Lmatch;
         goto EXIT;
     }
@@ -2495,7 +2491,7 @@ private ubyte asm_match_flags( opflag_t usOp,
     {
         if (usOp == _xmm)
             goto Lmatch;
-        if (aoptyOp == _m && (bSizematch || uSizemaskOp == _anysize))
+        if (aoptyOp == _m && (bSizematch || uSizemaskOp == OpndSize._anysize))
             goto Lmatch;
     }
 
@@ -2518,9 +2514,9 @@ private ubyte asm_match_flags( opflag_t usOp,
                                   aoptyOp == _rel))
             goto Lok;
         if (aoptyTable == _mnoi && aoptyOp == _m &&
-            (uSizemaskOp == _32 && amodOp == _addr16 ||
-             uSizemaskOp == _48 && amodOp == _addr32 ||
-             uSizemaskOp == _48 && amodOp == _normal)
+            (uSizemaskOp == OpndSize._32 && amodOp == _addr16 ||
+             uSizemaskOp == OpndSize._48 && amodOp == _addr32 ||
+             uSizemaskOp == OpndSize._48 && amodOp == _normal)
           )
             goto Lok;
         //printf("no operand type match\n");
@@ -2603,7 +2599,7 @@ private ubyte asm_match_float_flags(opflag_t usOp, opflag_t usTable )
     uRegmaskTable = ASM_GET_uRegmask( usTable );
     bRegmatch = (uRegmaskTable & uRegmaskOp);
 
-    if (!(ASM_GET_uSizemask( usTable ) & ASM_GET_uSizemask( usOp ) ||
+    if (!(isOneOf(getOpndSize(usOp), getOpndSize(usTable)) ||
           (bRegmatch)))
         return(false);
 
@@ -2660,21 +2656,32 @@ private void asm_output_flags( opflag_t usFlags )
         ASM_OPERAND_TYPE    aopty = ASM_GET_aopty( usFlags );
         ASM_MODIFIERS       amod = ASM_GET_amod( usFlags );
         uint            uRegmask = ASM_GET_uRegmask( usFlags );
-        uint            uSizemask = ASM_GET_uSizemask( usFlags );
+        const OpndSize  uSizemask = getOpndSize( usFlags );
 
-        if (uSizemask == _anysize)
-            printf("_anysize ");
-        else
+        const(char)* s;
+        with (OpndSize)
+        switch (uSizemask)
         {
-            if (uSizemask & _8)
-                printf( "_8  " );
-            if (uSizemask & _16)
-                printf( "_16 " );
-            if (uSizemask & _32)
-                printf( "_32 " );
-            if (uSizemask & _48)
-                printf( "_48 " );
+            case none:        s = "none";        break;
+            case _8:          s = "_8";          break;
+            case _16:         s = "_16";         break;
+            case _32:         s = "_32";         break;
+            case _48:         s = "_48";         break;
+            case _64:         s = "_64";         break;
+            case _16_8:       s = "_16_8";       break;
+            case _32_8:       s = "_32_8";       break;
+            case _32_16:      s = "_32_16";      break;
+            case _32_16_8:    s = "_32_16_8";    break;
+            case _64_32:      s = "_64_32";      break;
+            case _64_32_8:    s = "_64_32_8";    break;
+            case _64_32_16:   s = "_64_32_16";   break;
+            case _64_32_16_8: s = "_64_32_16_8"; break;
+            case _anysize:    s = "_anysize";    break;
+
+            default:
+                assert(0);
         }
+        printf("%s ", s);
 
         printf("_");
         switch (aopty) {
@@ -3144,18 +3151,17 @@ Lret:
 /*******************************
  */
 
-private uint asm_type_size( type * ptype )
-{   uint u;
-
-    u = _anysize;
+private OpndSize asm_type_size( type * ptype )
+{
+    OpndSize u = OpndSize._anysize;
     if (ptype &&
         (tyscalar(ptype.Tty) || tybasic(ptype.Tty) == TYstruct))
     {
         switch (type_size(ptype))
-        {   case 1:     u = _8;         break;
-            case 2:     u = _16;        break;
-            case 4:     u = _32;        break;
-            case 6:     u = _48;        break;
+        {   case 1:     u = OpndSize._8;         break;
+            case 2:     u = OpndSize._16;        break;
+            case 4:     u = OpndSize._32;        break;
+            case 6:     u = OpndSize._48;        break;
             default:
                 break;
         }
@@ -4246,5 +4252,44 @@ regm_t iasm_regs( block * bp )
     return( bp.usIasmregs );
 }
 
+
+/*************************************
+ * Returns: true if szop is one of the values in sztbl
+ */
+private
+bool isOneOf(OpndSize szop, OpndSize sztbl)
+{
+    with (OpndSize)
+    {
+        immutable ubyte[OpndSize.max + 1] maskx =
+        [
+            none        : 0,
+
+            _8          : 1,
+            _16         : 2,
+            _32         : 4,
+            _48         : 8,
+            _64         : 16,
+
+            _16_8       : 2  | 1,
+            _32_8       : 4  | 1,
+            _32_16      : 4  | 2,
+            _32_16_8    : 4  | 2 | 1,
+            _48_32      : 8  | 4,
+            _48_32_16_8 : 8  | 4  | 2 | 1,
+            _64_32      : 16 | 4,
+            _64_32_8    : 16 | 4 | 1,
+            _64_32_16   : 16 | 4 | 2,
+            _64_32_16_8 : 16 | 4 | 2 | 1,
+            _64_48_32_16_8 : 16 | 8 | 4 | 2 | 1,
+
+            _anysize    : 16 | 8 | 4 | 2 | 1,
+        ];
+
+        //printf("maskx[%d] = x%x\n", szop, maskx[szop]);
+        //printf("maskx[%d] = x%x\n", sztbl, maskx[sztbl]);
+        return (maskx[szop] & maskx[sztbl]) != 0;
+    }
+}
 
 }
