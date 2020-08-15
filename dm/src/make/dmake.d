@@ -13,13 +13,19 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.time;
-import core.sys.windows.stat;
 //import core.stdc.process;
 //import core.stdc.direct;
 
 version (Windows)
 {
     import core.sys.windows.windows;
+    import core.sys.windows.stat;
+    alias Stat = struct_stat;
+}
+else
+{
+    import core.sys.posix.sys.stat;
+    alias Stat = stat_t;
 }
 
 import man;
@@ -33,35 +39,20 @@ int putenv(const char *);
 int spawnlp(int, const char*, const char *, ...);
 int utime(const char *, time_t*);
 
-struct Stat
+version (Windows)
 {
-  align (2):
-    short       st_dev;
-    ushort      st_ino;
-    ushort st_mode;
-    short       st_nlink;
-    ushort      st_uid;
-    ushort      st_gid;
-    short       st_rdev;
-    short       dummy;                  /* for alignment                */
-    int st_size;
-    int st_atime;
-    int st_mtime;
-    int st_ctime;
+    struct FINDA
+    {
+      align (1):
+        char[21] reserved;
+        char attribute;
+        ushort time,date;
+        uint size;
+        char[260] name;
+    }
+    FINDA* findfirst(const char*, int);
+    FINDA* findnext();
 }
-int stat(const(char)*, Stat*);
-
-struct FINDA
-{
-  align (1):
-    char[21] reserved;
-    char attribute;
-    ushort time,date;
-    uint size;
-    char[260] name;
-}
-FINDA* findfirst(const char*, int);
-FINDA* findnext();
 
 enum ESC =      '!';            // our escape character
 
@@ -545,6 +536,7 @@ time_t touch(char* name)
  * Do our version of the DEL command.
  */
 
+version (Windows)
 void builtin_del(char *args)
 {   FINDA *f;
     char *pe;
@@ -582,6 +574,7 @@ void builtin_del(char *args)
  * Do our version of the CD command.
  */
 
+version (Windows)
 int builtin_cd(char *args)
 {
     char *pe;
@@ -916,7 +909,7 @@ int readline(FILE *f)
         do
         {
                 L0:
-            while (TRUE)
+            while (true)
             {
                         if (i >= bufmax)
                         {   bufmax += 100;
@@ -1653,7 +1646,7 @@ version (Windows)
 }
 static if (1)
 {
-version (POSIX)
+version (Posix)
                 status = system(p);
 else
                 status = spawnlp(0,p,p,args,null);
