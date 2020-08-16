@@ -379,6 +379,8 @@ private PTRNTAB asm_classify(OP *pop, OPND * popnd1, OPND * popnd2, OPND * popnd
 
         uint        bMatch1, bMatch2, bMatch3, bRetry = false;
 
+        //printf("asm_classify()\n");
+
         // How many arguments are there?  the parser is strictly left to right
         // so this should work.
 
@@ -427,13 +429,14 @@ RETRY:
                 goto RETURN_IT;
 
             case 1:
-                //printf("usFlags1 = "); asm_output_flags(usFlags1); printf("\n");
+                enum log = false;
+                if (log) { printf("usFlags1 = "); asm_output_flags(usFlags1); printf("\n"); }
                 for (pptb1 = pop.ptb.pptb1; pptb1.opcode != ASM_END;
                         pptb1++)
                 {
-                        //printf("table    = "); asm_output_flags(pptb1.usOp1); printf("\n");
+                        if (log) { printf("table    = "); asm_output_flags(pptb1.usOp1); printf("\n"); }
                         bMatch1 = asm_match_flags(usFlags1, pptb1.usOp1);
-                        //printf("bMatch1 = x%x\n", bMatch1);
+                        if (log) printf("bMatch1  = x%x\n", bMatch1);
                         if (bMatch1)
                         {   if (pptb1.opcode == 0x68 &&
                                 !I16 &&
@@ -531,17 +534,18 @@ TYPE_SIZE_ERROR:
                 goto RETURN_IT;
 
             case 2:
-                //printf("usFlags1 = "); asm_output_flags(usFlags1); printf(" ");
-                //printf("usFlags2 = "); asm_output_flags(usFlags2); printf("\n");
+                enum log = false;
+                if (log) { printf("usFlags1 = "); asm_output_flags(usFlags1); printf("\n"); }
+                if (log) { printf("usFlags2 = "); asm_output_flags(usFlags2); printf("\n"); }
                 for (pptb2 = pop.ptb.pptb2;
                      pptb2.opcode != ASM_END;
                      pptb2++)
                 {
-                        //printf("table1   = "); asm_output_flags(pptb2.usOp1); printf(" ");
-                        //printf("table2   = "); asm_output_flags(pptb2.usOp2); printf("\n");
+                        if (log) { printf("table1   = "); asm_output_flags(pptb2.usOp1); printf("\n"); }
+                        if (log) { printf("table2   = "); asm_output_flags(pptb2.usOp2); printf("\n"); }
                         bMatch1 = asm_match_flags(usFlags1, pptb2.usOp1);
                         bMatch2 = asm_match_flags(usFlags2, pptb2.usOp2);
-                        //printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
+                        if (log) printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
                         if (bMatch1 && bMatch2) {
 
                             //printf("match\n");
@@ -729,10 +733,10 @@ private opflag_t asm_determine_float_flags(OPND *popnd)
         if (popnd.pregDisp1 && !popnd.base)
         {
             us = asm_float_type_size(popnd.ptype, &usFloat);
-            if (getOpndSize(popnd.pregDisp1.ty) == OpndSize._16)
-                return CONSTRUCT_FLAGS(us, _m, _addr16, usFloat);
-            else
+            if (isOneOf(getOpndSize(popnd.pregDisp1.ty), OpndSize._32))
                 return CONSTRUCT_FLAGS(us, _m, _addr32, usFloat);
+            if (isOneOf(getOpndSize(popnd.pregDisp1.ty), OpndSize._16))
+                return CONSTRUCT_FLAGS(us, _m, _addr16, usFloat);
         }
         else
         if ((ps = popnd.s) !is null)
@@ -776,6 +780,8 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
         ASM_OPERAND_TYPE opty;
         ASM_MODIFIERS amod;
 
+        //printf("asm_determine_operand_flags()\n");
+
         // If specified 'offset' or 'segment' but no symbol
         if ((popnd.bOffset || popnd.bSeg) && !popnd.s)
             asmerr(EM_bad_addr_mode);           // illegal addressing mode
@@ -796,16 +802,17 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
         {
             if (ps && ps.Sclass == SClabel && sz == OpndSize._anysize)
                 sz = I32 ? OpndSize._32 : OpndSize._16;
-            return getOpndSize(popnd.pregDisp1.ty) == OpndSize._16
-                ? CONSTRUCT_FLAGS(sz, _m, _addr16, 0)
-                : CONSTRUCT_FLAGS(sz, _m, _addr32, 0);
+            const rsz = getOpndSize(popnd.pregDisp1.ty);
+            return isOneOf(rsz, OpndSize._32)
+                ? CONSTRUCT_FLAGS(sz, _m, _addr32, 0)
+                : CONSTRUCT_FLAGS(sz == OpndSize._anysize ? sz : OpndSize._16, _m, _addr16, 0); // coerce displacement to match addr mode size
         }
         else if (ps)
         {
                 if (popnd.bOffset || popnd.bSeg || ps.Sfl == FLlocalsize)
                     return I32
-                        ? CONSTRUCT_FLAGS( OpndSize._32, _imm, _normal, 0 )
-                        : CONSTRUCT_FLAGS( OpndSize._16, _imm, _normal, 0 );
+                        ? CONSTRUCT_FLAGS( OpndSize._32_16_8, _imm, _normal, 0 )
+                        : CONSTRUCT_FLAGS( OpndSize._16_8, _imm, _normal, 0 );
 
                 if (ps.Sclass == SClabel)
                 {
@@ -856,6 +863,7 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
                     }
                     return us;
                 }
+
                 ty = popnd.ptype.Tty;
                 if (typtr(ty) && tyfunc(popnd.ptype.Tnext.Tty))
                 {
@@ -886,8 +894,32 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
                 {   amod = _normal;
                     goto L1;
                 }
-                else
-                    return CONSTRUCT_FLAGS( sz, _m, _normal, 0 );
+
+                if (sz == OpndSize._32)
+                    sz = OpndSize._32_16_8;
+
+                static if (0)
+                {
+                    // Modify based on 'word ptr', 'near ptr', 'far ptr'
+                    switch (popnd.ajt)
+                    {
+                        case ASM_JUMPTYPE_UNSPECIFIED:
+                            break;
+                        case ASM_JUMPTYPE_SHORT:
+                            sz = OpndSize._16;
+                            break;
+                        case ASM_JUMPTYPE_NEAR:
+                            sz = I16 ? OpndSize._16 : OpndSize._32;
+                            break;
+                        case ASM_JUMPTYPE_FAR:
+                            sz = I16 ? OpndSize._32 : OpndSize._48;
+                            break;
+                        default:
+                            assert(0);
+                    }
+                }
+
+                return CONSTRUCT_FLAGS( sz, _m, _normal, 0 );
         }
         if (popnd.segreg /*|| popnd.bPtr*/)
         {
@@ -897,7 +929,8 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
             L1:
                 opty = _m;
                 if (I32)
-                {   if (sz == OpndSize._48)
+                {
+                    if (sz == OpndSize._48)
                         opty = _mnoi;
                 }
                 else
@@ -1755,7 +1788,7 @@ ILLEGAL_ADDRESS_ERROR:
                 if (o1.pregDisp1) {
                         if (o1.uchMultiplier ||
                                 (o2.pregDisp1.val == _ESP &&
-                                (getOpndSize(o2.pregDisp1.ty) == OpndSize._32) &&
+                                (isOneOf(getOpndSize(o2.pregDisp1.ty), OpndSize._32)) &&
                                 !o2.uchMultiplier )) {
                                 o1.pregDisp2 = o1.pregDisp1;
                                 o1.pregDisp1 = o2.pregDisp1;
@@ -2276,7 +2309,7 @@ DATA_REF:
             aopty != _imm &&
             (popnd.disp || bDisp))
         {
-                if (popnd.usFlags & _a16)
+                if (ASM_GET_amod(popnd.usFlags) == _addr16)
                 {
                     debug
                     {
@@ -2645,9 +2678,6 @@ private ubyte asm_match_float_flags(opflag_t usOp, opflag_t usTable )
     }
 }
 
-debug
-{
-
 /*******************************
  */
 
@@ -2755,6 +2785,9 @@ private void asm_output_flags( opflag_t usFlags )
 /*******************************
  */
 
+debug
+{
+
 private void asm_output_popnd( OPND * popnd )
 {
         if (popnd.segreg)
@@ -2766,21 +2799,26 @@ private void asm_output_popnd( OPND * popnd )
         if (popnd.base)
                 printf( "%s", popnd.base.regstr.ptr );
         if (popnd.pregDisp1) {
-                if (popnd.pregDisp2) {
-                        if (popnd.usFlags & _a32)
-                                if (popnd.uchMultiplier)
-                                        printf( "[%s][%s*%d]",
-                                                popnd.pregDisp1.regstr.ptr,
-                                                popnd.pregDisp2.regstr.ptr,
-                                                popnd.uchMultiplier );
-                                else
-                                        printf( "[%s][%s]",
-                                                popnd.pregDisp1.regstr.ptr,
-                                                popnd.pregDisp2.regstr.ptr );
+                if (popnd.pregDisp2)
+                {
+                        if (ASM_GET_amod(popnd.usFlags) == _addr16)
+                        {
+                            printf( "[%s+%s]",
+                                    popnd.pregDisp1.regstr.ptr,
+                                    popnd.pregDisp2.regstr.ptr );
+                        }
                         else
-                                printf( "[%s+%s]",
+                        {
+                            if (popnd.uchMultiplier)
+                                printf( "[%s][%s*%d]",
+                                        popnd.pregDisp1.regstr.ptr,
+                                        popnd.pregDisp2.regstr.ptr,
+                                        popnd.uchMultiplier );
+                            else
+                                printf( "[%s][%s]",
                                         popnd.pregDisp1.regstr.ptr,
                                         popnd.pregDisp2.regstr.ptr );
+                        }
                 }
                 else {
                         if (popnd.uchMultiplier)
