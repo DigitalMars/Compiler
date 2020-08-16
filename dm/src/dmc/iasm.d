@@ -209,8 +209,6 @@ enum
     _m1632  = CONSTRUCT_FLAGS(OpndSize._48, _mnoi, _normal, 0),
     _special  = CONSTRUCT_FLAGS( 0, 0, _rspecial, 0 ),
     _seg    = CONSTRUCT_FLAGS( 0, 0, _rseg, 0 ),
-    _a16    = CONSTRUCT_FLAGS( 0, 0, _addr16, 0 ),
-    _a32    = CONSTRUCT_FLAGS( 0, 0, _addr32, 0 ),
     _f16    = CONSTRUCT_FLAGS( 0, 0, _fn16, 0),
                                                 // Near function pointer
     _f32    = CONSTRUCT_FLAGS( 0, 0, _fn32, 0),
@@ -225,7 +223,7 @@ enum
     _xmm_m16  = CONSTRUCT_FLAGS( OpndSize._16,      _m, _rspecial, ASM_GET_uRegmask(_xmm)),
     _xmm_m32  = CONSTRUCT_FLAGS( OpndSize._32,      _m, _rspecial, ASM_GET_uRegmask(_xmm)),
     _xmm_m64  = CONSTRUCT_FLAGS( OpndSize._anysize, _m, _rspecial, ASM_GET_uRegmask(_xmm)),
-    _xmm_m128 = CONSTRUCT_FLAGS( OpndSize._anysize, _m, _rspecial, ASM_GET_uRegmask(_xmm)),
+    _xmm_m128 = CONSTRUCT_FLAGS( OpndSize._128,     _m, _rspecial, ASM_GET_uRegmask(_xmm)),
     _ymm_m256 = CONSTRUCT_FLAGS( OpndSize._anysize, _m, _rspecial, ASM_GET_uRegmask(_ymm)),
 
     _moffs8  = _rel8,
@@ -267,7 +265,6 @@ uint ASM_GET_amod(uint us)      { return cast(ASM_MODIFIERS)((us >> 8) & 7); }
 uint ASM_GET_uRegmask(uint us)  { return (us >> 11) & 0x7F; }
 
 // For uSizemask (5 bits)
-
 enum OpndSize : ubyte
 {
     none = 0,
@@ -277,6 +274,7 @@ enum OpndSize : ubyte
     _32, // 0x4,
     _48, // 0x8,
     _64, // 0x10,
+    _128, // 0x20,
 
     _16_8,       // _16 | _8,
     _32_8,       // _32 | _8,
@@ -290,34 +288,8 @@ enum OpndSize : ubyte
     _64_32_16_8, // _64 | _32 | _16 | _8,
     _64_48_32_16_8, // _64 | _48 | _32 | _16 | _8,
 
-    _anysize,    // _64 | _48 | _32 | _16 | _8,
+    _anysize = _64_48_32_16_8,    // _64 | _48 | _32 | _16 | _8,
 }
-/+
-enum OpndSize : ubyte
-{
-    none = 0,
-
-    _8  = 0x1,
-    _16 = 0x2,
-    _32 = 0x4,
-    _48 = 0x8,
-    _64 = 0x10,
-
-    _16_8       = _16 | _8,
-    _32_8       = _32 | _8,
-    _32_16      = _32 | _16,
-    _32_16_8    = _32 | _16 | _8,
-    _48_32      = _48 | _32,
-    _48_32_16_8 = _48 | _32 | _16 | _8,
-    _64_32      = _64 | _32,
-    _64_32_8    = _64 | _32 | _8,
-    _64_32_16   = _64 | _32 | _16,
-    _64_32_16_8 = _64 | _32 | _16 | _8,
-    _64_48_32_16_8 =  _64 | _48 | _32 | _16 | _8,
-
-    _anysize    = _64 | _48 | _32 | _16 | _8,
-}
-+/
 
 /*************************************
  * Extract OpndSize from opflag_t.
@@ -350,7 +322,9 @@ enum
     _addr32,        // 32 bit address
     _fn16,          // 16 bit function call
     _fn32,          // 32 bit function call
-    _flbl           // Label
+    _flbl,          // Label
+
+    _addr64 = _addr16, // global.params.is64bit determines if 64 or 16
 }
 
 // For uRegmask (7 bits)
