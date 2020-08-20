@@ -895,8 +895,9 @@ private opflag_t asm_determine_operand_flags( OPND * popnd )
                     goto L1;
                 }
 
-                if (sz == OpndSize._32)
-                    sz = OpndSize._32_16_8;
+                if (sz == OpndSize._32 &&
+                    (tyfv(ty) || tybasic(ty) == TYhptr ||tybasic(ty) == TYvptr))
+                    sz = OpndSize._32_16;
 
                 static if (0)
                 {
@@ -2698,6 +2699,7 @@ private void asm_output_flags( opflag_t usFlags )
             case _32:         s = "_32";         break;
             case _48:         s = "_48";         break;
             case _64:         s = "_64";         break;
+            case _128:        s = "_128";        break;
             case _16_8:       s = "_16_8";       break;
             case _32_8:       s = "_32_8";       break;
             case _32_16:      s = "_32_16";      break;
@@ -2706,6 +2708,7 @@ private void asm_output_flags( opflag_t usFlags )
             case _64_32_8:    s = "_64_32_8";    break;
             case _64_32_16:   s = "_64_32_16";   break;
             case _64_32_16_8: s = "_64_32_16_8"; break;
+            case _64_48_32_16_8: s = "_64_48_32_16_8"; break;
             case _anysize:    s = "_anysize";    break;
 
             default:
@@ -3200,6 +3203,7 @@ private OpndSize asm_type_size( type * ptype )
             case 2:     u = OpndSize._16;        break;
             case 4:     u = OpndSize._32;        break;
             case 6:     u = OpndSize._48;        break;
+            case 16:    u = OpndSize._128;       break;
             default:
                 break;
         }
@@ -4308,6 +4312,7 @@ bool isOneOf(OpndSize szop, OpndSize sztbl)
             _32         : 4,
             _48         : 8,
             _64         : 16,
+            _128        : 32,
 
             _16_8       : 2  | 1,
             _32_8       : 4  | 1,
@@ -4321,7 +4326,7 @@ bool isOneOf(OpndSize szop, OpndSize sztbl)
             _64_32_16_8 : 16 | 4 | 2 | 1,
             _64_48_32_16_8 : 16 | 8 | 4 | 2 | 1,
 
-            _anysize    : 16 | 8 | 4 | 2 | 1,
+            _anysize    : 32 | 16 | 8 | 4 | 2 | 1,
         ];
 
         //printf("maskx[%d] = x%x\n", szop, maskx[szop]);

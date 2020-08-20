@@ -185,7 +185,7 @@ enum
     _m32    = CONSTRUCT_FLAGS(OpndSize._32, _m, _normal, 0 ),
     _m48    = CONSTRUCT_FLAGS(OpndSize._48, _m, _normal, 0 ),
     _m64    = CONSTRUCT_FLAGS(OpndSize._64, _m, _normal, 0 ),
-    _m128   = CONSTRUCT_FLAGS(OpndSize._anysize, _m, _normal, 0 ),
+    _m128   = CONSTRUCT_FLAGS(OpndSize._128, _m, _normal, 0 ),
     _m256   = CONSTRUCT_FLAGS(OpndSize._anysize, _m, _normal, 0 ),
     _m48_32_16_8    = CONSTRUCT_FLAGS(OpndSize._48_32_16_8, _m, _normal, 0 ),
     _m64_48_32_16_8 = CONSTRUCT_FLAGS(OpndSize._64_48_32_16_8, _m, _normal, 0 ),
@@ -288,7 +288,7 @@ enum OpndSize : ubyte
     _64_32_16_8, // _64 | _32 | _16 | _8,
     _64_48_32_16_8, // _64 | _48 | _32 | _16 | _8,
 
-    _anysize = _64_48_32_16_8,    // _64 | _48 | _32 | _16 | _8,
+    _anysize,
 }
 
 /*************************************

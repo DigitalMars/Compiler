@@ -6088,6 +6088,7 @@ uint calccodsize(code *c)
 
     iflags = c.Iflags;
     opcode_t op = c.Iop;
+    //printf("calccodsize(x%08x), Iflags = x%x\n", op, iflags);
     if (iflags & CFvex && c.Ivex.pfx == 0xC4)
     {
         ins = vex_inssize(c);
