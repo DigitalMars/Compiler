@@ -2172,7 +2172,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             cdb.genc2(0x81,grex | modregrmx(3,4,rhi),0x8000_0000); // ADD rhi,0x8000_000
             cdb.genregs(0x09,rlo,rhi);                             // OR  rlo,rhi
             cdb.gen2(0x0F94,modregrmx(3,0,rlo));                   // SETZ rlo
-            cdb.genregs(0x0FB6,rlo,rlo);                           // MOVZX rlo,rloL
+            cdb.genregs(MOVZXb,rlo,rlo);                           // MOVZX rlo,rloL
             movregconst(cdb,rhi,0,0);                              // MOV rhi,0
         }
 
@@ -3122,7 +3122,7 @@ L3:
                 code_orrex(cdb.last(),REX);
             if (tysize(e.Ety) > 1)
             {
-                genregs(cdb,0x0FB6,reg,reg);       // MOVZX reg,reg
+                genregs(cdb,MOVZXb,reg,reg);       // MOVZX reg,reg
                 if (I64 && sz == 8)
                     code_orrex(cdb.last(),REX_W);
                 if (I64 && reg >= 4)
@@ -3709,7 +3709,7 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 goto L2;
             retregs = *pretregs;
             allocreg(cdb,&retregs,&reg,TYint);
-            const opcode = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; // MOVZX/MOVSX reg,EA
+            const opcode = (op == OPu16_32) ? MOVZXw : MOVSXw; // MOVZX/MOVSX reg,EA
             if (op == OPs32_64)
             {
                 assert(I64);
@@ -3764,7 +3764,7 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
                 else
                 {
-                    uint iop = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; // MOVZX/MOVSX reg,reg
+                    opcode_t iop = (op == OPu16_32) ? MOVZXw : MOVSXw; // MOVZX/MOVSX reg,reg
                     genregs(cdb,iop,reg,reg);
                 }
             }
@@ -3850,7 +3850,7 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             }
             else
             {
-                const opcode = (op == OPu8_16) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,EA
+                const opcode = (op == OPu8_16) ? MOVZXb : MOVSXb; // MOVZX/MOVSX reg,EA
                 loadea(cdb,e1,&cs,opcode,reg,0,0,retregsx);
             }
             freenode(e1);
@@ -3922,7 +3922,7 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
                 else
                 {
-                    uint iop = (op == OPu8_16) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,reg
+                    opcode_t iop = (op == OPu8_16) ? MOVZXb : MOVSXb; // MOVZX/MOVSX reg,reg
                     genregs(cdb,iop,reg,reg);
                     if (I64 && reg >= 4)
                         code_orrex(cdb.last(), REX);

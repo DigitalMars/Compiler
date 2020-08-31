@@ -1687,7 +1687,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     cdb.genc2(0x81,grex | modregrmx(3,4,rhi),0x8000_0000); // ADD rhi,0x8000_000
                     cdb.genregs(0x09,rlo,rhi);                             // OR  rlo,rhi
                     cdb.gen2(0x0F94,modregrmx(3,0,rlo));                   // SETZ rlo
-                    cdb.genregs(0x0FB6,rlo,rlo);                           // MOVZX rlo,rloL
+                    cdb.genregs(MOVZXb,rlo,rlo);                           // MOVZX rlo,rloL
                     movregconst(cdb,rhi,0,0);                              // MOV rhi,0
                 }
 
@@ -3277,7 +3277,7 @@ void cdind(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         {
             retregs = ALLREGS & ~idxregs;
             allocreg(cdb,&retregs,&reg,TYint);
-            cs.Iop = 0x0FB7;
+            cs.Iop = MOVZXw;
             cs.Irm |= modregrm(0,reg,0);
             getlvalue_msw(&cs);
             cdb.gen(&cs);             // MOVZX reg,msw
@@ -3368,7 +3368,7 @@ void cdind(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             if (sz <= 2 && !I16 &&
                 config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed)
             {
-                cs.Iop = tyuns(tym) ? 0x0FB7 : 0x0FBF;      // MOVZX/MOVSX
+                cs.Iop = tyuns(tym) ? MOVZXw : MOVSXw;      // MOVZX/MOVSX
                 cs.Iflags &= ~CFopsize;
             }
             cs.Iop ^= isbyte;
@@ -4214,12 +4214,12 @@ fixres:
         }
         else if (I32)
         {
-            genregs(cdb,0x0FB6,AX,AX);                    // MOVZX EAX,AL
+            genregs(cdb,MOVZXb,AX,AX);                    // MOVZX EAX,AL
             cdb.genc2(0x69,modregrm(3,AX,AX),0x01010101); // IMUL EAX,EAX,0x01010101
         }
         else
         {
-            genregs(cdb,0x0FB6,AX,AX);                    // MOVZX EAX,AL
+            genregs(cdb,MOVZXb,AX,AX);                    // MOVZX EAX,AL
             regm_t regm = allregs & ~(mAX | retregs2);
             reg_t r;
             regwithvalue(cdb,regm,cast(targ_size_t)0x01010101_01010101,&r,64); // MOV reg,0x01010101_01010101
