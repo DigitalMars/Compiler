@@ -2632,8 +2632,6 @@ void genmovreg(ref CodeBuilder cdb, uint to, uint from, tym_t tym)
                 genregs(cdb, 0x89, from, to);    // MOV to,from
                 if (I64 && tysize(tym) >= 8)
                     code_orrex(cdb.last(), REX_W);
-                else if ((I32 || I64) && tysize(tym) == 2)
-                    code_orflag(cdb.last(), CFopsize);
                 break;
 
             case _X(XMM0, XMM0):             // MOVD/Q to,from
@@ -3821,7 +3819,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                     offset += EBPtoESP;
 
                 reg_t preg = s.Spreg;
-                for (int i = 0; i < 2; ++i)     // twice, once for each possible parameter register
+                foreach (i; 0 .. 2)     // twice, once for each possible parameter register
                 {
                     shadowregm |= mask(preg);
                     opcode_t op = 0x89;                  // MOV x[EBP],preg
@@ -3955,6 +3953,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                 }
                 else
                 {
+                    //printf("test1 mov %s, %s\n", regstring[r], regstring[preg]);
                     genmovreg(cdb,r,preg);
                     if (I64 && sz == 8)
                         code_orrex(cdb.last(), REX_W);
@@ -4987,7 +4986,7 @@ void assignaddrc(code *c)
         switch (c.IFL1)
         {
             case FLdata:
-                if (config.objfmt == OBJ_OMF && s.Sclass != SCcomdat)
+                if (config.objfmt == OBJ_OMF && s.Sclass != SCcomdat && s.Sclass != SCextern)
                 {
                     version (MARS)
                     {
@@ -7775,7 +7774,7 @@ extern (C) void code_print(code* c)
                     break;
 
                 case FLdatseg:
-                    printf(" %d.%llx",c.IEV1.Vseg,cast(ulong)c.IEV1.Vpointer);
+                    printf(" FLdatseg %d.%llx",c.IEV1.Vseg,cast(ulong)c.IEV1.Vpointer);
                     break;
 
                 case FLauto:
@@ -7786,11 +7785,12 @@ extern (C) void code_print(code* c)
                 case FLpara:
                 case FLbprel:
                 case FLtlsdata:
-                    printf(" sym='%s'",c.IEV1.Vsym.Sident.ptr);
-                    break;
-
                 case FLextern:
-                    printf(" FLextern offset = %4d",cast(int)c.IEV1.Voffset);
+                    printf(" ");
+                    WRFL(cast(FL)c.IFL1);
+                    printf(" sym='%s'",c.IEV1.Vsym.Sident.ptr);
+                    if (c.IEV1.Voffset)
+                        printf(".%d", cast(int)c.IEV1.Voffset);
                     break;
 
                 default:

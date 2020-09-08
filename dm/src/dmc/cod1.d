@@ -3446,36 +3446,12 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                         ty2 = targ2.Tty;
                 }
 
-                for (int v = 0; v < 2; v++)
+                foreach (v; 0 .. 2)
                 {
                     if (v ^ (preg != mreg))
-                    {
-                        if (preg != lreg)
-                        {
-                            if (mask(preg) & XMMREGS)
-                            {
-                                const op = xmmload(ty1);            // MOVSS/D preg,lreg
-                                cdb.gen2(op, modregxrmx(3, preg-XMM0, lreg-XMM0));
-                                checkSetVex(cdb.last(),ty1);
-                            }
-                            else
-                                genmovreg(cdb, preg, lreg);
-                        }
-                    }
+                        genmovreg(cdb, preg, lreg, ty1);
                     else
-                    {
-                        if (preg2 != mreg)
-                        {
-                            if (mask(preg2) & XMMREGS)
-                            {
-                                const op = xmmload(ty2);            // MOVSS/D preg2,mreg
-                                cdb.gen2(op, modregxrmx(3, preg2-XMM0, mreg-XMM0));
-                                checkSetVex(cdb.last(),ty2);
-                            }
-                            else
-                                genmovreg(cdb, preg2, mreg);
-                        }
-                    }
+                        genmovreg(cdb, preg2, mreg, ty2);
                 }
 
                 retregs = mask(preg) | mask(preg2);
@@ -3492,6 +3468,9 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             }
             else if (ep.Eoper == OPstrpar && config.exe == EX_WIN64 && type_size(ep.ET) == 0)
             {
+                retregs = 0;
+                scodelem(cdb, ep.EV.E1, &retregs, keepmsk, false);
+                freenode(ep);
             }
             else
             {
@@ -4224,6 +4203,18 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             if (sz == 0)
             {
                 docommas(cdb, &e1); // skip over any commas
+
+                const stackpushsave = stackpush;
+                const stackcleansave = cgstate.stackclean;
+                cgstate.stackclean = 0;
+
+                regm_t retregs = 0;
+                codelem(cdb,e1,&retregs,true);
+
+                assert(cgstate.stackclean == 0);
+                cgstate.stackclean = stackcleansave;
+                genstackclean(cdb,stackpush - stackpushsave,0);
+
                 freenode(e);
                 return;
             }
@@ -4938,7 +4929,15 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     if (tyfloating(tym))
     {
         objmod.fltused();
-        if (config.inline8087)
+        if (config.fpxmmregs &&
+            (tym == TYcfloat || tym == TYcdouble) &&
+            (*pretregs & (XMMREGS | mPSW))
+           )
+        {
+            cloadxmm(cdb, e, pretregs);
+            return;
+        }
+        else if (config.inline8087)
         {
             if (*pretregs & mST0)
             {

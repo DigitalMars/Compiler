@@ -274,8 +274,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     if (!(regvar && reg == XMM0 + ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0))))
     {
         cdb.gen(&cs);         // MOV EA+offset,reg
-//<<>>        if (op == OPeq)
-            checkSetVex(cdb.last(), tyml);
+        checkSetVex(cdb.last(), tyml);
     }
 
     if (e1.Ecount ||                     // if lvalue is a CSE or
@@ -288,7 +287,6 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     }
 
     fixresult(cdb,e,retregs,pretregs);
-Lp:
     if (postinc)
     {
         const increg = findreg(idxregm(&cs));  // the register to increment
@@ -369,7 +367,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         // directly use si2ss
         regs = ALLREGS;
-        e1 = e1.EV.E1;
+        e1 = e1.EV.E1;  // fused operation
         op = CVTSI2SS;
         ty = TYfloat;
         break;
@@ -1612,9 +1610,10 @@ bool xmmIsAligned(elem *e)
     if (tyvector(e.Ety) && e.Eoper == OPvar)
     {
         Symbol *s = e.EV.Vsym;
-        if (Symbol_Salignsize(s) < 16 ||
-            e.EV.Voffset & (16 - 1) ||
-            tysize(e.Ety) > STACKALIGN
+        const alignsz = tyalignsize(e.Ety);
+        if (Symbol_Salignsize(s) < alignsz ||
+            e.EV.Voffset & (alignsz - 1) ||
+            alignsz > STACKALIGN
            )
             return false;       // definitely not aligned
     }
@@ -1743,6 +1742,42 @@ void checkSetVex(code *c, tym_t ty)
         c.Iflags |= CFvex;
         checkSetVex3(c);
     }
+}
+
+/**************************************
+ * Load complex operand into XMM registers or flags or both.
+ */
+
+void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+{
+    //printf("e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    //elem_print(e);
+    assert(*pretregs & (XMMREGS | mPSW));
+    if (*pretregs == (mXMM0 | mXMM1) &&
+        e.Eoper != OPconst)
+    {
+        code cs = void;
+        tym_t tym = tybasic(e.Ety);
+        tym_t ty = tym == TYcdouble ? TYdouble : TYfloat;
+        opcode_t opmv = xmmload(tym, xmmIsAligned(e));
+
+        regm_t retregs0 = mXMM0;
+        reg_t reg0;
+        allocreg(cdb, &retregs0, &reg0, ty);
+        loadea(cdb, e, &cs, opmv, reg0, 0, RMload, 0);  // MOVSS/MOVSD XMM0,data
+        checkSetVex(cdb.last(), ty);
+
+        regm_t retregs1 = mXMM1;
+        reg_t reg1;
+        allocreg(cdb, &retregs1, &reg1, ty);
+        loadea(cdb, e, &cs, opmv, reg1, tysize(ty), RMload, mXMM0); // MOVSS/MOVSD XMM1,data+offset
+        checkSetVex(cdb.last(), ty);
+
+        return;
+    }
+
+    // See test/complex.d for cases winding up here
+    cload87(cdb, e, pretregs);
 }
 
 }

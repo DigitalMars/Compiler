@@ -558,7 +558,7 @@ uint calcblksize (code *c);
 uint calccodsize(code *c);
 uint codout(int seg, code *c);
 size_t addtofixlist(Symbol *s , targ_size_t soffset , int seg , targ_size_t val , int flags );
-void searchfixlist(Symbol *s) {}
+void searchfixlist(Symbol *s);
 void outfixlist();
 void code_hydrate(code **pc);
 void code_dehydrate(code **pc);
@@ -615,6 +615,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e, regm_t *pretregs);
 void xmmpost(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void xmmneg(ref CodeBuilder cdb,elem *e, regm_t *pretregs);
 void xmmabs(ref CodeBuilder cdb,elem *e, regm_t *pretregs);
+void cloadxmm(ref CodeBuilder cdb,elem *e, regm_t *pretregs);
 uint xmmload(tym_t tym, bool aligned = true);
 uint xmmstore(tym_t tym, bool aligned = true);
 bool xmmIsAligned(elem *e);
