@@ -2495,6 +2495,8 @@ void symbol_gendebuginfo()
  */
 void symbol_reset(Symbol *s)
 {
+    //printf("symbol_reset(`%s`)\n", s.Sident.ptr);
+    //symbol_print(s);
     s.Soffset = 0;
     s.Sxtrnnum = 0;
     s.Stypidx = 0;
