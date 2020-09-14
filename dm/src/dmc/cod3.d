@@ -6539,6 +6539,9 @@ else
                         //printf("adjust ESP %ld\n", (long)c.IEV1.Vint);
                         break;
 
+                    case ESCdctor:
+                    case ESCddtor:      // handled in eh.except_fillInEHTable()
+
                     default:
                         break;
                 }

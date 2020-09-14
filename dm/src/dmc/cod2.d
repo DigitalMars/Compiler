@@ -5548,6 +5548,7 @@ version (SCPP)
 
 /*******************************************
  * D constructor.
+ * OPdctor
  */
 
 void cddctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
@@ -5575,6 +5576,7 @@ void cddctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 /*******************************************
  * D destructor.
+ * OPddtor
  */
 
 void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
@@ -5685,6 +5687,9 @@ version (SCPP)
 }
 }
 
+/******
+ * OPdtor
+ */
 void cddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
 version (SCPP)

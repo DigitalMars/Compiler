@@ -10,7 +10,7 @@
  * Source:      https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/eh.d
  */
 
-// Exception handling for the C++ compiler
+// Exception handling for the C++ compiler (not for DMD)
 
 version (SPP)
 {
