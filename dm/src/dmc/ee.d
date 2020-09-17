@@ -23,13 +23,14 @@ import core.stdc.time;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.global;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.oper;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.cgcv;
-
+import dmd.backend.symtab;
 version (SCPP)
     import parser;
 version (HTOD)

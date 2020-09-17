@@ -17,6 +17,7 @@ module dmd.backend.varstats;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.symtab;
 
 extern (C++):
 
