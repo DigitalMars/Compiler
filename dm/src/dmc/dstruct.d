@@ -4816,7 +4816,6 @@ enum
     baseclass_t *b;
     int nvirt = 0;
     func_t *f;
-    Symbol *s;
     Symbol *sthis;
     Symbol *sfree;
     Symbol *sfunc;
@@ -4835,6 +4834,9 @@ enum
     if (func & (CFctor | CFcopyctor) && stag.Sstruct.Svirtbase)
         nvirt++;
 
+    // If second parameter
+    int p2 = ((func & ((1 ? CFscaldtor : CFdtor) | CFopeq | CFcopyctor | CFveccpct)) != 0);
+
     t = n2_typector(stag,tret);
     if (func & CFscaldtor)
         param_append_type(&t.Tparamtypes,tstypes[TYuint]);
@@ -4847,32 +4849,29 @@ enum
     f.Fflags |= Fgen;                  // compiler generated function
     if (func & (CFscaldtor | CFvecctor | CFvecdtor | CFdelete | CFveccpct))
         f.Fflags |= Fnodebug;          // do not generate debug info for this
-    f.Flocsym.top = f.Flocsym.symmax = 1 + nvirt +
-                ((func & (CFscaldtor | CFopeq | CFcopyctor | CFveccpct)) != 0);
-    f.Flocsym.tab = symtab_calloc(f.Flocsym.top);
+    f.Flocsym.top = f.Flocsym.symmax = 1 + nvirt + p2;
+    f.Flocsym.tab = symtab_malloc(f.Flocsym.top);
 
     /* Remember to load the symbols in reverse order, because we made   */
     /* constructors and destructors "Pascal"                            */
-
-    si = f.Flocsym.top;
 
     /* Do "this"        */
     sthis = symbol_name(cpp_name_this.ptr,
         ((tybasic(t.Tty) == TYmfunc) ? SCfastpar : SCparameter),
         newpointer(stag.Stype));
-    sthis.Ssymnum = 0;
     sthis.Sflags |= SFLfree;
+    sthis.Ssymnum = 0;
     f.Flocsym.tab[0] = sthis;
 
     if (nvirt)
     {
-        s = symbol_name(cpp_name_initvbases.ptr,SCparameter,tstypes[TYint]);
-        s.Ssymnum = --si;
+        Symbol* s = symbol_name(cpp_name_initvbases.ptr,SCparameter,tstypes[TYint]);
         s.Sflags |= SFLfree;
-        f.Flocsym.tab[si] = s;
+        s.Ssymnum = p2 + 1;
+        f.Flocsym.tab[s.Ssymnum] = s;
     }
 
-    if (func & ((1 ? CFscaldtor : CFdtor) | CFopeq | CFcopyctor | CFveccpct))
+    if (p2)
     {   /* dtor() or operator=()        */
         char *p;
         type *t2;
@@ -4885,13 +4884,12 @@ enum
         {   p = cast(char*)"_param__P1".ptr;
             t2 = newref(stag.Stype);
         }
-        s = symbol_name(p,SCparameter,t2);
-        s.Ssymnum = --si;
+        Symbol* s = symbol_name(p,SCparameter,t2);
         s.Sflags |= SFLfree;
-        f.Flocsym.tab[si] = s;
+        s.Ssymnum = 1;
+        f.Flocsym.tab[1] = s;
         sfree = s;
     }
-    assert(si == 1);            /* "this" is always symbol 0    */
 
     if (func & (CFopeq | CFcopyctor | CFveccpct))
     {
