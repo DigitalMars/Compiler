@@ -1309,10 +1309,8 @@ else
 
     bool addressOfParam = false;  // see if any parameters get their address taken
     bool anyasm = false;
-    numblks = 0;
     for (block *b = startblock; b; b = b.Bnext)
     {
-        numblks++;                              // redo count
         memset(&b._BLU,0,block.sizeof - block._BLU.offsetof);
         if (b.Belem)
         {   outelem(b.Belem, addressOfParam);
@@ -1349,7 +1347,6 @@ version (MARS)
         eecontext.EEin--;
         eecontext_convs(marksi);
     }
-    maxblks = 3 * numblks;              // allow for increase in # of blocks
     // If we took the address of one parameter, assume we took the
     // address of all non-register parameters.
     if (addressOfParam | anyasm)        // if took address of a parameter

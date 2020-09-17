@@ -75,7 +75,6 @@ else
 
 __gshared
 {
-    uint numblks;           // number of basic blocks in current function
     block *startblock;      // beginning block of function
                             // (can have no predecessors)
 
@@ -229,20 +228,18 @@ void block_goto(block *bgoto,block *bnew)
 
 /**********************************
  * Replace block numbers with block pointers.
- * Also compute numblks and maxblks.
  */
 
 void block_ptr()
 {
     //printf("block_ptr()\n");
 
-    numblks = 0;
+    uint numblks = 0;
     for (block *b = startblock; b; b = b.Bnext)       /* for each block        */
     {
         b.Bblknum = numblks;
         numblks++;
     }
-    maxblks = 3 * numblks;              /* allow for increase in # of blocks */
 }
 
 /*******************************
@@ -631,8 +628,8 @@ void blockopt(int iter)
         blassertsplit();                // only need this once
 
         int iterationLimit = 200;
-        if (iterationLimit < numblks)
-            iterationLimit = numblks;
+        if (iterationLimit < dfo.length)
+            iterationLimit = cast(int)dfo.length;
         int count = 0;
         do
         {
@@ -1139,14 +1136,7 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
     debug if (debugc) printf("compdfo()\n");
     assert(OPTIMIZER);
     block_clearvisit();
-    debug
-    {
-        if (maxblks == 0 || maxblks < numblks)
-            printf("maxblks = %d, numblks = %d\n",maxblks,numblks);
-    }
-    assert(maxblks && maxblks >= numblks);
     debug assert(!PARSER);
-    dfo.setLength(maxblks);
 
     /******************************
      * Add b's successors to dfo[], then b
@@ -1189,8 +1179,6 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
             b.Bdfoidx = cast(uint)j;
     }
 
-    assert(dfo.length <= numblks);
-
     static if(0)
     {
         foreach (i, b; dfo[])
@@ -1206,18 +1194,6 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
 
 private void elimblks()
 {
-    debug
-    {
-        if (OPTIMIZER)
-        {
-            int n = 0;
-            for (block *b = startblock; b; b = b.Bnext)
-                  n++;
-            //printf("1 n = %d, numblks = %d, dfo.length = %d\n",n,numblks,dfo.length);
-            assert(numblks == n);
-        }
-    }
-
     debug if (debugc) printf("elimblks()\n");
     block *bf = null;
     block *b;
@@ -1254,11 +1230,9 @@ private void elimblks()
     {
         b = bf.Bnext;
         block_free(bf);
-        numblks--;
     }
 
     debug if (debugc) printf("elimblks done\n");
-    assert(!OPTIMIZER || numblks == dfo.length);
 }
 
 /**********************************
@@ -1353,7 +1327,6 @@ private int mergeblks()
                     startblock = bL2;   // new start
 
                     block_free(b);
-                    numblks--;
                     break;              // dfo[] is now invalid
                 }
             }
@@ -1578,7 +1551,6 @@ private void blreturn()
                 debug if (debugc)
                     printf("blreturn: splitting block B%d\n",b.Bdfoidx);
 
-                numblks++;
                 block *bn = block_calloc();
                 bn.BC = BCret;
                 bn.Bnext = b.Bnext;
@@ -1738,7 +1710,6 @@ private void bltailmerge()
                     debug if (debugc)
                         printf("tail merging: %p and %p\n", b, bn);
 
-                    numblks++;
                     block *bnew = block_calloc();
                     bnew.Bnext = bn.Bnext;
                     bnew.BC = b.BC;
@@ -1987,10 +1958,7 @@ private void brtailrecursion()
                 /* Split OPcond into a BCiftrue block and two return blocks
                  */
                 block* b1 = block_calloc();
-                ++numblks;
                 block* b2 = block_calloc();
-                ++numblks;
-                maxblks += 6;
 
                 b1.Belem = e.EV.E2.EV.E1;
                 e.EV.E2.EV.E1 = null;
@@ -2059,7 +2027,6 @@ private void brtailrecursion()
 
                 // Create a new startblock, bs, because startblock cannot
                 // have predecessors.
-                numblks++;
                 block *bs = block_calloc();
                 bs.BC = BCgoto;
                 bs.Bnext = startblock;
@@ -2361,8 +2328,6 @@ private void blassertsplit()
             }
 
             // Create exit block
-            ++numblks;
-            maxblks += 3;
             block *bexit = block_calloc();
             bexit.BC = BCexit;
             bexit.Belem = e.EV.E2;
@@ -2387,8 +2352,6 @@ private void blassertsplit()
 
             /* Split b into two blocks, [b,b2]
              */
-            ++numblks;
-            maxblks += 3;
             block *b2 = block_calloc();
             b2.Bnext = b.Bnext;
             b.Bnext = b2;
@@ -2583,8 +2546,6 @@ void commasToBlocks()
                 b = bn;
             }
         }
-        numblks += earray.length - 1;
-        maxblks += (earray.length - 1) * 3;
 
         changes = true;
     }

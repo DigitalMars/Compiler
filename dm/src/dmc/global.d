@@ -76,8 +76,6 @@ extern __gshared
     char[SCMAX] sytab;
 
     extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
-    uint maxblks;                   // array max for all block stuff
-    uint numblks;                   // number of basic blocks (if optimized)
     block* startblock;              // beginning block of function
 
     Barray!(block*) dfo;            // array of depth first order

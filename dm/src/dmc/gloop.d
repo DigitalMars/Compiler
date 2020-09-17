@@ -233,12 +233,10 @@ int blockinit()
             hasasm = true;
                                         /* compute number of blocks     */
     }
-    assert(numblks == i && maxblks);
-    assert(i <= maxblks);
     foreach (j, b; dfo[])
     {
         assert(b.Bdfoidx == j);
-        b.Bdom = vec_realloc(b.Bdom, maxblks); /* alloc Bdom vectors */
+        b.Bdom = vec_realloc(b.Bdom, dfo.length); /* alloc Bdom vectors */
         vec_clear(b.Bdom);
     }
     return hasasm;
@@ -391,7 +389,7 @@ private void buildloop(ref Loops ploops,block *head,block *tail)
             // Calculate loop contents separately so we get the Bweights
             // done accurately.
 
-            v = vec_calloc(maxblks);
+            v = vec_calloc(dfo.length);
             vec_setbit(head.Bdfoidx,v);
             head.Bweight = loop_weight(head.Bweight, 1);
             insert(tail,v);
@@ -407,8 +405,8 @@ private void buildloop(ref Loops ploops,block *head,block *tail)
     /* Allocate loop entry        */
     l = ploops.push();
 
-    l.Lloop = vec_calloc(maxblks);       /* allocate loop bit vector     */
-    l.Lexit = vec_calloc(maxblks);       /* bit vector for exit blocks   */
+    l.Lloop = vec_calloc(dfo.length);    // allocate loop bit vector
+    l.Lexit = vec_calloc(dfo.length);    // bit vector for exit blocks
     l.Lhead = head;
     l.Ltail = tail;
     l.Lpreheader = null;
@@ -575,7 +573,6 @@ private int looprotate(ref loop l)
         // generated).
 
         auto head2 = block_calloc(); // create new head block
-        numblks++;                      // number of blocks in existence
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
         head.Bflags = BFLnomerg;       // move flags over to head2
@@ -729,8 +726,6 @@ restart:
             if (debugc) printf("Generating preheader for loop\n");
             addblk = true;              /* add one                       */
             p = block_calloc();         // the preheader
-            numblks++;
-            assert (numblks <= maxblks);
             h = l.Lhead;               /* loop header                   */
 
             /* Find parent of h */
@@ -3096,8 +3091,6 @@ private void elimbasivs(ref loop l)
                     {
                         block *bn = block_calloc();
                         bn.Btry = b.Btry;
-                        numblks++;
-                        assert(numblks <= maxblks);
                         bn.BC = BCgoto;
                         bn.Bnext = dfo[i].Bnext;
                         dfo[i].Bnext = bn;
