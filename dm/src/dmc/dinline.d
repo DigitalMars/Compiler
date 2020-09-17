@@ -179,7 +179,7 @@ private elem* inline_do_walk(elem *e)
         {
             Symbol* s = e.EV.Vsym;
             if (s.Sclass == SCauto &&
-                s.Ssymnum == -1)
+                s.Ssymnum == SYMIDX.max)
             {   //dbg_printf("Deferred allocation of %p\n",s);
                 symbol_add(s);
 

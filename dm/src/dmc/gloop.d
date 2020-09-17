@@ -3758,7 +3758,6 @@ bool loopunroll(ref loop l)
         return false;
     }
 
-//    extern int el_length(elem *e);
     int cost = el_length(ehead);
     //printf("test4 cost: %d\n", cost);
 

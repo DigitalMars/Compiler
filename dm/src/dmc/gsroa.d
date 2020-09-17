@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2016-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2016-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gsroa.c, backend/gsroa.d)
@@ -74,7 +74,7 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
             case OPvar:
             {
                 const si = e.EV.Vsym.Ssymnum;
-                if (si >= 0 && sia[si].canSlice)
+                if (si != SYMIDX.max && sia[si].canSlice)
                 {
                     assert(si < symtab.top);
                     const n = nthSlice(e);
@@ -128,7 +128,7 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                     {
                         const e1 = e.EV.E1;
                         const si = e1.EV.Vsym.Ssymnum;
-                        if (si >= 0 && sia[si].canSlice)
+                        if (si != SYMIDX.max && sia[si].canSlice)
                         {
                             assert(si < symtab.top);
                             if (nthSlice(e1) == NOTSLICE)
@@ -183,7 +183,7 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
                 const si = s.Ssymnum;
                 //printf("e: %d %d\n", si, sia[si].canSlice);
                 //elem_print(e);
-                if (si >= 0 && sia[si].canSlice)
+                if (si != SYMIDX.max && sia[si].canSlice)
                 {
                     const n = nthSlice(e);
                     if (getSize(e) == 2 * SLICESIZE)

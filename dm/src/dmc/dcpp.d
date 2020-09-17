@@ -1449,7 +1449,7 @@ private void cpp_alloctmp_walk(elem *e)
                     /* If deferred allocation of variable, allocate it now.     */
                     /* The deferred allocations are done by cpp_initctor().     */
                     if ((s = e.EV.Vsym).Sclass == SCauto &&
-                        s.Ssymnum == -1)
+                        s.Ssymnum == SYMIDX.max)
                     {   Symbol *s2;
 
                         //printf("Deferred allocation of %p\n",s);

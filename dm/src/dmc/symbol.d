@@ -329,7 +329,7 @@ debug
     s.id = Symbol.IDsymbol;
 }
     memcpy(s.Sident.ptr,id,len + 1);
-    s.Ssymnum = -1;
+    s.Ssymnum = SYMIDX.max;
     return s;
 }
 
@@ -409,13 +409,13 @@ version (SCPP_HTOD)
     //printf("symbol_genauto(t) '%s'\n", s.Sident.ptr);
     if (pstate.STdefertemps)
     {   symbol_keep(s);
-        s.Ssymnum = -1;
+        s.Ssymnum = SYMIDX.max;
     }
     else
     {   s.Sflags |= SFLfree;
         if (init_staticctor)
         {   // variable goes into _STI_xxxx
-            s.Ssymnum = -1;            // deferred allocation
+            s.Ssymnum = SYMIDX.max;            // deferred allocation
 //printf("test2\n");
 //if (s.Sident[4] == '2') *(char*)0=0;
         }
@@ -1059,7 +1059,7 @@ static if (0)
 private void symbol_undef(Symbol *s)
 {
   s.Sclass = SCunde;
-  s.Ssymnum = -1;
+  s.Ssymnum = SYMIDX.max;
   type_free(s.Stype);                  /* free type data               */
   s.Stype = null;
 }
@@ -1109,10 +1109,10 @@ else
     debug if (debugy)
         printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,symtab.top);
 
-    debug if (s.Ssymnum != -1)
+    debug if (s.Ssymnum != SYMIDX.max)
         printf("symbol %s already added\n", s.Sident.ptr);
 
-    assert(s.Ssymnum == -1);
+    assert(s.Ssymnum == SYMIDX.max);
     return s.Ssymnum = symtab.top++;
 }
 
@@ -1163,7 +1163,7 @@ debug
             symbol_debug(s);
 }
             s.Sl = s.Sr = null;
-            s.Ssymnum = -1;
+            s.Ssymnum = SYMIDX.max;
             symbol_free(s);
         }
     }
@@ -1182,7 +1182,7 @@ Symbol * symbol_copy(Symbol *s)
     scopy = symbol_calloc(s.Sident.ptr);
     memcpy(scopy,s,Symbol.sizeof - s.Sident.sizeof);
     scopy.Sl = scopy.Sr = scopy.Snext = null;
-    scopy.Ssymnum = -1;
+    scopy.Ssymnum = SYMIDX.max;
     if (scopy.Sdt)
     {
         auto dtb = DtBuilder(0);
