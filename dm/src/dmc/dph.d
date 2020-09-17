@@ -1165,7 +1165,8 @@ static if (DEHYDRATE)
         memcpy(root.cppoperfuncs_nspace.ptr, cpp_operfuncs_nspace.ptr, (OPMAX + 7) / 8);
         }
         if (flag == FLAG_SYM)
-        {   root.mactabroot = pragma_dehydrate();
+        {
+            root.mactabroot = pragma_dehydrate();
             root.symtab = cast(Symbol *)scope_find(SCTglobal).root;
             if (!CPP)
                 root.tagsymtab = cast(Symbol *)scope_find(SCTglobaltag).root;
@@ -1229,6 +1230,7 @@ else
         }
 }
         if (MEMORYHX && flag == FLAG_SYM)                   // if writing sym file
+//        if (!MEMORYHX || flag == FLAG_SYM)  // this is correct, but causes crash
         {   FILE *fp;
 
             fp = file_openwrite(filename,"wb");
