@@ -159,13 +159,13 @@ else
 void block_next(int bc,block *bn)
 {
     curblock.BC = cast(ubyte) bc;
-    curblock.Bsymend = globsym.top;
+    curblock.Bsymend = globsym.length;
     block_last = curblock;
     if (!bn)
         bn = block_calloc_i();
     curblock.Bnext = bn;                     // next block
     curblock = curblock.Bnext;               // new current block
-    curblock.Bsymstart = globsym.top;
+    curblock.Bsymstart = globsym.length;
     curblock.Btry = pstate.STbtry;
 }
 
@@ -603,7 +603,7 @@ void block_initvar(Symbol *s)
 
 void block_endfunc(int flag)
 {
-    curblock.Bsymend = globsym.top;
+    curblock.Bsymend = globsym.length;
     curblock.Bendscope = curblock;
     if (flag)
     {
@@ -2065,7 +2065,7 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
         int si = *psi;
         type *t;
 
-        assert(si < globsym.top);
+        assert(si < globsym.length);
         Symbol *sp = globsym.tab[si];
         Symbol *s = symbol_genauto(sp.Stype);
         s.Sfl = FLauto;

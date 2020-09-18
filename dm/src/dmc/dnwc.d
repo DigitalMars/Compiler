@@ -292,7 +292,7 @@ else
                 file_progress();
                 symbol_free(cstate.CSlinkage);
                 debug printf("freesymtab\n");
-                freesymtab(globsym.tab,0,globsym.top); // free symbol table
+                freesymtab(globsym.tab,0,globsym.length); // free symbol table
                 symtab_free(globsym.tab);
                 except_term();
                 cpp_term();
@@ -886,22 +886,22 @@ void queue_func(Symbol *sfunc)
 void savesymtab(func_t *f)
 {
   assert(f.Flocsym.symmax == 0);
-  f.Flocsym.top = globsym.top;
+  f.Flocsym.length = globsym.length;
 
 debug
 {
     if (debugy)
-        dbg_printf("savesymtab(), globsym.top = %d\n",globsym.top);
+        dbg_printf("savesymtab(), globsym.length = %d\n",globsym.length);
 }
 
-  if (globsym.top)              /* if there are local symbols   */
+  if (globsym.length)              /* if there are local symbols   */
   {     /* Save local symbol table      */
-        f.Flocsym.symmax = globsym.top;
+        f.Flocsym.symmax = globsym.length;
         f.Flocsym.tab = symtab_malloc(f.Flocsym.symmax);
         memcpy(f.Flocsym.tab,&globsym.tab[0],
             (Symbol *).sizeof * f.Flocsym.symmax);
-        memset(&globsym.tab[0],0,(Symbol *).sizeof * globsym.top);
-        globsym.top = 0;
+        memset(&globsym.tab[0],0,(Symbol *).sizeof * globsym.length);
+        globsym.length = 0;
   }
 }
 
@@ -5998,7 +5998,7 @@ type *parse_decltype()
     char inarglistsave = pstate.STinarglist;
 
     pstate.STinarglist = 0;             // sizeof protects > and >>
-    SYMIDX marksi = globsym.top;
+    SYMIDX marksi = globsym.length;
     stoken();
     chktok(TKlpar, EM_lpar2, "decltype");
 
@@ -6031,7 +6031,7 @@ type *parse_decltype()
      *  decltype(&foo) fp = &foo;
      */
 
-    for (SYMIDX si = marksi; si < globsym.top; si++)
+    for (SYMIDX si = marksi; si < globsym.length; si++)
         globsym.tab[si].Sflags |= SFLnodtor;
 
     pstate.STinarglist = inarglistsave;

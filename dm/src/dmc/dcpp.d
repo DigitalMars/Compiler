@@ -4543,7 +4543,7 @@ else
     b = block_new(BCret);
     b.Belem = e;
     f.Fstartblock = b;
-    assert(globsym.top == 0);           // no local symbols
+    assert(globsym.length == 0);           // no local symbols
     queue_func(s);                      /* queue for output             */
     symbol_keep(s);
 static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
@@ -4575,8 +4575,8 @@ Symbol *cpp_getlocalsym(Symbol *sfunc,char *name)
     {   //printf("looking at globsym\n");
         ps = &globsym;
     }
-    //dbg_printf("Flocsym.top = %d\n",ps.top);
-    for (i = 0; i < ps.top; i++)
+    //dbg_printf("Flocsym.length = %d\n",ps.length);
+    for (i = 0; i < ps.length; i++)
     {
         //dbg_printf("ps.tab[%d].Sident = '%s'\n",i,&ps.tab[i].Sident[0]);
         if (strcmp(&ps.tab[i].Sident[0],name) == 0)
@@ -4760,9 +4760,9 @@ void cpp_buildinitializer(Symbol *s_ctor,list_t baseinit,int flag)
 
                 pvirtbase = cpp_pvirtbase(stag,sbase);
                 /* Construct call to virtual base constructor   */
-                marksi = globsym.top;
+                marksi = globsym.length;
                 ector = cpp_constructor(ethis,sbase.Stype,arglist,null,pvirtbase,flags | 0x10);
-                func_expadddtors(&ethis, marksi, globsym.top, true, true);
+                func_expadddtors(&ethis, marksi, globsym.length, true, true);
             }
             else
                 ector = ethis;

@@ -185,7 +185,7 @@ void func_nest(Symbol *s)
     pstate.STgotolist = null;
     pstate.STdeferDefaultArg = 0;
 
-    if (globsym.top)
+    if (globsym.length)
         memset(&globsym,0,globsym.sizeof);
     cstate.CSpsymtab = &globsym;
 
@@ -200,8 +200,8 @@ void func_nest(Symbol *s)
     init_staticctor = initsave;
 
     cstate.CSpsymtab = cstatesymsave;
-    assert(globsym.top == 0);
-    if (globsymsave.top)
+    assert(globsym.length == 0);
+    if (globsymsave.length)
     {
         symtab_free(globsym.tab);
         globsym = globsymsave;
@@ -279,7 +279,7 @@ void func_body(Symbol *s)
   if (configv.addlinenumbers)
         f.Fstartline = token_linnum();
 
-  assert(CPP || globsym.top == 0 || errcnt);    // no local symbols yet
+  assert(CPP || globsym.length == 0 || errcnt);    // no local symbols yet
   level = 1;                            /* function param level         */
   funcstate.flags = 0;                  /* haven't seen return exp; yet */
 
@@ -471,7 +471,7 @@ void func_body(Symbol *s)
     else
         param_free(&paramlst);
 
-    assert(!CPP || globsym.top == 0);           // no local symbols yet
+    assert(!CPP || globsym.length == 0);           // no local symbols yet
 
     // If a member function, put out the symbol for 'this'
     if (CPP && f.Fclass && !(f.Fflags & Fstatic))
@@ -515,7 +515,7 @@ void func_body(Symbol *s)
     if (config.flags3 & CFG3eh)
     {   SYMIDX si;
 
-        for (si = 0; si < globsym.top; si++)
+        for (si = 0; si < globsym.length; si++)
         {
             sp = globsym.tab[si];
             if (type_struct(sp.Stype))
@@ -856,7 +856,7 @@ void fscope_beg()
         funcstate.flags |= FSFout;
         curblocksave = curblock;
         funcstate.outblock = curblock = block_calloc();
-        curblock.Bsymstart = globsym.top;
+        curblock.Bsymstart = globsym.length;
 
         if (eout)
             block_appendexp(curblock, eout);
@@ -925,7 +925,7 @@ void fscope_beg()
         outcurblock = curblock;
 
         curblock = curblocksave;
-        curblock.Bsymstart = globsym.top;
+        curblock.Bsymstart = globsym.length;
 
         funcstate.flags &= ~FSFout;
     }
@@ -966,11 +966,11 @@ void fscope_beg()
     {
         curblock.appendSucc(funcstate.outblock);
         curblock.BC = BCgoto;
-        curblock.Bsymend = globsym.top;
+        curblock.Bsymend = globsym.length;
         curblock.Bnext = funcstate.outblock;
 
         curblock = outcurblock;
-        curblock.Bsymstart = globsym.top;
+        curblock.Bsymstart = globsym.length;
     }
     fscope_end();
 }
@@ -1046,10 +1046,10 @@ elem *func_expr_dtor(int keepresult)
         SYMIDX marksi;
         elem *e;
 
-        marksi = globsym.top;
+        marksi = globsym.length;
         e = func_expr();                // keep as separate statement from next
         // add in destructors for any temporaries generated
-        func_expadddtors(&e,marksi,globsym.top,keepresult != 0,true);
+        func_expadddtors(&e,marksi,globsym.length,keepresult != 0,true);
         return e;
     }
     else
@@ -2168,7 +2168,7 @@ done:
                 else
                 {   /* Generate a static struct to copy the result into */
 
-                    /*dbg_printf("Creating symbol %d\n",globsym.top);*/
+                    /*dbg_printf("Creating symbol %d\n",globsym.length);*/
                     assert(retmethod == RET_STATIC);
                     Symbol *s2 = symbol_generate(SCstatic,e.ET);
                     s2.Sflags |= SFLnodtor;     /* don't add dtors in later */
@@ -2592,7 +2592,7 @@ enum DBG = false;
         {   Symbol *s;
             type *tclass;
 
-            if (si == globsym.top)
+            if (si == globsym.length)
                 return;                 // no symbols needing destructors
             s = globsym.tab[si];
             if (s.Sflags & SFLnodtor ||        /* if already called dtor */

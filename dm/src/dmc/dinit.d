@@ -184,14 +184,14 @@ void datadef(Symbol *s)
                 }
                 symbol_add(s);
 
-                marksi = globsym.top;
+                marksi = globsym.length;
                 initializer(s);         /* followed by initializer      */
 
                 /* Initializing a const& with a temporary means we
                  * delay calling the destructor on the temporary until
                  * the end of the scope.
                  */
-                SYMIDX endsi = globsym.top;
+                SYMIDX endsi = globsym.length;
                 if (marksi < endsi &&
                     tyref(t.Tty) && t.Tnext.Tty & mTYconst)
                     endsi--;
@@ -293,7 +293,7 @@ private void initializer(Symbol *s)
     // generated during initialization, so we can add in destructors for
     // them.
     marksisave = pstate.STmarksi;
-    pstate.STmarksi = globsym.top;
+    pstate.STmarksi = globsym.length;
   }
 
     if (CPP && tok.TKval == TKlpar && !tyaggregate(ty))
@@ -2543,7 +2543,7 @@ private Symbol* init_localstatic(elem **peinit, Symbol *s)
     //symbol_debug(s);
     assert(s.Sclass == SCstatic || s.Sclass == SCcomdat || s.Sclass == SCglobal);
     tr = type_arrayroot(s.Stype);
-    func_expadddtors(peinit,pstate.STmarksi,globsym.top,true,true);
+    func_expadddtors(peinit,pstate.STmarksi,globsym.length,true,true);
     einit = *peinit;
     if (einit ||
         tybasic(tr.Tty) == TYstruct && tr.Ttag.Sstruct.Sdtor)

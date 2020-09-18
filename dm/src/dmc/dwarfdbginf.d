@@ -1565,7 +1565,7 @@ else
         int haveparameters = 0;
         uint formalcode = 0;
         uint autocode = 0;
-        for (SYMIDX si = 0; si < globsym.top; si++)
+        for (SYMIDX si = 0; si < globsym.length; si++)
         {
             Symbol *sa = globsym.tab[si];
 
@@ -1687,7 +1687,7 @@ else
 
         if (haveparameters)
         {
-            for (SYMIDX si = 0; si < globsym.top; si++)
+            for (SYMIDX si = 0; si < globsym.length; si++)
             {
                 Symbol *sa = globsym.tab[si];
 

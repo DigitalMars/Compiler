@@ -112,7 +112,7 @@ void inline_do(Symbol *sfunc)
             }
         if (eecontext.EEelem)
         {
-            const marksi = globsym.top;
+            const marksi = globsym.length;
             eecontext.EEelem = inline_do_walk(eecontext.EEelem);
             eecontext_convs(marksi);
         }
@@ -287,8 +287,8 @@ private elem* inline_expand(elem *e,Symbol *sfunc)
     elem* ec = el_copytree(f.Fstartblock.Belem);
 
     // Declare all of sfunc's local symbols as symbols in globsym
-    sistart = globsym.top;                      // where func's local symbols start
-    for (int si = 0; si < f.Flocsym.top; si++)
+    sistart = globsym.length;                      // where func's local symbols start
+    for (int si = 0; si < f.Flocsym.length; si++)
     {
         Symbol* s = f.Flocsym.tab[si];
         assert(s);
@@ -397,7 +397,7 @@ private elem* inline_args(elem *e,int *pn)
         // Find the nth parameter in the symbol table
         for (auto si = sistart; 1; si++)
         {
-            if (si == globsym.top)              // for ... parameters
+            if (si == globsym.length)              // for ... parameters
             {   ecopy = el_copytree(e);
                 break;
             }

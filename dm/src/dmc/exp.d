@@ -340,15 +340,15 @@ private elem *cond_exp()
         chkunass(e1);                   // no unintended assignments
         stoken();
 
-        s2a = globsym.top;
+        s2a = globsym.length;
         e2 = expression();
-        s2b = globsym.top;
+        s2b = globsym.length;
         chktok(TKcolon,EM_colon);
         if (CPP)
         {
-            s3a = globsym.top;
+            s3a = globsym.length;
             e3 = assign_exp();
-            s3b = globsym.top;
+            s3b = globsym.length;
             e2 = el_bint(OPcolon,cast(type *) null,e2,e3);
         }
         else
@@ -487,9 +487,9 @@ private elem *log_exp(int op)
             stoken();
             // Immediately destroy any temporaries created for the second
             // expression, as it is in its own scope.
-            marksi = globsym.top;
+            marksi = globsym.length;
             e1 = (op == OPoror) ? log_exp(OPandand) : inc_or_exp();
-            func_expadddtors(&e1,marksi,globsym.top,true,true);
+            func_expadddtors(&e1,marksi,globsym.length,true,true);
             e = el_bint(op,tslogical,e,e1);
         }
         else
@@ -2602,7 +2602,7 @@ elem *exp_sizeof(int tk)
     SYMIDX marksi;
 
     pstate.STinarglist = 0;         // sizeof protects > and >>
-    marksi = globsym.top;
+    marksi = globsym.length;
     stoken();
     if (tok.TKval != TKlpar)
     {
@@ -2666,7 +2666,7 @@ sizexp:
             if (CPP)
             {   SYMIDX si;
 
-                for (si = marksi; si < globsym.top; si++)
+                for (si = marksi; si < globsym.length; si++)
                     globsym.tab[si].Sflags |= SFLnodtor;
             }
             el_free(e1);
