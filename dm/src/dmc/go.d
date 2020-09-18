@@ -299,7 +299,7 @@ else
             blockopt(0);                // do block optimization
         out_regcand(&globsym);          // recompute register candidates
         go.changes = 0;                 // no changes yet
-        sliceStructs(&globsym, startblock);
+        sliceStructs(globsym, startblock);
         if (go.mfoptim & MFcnp)
             constprop();                /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))

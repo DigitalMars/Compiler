@@ -517,7 +517,7 @@ void func_body(Symbol *s)
 
         for (si = 0; si < globsym.length; si++)
         {
-            sp = globsym.tab[si];
+            sp = globsym[si];
             if (type_struct(sp.Stype))
             {   Classsym *stag = sp.Stype.Ttag;
 
@@ -2594,7 +2594,7 @@ enum DBG = false;
 
             if (si == globsym.length)
                 return;                 // no symbols needing destructors
-            s = globsym.tab[si];
+            s = globsym[si];
             if (s.Sflags & SFLnodtor ||        /* if already called dtor */
                 s.Sclass == SCstatic)  /* statics are destroyed elsewhere */
                 continue;
@@ -2750,7 +2750,7 @@ void func_conddtors(elem **pe, SYMIDX sistart, SYMIDX siend)
     assert(sistart <= siend);
     for (si = siend; si-- != sistart;)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         type *t = s.Stype;
         type *tclass;
 
@@ -2802,7 +2802,7 @@ void func_expadddtors(elem **pe,
     assert(sistart <= siend);
     for (si = siend; si-- != sistart;)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         type *t = s.Stype;
         type *tclass;
 

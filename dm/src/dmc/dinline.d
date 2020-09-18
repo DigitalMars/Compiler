@@ -401,7 +401,7 @@ private elem* inline_args(elem *e,int *pn)
             {   ecopy = el_copytree(e);
                 break;
             }
-            Symbol* s = globsym.tab[si];
+            Symbol* s = globsym[si];
             // SCregpar was turned into SCregister, SCparameter to SCauto
             if (s.Sclass == SCregister || s.Sclass == SCauto)
             {   if (n == 0)
@@ -468,7 +468,7 @@ private void inline_expandwalk(elem *e)
                 Symbol *s = e.EV.Vsym;
 
                 if (s.Sflags & SFLreplace)
-                    e.EV.Vsym = globsym.tab[s.Ssymnum];
+                    e.EV.Vsym = globsym[s.Ssymnum];
             }
             break;
         }

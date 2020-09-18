@@ -5397,7 +5397,7 @@ private elem * elvalist(elem *e, goal_t goal)
         Symbol *arguments_typeinfo = null;
         for (SYMIDX si = 0; si < globsym.length; si++)
         {
-            Symbol *s = globsym.tab[si];
+            Symbol *s = globsym[si];
 
             if (s.Sclass == SCparameter || s.Sclass == SCregpar)
                 lastNamed = s;
@@ -5434,7 +5434,7 @@ static if (TARGET_WINDOS)
     Symbol *lastNamed = null;
     for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
 
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
             lastNamed = s;
@@ -5464,7 +5464,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
     Symbol *va_argsave = null;
     for (SYMIDX si = 0; si < globsym.length; si++)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = globsym[si];
         if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
         {
             va_argsave = s;

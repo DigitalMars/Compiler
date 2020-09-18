@@ -6032,7 +6032,7 @@ type *parse_decltype()
      */
 
     for (SYMIDX si = marksi; si < globsym.length; si++)
-        globsym.tab[si].Sflags |= SFLnodtor;
+        globsym[si].Sflags |= SFLnodtor;
 
     pstate.STinarglist = inarglistsave;
     return t;

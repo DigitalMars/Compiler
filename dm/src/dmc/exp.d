@@ -417,8 +417,8 @@ private elem *cond_exp()
                temporaries. If so, use only 1 temporary.
              */
             if (s2a < s2b && s3a < s3b)
-            {   Symbol *s2 = globsym.tab[s2a];
-                Symbol *s3 = globsym.tab[s3a];
+            {   Symbol *s2 = globsym[s2a];
+                Symbol *s3 = globsym[s3a];
 
                 if (s2.Sclass == SCauto && s3.Sclass == SCauto &&
                     s2.Sflags == s3.Sflags &&
@@ -2667,7 +2667,7 @@ sizexp:
             {   SYMIDX si;
 
                 for (si = marksi; si < globsym.length; si++)
-                    globsym.tab[si].Sflags |= SFLnodtor;
+                    globsym[si].Sflags |= SFLnodtor;
             }
             el_free(e1);
         }

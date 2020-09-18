@@ -1567,7 +1567,7 @@ else
         uint autocode = 0;
         for (SYMIDX si = 0; si < globsym.length; si++)
         {
-            Symbol *sa = globsym.tab[si];
+            Symbol *sa = globsym[si];
 
 version (MARS)
             if (sa.Sflags & SFLnodebug) continue;
@@ -1689,7 +1689,7 @@ else
         {
             for (SYMIDX si = 0; si < globsym.length; si++)
             {
-                Symbol *sa = globsym.tab[si];
+                Symbol *sa = globsym[si];
 
 version (MARS)
                 if (sa.Sflags & SFLnodebug) continue;
