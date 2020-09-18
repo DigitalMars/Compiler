@@ -1230,7 +1230,7 @@ void flowlv()
     vec_t livexit = vec_calloc(globsym.length);
     foreach (i; 0 .. globsym.length)
     {
-        if (globsym.tab[i].Sflags & SFLlivexit)
+        if (globsym[i].Sflags & SFLlivexit)
             vec_setbit(i,livexit);
     }
 
@@ -1315,7 +1315,7 @@ private void lvgenkill()
     assert(ambigsym == null);
     ambigsym = vec_calloc(globsym.length);
     foreach (i; 0 .. globsym.length)
-        if (!(globsym.tab[i].Sflags & SFLunambig))
+        if (!(globsym[i].Sflags & SFLunambig))
             vec_setbit(i,ambigsym);
 
     foreach (b; dfo[])
