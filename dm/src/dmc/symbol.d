@@ -1107,7 +1107,7 @@ else
     symtab.tab[sitop] = s;
 
     debug if (debugy)
-        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,symtab.length);
+        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr, cast(int) symtab.length);
 
     debug if (s.Ssymnum != SYMIDX.max)
         printf("symbol %s already added\n", s.Sident.ptr);
@@ -1146,7 +1146,7 @@ void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
         return;
 
     debug if (debugy)
-        printf("freesymtab(from %d to %d)\n",n1,n2);
+        printf("freesymtab(from %d to %d)\n", cast(int) n1, cast(int) n2);
 
     assert(stab != globsym.tab || (n1 <= n2 && n2 <= globsym.length));
     for (si = n1; si < n2; si++)
@@ -1159,7 +1159,7 @@ void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
 debug
 {
             if (debugy)
-                printf("Freeing %p '%s' (%d)\n",s,s.Sident.ptr,si);
+                printf("Freeing %p '%s' (%d)\n",s,s.Sident.ptr, cast(int) si);
             symbol_debug(s);
 }
             s.Sl = s.Sr = null;

@@ -30,6 +30,7 @@ import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.cgcv;
 import dmd.backend.symtab;
+import dmd.backend.ty;
 version (SCPP)
     import parser;
 version (HTOD)

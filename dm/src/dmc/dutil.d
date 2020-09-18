@@ -280,7 +280,7 @@ else
 /***************************
  */
 
-void *util_realloc(void *oldp,uint n,uint size)
+void *util_realloc(void *oldp,size_t n,size_t size)
 {
 static if (0)
 {

@@ -49,7 +49,7 @@ char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 void util_free(void* p) { if (p) free(p); }
 void *util_calloc(uint n, uint size) { void* p = calloc(n, size); assert(!(n * size) || p); return p; }
-void *util_realloc(void* p, uint n, uint size) { void* q = realloc(p, n * size); assert(!(n * size) || q); return q; }
+void *util_realloc(void* p, size_t n, size_t size) { void* q = realloc(p, n * size); assert(!(n * size) || q); return q; }
 
 extern (C++):
 
@@ -1228,7 +1228,7 @@ void flowlv()
     /* from the function.                                           */
 
     vec_t livexit = vec_calloc(globsym.length);
-    foreach (uint i; 0 .. globsym.length)
+    foreach (i; 0 .. globsym.length)
     {
         if (globsym.tab[i].Sflags & SFLlivexit)
             vec_setbit(i,livexit);
@@ -1314,7 +1314,7 @@ private void lvgenkill()
 
     assert(ambigsym == null);
     ambigsym = vec_calloc(globsym.length);
-    foreach (uint i; 0 .. globsym.length)
+    foreach (i; 0 .. globsym.length)
         if (!(globsym.tab[i].Sflags & SFLunambig))
             vec_setbit(i,ambigsym);
 
