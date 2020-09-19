@@ -293,7 +293,7 @@ else
                 symbol_free(cstate.CSlinkage);
                 debug printf("freesymtab\n");
                 freesymtab(globsym.tab,0,globsym.length); // free symbol table
-                symtab_free(globsym.tab);
+                globsym.dtor();
                 except_term();
                 cpp_term();
                 file_progress();

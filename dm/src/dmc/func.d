@@ -203,7 +203,7 @@ void func_nest(Symbol *s)
     assert(globsym.length == 0);
     if (globsymsave.length)
     {
-        symtab_free(globsym.tab);
+        globsym.dtor();
         globsym = globsymsave;
     }
 }
