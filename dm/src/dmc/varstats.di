@@ -56,7 +56,7 @@ struct VarStatistics
 {
     //this();
 
-    void writeSymbolTable(symtab_t* symtab,
+    void writeSymbolTable(ref symtab_t symtab,
                           void function(Symbol*) fnWriteVar, void function() fnEndArgs,
                           void function(int off,int len) fnBeginBlock, void function() fnEndBlock);
 
@@ -97,7 +97,7 @@ else
     /* Free function version:
      */
 
-    void varStats_writeSymbolTable(symtab_t* symtab,
+    void varStats_writeSymbolTable(ref symtab_t symtab,
                           void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
                           void function(int off,int len) nothrow fnBeginBlock, void function() nothrow fnEndBlock);
 

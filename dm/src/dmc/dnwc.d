@@ -885,22 +885,21 @@ void queue_func(Symbol *sfunc)
 
 void savesymtab(func_t *f)
 {
-  assert(f.Flocsym.symmax == 0);
-  f.Flocsym.length = globsym.length;
+    assert(f.Flocsym.length == 0);
 
-debug
-{
-    if (debugy)
-        dbg_printf("savesymtab(), globsym.length = %d\n",globsym.length);
-}
+    debug
+    {
+        if (debugy)
+            dbg_printf("savesymtab(), globsym.length = %d\n",globsym.length);
+    }
 
-  if (globsym.length)              /* if there are local symbols   */
-  {     /* Save local symbol table      */
+    if (globsym.length)              // if there are local symbols
+    {   // Save local symbol table
         f.Flocsym.setLength(globsym.length);
-        memcpy(f.Flocsym.tab,&globsym.tab[0],
-            (Symbol *).sizeof * f.Flocsym.symmax);
+        foreach (i, s; globsym[])
+            f.Flocsym[i] = s;
         globsym.setLength(0);
-  }
+    }
 }
 
 

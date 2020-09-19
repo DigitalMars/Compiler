@@ -34,7 +34,7 @@ version (all) // free function version
 {
     import dmd.backend.varstats;
 
-    void varStats_writeSymbolTable(symtab_t* symtab,
+    void varStats_writeSymbolTable(ref symtab_t symtab,
             void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
             void function(int off,int len) nothrow fnBeginBlock, void function() nothrow fnEndBlock)
     {
@@ -150,7 +150,7 @@ private static int getHash(const(char)* s)
     return hash;
 }
 
-private bool hashSymbolIdentifiers(symtab_t* symtab)
+private bool hashSymbolIdentifiers(ref symtab_t symtab)
 {
     // build circular-linked lists of symbols with same identifier hash
     bool hashCollisions = false;
@@ -159,7 +159,7 @@ private bool hashSymbolIdentifiers(symtab_t* symtab)
         idx = SYMIDX.max;
     for (SYMIDX si = 0; si < symtab.length; si++)
     {
-        Symbol* sa = symtab.tab[si];
+        Symbol* sa = symtab[si];
         int hash = getHash(sa.Sident.ptr) & 255;
         SYMIDX first = firstSym[hash];
         if (first == SYMIDX.max)
@@ -179,18 +179,18 @@ private bool hashSymbolIdentifiers(symtab_t* symtab)
     return hashCollisions;
 }
 
-private bool hasUniqueIdentifier(symtab_t* symtab, SYMIDX si)
+private bool hasUniqueIdentifier(ref symtab_t symtab, SYMIDX si)
 {
-    Symbol* sa = symtab.tab[si];
+    Symbol* sa = symtab[si];
     for (SYMIDX sj = nextSym[si]; sj != si; sj = nextSym[sj])
-        if (strcmp(sa.Sident.ptr, symtab.tab[sj].Sident.ptr) == 0)
+        if (strcmp(sa.Sident.ptr, symtab[sj].Sident.ptr) == 0)
             return false;
     return true;
 }
 
 // gather statistics about creation and destructions of variables that are
 //  used by the current function
-private symtab_t* calcLexicalScope(symtab_t* symtab) return
+private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
 {
     // make a copy of the symbol table
     // - arguments should be kept at the very beginning
@@ -200,6 +200,7 @@ private symtab_t* calcLexicalScope(symtab_t* symtab) return
     {
         nextSym = cast(SYMIDX*)util_realloc(nextSym, symtab.length, (*nextSym).sizeof);
         sortedSymtab.tab = cast(Symbol**) util_realloc(sortedSymtab.tab, symtab.length, (Symbol*).sizeof);
+        sortedSymtab.length = symtab.length;
         sortedSymtab.symmax = symtab.length;
     }
 
@@ -207,16 +208,16 @@ private symtab_t* calcLexicalScope(symtab_t* symtab) return
     {
         // without any collisions, there are no duplicate symbol names, so bail out early
         uniquecnt = cast(int)symtab.length;
-        return symtab;
+        return &symtab;
     }
 
     SYMIDX argcnt;
     for (argcnt = 0; argcnt < symtab.length; argcnt++)
     {
-        Symbol* sa = symtab.tab[argcnt];
+        Symbol* sa = symtab[argcnt];
         if (sa.Sclass != SCparameter && sa.Sclass != SCregpar && sa.Sclass != SCfastpar && sa.Sclass != SCshadowreg)
             break;
-        sortedSymtab.tab[argcnt] = sa;
+        sortedSymtab[argcnt] = sa;
     }
 
     // find symbols with identical names, only these need lexical scope
@@ -224,15 +225,15 @@ private symtab_t* calcLexicalScope(symtab_t* symtab) return
     SYMIDX dupcnt = 0;
     for (SYMIDX sj, si = argcnt; si < symtab.length; si++)
     {
-        Symbol* sa = symtab.tab[si];
+        Symbol* sa = symtab[si];
         if (!isLexicalScopeVar(sa) || hasUniqueIdentifier(symtab, si))
-            sortedSymtab.tab[uniquecnt++] = sa;
+            sortedSymtab[uniquecnt++] = sa;
         else
-            sortedSymtab.tab[symtab.length - 1 - dupcnt++] = sa; // fill from the top
+            sortedSymtab[symtab.length - 1 - dupcnt++] = sa; // fill from the top
     }
     sortedSymtab.length = symtab.length;
     if(dupcnt == 0)
-        return symtab;
+        return &symtab;
 
     sortLineOffsets();
 
@@ -245,7 +246,7 @@ private symtab_t* calcLexicalScope(symtab_t* symtab) return
 
     for (SYMIDX si = 0; si < dupcnt; si++)
     {
-        lifeTimes[si].sym = sortedSymtab.tab[uniquecnt + si];
+        lifeTimes[si].sym = sortedSymtab[uniquecnt + si];
         lifeTimes[si].offCreate = cast(int)getLineOffset(lifeTimes[si].sym.lnoscopestart);
         lifeTimes[si].offDestroy = cast(int)getLineOffset(lifeTimes[si].sym.lnoscopeend);
     }
@@ -277,25 +278,25 @@ private symtab_t* calcLexicalScope(symtab_t* symtab) return
 
     // store duplicate symbols back with new ordering
     for (SYMIDX si = 0; si < dupcnt; si++)
-        sortedSymtab.tab[uniquecnt + si] = lifeTimes[si].sym;
+        sortedSymtab[uniquecnt + si] = lifeTimes[si].sym;
 
     return &sortedSymtab;
 }
 
-public void writeSymbolTable(symtab_t* symtab,
+public void writeSymbolTable(ref symtab_t symtab,
             void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
             void function(int off,int len) nothrow fnBeginBlock, void function() nothrow fnEndBlock)
 {
-    symtab = calcLexicalScope(symtab);
+    auto symtab2 = calcLexicalScope(symtab);
 
     int openBlocks = 0;
     int lastOffset = 0;
 
     // Write local symbol table
     bool endarg = false;
-    for (SYMIDX si = 0; si < symtab.length; si++)
+    for (SYMIDX si = 0; si < symtab2.length; si++)
     {
-        Symbol *sa = symtab.tab[si];
+        Symbol *sa = (*symtab2)[si];
         if (endarg == false &&
             sa.Sclass != SCparameter &&
             sa.Sclass != SCfastpar &&

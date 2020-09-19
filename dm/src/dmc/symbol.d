@@ -1098,6 +1098,7 @@ SYMIDX symbol_add(ref symtab_t symtab, Symbol* s)
     debug if (s.Ssymnum != SYMIDX.max)
         printf("symbol %s already added\n", s.Sident.ptr);
     assert(s.Ssymnum == SYMIDX.max);
+    symtab[sitop] = s;
     s.Ssymnum = sitop;
 
     return sitop;
