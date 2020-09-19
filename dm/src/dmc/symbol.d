@@ -1091,14 +1091,14 @@ SYMIDX symbol_add(ref symtab_t symtab, Symbol* s)
     }
     const sitop = symtab.length;
     symtab.setLength(sitop + 1);
-    symtab[sitop] = s;
-    s.Ssymnum = sitop;
 
     debug if (debugy)
         printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr, cast(int) symtab.length);
 
     debug if (s.Ssymnum != SYMIDX.max)
         printf("symbol %s already added\n", s.Sident.ptr);
+    assert(s.Ssymnum == SYMIDX.max);
+    s.Ssymnum = sitop;
 
     return sitop;
 }
