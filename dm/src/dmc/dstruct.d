@@ -4849,8 +4849,7 @@ enum
     f.Fflags |= Fgen;                  // compiler generated function
     if (func & (CFscaldtor | CFvecctor | CFvecdtor | CFdelete | CFveccpct))
         f.Fflags |= Fnodebug;          // do not generate debug info for this
-    f.Flocsym.length = f.Flocsym.symmax = 1 + nvirt + p2;
-    f.Flocsym.tab = symtab_malloc(f.Flocsym.length);
+    f.Flocsym.setLength(1 + nvirt + p2);
 
     /* Remember to load the symbols in reverse order, because we made   */
     /* constructors and destructors "Pascal"                            */

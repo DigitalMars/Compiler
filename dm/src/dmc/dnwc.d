@@ -896,12 +896,10 @@ debug
 
   if (globsym.length)              /* if there are local symbols   */
   {     /* Save local symbol table      */
-        f.Flocsym.symmax = globsym.length;
-        f.Flocsym.tab = symtab_malloc(f.Flocsym.symmax);
+        f.Flocsym.setLength(globsym.length);
         memcpy(f.Flocsym.tab,&globsym.tab[0],
             (Symbol *).sizeof * f.Flocsym.symmax);
-        memset(&globsym.tab[0],0,(Symbol *).sizeof * globsym.length);
-        globsym.length = 0;
+        globsym.setLength(0);
   }
 }
 

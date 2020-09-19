@@ -154,7 +154,7 @@ private bool hashSymbolIdentifiers(symtab_t* symtab)
 {
     // build circular-linked lists of symbols with same identifier hash
     bool hashCollisions = false;
-    SYMIDX[256] firstSym;
+    SYMIDX[256] firstSym = void;
     foreach (ref idx; firstSym)
         idx = SYMIDX.max;
     for (SYMIDX si = 0; si < symtab.length; si++)
