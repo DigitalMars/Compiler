@@ -973,7 +973,7 @@ void out_regcand(symtab_t *psymtab)
     //printf("out_regcand()\n");
     const bool ifunc = (tybasic(funcsym_p.ty()) == TYifunc);
     for (SYMIDX si = 0; si < psymtab.length; si++)
-    {   Symbol *s = psymtab.tab[si];
+    {   Symbol *s = (*psymtab)[si];
 
         symbol_debug(s);
         //assert(sytab[s.Sclass] & SCSS);      // only stack variables
@@ -995,7 +995,7 @@ void out_regcand(symtab_t *psymtab)
         // Any assembler blocks make everything ambiguous
         if (b.BC == BCasm)
             for (SYMIDX si = 0; si < psymtab.length; si++)
-                psymtab.tab[si].Sflags &= ~(SFLunambig | GTregcand);
+                (*psymtab)[si].Sflags &= ~(SFLunambig | GTregcand);
     }
 
     // If we took the address of one parameter, assume we took the
@@ -1003,8 +1003,8 @@ void out_regcand(symtab_t *psymtab)
     if (addressOfParam)                      // if took address of a parameter
     {
         for (SYMIDX si = 0; si < psymtab.length; si++)
-            if (psymtab.tab[si].Sclass == SCparameter || psymtab.tab[si].Sclass == SCshadowreg)
-                psymtab.tab[si].Sflags &= ~(SFLunambig | GTregcand);
+            if ((*psymtab)[si].Sclass == SCparameter || (*psymtab)[si].Sclass == SCshadowreg)
+                (*psymtab)[si].Sflags &= ~(SFLunambig | GTregcand);
     }
 
 }
@@ -1167,7 +1167,8 @@ version (SCPP)
     debug debugy && printf("appending symbols to symtab...\n");
     const nsymbols = f.Flocsym.length;
     globsym.setLength(nsymbols);
-    memcpy(&globsym.tab[0],&f.Flocsym.tab[0],nsymbols * (Symbol *).sizeof);
+    foreach (si; 0 .. nsymbols)
+        globsym[si] = f.Flocsym[si];
 
     assert(startblock == null);
     if (f.Fflags & Finline)            // if keep function around
