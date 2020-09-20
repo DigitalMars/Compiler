@@ -1606,9 +1606,9 @@ Ldone:
 version (SCPP)
 {
     // Free any added symbols
-    freesymtab(globsym.tab,nsymbols,globsym.length);
+    freesymtab(globsym[].ptr,nsymbols,globsym.length);
 }
-    globsym.length = 0;
+    globsym.setLength(0);
 
     //printf("done with writefunc()\n");
     //dfo.dtor();       // save allocation for next time
