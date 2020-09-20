@@ -290,7 +290,7 @@ private elem* inline_expand(elem *e,Symbol *sfunc)
     sistart = globsym.length;                      // where func's local symbols start
     for (int si = 0; si < f.Flocsym.length; si++)
     {
-        Symbol* s = f.Flocsym.tab[si];
+        Symbol* s = f.Flocsym[si];
         assert(s);
         //if (!s)
         //    continue;

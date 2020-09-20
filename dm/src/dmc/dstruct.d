@@ -4860,14 +4860,14 @@ enum
         newpointer(stag.Stype));
     sthis.Sflags |= SFLfree;
     sthis.Ssymnum = 0;
-    f.Flocsym.tab[0] = sthis;
+    f.Flocsym[0] = sthis;
 
     if (nvirt)
     {
         Symbol* s = symbol_name(cpp_name_initvbases.ptr,SCparameter,tstypes[TYint]);
         s.Sflags |= SFLfree;
         s.Ssymnum = p2 + 1;
-        f.Flocsym.tab[s.Ssymnum] = s;
+        f.Flocsym[s.Ssymnum] = s;
     }
 
     if (p2)
@@ -4886,7 +4886,7 @@ enum
         Symbol* s = symbol_name(p,SCparameter,t2);
         s.Sflags |= SFLfree;
         s.Ssymnum = 1;
-        f.Flocsym.tab[1] = s;
+        f.Flocsym[1] = s;
         sfree = s;
     }
 
@@ -4912,7 +4912,6 @@ enum
         symtab_t *psymtabsave;
         psymtabsave = cstate.CSpsymtab;
         cstate.CSpsymtab = &f.Flocsym;
-        assert(cstate.CSpsymtab.tab);  // the local symbol table must exist
 
         block *bl;
         bl = block_calloc();
@@ -5283,7 +5282,7 @@ Symbol *n2_delete(Classsym *stag,Symbol *sfunc,uint nelems)
         symbol_debug(s);
         f = s.Sfunc;
 
-        eptr = el_var(f.Flocsym.tab[0]);
+        eptr = el_var(f.Flocsym[0]);
         arglist = list_build(eptr,el_longt(tstypes[TYuint],nelems),null);
         e = xfunccall(el_var(sfunc),null,null,arglist);
         f.Fstartblock.Belem = e;
@@ -5447,7 +5446,6 @@ void n2_createopeq(Classsym *stag,int flag)
             /* they are added to the local symbol table rather than the global  */
             psymtabsave = cstate.CSpsymtab;
             cstate.CSpsymtab = &f.Flocsym;
-            assert(cstate.CSpsymtab.tab);      // the local symbol table must exist
 
             inopeqsave = pstate.STinopeq;
             pstate.STinopeq = 1;
