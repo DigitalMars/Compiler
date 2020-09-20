@@ -4562,25 +4562,23 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
  *      null if not found
  */
 Symbol *cpp_getlocalsym(Symbol *sfunc,char *name)
-{   func_t *f;
-    SYMIDX i;
-    symtab_t *ps;
-
+{
     //dbg_printf("cpp_getlocalsym(%s,%s)\n",sfunc.Sident,name);
     symbol_debug(sfunc);
-    f = sfunc.Sfunc;
+    auto f = sfunc.Sfunc;
     assert(f);
-    ps = &f.Flocsym;
+    symtab_t* ps = &f.Flocsym;
     if (!ps.tab)               // it's in global table if function is not finished
     {   //printf("looking at globsym\n");
         ps = &globsym;
     }
     //dbg_printf("Flocsym.length = %d\n",ps.length);
-    for (i = 0; i < ps.length; i++)
+    foreach (SYMIDX i; 0 .. ps.length)
     {
-        //dbg_printf("ps.tab[%d].Sident = '%s'\n",i,&ps.tab[i].Sident[0]);
-        if (strcmp(&ps.tab[i].Sident[0],name) == 0)
-            return ps.tab[i];
+        //dbg_printf("ps[%d].Sident = '%s'\n",i,(*ps)[i].Sident[0]);
+        Symbol* s = (*ps)[i];
+        if (strcmp(&s.Sident[0],name) == 0)
+            return s;
     }
     return null;
 }
