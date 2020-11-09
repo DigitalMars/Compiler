@@ -2018,7 +2018,10 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
     if (forccs)                           // if return result in flags
     {
         if (retregs & (mST01 | mST0))
+        {
+            *pretregs |= forccs;
             fixresult87(cdb, e, retregs, pretregs);
+        }
         else
             tstresult(cdb, retregs, tym, forregs);
     }
@@ -4396,13 +4399,15 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
         case OPind:
             if (!e.Ecount)                         /* if *e1       */
             {
-                if (sz <= REGSIZE)
-                {   // Watch out for single byte quantities being up
-                    // against the end of a segment or in memory-mapped I/O
-                    if (!(config.exe & EX_flat) && szb == 1)
-                        break;
-                    goto L1;            // can handle it with loadea()
+                if (sz < REGSIZE)
+                {
+                    /* Don't push REGSIZE quantity because it may
+                     * straddle past the end of valid memory
+                     */
+                    break;
                 }
+                if (sz == REGSIZE)
+                    goto case OPvar;    // handle it with loadea()
 
                 // Avoid PUSH MEM on the Pentium when optimizing for speed
                 if (config.flags4 & CFG4speed &&
