@@ -370,7 +370,6 @@ extern __gshared bool anyiasm;
 extern __gshared char calledafunc;
 extern __gshared bool calledFinally;
 
-void stackoffsets(int);
 void codgen(Symbol *);
 
 debug
@@ -495,6 +494,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs);
 void callclib(ref CodeBuilder cdb, elem *e, uint clib, regm_t *pretregs, regm_t keepmask);
 void pushParams(ref CodeBuilder cdb,elem *, uint, tym_t tyf);
 void offsetinreg(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
+void argtypes(type* t, ref type* arg1type, ref type* arg2type);
 
 /* cod2.c */
 bool movOnly(const elem *e);
