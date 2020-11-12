@@ -96,6 +96,8 @@ struct Loc
 void error(Loc loc, const(char)* format, ...);
 }
 
+int obj_namestring(char *p,const(char)* name);
+
 version (MARS)
 {
 // C++ name mangling is handled by front end
@@ -562,32 +564,7 @@ int getindex(ubyte* p)
     : *p);
 }
 
-/*****************************
- * Returns:
- *      # of bytes stored
- */
-
 enum ONS_OHD = 4;               // max # of extra bytes added by obj_namestring()
-
-private int obj_namestring(char *p,const(char)* name)
-{   uint len;
-
-    len = cast(uint)strlen(name);
-    if (len > 255)
-    {   p[0] = 0xFF;
-        p[1] = 0;
-        debug assert(len <= 0xFFFF);
-        TOWORD(p + 2,len);
-        memcpy(p + 4,name,len);
-        len += ONS_OHD;
-    }
-    else
-    {   p[0] = cast(char)len;
-        memcpy(p + 1,name,len);
-        len++;
-    }
-    return len;
-}
 
 /******************************
  * Allocate a new segment.
@@ -707,7 +684,7 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         obj.resetSymbols.reset();
 
         obj.buf = objbuf;
-        obj.buf.reserve(40000);
+        obj.buf.reserve(40_000);
 
         obj.lastfardatasegi = -1;
 

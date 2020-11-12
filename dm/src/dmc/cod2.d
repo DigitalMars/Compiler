@@ -931,7 +931,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             orthxmm(cdb,e,pretregs);
             return;
         }
-        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        if (config.exe & EX_posix)
             orth87(cdb,e,pretregs);
         else
             opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
@@ -1318,7 +1318,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             orthxmm(cdb,e,pretregs);
             return;
         }
-        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        if (config.exe & EX_posix)
             orth87(cdb,e,pretregs);
         else
             opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
@@ -4775,16 +4775,10 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
             goto L4;
 
         case FLextern:
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
-            if (e.EV.Vsym.ty() & mTYthread)
+            if (config.exe & EX_posix && e.EV.Vsym.ty() & mTYthread)
                 goto L5;
-    }
-    static if (TARGET_WINDOS)
-    {
-            if (I64 && e.EV.Vsym.ty() & mTYthread)
+            if (config.exe & EX_WIN64 && e.EV.Vsym.ty() & mTYthread)
                 goto L5;
-    }
             goto L4;
 
         case FLdata:

@@ -864,7 +864,7 @@ void cdaddass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        if (config.exe & EX_posix)
         {
             if (op == OPnegass)
                 cdnegass87(cdb,e,pretregs);
@@ -1416,7 +1416,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        if (config.exe & EX_posix)
         {
             opass87(cdb,e,pretregs);
         }
@@ -1698,7 +1698,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        if (config.exe & EX_posix)
         {
             opass87(cdb,e,pretregs);
         }
@@ -3513,8 +3513,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                     cdd_u32(cdb,e,pretregs);
                     return;
                 }
-                static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD ||
-                           TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+                if (config.exe & EX_posix)
                 {
                     retregs = mST0;
                 }

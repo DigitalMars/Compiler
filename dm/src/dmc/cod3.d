@@ -395,14 +395,10 @@ void cod3_set64()
     inssize[0xA3] = T|5;                // MOV mem,RAX
     BPRM = 5;                           // [RBP] addressing mode
 
-static if (TARGET_WINDOS)
-{
-    fregsaved = mBP | mBX | mDI | mSI | mR12 | mR13 | mR14 | mR15 | mES | mXMM6 | mXMM7; // also XMM8..15;
-}
-else
-{
-    fregsaved = mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES;      // saved across function calls
-}
+    fregsaved = (config.exe & EX_windos)
+        ? mBP | mBX | mDI | mSI | mR12 | mR13 | mR14 | mR15 | mES | mXMM6 | mXMM7 // also XMM8..15;
+        : mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES;      // saved across function calls
+
     FLOATREGS = FLOATREGS_64;
     FLOATREGS2 = FLOATREGS2_64;
     DOUBLEREGS = DOUBLEREGS_64;
@@ -478,28 +474,27 @@ void cod3_align_bytes(int seg, size_t nbytes)
  */
 void cod3_align(int seg)
 {
-    uint nbytes;
-static if (TARGET_WINDOS)
-{
-    if (config.flags4 & CFG4speed)      // if optimized for speed
+    if (config.exe & EX_windos)
     {
-        // Pick alignment based on CPU target
-        if (config.target_cpu == TARGET_80486 ||
-            config.target_cpu >= TARGET_PentiumPro)
-        {   // 486 does reads on 16 byte boundaries, so if we are near
-            // such a boundary, align us to it
+        if (config.flags4 & CFG4speed)      // if optimized for speed
+        {
+            // Pick alignment based on CPU target
+            if (config.target_cpu == TARGET_80486 ||
+                config.target_cpu >= TARGET_PentiumPro)
+            {   // 486 does reads on 16 byte boundaries, so if we are near
+                // such a boundary, align us to it
 
-            nbytes = -Offset(seg) & 15;
-            if (nbytes < 8)
-                cod3_align_bytes(seg, nbytes);
+                const nbytes = -Offset(seg) & 15;
+                if (nbytes < 8)
+                    cod3_align_bytes(seg, nbytes);
+            }
         }
     }
-}
-else
-{
-    nbytes = -Offset(seg) & 7;
-    cod3_align_bytes(seg, nbytes);
-}
+    else
+    {
+        const nbytes = -Offset(seg) & 7;
+        cod3_align_bytes(seg, nbytes);
+    }
 }
 
 
@@ -686,11 +681,8 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mST0;
 
         case TYcfloat:
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-            if (I32 && tybasic(tyf) == TYnfunc)
+            if (config.exe & EX_posix && I32 && tybasic(tyf) == TYnfunc)
                 return mDX | mAX;
-}
             goto case TYcdouble;
 
         case TYcdouble:
@@ -1506,11 +1498,8 @@ void doswitch(ref CodeBuilder cdb, block *b)
         regm_t retregs = IDXREGS;
         if (dword)
             retregs |= mMSW;
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (I32 && config.flags3 & CFG3pic)
+        if (config.exe & EX_posix && I32 && config.flags3 & CFG3pic)
             retregs &= ~mBX;                            // need EBX for GOT
-}
         bool modify = (I16 || I64 || vmin);
         scodelem(cdb,e,&retregs,0,!modify);
         reg_t reg = findreg(retregs & IDXREGS); // reg that result is in
@@ -1711,9 +1700,8 @@ else
             genjmp(cdb,JNE,FLblock,b.nthSucc(0)); // JNE default
         }
         getregs(cdb,mCX|mDI);
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (config.flags3 & CFG3pic)
+
+        if (config.flags3 & CFG3pic && config.exe & EX_posix)
         {   // Add in GOT
             getregs(cdb,mDX);
             cdb.genc2(CALL,0,0);        //     CALL L1
@@ -1732,7 +1720,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             cdb.gencs(0x81,modregrm(3,0,DI),FLswitch,null);
             cdb.last().IEV2.Vswitch = b;
         }
-}
+
         if (!(config.flags3 & CFG3pic))
         {
                                         // MOV DI,offset of switch table
@@ -1787,15 +1775,15 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         const int mod = (disp > 127) ? 2 : 1;     // 1 or 2 byte displacement
         if (csseg)
             cdb.gen1(SEGCS);            // table is in code segment
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (config.flags3 & CFG3pic)
+
+        if (config.flags3 & CFG3pic &&
+            config.exe & EX_posix)
         {                               // ADD EDX,(ncases-1)*2[EDI]
             cdb.genc1(0x03,modregrm(mod,DX,7),FLconst,disp);
                                         // JMP EDX
             cdb.gen2(0xFF,modregrm(3,4,DX));
         }
-}
+
         if (!(config.flags3 & CFG3pic))
         {                               // JMP (ncases-1)*2[DI]
             cdb.genc1(0xFF,modregrm(mod,4,(I32 ? 7 : 5)),FLconst,disp);
@@ -1857,13 +1845,11 @@ void outjmptab(block *b)
                         break;
                 }
         }
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (I64)
+        if (config.exe & (EX_LINUX64 | EX_FREEBSD64 | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS64))
         {
             if (config.flags3 & CFG3pic)
             {
-                objmod.reftodatseg(jmpseg,*poffset,targ + (u - vmin) * 4,funcsym_p.Sseg,CFswitch);
+                objmod.reftodatseg(jmpseg,*poffset,cast(targ_size_t)(targ + (u - vmin) * 4),funcsym_p.Sseg,CFswitch);
                 *poffset += 4;
             }
             else
@@ -1872,7 +1858,7 @@ static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYB
                 *poffset += 8;
             }
         }
-        else
+        else if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
         {
             if (config.flags3 & CFG3pic)
             {
@@ -1886,31 +1872,28 @@ static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYB
                 objmod.reftocodeseg(jmpseg,*poffset,targ);
             *poffset += 4;
         }
-}
-else static if (TARGET_OSX)
-{
-        targ_size_t val;
-        if (I64)
-            val = targ - b.Btableoffset;
-        else
-            val = targ - b.Btablebase;
-        objmod.write_bytes(SegData[jmpseg],4,&val);
-}
-else static if (TARGET_WINDOS)
-{
-        if (I64)
+        else if (config.exe & (EX_OSX | EX_OSX64))
         {
-            targ_size_t val = targ - b.Btableoffset;
+            targ_size_t val;
+            if (I64)
+                val = targ - b.Btableoffset;
+            else
+                val = targ - b.Btablebase;
             objmod.write_bytes(SegData[jmpseg],4,&val);
         }
         else
         {
-            objmod.reftocodeseg(jmpseg,*poffset,targ);
-            *poffset += tysize(TYnptr);
+            if (I64)
+            {
+                targ_size_t val = targ - b.Btableoffset;
+                objmod.write_bytes(SegData[jmpseg],4,&val);
+            }
+            else
+            {
+                objmod.reftocodeseg(jmpseg,*poffset,targ);
+                *poffset += tysize(TYnptr);
+            }
         }
-}
-else
-        assert(0);
 
         if (u == vmax)                  // for case that (vmax == ~0)
             break;
@@ -2459,7 +2442,7 @@ void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
 void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
-    static if (TARGET_OSX)
+    if (config.exe & (EX_OSX | EX_OSX64))
     {
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
@@ -2472,7 +2455,7 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
         fixresult(cdb,e,retregs,pretregs);
     }
-    else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    else if (config.exe & EX_posix)
     {
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
@@ -2508,9 +2491,9 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
 void load_localgot(ref CodeBuilder cdb)
 {
-    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS)) // note: I32 only
     {
-        if (config.flags3 & CFG3pic && I32)
+        if (config.flags3 & CFG3pic)
         {
             if (localgot && !(localgot.Sflags & SFLdead))
             {
@@ -2532,15 +2515,13 @@ void load_localgot(ref CodeBuilder cdb)
     }
 }
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
 /*****************************
  * Returns:
  *      # of bytes stored
  */
 
 
-private int obj_namestring(char *p,const(char)* name)
+int obj_namestring(char *p,const(char)* name)
 {
     size_t len = strlen(name);
     if (len > 255)
@@ -2560,7 +2541,6 @@ private int obj_namestring(char *p,const(char)* name)
         len++;
     }
     return cast(int)len;
-}
 }
 
 void genregs(ref CodeBuilder cdb,opcode_t op,uint dstreg,uint srcreg)
@@ -3263,15 +3243,14 @@ void prolog_stackalign(ref CodeBuilder cdb)
 void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc)
 {
     uint pushallocreg = (tyf == TYmfunc) ? CX : AX;
-static if (TARGET_LINUX)
-{
-    bool check = false;               // seems that Linux doesn't need to fault in stack pages
-}
-else
-{
-    bool check = (config.flags & CFGstack && !(I32 && xlocalsize < 0x1000)) // if stack overflow check
-        || (TARGET_WINDOS && xlocalsize >= 0x1000 && config.exe & EX_flat);
-}
+
+    bool check;
+    if (config.exe & (EX_LINUX | EX_LINUX64))
+        check = false;               // seems that Linux doesn't need to fault in stack pages
+    else
+        check = (config.flags & CFGstack && !(I32 && xlocalsize < 0x1000)) // if stack overflow check
+            || (config.exe & (EX_windos & EX_flat) && xlocalsize >= 0x1000);
+
     if (check)
     {
         if (I16)
@@ -4550,14 +4529,10 @@ static if (0)
     sthunk.Soffset = thunkoffset;
     sthunk.Ssize = Offset(seg) - thunkoffset; // size of thunk
     sthunk.Sseg = seg;
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    if (config.exe & EX_posix ||
+       config.objfmt == OBJ_MSCOFF)
     {
         objmod.pubdef(seg,sthunk,sthunk.Soffset);
-    }
-    static if (TARGET_WINDOS)
-    {
-        if (config.objfmt == OBJ_MSCOFF)
-            objmod.pubdef(seg,sthunk,sthunk.Soffset);
     }
     searchfixlist(sthunk);              // resolve forward refs
 }
@@ -6483,7 +6458,7 @@ uint codout(int seg, code *c)
     {
         debug
         {
-        if (debugc) { printf("off=%02lx, sz=%ld, ",cast(int)ggen.getOffset(),cast(int)calccodsize(c)); code_print(c); }
+        if (debugc) { printf("off=%02x, sz=%d, ",cast(int)ggen.getOffset(),cast(int)calccodsize(c)); code_print(c); }
         uint startoffset = ggen.getOffset();
         }
 
@@ -6759,13 +6734,12 @@ else
                                     else
                                         val = -8;
                                 }
-static if (TARGET_OSX || TARGET_WINDOS)
-{
-                                /* Mach-O and Win64 fixups already take the 4 byte size
-                                 * into account, so bias by 4
-        `                        */
-                                val += 4;
-}
+
+                                if (config.exe & (EX_OSX64 | EX_WIN64))
+                                    /* Mach-O and Win64 fixups already take the 4 byte size
+                                     * into account, so bias by 4
+                                     */
+                                    val += 4;
                             }
                         }
                         do32bit(&ggen, cast(FL)c.IFL1,&c.IEV1,cfflags,cast(int)val);
@@ -7005,23 +6979,42 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
             // un-named external with is the start of .rodata or .data
         case FLextern:                      /* external data symbol         */
         case FLtlsdata:
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        case FLgot:
-        case FLgotoff:
-}
             pbuf.flush();
             s = uev.Vsym;               /* symbol pointer               */
             objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
             break;
 
-static if (TARGET_OSX)
-{
+        case FLgotoff:
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                assert(0);
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
+                break;
+            }
+            else
+                assert(0);
+
         case FLgot:
-            funcsym_p.Slocalgotoffset = pbuf.getOffset();
-            ad = 0;
-            goto L1;
-}
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                funcsym_p.Slocalgotoffset = pbuf.getOffset();
+                ad = 0;
+                goto L1;
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
+                break;
+            }
+            else
+                assert(0);
 
         case FLfunc:                        /* function call                */
             s = uev.Vsym;               /* symbol pointer               */
@@ -7081,7 +7074,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
             ad = uev.Vswitch.Btableoffset;
             if (config.flags & CFGromable)
             {
-                static if (TARGET_OSX)
+                if (config.exe & (EX_OSX | EX_OSX64))
                 {
                     // These are magic values based on the exact code generated for the switch jump
                     if (I64)
@@ -7091,7 +7084,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                     ad -= uev.Vswitch.Btablebase;
                     goto L1;
                 }
-                else static if (TARGET_WINDOS)
+                else if (config.exe & EX_windos)
                 {
                     if (I64)
                     {
@@ -7127,14 +7120,9 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
             // un-named external with is the start of .rodata or .data
         case FLextern:                      /* external data symbol         */
         case FLtlsdata:
-    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
-        case FLgot:
-        case FLgotoff:
-    }
             pbuf.flush();
             s = uev.Vsym;               /* symbol pointer               */
-            if (TARGET_WINDOS && I64 && (flags & CFpc32))
+            if (config.exe & EX_windos && I64 && (flags & CFpc32))
             {
                 /* This is for those funky fixups where the location to be fixed up
                  * is a 'val' amount back from the current RIP, biased by adding 4.
@@ -7148,13 +7136,37 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
             break;
 
-    static if (TARGET_OSX)
-    {
+        case FLgotoff:
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                assert(0);
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
+                break;
+            }
+            else
+                assert(0);
+
         case FLgot:
-            funcsym_p.Slocalgotoffset = pbuf.getOffset();
-            ad = 0;
-            goto L1;
-    }
+            if (config.exe & (EX_OSX | EX_OSX64))
+            {
+                funcsym_p.Slocalgotoffset = pbuf.getOffset();
+                ad = 0;
+                goto L1;
+            }
+            else if (config.exe & EX_posix)
+            {
+                pbuf.flush();
+                s = uev.Vsym;               /* symbol pointer               */
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
+                break;
+            }
+            else
+                assert(0);
 
         case FLfunc:                        /* function call                */
             s = uev.Vsym;               /* symbol pointer               */
