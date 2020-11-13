@@ -176,14 +176,14 @@ enum {
         TK_stdcall,
         TK_syscall,
         TK_try,
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+
+        // Posix
         TK_attribute,
         TK_extension,
         TK_format,
         TK_restrict,
         TK_bltin_const,
-//#endif
-//#else
+
 /+
         TKcomp,
         TKextended,
@@ -193,7 +193,7 @@ enum {
         TK__class,
         TKinherited,
 +/
-//#endif
+
         TK_unaligned,
         TKsymbol,                       // special internal token
 
@@ -207,9 +207,8 @@ enum {
         TKandand,TKshl,TKshr,TKrcur,TKeq,TKaddass,TKminass,TKmulass,TKdivass,
         TKmodass,TKshrass,TKshlass,TKandass,TKxorass,TKorass,TKsemi,
         TKadd,TKellipsis,
-//#if !TX86 || TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-//        TKdollar,
-//#endif
+
+//      TKdollar, // Posix
 
  /* The following relational tokens must be in the same order as the
     corresponding operators.

@@ -188,13 +188,13 @@ enum
     mTYshared       = 0x00100000,    // shared data
     mTYnothrow      = 0x00200000,    // nothrow function
 
-    // Used only by C/C++ compiler
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
+    // SROA types
+    mTYxmmgpr       = 0x00400000,    // first slice in XMM register, the other in GPR
+    mTYgprxmm       = 0x00800000,    // first slice in GPR register, the other in XMM
+
     mTYnoret        = 0x01000000,    // function has no return
     mTYtransu       = 0x01000000,    // transparent union
-//#else
     mTYfar16        = 0x01000000,
-//#endif
     mTYstdcall      = 0x02000000,
     mTYfastcall     = 0x04000000,
     mTYinterrupt    = 0x08000000,
@@ -203,11 +203,7 @@ enum
     mTYsyscall      = 0x40000000,
     mTYjava         = 0x80000000,
 
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
-//    mTYTFF          = 0xFE000000,
-//#else
     mTYTFF          = 0xFF000000,
-//#endif
 }
 
 pure

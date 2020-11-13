@@ -1299,12 +1299,14 @@ private elem *memptr_exp()
             e.ET.Tcount++;
             goto done;
 
-        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-        {
         case TK_bltin_const:            // return 1 if compile time constant expression
-            e = exp_isconst();          // otherwise return 0
-            goto done;
-        }
+            if (0 && config.exe & EX_posix)
+            {
+                // note exp_isconst() doesn't exist
+                //e = exp_isconst();          // otherwise return 0
+                goto done;
+            }
+            goto default;
 
         case TKsizeof:
         case TK_typeinfo:
@@ -2158,14 +2160,17 @@ if (!bColcol)
             stoken();
             break;
 
-        static if (0)
-        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-        {
+static if (0)
+{
         case TKnull:
-            e = el_longt(tspvoid,0);
-            stoken();
-            break;
-        }
+            if (config.exe & EX_posix)
+            {
+                e = el_longt(tspvoid,0);
+                stoken();
+                break;
+            }
+            goto default;
+}
 
         case TKnullptr:
             e = el_longt(tstypes[TYnullptr], 0);
