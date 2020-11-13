@@ -139,9 +139,6 @@ void modEA(ref CodeBuilder cdb,code *c)
     }
 }
 
-static if (TARGET_WINDOS)
-{
-// This code is for CPUs that do not support the 8087
 
 /****************************
  * Gen code for op= for doubles.
@@ -149,6 +146,8 @@ static if (TARGET_WINDOS)
 
 private void opassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs,OPER op)
 {
+    assert(config.exe & EX_windos);  // for targets that may not have an 8087
+
     static immutable uint[OPdivass - OPpostinc + 1] clibtab =
     /* OPpostinc,OPpostdec,OPeq,OPaddass,OPminass,OPmulass,OPdivass       */
     [  CLIB.dadd, CLIB.dsub, cast(uint)-1,  CLIB.dadd,CLIB.dsub,CLIB.dmul,CLIB.ddiv ];
@@ -247,6 +246,8 @@ private void opassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs,OPER op)
 
 private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    assert(config.exe & EX_windos);  // for targets that may not have an 8087
+
     if (config.inline8087)
     {
         cdnegass87(cdb,e,pretregs);
@@ -345,7 +346,6 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     freenode(e1);
     fixresult(cdb,e,retregs,pretregs);
-}
 }
 
 
@@ -2575,7 +2575,7 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-            static if (TARGET_WINDOS)
+            if (config.exe & EX_windos)
             {
                 int clib;
 
@@ -3043,7 +3043,7 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             goto L5;
 
         case OPvar:
-            static if (TARGET_OSX)
+            if (config.exe & (EX_OSX | EX_OSX64))
             {
                 if (movOnly(e2))
                     goto L2;
