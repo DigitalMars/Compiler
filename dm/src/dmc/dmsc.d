@@ -167,21 +167,12 @@ type *reftoptr(type *t)
 
     switch (tybasic(t.Tty))
     {
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-        case TYnref:
-        case TYfref:
-            ty = TYnptr;
-}
-else
-{
         case TYnref:
             ty = TYnptr;
             goto L1;
         case TYfref:
-            ty = TYfptr;
+            ty = (config.exe & (EX_posix | EX_64)) ? TYnptr : TYfptr;
         L1:
-}
             et = type_allocn(ty,t.Tnext);
             break;
 
@@ -261,15 +252,12 @@ type *type_ptr(elem *e,type *t)
                 case SCfastpar:
                 case SCshadowreg:
                 case SCbprel:
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-                    tptr.Tty = TYnptr;
-}
-else
-{
-                    tptr.Tty = (config.wflags & WFssneds) ? TYsptr : TYnptr;
-}
+                    if (config.exe & EX_posix)
+                        tptr.Tty = TYnptr;
+                    else
+                        tptr.Tty = (config.wflags & WFssneds) ? TYsptr : TYnptr;
                     break;
+
                 case SCglobal:
                 case SCstatic:
                 case SCextern:

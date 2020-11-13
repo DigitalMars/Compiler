@@ -4474,13 +4474,12 @@ if (TERMCODE)
     {   Symbol *sdtor;
 
         sdtor = cpp_build_STX(name,destructor_list);
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-        Obj.staticctor(sdtor,1,pstate.STinitseg);
-        dtor = 0;
-}
-else
-{
+        if (config.exe & EX_posix)
+        {
+            Obj.staticctor(sdtor,1,pstate.STinitseg);
+            dtor = 0;
+        }
+        else
         // Append call to __fatexit(sdtor) to constructor list
         {   elem *e;
             list_t arglist;
@@ -4490,7 +4489,6 @@ else
             list_append(&constructor_list,e);
             dtor = 1;
         }
-}
     }
 
 version (SCPP)
@@ -4546,10 +4544,8 @@ else
     assert(globsym.length == 0);           // no local symbols
     queue_func(s);                      /* queue for output             */
     symbol_keep(s);
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-    output_func();                      // output now for relocation ref */
-}
+    if (config.exe & EX_posix)
+        output_func();                      // output now for relocation ref
     return s;
 }
 

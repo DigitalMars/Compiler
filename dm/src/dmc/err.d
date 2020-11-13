@@ -331,7 +331,7 @@ private __gshared short[31] war_to_msg =
         EM_ccast,
         EM_obsolete,
 
-    // Posix#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    // Posix
         /*EM_skip_attribute,
         EM_warning_message,
         EM_bad_vastart,

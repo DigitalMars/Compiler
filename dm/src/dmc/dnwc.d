@@ -991,25 +991,26 @@ int declaration_specifier(type **ptyp_spec, int *pclass, uint *pclassm)
   /* inlines and templates).                                                      ILR */
 
   msbug = 0;
-static if (0)
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-  if (tok.TKval == TK_extension)
-      stoken();                         // skip over __extension__ keyword
-  else if (tok.TKval == TK_attribute)
-  {
-      int attrtype;
-      int mod = getattributes(null,false,&attrtype);
-      if (attrtype & ATTR_LINKMOD)
-          modifiersx = mod & ATTR_LINK_MODIFIERS;
-                                        // not sure how precedence works
-debug
-{
-      attrtype |= ~ATTR_LINKMOD;
-      assert(ATTR_CAN_IGNORE(attrtype));
-}
-  }
-}
+
+    static if (0)
+    if (config.exe & EX_posix)
+    {
+        if (tok.TKval == TK_extension)
+            stoken();                         // skip over __extension__ keyword
+        else if (tok.TKval == TK_attribute)
+        {
+            int attrtype;
+            int mod = getattributes(null,false,&attrtype);
+            if (attrtype & ATTR_LINKMOD)
+              modifiersx = mod & ATTR_LINK_MODIFIERS;
+                                            // not sure how precedence works
+            debug
+            {
+                attrtype |= ~ATTR_LINKMOD;
+                assert(ATTR_CAN_IGNORE(attrtype));
+            }
+        }
+    }
 
 L2:
   switch (tok.TKval)
@@ -4707,10 +4708,7 @@ int funcdecl(Symbol *s,int sc_specifier,int pflags,Declar *decl)
     param_t *p;
     type *tf;
     int opnum;
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
     enum_SC save_class = s.Sclass;
-}
 
     if (CPP)
     {
@@ -5252,10 +5250,10 @@ static if (0)
         _body = true;
     }
 done:
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-    lnx_funcdecl(s,sc_specifier,save_class,_body);
-}
+    static if (0)
+    if (config.exe & EX_posix)
+        lnx_funcdecl(s,sc_specifier,save_class,_body);
+
     if (_body && CPP && type_mangle(s.Stype) != mTYman_cpp)
     {
         //printf("defining '%s'\n", &s.Sident[0]);

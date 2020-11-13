@@ -1122,7 +1122,7 @@ else
                 newfieldsize = type_size(typ_spec);
                 width = getwidth(newfieldsize * 8); // get width of hole
                 bit += width;           // add to current bit position
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+if (config.exe & EX_posix)
 {
                 if (width == 0 || bit >= int.sizeof * 8)
                 {   offset += (bit+7)/8;
@@ -1159,7 +1159,7 @@ else
                 /* This is not a bit field, so align on next int        */
                 if (bit)                /* if previous decl was a field */
                 {
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+if (config.exe & EX_posix)
 {
                     offset += (bit+7)/8;        /* advance past used bits */
 }
@@ -1605,7 +1605,7 @@ else
                     width = getwidth(newfieldsize * 8);
                     if (width == 0)
                         synerr(EM_decl_0size_bitfield); // no declarator allowed
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+if (config.exe & EX_posix)
 {
                     // Very weird alignment
                     // if bits available in remaining word,
@@ -1646,7 +1646,7 @@ else
                     width = 0;          /* so bit won't screw up        */
                     if (bit)            /* if previous decl was a field */
                     {
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+if (config.exe & EX_posix)
 {
                         offset += (bit+7)/8;    /* advance past used bits */
 }
@@ -1686,12 +1686,12 @@ else
                 else /* struct or class */
                 {
                     // gcc does not align by type until crossing word boundary
-                    if (!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS) ||
+                    if (!(config.exe & EX_posix) ||
                         s.Sclass != SCfield)
                         offset = alignmember(s.Stype,memalignsize,offset);
                     s.Smemoff = offset;
                     s.Sbit = cast(ubyte)bit;
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+if (config.exe & EX_posix)
 {
                     // now modify offset and start bit according to type size
                     while(s.Sbit > memsize*8)
@@ -1729,15 +1729,10 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         type_free(typ_spec);
   } /* while */
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-    // gcc uses bit count instead of type for size
-    const bitsize = (bit+7)/8;
-}
-else
-{
-    const bitsize = size;
-}
+    const bitsize = (config.exe & EX_posix)
+                ? (bit+7)/8    // gcc uses bit count instead of type for size
+                : size;
+
   st.Sstructsize = (st.Sflags & STRunion)
                 ? size                  /* size of union                */
                 : (bit)
