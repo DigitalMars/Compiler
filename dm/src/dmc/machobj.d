@@ -2220,13 +2220,7 @@ else
             break;
         case mTYman_std:
         {
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
             bool cond = (tyfunc(s.ty()) && !variadic(s.Stype));
-else
-            bool cond = (!(config.flags4 & CFG4oldstdmangle) &&
-                config.exe == EX_WIN32 && tyfunc(s.ty()) &&
-                !variadic(s.Stype));
-
             if (cond)
             {
                 char *pstr = unsstr(type_paramsize(s.Stype));

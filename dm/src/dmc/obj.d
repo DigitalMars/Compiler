@@ -762,6 +762,10 @@ version (OMFandMSCOFF)
         {
         }
 
+        void refGOTsym()
+        {
+        }
+
         int seg_debugT()           // where the symbolic debug type data goes
         {
             return config.objfmt == OBJ_MSCOFF
@@ -1106,10 +1110,9 @@ else version (ELFandMACH)
             return Obj_reftodatseg(seg, offset, val, targetdatum, flags);
         }
 
-        /+void reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags)
+        void reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags)
         {
-            return Obj_reftofarseg(seg, offset, val, farseg, flags);
-        }+/
+        }
 
         void reftocodeseg(int seg, targ_size_t offset, targ_size_t val)
         {

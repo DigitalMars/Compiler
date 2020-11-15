@@ -460,7 +460,7 @@ void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset)
                     objmod.reftocodeseg(seg,offset,dt.DTabytes);
                 else
                 {
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+if (config.exe & EX_posix)
 {
                     objmod.reftodatseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
 }
@@ -1398,7 +1398,7 @@ version (SCPP)
     }
 }
     assert(funcsym_p == sfunc);
-    const int CSEGSAVE_DEFAULT = -10000;        // some unlikely number
+    const int CSEGSAVE_DEFAULT = -10_000;        // some unlikely number
     int csegsave = CSEGSAVE_DEFAULT;
     if (eecontext.EEcompile != 1)
     {
@@ -1408,23 +1408,21 @@ version (SCPP)
             objmod.comdat(sfunc);
             cseg = sfunc.Sseg;
         }
-        else
-            if (config.flags & CFGsegs) // if user set switch for this
+        else if (config.flags & CFGsegs) // if user set switch for this
+        {
+            version (SCPP)
             {
-version (SCPP)
-{
                 objmod.codeseg(cast(char*)cpp_mangle(funcsym_p),1);
-}
-else static if (TARGET_WINDOS)
-{
-                objmod.codeseg(cast(char*)cpp_mangle(funcsym_p),1);
-}
-else
-{
-                objmod.codeseg(cast(char*)funcsym_p.Sident.ptr, 1);
-}
-                                        // generate new code segment
             }
+            else
+            {
+                if (config.exe & EX_windos)
+                    objmod.codeseg(cast(char*)cpp_mangle(funcsym_p),1);
+                else
+                    objmod.codeseg(cast(char*)funcsym_p.Sident.ptr, 1);
+            }
+                                        // generate new code segment
+        }
         cod3_align(cseg);               // align start of function
 version (HTOD) { } else
 {

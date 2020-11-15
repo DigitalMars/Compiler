@@ -70,10 +70,7 @@ __gshared list_t symlist;                  // for C
 extern __gshared ubyte[TYMAX] _tyrelax;
 uint type_relax() { return config.flags3 & CFG3relax; }     // !=0 if relaxed type checking
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-    uint type_semirelax() { return config.flags3 & CFG3semirelax; } // !=0 if semi-relaxed type checking
-else
-    alias type_semirelax = type_relax;
+uint type_semirelax() { return config.flags3 & CFG3semirelax; } // !=0 if semi-relaxed type checking
 
 int REGSIZE() { return _tysize[TYnptr]; }
 
@@ -200,7 +197,6 @@ int exp2_retmethod(type *tfunc)
         }
 
 static if (0)
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 {
         if (!OPT_IS_SET(OPTfreg_struct_return))
             return RET_STACK;
@@ -1713,7 +1709,7 @@ L1:
             }
             if (sfunc.Stype.Tty & mTYimport)
             {
-                static if (TARGET_WINDOS)
+                if (config.exe & EX_windos)
                     Obj._import(e);              // do deferred import
             }
 
@@ -2355,7 +2351,7 @@ elem *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist)
         funcid = "function";
     }
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+static if (0)
 {
     if (strcmp(funcid,"__builtin_next_arg") == 0)
         return lnx_builtin_next_arg(efunc,arglist);
@@ -2733,7 +2729,7 @@ static if (0)
 }
   ty = tybasic(t.Tty);
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+if (config.exe & EX_posix)
 {
   if ((ty == TYstruct) && (t.Ttag.Sstruct.Sflags & STRunion) &&
           t.Tty & mTYtransu)
@@ -3076,7 +3072,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     }
                     if (s.Stype.Tty & mTYimport)
                     {
-                        static if (TARGET_WINDOS)
+                        if (config.exe & EX_windos)
                             Obj._import(e);              // do deferred import
                     }
                 }
@@ -4639,10 +4635,7 @@ enum CFLOAT  = (OPMAX+16);
 enum CLDOUBLE = (OPMAX+17);
 enum NPTR    = (OPMAX+18);
 enum FTOC    = (OPMAX+19);      // real or imaginary to complex
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
 enum LNGLNG  = (OPMAX+20);
-}
 enum ZERO    = (OPMAX+21);      // result is a constant 0
 enum ENUM    = (OPMAX+22);
 enum BOOL    = OPbool;          // boolean conversion
@@ -4987,7 +4980,7 @@ L1:
     {
         case ERROR:
         error:
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+if (config.exe & EX_posix)
 {
             if (oldty == TYvoid)        /* allow assignment from void */
                 goto paint;
@@ -5025,10 +5018,15 @@ static if (0)
         case INT:       t = tstypes[TYint];      goto retry;
         case UINT:      t = tstypes[TYuint];      goto retry;
         case ULONG:     t = tstypes[TYulong];    goto retry;
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-        case LNGLNG:    t = tstypes[TYllong];    goto retry;
-}
+
+        case LNGLNG:
+            if (config.exe & EX_posix)
+            {
+                t = tstypes[TYllong];
+                goto retry;
+            }
+            goto default;
+
         retry:
             e = _cast(_cast(e,t),newt);
             break;
