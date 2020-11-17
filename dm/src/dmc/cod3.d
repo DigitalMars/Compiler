@@ -533,11 +533,13 @@ void cod3_stackalign(ref CodeBuilder cdb, int nbytes)
     cdb.genc2(0x81, grex | rm, -nbytes);
 }
 
-static if (ELFOBJ)
-{
 /* Constructor that links the ModuleReference to the head of
  * the list pointed to by _Dmoduleref
+ *
+ * For ELF object files.
  */
+static if (0)
+{
 void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
 {
     /*      ret
@@ -595,9 +597,7 @@ void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
 
     buf.writeByte(0xC3); /* ret */
 }
-
 }
-
 
 /*****************************
  * Given a type, return a mask of
@@ -1616,8 +1616,10 @@ static if (JMPJMPTABLE)
             cgstate.stackclean--;
             return;
 }
-else static if (TARGET_OSX)
+else
 {
+        if (config.exe & (EX_OSX | EX_OSX64))
+        {
             /*     CALL L1
              * L1: POP  R1
              *     ADD  R1,disp[reg*4][R1]
@@ -1634,9 +1636,9 @@ else static if (TARGET_OSX)
             cdb.last().IEV1.Vswitch = b;
             cdb.last().Isib = modregrm(2,reg,r1);
             cdb.gen2(0xFF,modregrm(3,4,r1));               // JMP R1
-}
-else
-{
+        }
+        else
+        {
             if (config.flags3 & CFG3pic)
             {
                 /* MOV  R1,EBX
@@ -1664,6 +1666,7 @@ else
                 cdb.last().IEV1.Vswitch = b;
                 cdb.last().Isib = modregrm(2,reg,5);
             }
+        }
 }
         }
         else if (I16)

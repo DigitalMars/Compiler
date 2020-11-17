@@ -4603,16 +4603,8 @@ enum LLLNG   = OP64_32;
 enum PTRLPTR = OPnp_fp;
 enum OFFSET  = OPoffset;
 enum FPTR    = OPvp_fp;
-static if (TARGET_OSX)
-{
-enum TOF16   = NONE;
-enum FRF16   = PAINT;
-}
-else
-{
 enum TOF16   = OPnp_f16p;
 enum FRF16   = OPf16p_np;
-}
 
 enum NONE    = OPMAX;           /* no conversion                        */
 enum PAINT   = (OPMAX+1);       /* just 'paint' new type over the old one */
@@ -5117,6 +5109,12 @@ static if (0)
             e = el_settype(e, oldt.Tnext);
             e = exp2_cast(e, newt);
             break;
+
+        case OPnp_f16p:
+        case OPf16p_np:
+            if (config.exe & (EX_OSX | EX_OSX64))
+                goto paint;
+            goto default;
 
         default:                /* action is operator number            */
         doaction:

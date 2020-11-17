@@ -94,6 +94,7 @@ class Obj
     int common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count) { return 0; }
     void write_bytes(seg_data *pseg, uint nbytes, void *p) { }
     void gotref(Symbol *s) { }
+    void refGOTsym() { }
     int jmpTableSegment(Symbol* s) { return 0; }
   }
 }

@@ -263,6 +263,10 @@ nothrow:
     /*****************************************
      * Write a reference to the data ptr[0..size+nzeros]
      * Params:
+     *  ty = pointer type
+     *  offset = to be added to offset of data generated
+     *  size = number of bytes pointed to by ptr
+     *  ptr = points to data bytes
      *  nzeros = number of zero bytes to add to the end
      *  _align = alignment of pointed-to data
      */
@@ -429,7 +433,7 @@ nothrow:
     {
         dt_t *dt = dt_calloc(DT_coff);
 
-        static if (TARGET_SEGMENTED)
+        if (config.exe & EX_segmented)
             dt.Dty = TYcptr;
         else
             dt.Dty = TYnptr;
