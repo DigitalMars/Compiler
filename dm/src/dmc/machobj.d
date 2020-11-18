@@ -2188,23 +2188,23 @@ char *unsstr (uint value)
 char *obj_mangle2(Symbol *s,char *dest)
 {
     size_t len;
-    char *name;
+    const(char)* name;
 
     //printf("Obj_mangle(s = %p, '%s'), mangle = x%x\n",s,s.Sident.ptr,type_mangle(s.Stype));
     symbol_debug(s);
     assert(dest);
 version (SCPP)
 {
-    name = CPP ? cpp_mangle(s) : s.Sident.ptr;
+    name = CPP ? cpp_mangle(s) : &s.Sident[0];
 }
 else version (MARS)
 {
     // C++ name mangling is handled by front end
-    name = s.Sident.ptr;
+    name = &s.Sident[0];
 }
 else
 {
-    name = s.Sident.ptr;
+    name = &s.Sident[0];
 }
     len = strlen(name);                 // # of bytes in name
     //dbg_printf("len %d\n",len);

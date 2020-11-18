@@ -70,7 +70,11 @@ __gshared list_t symlist;                  // for C
 extern __gshared ubyte[TYMAX] _tyrelax;
 uint type_relax() { return config.flags3 & CFG3relax; }     // !=0 if relaxed type checking
 
-uint type_semirelax() { return config.flags3 & CFG3semirelax; } // !=0 if semi-relaxed type checking
+// !=0 if semi-relaxed type checking
+uint type_semirelax()
+{
+    return config.exe & EX_posix ? (config.flags3 & CFG3semirelax) : type_relax();
+}
 
 int REGSIZE() { return _tysize[TYnptr]; }
 

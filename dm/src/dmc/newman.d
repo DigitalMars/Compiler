@@ -511,6 +511,10 @@ char *cpp_typetostring(type *t,char *prefix)
 
 version (HTOD)
 {
+const(char) *cpp_mangle(Symbol *s)
+{
+    return symbol_ident(s);
+}
 }
 else
 {

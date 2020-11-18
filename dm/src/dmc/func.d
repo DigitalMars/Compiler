@@ -447,8 +447,12 @@ void func_body(Symbol *s)
                             break;
 
                         default:
+printf("test1 %d\n", config.flags3 & CFG3relax);
+type_print(p.Ptype);
+type_print(pproto.Ptype);
                             break;
                     }
+printf("test2\n");
                     typerr(EM_nomatch_proto,p.Ptype,pproto.Ptype,&sp.Sident[0]);
                 typeok: ;
                 }
