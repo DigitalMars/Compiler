@@ -724,7 +724,7 @@ debug
                         CHAR('S');
                     if (e.EV.Voffset)
                         synerr(EM_const_init);          // constant initializer expected
-                    cpp_string(e.EV.Vstring,e.EV.Vstrlen);
+                    cpp_string(e.EV.Vstring, cast(size_t)e.EV.Vstrlen);
                     break;
                 case OPrelconst:
                     if (e.EV.Voffset)

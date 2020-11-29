@@ -2423,7 +2423,7 @@ char *combinestrings(targ_size_t *plen, tym_t *ptym)
         len -= lendec;                          // disregard existing terminating 0
         if (ty == tok.TKty)
         {
-            MSTRING_REALLOC(len + tok.TKlenstr);
+            MSTRING_REALLOC(cast(int)(len + tok.TKlenstr));
             memcpy(mstring + len, tok.TKstr, tok.TKlenstr);
             len += tok.TKlenstr;
             continue;
@@ -2434,7 +2434,7 @@ char *combinestrings(targ_size_t *plen, tym_t *ptym)
         {
             case X(TYchar, TYwchar_t):
                 utfbuf.setsize(0);
-                utfbuf.reserve(len * 2);
+                utfbuf.reserve(cast(uint)(len * 2));
                 for (size_t j = 0; j < len; j++)
                 {
                     dchar_t dc = mstring[j];
@@ -2442,9 +2442,9 @@ char *combinestrings(targ_size_t *plen, tym_t *ptym)
                 }
             L1:
                 len = utfbuf.size();
-                MSTRING_REALLOC(len + tok.TKlenstr);
-                memcpy(mstring, utfbuf.buf, len);
-                memcpy(mstring + len, tok.TKstr, tok.TKlenstr);
+                MSTRING_REALLOC(cast(int)(len + tok.TKlenstr));
+                memcpy(mstring, utfbuf.buf, cast(size_t)len);
+                memcpy(mstring + len, tok.TKstr, cast(size_t)tok.TKlenstr);
                 len += tok.TKlenstr;
                 ty = tok.TKty;
                 lendec = _tysize[ty];
@@ -2452,18 +2452,18 @@ char *combinestrings(targ_size_t *plen, tym_t *ptym)
 
             case X(TYchar, TYchar16):
                 utfbuf.setsize(0);
-                stringToUTF16(cast(ubyte* )mstring, len);
+                stringToUTF16(cast(ubyte*)mstring, cast(size_t)len);
                 goto L1;
 
             case X(TYchar, TYdchar):
                 utfbuf.setsize(0);
-                stringToUTF32(cast(ubyte* )mstring, len);
+                stringToUTF32(cast(ubyte*)mstring, cast(size_t)len);
                 goto L1;
 
             case X(TYwchar_t, TYchar):
-                MSTRING_REALLOC(len + tok.TKlenstr * 2);
+                MSTRING_REALLOC(cast(int)(len + tok.TKlenstr * 2));
                 for (size_t j = 0; j < tok.TKlenstr; j++)
-                    *cast(ushort *)&mstring[len + j * 2] = tok.TKstr[j];
+                    *cast(ushort *)&mstring[cast(size_t)len + j * 2] = tok.TKstr[j];
                 len += tok.TKlenstr * 2;
                 break;
 
@@ -2473,7 +2473,7 @@ char *combinestrings(targ_size_t *plen, tym_t *ptym)
             L2:
             {
                 size_t utfbuf_len = utfbuf.size();
-                MSTRING_REALLOC(len + utfbuf_len);
+                MSTRING_REALLOC(cast(uint)(len + utfbuf_len));
                 memcpy(mstring + len, utfbuf.buf, utfbuf_len);
                 len += utfbuf_len;
                 break;

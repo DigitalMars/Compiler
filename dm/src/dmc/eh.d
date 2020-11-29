@@ -1129,7 +1129,7 @@ Symbol *except_gentables()
             else
             {   type = 4;
                 dtb.nbytes(type.sizeof, cast(char *) &type);
-                dtb.xoff(s,offset,pointertype);
+                dtb.xoff(s,cast(uint)offset,pointertype);
                 sz += type.sizeof + psize;
                 if (TX86 && pointertype == TYnptr)
                 {
@@ -1176,7 +1176,7 @@ Symbol *except_gentables()
     static if (TX86)
     {
         if (config.ehmethod == EHmethod.EH_DM)
-            objmod.ehtables(funcsym_p,funcsym_p.Ssize,ehsym);
+            objmod.ehtables(funcsym_p,cast(uint)funcsym_p.Ssize,ehsym);
     }
 
     return ehsym;

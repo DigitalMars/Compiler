@@ -2178,7 +2178,7 @@ done:
                     s2.Sflags |= SFLnodtor;     /* don't add dtors in later */
 
                     auto dtb = DtBuilder(0);
-                    dtb.nzeros(type_size(s2.Stype));
+                    dtb.nzeros(cast(uint)type_size(s2.Stype));
                     s2.Sdt = dtb.finish();
 
                     symbol_keep(s2);

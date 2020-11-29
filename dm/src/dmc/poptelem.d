@@ -103,7 +103,7 @@ debug
             if (resolve_sizeof)
             {
                 e.Eoper = OPconst;
-                e.EV.Vlong = type_size(e.EV.Vsym.Stype);
+                e.EV.Vpointer = type_size(e.EV.Vsym.Stype);
             }
             break;
 

@@ -3329,7 +3329,7 @@ private void asm_db_parse( OP *pop )
             usBytes += usSize;
         }
         else if (e.Eoper == OPstring)
-        {   size_t len = e.EV.Vstrlen;
+        {   size_t len = cast(size_t)e.EV.Vstrlen;
 
             if (len)
             {   len--;                          // leave off terminating 0

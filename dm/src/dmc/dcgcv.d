@@ -1168,7 +1168,7 @@ version (SCPP)
             continue;
         nfields++;
         fnamelen += ((config.fulltypes == CV4) ? 6 : 8) +
-                    cv4_numericbytes(b.BCoffset);
+                    cv4_numericbytes(cast(uint)b.BCoffset);
     }
 
     // Now virtual base classes (direct and indirect)
@@ -1176,7 +1176,7 @@ version (SCPP)
     {
         nfields++;
         fnamelen += ((config.fulltypes == CV4) ? 8 : 12) +
-                        cv4_numericbytes(st.Svbptr_off) +
+                        cv4_numericbytes(cast(uint)st.Svbptr_off) +
                         cv4_numericbytes(b.BCvbtbloff / _tysize[TYint]);
     }
 
@@ -1324,8 +1324,8 @@ version (SCPP)
             p += 8;
         }
 
-        cv4_storenumeric(p,offset);
-        p += cv4_numericbytes(offset);
+        cv4_storenumeric(p, cast(uint)offset);
+        p += cv4_numericbytes(cast(uint)offset);
     }
 
     // Now direct followed by indirect virtual base classes
@@ -1379,10 +1379,10 @@ version (SCPP)
                 p += 12;
             }
 
-            cv4_storenumeric(p,vbpoff);
-            p += cv4_numericbytes(vbpoff);
-            cv4_storenumeric(p,vboff);
-            p += cv4_numericbytes(vboff);
+            cv4_storenumeric(p,cast(uint)vbpoff);
+            p += cv4_numericbytes(cast(uint)vbpoff);
+            cv4_storenumeric(p,cast(uint)vboff);
+            p += cv4_numericbytes(cast(uint)vboff);
         }
         i ^= LF_VBCLASS ^ LF_IVBCLASS;          // toggle between them
     } while (i != LF_VBCLASS);

@@ -305,7 +305,7 @@ int MsCoffObj_data_readonly(char *p, int len, segidx_t *pseg)
     int oldoff;
 version (SCPP)
 {
-    oldoff = Offset(DATA);
+    oldoff = cast(int)Offset(DATA);
     SegData[DATA].SDbuf.reserve(len);
     SegData[DATA].SDbuf.writen(p,len);
     Offset(DATA) += len;

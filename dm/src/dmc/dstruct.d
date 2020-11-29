@@ -1119,7 +1119,7 @@ else
                     synerr(EM_storage_class2,"".ptr,"bit field hole".ptr);      // storage class not allowed
                 if (st.Sflags & STRunion)
                     synerr(EM_unnamed_bitfield);        // no holes in unions
-                newfieldsize = type_size(typ_spec);
+                newfieldsize = cast(uint)type_size(typ_spec);
                 width = getwidth(newfieldsize * 8); // get width of hole
                 bit += width;           // add to current bit position
 if (config.exe & EX_posix)
@@ -1494,7 +1494,7 @@ else
                     uint newfieldsize;
 
                     st.Sflags |= STRbitfields;
-                    newfieldsize = type_size(memtype);
+                    newfieldsize = cast(uint)type_size(memtype);
                     width = getwidth(newfieldsize * 8);
                     if (width == 0)
                         synerr(EM_decl_0size_bitfield); // no declarator allowed
@@ -1601,7 +1601,7 @@ else
 
                     s.Sclass = SCfield;
                     st.Sflags |= STRbitfields;
-                    newfieldsize = type_size(memtype);
+                    newfieldsize = cast(uint)type_size(memtype);
                     width = getwidth(newfieldsize * 8);
                     if (width == 0)
                         synerr(EM_decl_0size_bitfield); // no declarator allowed
@@ -1739,7 +1739,7 @@ if (config.exe & EX_posix)
                         ? offset + bitsize
                         : offset;
 
-  if (type_chksize(st.Sstructsize))    // if size exceeds 64Kb
+  if (type_chksize(cast(uint)st.Sstructsize))    // if size exceeds 64Kb
         st.Sstructsize &= 0xFFFF;
 
 version (none)
@@ -2388,7 +2388,7 @@ need_vbptr:
         st.Svbptr = s_vbptr;
         baseoffset = type_size(t);
         if (baseoffset > st.Salignsize)
-            st.Salignsize = baseoffset;
+            st.Salignsize = cast(uint)baseoffset;
     }
 
 skip:
@@ -2607,7 +2607,7 @@ skip:
     if (size)
         offset = alignmember(t,size,offset);
     *poffset = offset + size;
-    if (type_chksize(*poffset)) // if size exceeds 64Kb
+    if (type_chksize(cast(uint)*poffset)) // if size exceeds 64Kb
         *poffset &= 0xFFFF;
     return offset;
 }
@@ -3094,12 +3094,12 @@ else
             int i;
             targ_size_t offset;
 
-            sz = type_size(t);
+            sz = cast(uint)type_size(t);
             if (sz > st.Salignsize)
                 st.Salignsize = sz;
             offset = *poffset;
             n2_structaddsize(t,sz,poffset);
-            sz = *poffset - offset;
+            sz = cast(uint)(*poffset - offset);
 
             // Adjust up member offsets
             for (sl = st.Sfldlst; sl; sl = list_next(sl))
@@ -5929,7 +5929,7 @@ void n2_createcopyctor(Classsym *stag,int flag)
                             el_settype(e1.EV.E2,ta);
                             continue;
                         }
-                        lastoffset = s2.Smemoff;
+                        lastoffset = cast(uint)s2.Smemoff;
 
                         e2 = el_var(sx);
                         /* Convert reference to pointer */

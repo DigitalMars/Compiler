@@ -344,7 +344,7 @@ private void initializer(Symbol *s)
                 }
                 {
                 auto dtb = DtBuilder(0);
-                dtb.nzeros(type_size(t));
+                dtb.nzeros(cast(uint)type_size(t));
                 dsout += type_size(t);
                 assert(!s.Sdt);
                 s.Sdt = dtb.finish();
@@ -443,7 +443,7 @@ private void initializer(Symbol *s)
                     if (sclass == SCstatic || sclass == SCglobal)
                     {
                         auto dtb = DtBuilder(0);
-                        dtb.nzeros(type_size(t));
+                        dtb.nzeros(cast(uint)type_size(t));
                         dsout += type_size(t);
                         s.Sdt = dtb.finish();
                         if (!localstatic)
@@ -495,7 +495,7 @@ private void initializer(Symbol *s)
                 type_setdim(&s.Stype,e.EV.Vstrlen / type_size(s.Stype.Tnext));   /* we have determined its size  */
                 assert(s.Sdt == null);
                 auto dtb = DtBuilder(0);
-                dtb.nbytes(e.EV.Vstrlen, e.EV.Vstring);
+                dtb.nbytes(cast(uint)e.EV.Vstrlen, e.EV.Vstring);
                 s.Sdt = dtb.finish();
                 el_free(e);
                 t = s.Stype;
@@ -549,7 +549,7 @@ private void initializer(Symbol *s)
                     dim = i;
             } while (!endofarray());
             auto dtb = DtBuilder(0);
-            dta.join(dtb, elemsize, 0, 1);
+            dta.join(dtb, cast(uint)elemsize, 0, 1);
             s.Sdt = dtb.finish();
             t = type_setdim(&s.Stype,dim);     // we have determined its size
             chktok(TKrcur,EM_rcur);             // end with a right curly
@@ -1066,7 +1066,7 @@ private size_t getArrayIndex(size_t i, size_t dim, char unknown)
             index = dim - 1;
         }
         chktok(TKrbra, EM_rbra);        // closing ']'
-        i = index;
+        i = cast(size_t)index;
         if (tok.TKval == TKeq)
         {   stoken();
             if (tok.TKval == TKdot || tok.TKval == TKlbra)
@@ -1405,7 +1405,7 @@ private elem* initstruct(type *t, ref DtBuilder dtb, Symbol *ss,targ_size_t offs
             case SCfield:
                 if (e && s.Smemoff != soffset)
                 {
-                    uint n = soffset - (dsout - dsstart);
+                    const n = cast(uint)(soffset - (dsout - dsstart));
                     dtb.nzeros(n);
                     dsout += n;
                     e = poptelem(e);
@@ -1455,7 +1455,7 @@ private elem* initstruct(type *t, ref DtBuilder dtb, Symbol *ss,targ_size_t offs
             case SCmember:
                 if (e)                  // if bit field
                 {
-                    uint n = soffset - (dsout - dsstart);
+                    const n = cast(uint)(soffset - (dsout - dsstart));
                     dtb.nzeros(n);
                     dsout += n;
                     e = poptelem(e);
@@ -1467,7 +1467,7 @@ private elem* initstruct(type *t, ref DtBuilder dtb, Symbol *ss,targ_size_t offs
                 if (sd[i].dt)
                 {
                     soffset = s.Smemoff;
-                    uint n = soffset - (dsout - dsstart);
+                    const n = cast(uint)(soffset - (dsout - dsstart));
                     dtb.nzeros(n);
                     dsout += n;
                     dtb.cat(sd[i].dt);
@@ -1495,7 +1495,7 @@ Ldone:
     tsize = type_size(t);
     if (tsize > (dsout - dsstart))
     {
-        uint n = tsize - (dsout - dsstart);
+        const n = cast(uint)(tsize - (dsout - dsstart));
         dtb.nzeros(n);
         dsout += n;
     }
@@ -1559,9 +1559,9 @@ private elem* initarray(type *t, ref DtBuilder dtb,Symbol *s,targ_size_t offset)
             {   synerr(EM_2manyinits);  // string is too long
                 len = tsize;
             }
-            dtb.nbytes(len,mstring);
+            dtb.nbytes(cast(uint)len, mstring);
             dsout += len;
-            dtb.nzeros(tsize - len);
+            dtb.nzeros(cast(uint)(tsize - len));
             dsout += tsize - len;
             mem_free(mstring); // MEM_PH_FREE()
             goto Ldone;
@@ -1586,7 +1586,7 @@ private elem* initarray(type *t, ref DtBuilder dtb,Symbol *s,targ_size_t offset)
         }
         do
         {
-            i = getArrayIndex(i, dim, unknown);
+            i = getArrayIndex(i, cast(uint)dim, unknown);
 
             // Ensure dtarray[] is big enough
             dta.ensureSize(i);
@@ -1605,7 +1605,7 @@ private elem* initarray(type *t, ref DtBuilder dtb,Symbol *s,targ_size_t offset)
                 break;
         } while (!endofarray());
 
-        dta.join(dtb, elemsize, dim, unknown);
+        dta.join(dtb, cast(uint)elemsize, cast(uint)dim, unknown);
         dta.dtor();
     }
 
@@ -1675,13 +1675,13 @@ Lagain:
                 assert(0);
         }
         ty = tym_conv(e.ET);
-        dtb.xoff(sa,e.EV.Voffset,ty);
+        dtb.xoff(sa, cast(uint)e.EV.Voffset, ty);
         dsout += tysize(ty);
         break;
 
     case OPstring:
         size = e.EV.Vstrlen;
-        dtb.abytes(e.ET.Tty, e.EV.Voffset, size, e.EV.Vstring, 0, 0);
+        dtb.abytes(e.ET.Tty, cast(uint)e.EV.Voffset, cast(uint)size, e.EV.Vstring, 0, 0);
         dsout += tysize(e.ET.Tty);
         break;
 
@@ -1718,7 +1718,7 @@ Lagain:
                 break;
         }
         dsout += size;
-        dtb.nbytes(size,p);
+        dtb.nbytes(cast(uint)size, p);
         break;
     }
 
@@ -1757,7 +1757,7 @@ Lagain:
                     list_append(&constructor_list,e);
                 e = null;
             }
-            dtb.nzeros(type_size(t)); // leave a hole for it
+            dtb.nzeros(cast(uint)type_size(t)); // leave a hole for it
             dsout += type_size(t);
             goto ret2;
         }
@@ -2499,7 +2499,7 @@ private int init_arraywithctor(Symbol *s)
         if (/*sclass == SClocstat ||*/ sclass == SCstatic || sclass == SCglobal)
         {
             auto dtb = DtBuilder(0);
-            dtb.nzeros(elemsize * t.Tdim);
+            dtb.nzeros(cast(uint)(elemsize * t.Tdim));
             dsout += elemsize * t.Tdim;
             assert(!s.Sdt);
             s.Sdt = dtb.finish();

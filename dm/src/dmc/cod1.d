@@ -4157,9 +4157,9 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             elem* e1 = e.EV.E1;
             docommas(cdb,&e1);              // skip over any comma expressions
 
-            cod3_stackadj(cdb, sz);
+            cod3_stackadj(cdb, cast(uint)sz);
             stackpush += sz;
-            cdb.genadjesp(sz);
+            cdb.genadjesp(cast(uint)sz);
 
             // Find OPstrthis and set it to stackpush
             exp2_setstrthis(e1, null, stackpush, null);
@@ -4191,7 +4191,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             if (reg & 8)
                 code_orrex(cdb.last(), REX_B);
             stackpush += REGSIZE;
-            cdb.genadjesp(sz);
+            cdb.genadjesp(cast(uint)sz);
             freenode(e);
             return;
         }

@@ -3642,7 +3642,6 @@ L2:
     for (b = st.Smptrbase; b; b = b.BCnext)
     {   baseclass_t *vb;
         Classsym *sbase;
-        targ_int vptroffset;
 
         if (!(b.BCflags & BCFnewvtbl))
         {
@@ -3672,7 +3671,7 @@ L2:
         }
 
         t = type_allocn(tym,svptr.Stype);
-        vptroffset = svptr.Smemoff;
+        const vptroffset = svptr.Smemoff;
 
         if (b.BCflags & BCFvirtual)            /* if base class is virtual */
         {
@@ -3775,7 +3774,6 @@ private elem * cpp_assignvbptr(Symbol *s_this)
     for (b = st.Svbptrbase; b; b = b.BCnext)
     {   baseclass_t *vb;
         Classsym *sbase;
-        targ_int vptroffset;
 
         sbase = b.BCbase;
         symbol_debug(sbase);
@@ -3785,7 +3783,7 @@ private elem * cpp_assignvbptr(Symbol *s_this)
 
         t = type_allocn(tym,svptr.Stype);
         //dbg_printf("b.BCoffset = x%lx, sbase('%s').Svbptr_off = x%lx\n",b.BCoffset,sbase.Sident,sbase.Sstruct.Svbptr_off);
-        vptroffset = b.BCoffset + sbase.Sstruct.Svbptr_off;
+        const vptroffset = b.BCoffset + sbase.Sstruct.Svbptr_off;
         e = el_var(s_this);
         emos = el_longt(tstypes[TYint],vptroffset);
         e = el_bint(OPadd,t,e,emos);
@@ -3810,8 +3808,7 @@ private elem * cpp_assignvbptr(Symbol *s_this)
  */
 
 int cpp_vtbloffset(Classsym *sclass,Symbol *sfunc)
-{   int i;
-    int mptrsize;
+{
     list_t vl;
 
     symbol_debug(sclass);
@@ -3819,7 +3816,7 @@ int cpp_vtbloffset(Classsym *sclass,Symbol *sfunc)
 
     //dbg_printf("cpp_vtbloffset('%s','%s')\n",sclass.Sident,cpp_prettyident(sfunc));
     cpp_getpredefined();                        /* define s_mptr        */
-    mptrsize = type_size(s_mptr.Stype);
+    const mptrsize = cast(int)type_size(s_mptr.Stype);
 
     assert(isclassmember(sfunc));
     if (sfunc.Sscope.Sstruct.Sscaldeldtor == sfunc)
@@ -3828,7 +3825,7 @@ int cpp_vtbloffset(Classsym *sclass,Symbol *sfunc)
     }
 
     /* Compute offset from start of virtual table for function sfunc */
-    i = -mptrsize;      // no null at start of vtbl[]
+    int i = -mptrsize;      // no null at start of vtbl[]
     for (vl = sclass.Sstruct.Svirtual; ; vl = list_next(vl))
     {   mptr_t *m;
 

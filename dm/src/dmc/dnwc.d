@@ -819,7 +819,7 @@ private void nwc_outstatics()
             if (!s.Sdt)
             {
                 auto dtb = DtBuilder(0);
-                dtb.nzeros(type_size(s.Stype));
+                dtb.nzeros(cast(uint)type_size(s.Stype));
                 s.Sdt = dtb.finish();
             }
             outdata(s);
@@ -3120,7 +3120,7 @@ ret:
                     e = poptelem(e);
                     if (e.Eoper == OPsizeof)
                     {   e.Eoper = OPconst;
-                        e.EV.Vlong = type_size(e.EV.Vsym.Stype);
+                        e.EV.Vpointer = type_size(e.EV.Vsym.Stype);
                     }
                     if (e.Eoper == OPconst)    // if fixed dimension
                     {
@@ -4036,7 +4036,7 @@ void fixdeclar(type *t)
                             size = 0;   // defer any error message
                         else
                             size = type_size(tn);
-                        if (type_chksize(t.Tdim * cast(uint) size))
+                        if (type_chksize(cast(uint) t.Tdim * cast(uint) size))
                             t.Tdim = 1;
                     }
                     t.Tty = newtym |

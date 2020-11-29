@@ -174,11 +174,11 @@ else
             {
                 bhandler = b.nthSucc(1);
                 assert(bhandler.BC == BC_filter);
-                dtb.coff(bhandler.Boffset);    // filter address
+                dtb.coff(cast(uint)bhandler.Boffset);    // filter address
                 bhandler = b.nthSucc(2);
                 assert(bhandler.BC == BC_except);
             }
-            dtb.coff(bhandler.Boffset);        // handler address
+            dtb.coff(cast(uint)bhandler.Boffset);        // handler address
             sz += 4 + fsize * 2;
         }
     }
