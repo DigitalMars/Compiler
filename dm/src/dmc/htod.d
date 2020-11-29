@@ -424,7 +424,7 @@ void htod_struct(Classsym *s)
         switch (sf.Sclass)
         {
             case SCmember:
-                memoff = sf.Smemoff;
+                memoff = cast(uint)sf.Smemoff;
                 htod_indent(indent + 4);
                 fprintf(fdmodule, "%s%s;\n", pt, &sf.Sident[0]);
                 break;
@@ -435,7 +435,7 @@ void htod_struct(Classsym *s)
                     sprintf(bf.ptr, "__bitfield%d", ++bitfieldn);
                     htod_indent(indent + 4);
                     fprintf(fdmodule, "%s%s;\n", pt, bf.ptr);
-                    memoff = sf.Smemoff;
+                    memoff = cast(uint)sf.Smemoff;
                 }
                 // Swidth, Sbit
                 m = (cast(targ_ullong)1 << sf.Swidth) - 1;
