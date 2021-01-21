@@ -282,7 +282,7 @@ msgs2.d msgs2.h msgs2.c : msgsx.exe
 	msgsx
 
 msgsx.exe : msgsx.c
-	dmc msgsx -D$(TARGET)
+	$(CC) msgsx -D$(TARGET)
 
 ##################### ZIP ################################
 
