@@ -65,7 +65,7 @@ LFLAGS=/map/e/f/packcode/noe;
 # D compiler
 DMD=dmd
 # C++ compiler
-CC=dmc
+CC=
 # Make program
 MAKE=make
 # Librarian
