@@ -88,7 +88,7 @@ ZIP=zip32
 SCP=$(CP)
 SCP=\putty\pscp -i c:\.ssh\colossus.ppk
 
-LINKN=$(DMCDIR)\bin\link /de
+LINKN=optlink /de
 
 
 # Makerules:
