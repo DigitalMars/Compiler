@@ -3396,7 +3396,7 @@ private elem ** onlyref(Symbol *x, ref loop l,elem *incn,int *prefcount)
 
     debug
       if (!(X.Ssymnum < globsym.length && incn))
-          printf("X = %d, globsym.length = %d, l = %p, incn = %p\n",cast(int) X.Ssymnum, cast(int) globsym.length,&l,incn);
+          printf("X = %d, globsym.length = %d, l = %p, incn = %p\n",cast(int) X.Ssymnum,cast(int) globsym.length,&l,incn);
 
     assert(X.Ssymnum < globsym.length && incn);
     count = 0;
@@ -3705,6 +3705,9 @@ bool loopunroll(ref loop l)
     l.Lhead.Bflags |= BFLnounroll;
     if (log) WRfunc();
 
+    if (l.Lhead.Btry || l.Ltail.Btry)
+        return false;
+
     /* For simplification, only unroll loops that consist only
      * of a head and tail, and the tail is the exit block.
      */
@@ -3879,6 +3882,8 @@ int el_length(elem *e)
         n += 1;
         if (!OTleaf(e.Eoper))
         {
+            if (e.Eoper == OPctor || e.Eoper == OPdtor)
+                return 10_000;
             n += el_length(e.EV.E2);
             e = e.EV.E1;
         }
