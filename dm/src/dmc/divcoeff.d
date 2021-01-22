@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2013-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2013-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/divcoeff.d, backend/divcoeff.d)
@@ -19,7 +19,8 @@ extern (C++):
 
 nothrow:
 
-alias ullong = ulong;
+import core.stdc.stdint : uint64_t;
+alias ullong = uint64_t;
 
 /* unsigned 128 bit math
  */
@@ -266,21 +267,21 @@ unittest
 
     static immutable S[14] table =
     [
-        { 32, 10,    0, 0, 0xCCCCCCCD, 3 },
-        { 32, 13,    0, 0, 0x4EC4EC4F, 2 },
-        { 32, 14,    1, 0, 0x92492493, 2 },
-        { 32, 15,    0, 0, 0x88888889, 3 },
-        { 32, 17,    0, 0, 0xF0F0F0F1, 4 },
-        { 32, 14007, 0, 1, 0x2B71840D, 14 },
+        { 32, 10,     0, 0, 0xCCCCCCCD, 3 },
+        { 32, 13,     0, 0, 0x4EC4EC4F, 2 },
+        { 32, 14,     1, 0, 0x92492493, 2 },
+        { 32, 15,     0, 0, 0x88888889, 3 },
+        { 32, 17,     0, 0, 0xF0F0F0F1, 4 },
+        { 32, 14_007, 0, 1, 0x2B71840D, 14 },
 
-        { 64, 7,     0, 1, 0x2492492492492493, 3 },
-        { 64, 10,    0, 0, 0xCCCCCCCCCCCCCCCD, 3 },
-        { 64, 13,    0, 0, 0x4EC4EC4EC4EC4EC5, 2 },
-        { 64, 14,    1, 0, 0x4924924924924925, 1 },
-        { 64, 15,    0, 0, 0x8888888888888889, 3 },
-        { 64, 17,    0, 0, 0xF0F0F0F0F0F0F0F1, 4 },
-        { 64, 100,   2, 0, 0x28F5C28F5C28F5C3, 2 },
-        { 64, 14007, 0, 1, 0x2B71840C5ADF02C3, 14 },
+        { 64, 7,      0, 1, 0x2492492492492493, 3 },
+        { 64, 10,     0, 0, 0xCCCCCCCCCCCCCCCD, 3 },
+        { 64, 13,     0, 0, 0x4EC4EC4EC4EC4EC5, 2 },
+        { 64, 14,     1, 0, 0x4924924924924925, 1 },
+        { 64, 15,     0, 0, 0x8888888888888889, 3 },
+        { 64, 17,     0, 0, 0xF0F0F0F0F0F0F0F1, 4 },
+        { 64, 100 ,   2, 0, 0x28F5C28F5C28F5C3, 2 },
+        { 64, 14_007, 0, 1, 0x2B71840C5ADF02C3, 14 },
     ];
 
     for (int i = 0; i < table.length; i++)
