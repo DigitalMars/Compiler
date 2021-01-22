@@ -1198,21 +1198,30 @@ static if (0)
         }
 
         getregs(cdb,retregs);
+
+        switch (op)
+        {
+            case CMPPD:   case CMPSS:   case CMPSD:   case CMPPS:
+            case PSHUFD:  case PSHUFHW: case PSHUFLW:
+            case BLENDPD: case BLENDPS: case DPPD:    case DPPS:
+            case MPSADBW: case PBLENDW:
+            case ROUNDPD: case ROUNDPS: case ROUNDSD: case ROUNDSS:
+            case SHUFPD:  case SHUFPS:
+                if (n == 3)
+                {
+                    version (MARS)
+                        if (pass == PASSfinal)
+                            error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "missing 4th parameter to `__simd()`");
+                    cs.IFL2 = FLconst;
+                    cs.IEV2.Vsize_t = 0;
+                }
+                break;
+            default:
+                break;
+        }
+
         if (n == 4)
         {
-            switch (op)
-            {
-                case CMPPD:   case CMPSS:   case CMPSD:   case CMPPS:
-                case PSHUFD:  case PSHUFHW: case PSHUFLW:
-                case BLENDPD: case BLENDPS: case DPPD:    case DPPS:
-                case MPSADBW: case PBLENDW:
-                case ROUNDPD: case ROUNDPS: case ROUNDSD: case ROUNDSS:
-                case SHUFPD:  case SHUFPS:
-                    break;
-                default:
-                    printf("op = x%x\n", op);
-                    assert(0);
-            }
             elem *imm8 = params[3];
             cs.IFL2 = FLconst;
 version (MARS)
@@ -1295,7 +1304,37 @@ static if (0)
     }
 }
 
-    const ty = tybasic(e.Ety);
+    /* e.Ety only gives us the size of the result vector, not its type.
+     * We must combine it with the vector element type, e1.Ety, to
+     * form the resulting vector type, ty.
+     * The reason is someone may have painted the result of the OPvecfill to
+     * a different vector type.
+     */
+    const sz = tysize(e.Ety);
+    const ty1 = tybasic(e1.Ety);
+    assert(sz == 16 || sz == 32);
+    const bool x16 = (sz == 16);
+
+    tym_t ty;
+    switch (ty1)
+    {
+        case TYfloat:   ty = x16 ? TYfloat4  : TYfloat8;   break;
+        case TYdouble:  ty = x16 ? TYdouble2 : TYdouble4;  break;
+        case TYschar:   ty = x16 ? TYschar16 : TYschar32;  break;
+        case TYuchar:   ty = x16 ? TYuchar16 : TYuchar32;  break;
+        case TYshort:   ty = x16 ? TYshort8  : TYshort16;  break;
+        case TYushort:  ty = x16 ? TYushort8 : TYushort16; break;
+        case TYint:
+        case TYlong:    ty = x16 ? TYlong4   : TYlong8;    break;
+        case TYuint:
+        case TYulong:   ty = x16 ? TYulong4  : TYulong8;   break;
+        case TYllong:   ty = x16 ? TYllong2  : TYllong4;   break;
+        case TYullong:  ty = x16 ? TYullong2 : TYullong4;  break;
+
+        default:
+            assert(0);
+    }
+
     switch (ty)
     {
         case TYfloat4:

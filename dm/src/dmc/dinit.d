@@ -1541,7 +1541,7 @@ private elem* initarray(type *t, ref DtBuilder dtb,Symbol *s,targ_size_t offset)
     // Take care of string initialization
     if (tok.TKval == TKstring && tyintegral(t.Tnext.Tty))
     {
-        targ_size_t len;
+        size_t len;
         tym_t ty;
 
         char *mstring = combinestrings(&len, &ty);      // concatenate adjacent strings
@@ -1557,7 +1557,7 @@ private elem* initarray(type *t, ref DtBuilder dtb,Symbol *s,targ_size_t offset)
 
             if (len > tsize)
             {   synerr(EM_2manyinits);  // string is too long
-                len = tsize;
+                len = cast(size_t)tsize;
             }
             dtb.nbytes(cast(uint)len, mstring);
             dsout += len;

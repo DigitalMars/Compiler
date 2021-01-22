@@ -2384,7 +2384,7 @@ void stringToUTF32(ubyte* string, uint len)
  *      copied string
  */
 
-char *combinestrings(targ_size_t *plen)
+char *combinestrings(size_t *plen)
 {
     tym_t ty;
     char *p = combinestrings(plen, &ty);
@@ -2393,7 +2393,7 @@ char *combinestrings(targ_size_t *plen)
     return p;
 }
 
-char *combinestrings(targ_size_t *plen, tym_t *ptym)
+char *combinestrings(size_t *plen, tym_t *ptym)
 {
     assert(tok.TKval == TKstring);
     tym_t ty = tok.TKty;
@@ -2406,7 +2406,7 @@ char *combinestrings(targ_size_t *plen, tym_t *ptym)
     }
     char *mstring = cast(char *) MEM_PH_MALLOC(tok.TKlenstr);
     memcpy(mstring, tok.TKstr, tok.TKlenstr);
-    targ_size_t len = tok.TKlenstr;
+    size_t len = tok.TKlenstr;
 
     void MSTRING_REALLOC(int newsize)
     {

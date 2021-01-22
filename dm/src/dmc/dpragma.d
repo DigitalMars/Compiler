@@ -2171,7 +2171,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 private void prwarning()
 {
     char *p;
-    targ_size_t len;
+    size_t len;
     ptoken();
     if (tok.TKval != TKstring)
     {   preerr(EM_string);                      // string expected
@@ -2212,7 +2212,7 @@ private void prmessage()
 
 private void prstring(int flag)
 { char *p;
-  targ_size_t len;
+  size_t len;
   char paren;
 
   paren = 0;
@@ -2292,7 +2292,7 @@ else
     enum PRC { PRC_compiler,PRC_exestr,PRC_lib,PRC_linker,PRC_user }
 
     char *p;
-    targ_size_t len;
+    size_t len;
     PRC i;
 
     p = null;
@@ -2341,7 +2341,7 @@ Lret:
 
 private void prident()
 { char *p;
-  targ_size_t len;
+  size_t len;
 
   if (config.ansi_c)
         preerr(EM_unknown_pragma);              // unrecognized pragma
@@ -2699,7 +2699,7 @@ enum
                 // #pragma alias("string1","string2")
                 // #pragma alias(symbol,"string2")
                 {   char* str1,str2;
-                    targ_size_t len1,len2;
+                    size_t len1,len2;
                     char[IDMAX+IDOHD+1] name = void;
                     size_t len;
 
@@ -2812,7 +2812,7 @@ else
 
             case PRX.PRXcode_seg:
                 {   char *segname;
-                    targ_size_t len;
+                    size_t len;
 
                     segname = null;
                     if (tok.TKval == TKstring)
@@ -3350,7 +3350,8 @@ version (SPP)
   stoken();
   ininclude--;
   if (tok.TKval == TKstring)
-  {     targ_size_t len;
+  {
+        size_t len;
         char *name;
 
         if (tok.TKty == TYushort)

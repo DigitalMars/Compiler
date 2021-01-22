@@ -617,7 +617,7 @@ static if (0) // disallow __debug { declarations }
                           "D"
                     ];
                     linkage_t i;
-                    targ_size_t len;
+                    size_t len;
                     char *p;
 
                     p = combinestrings(&len);
@@ -5908,7 +5908,8 @@ void parse_static_assert()
             return;
         }
         else
-        {   targ_size_t len;
+        {
+            size_t len;
             p = combinestrings(&len);
         }
     }

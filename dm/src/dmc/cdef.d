@@ -911,7 +911,7 @@ union eve
         {
             targ_size_t Voffset3;// offset from string
             char* Vstring;      // pointer to string (OPstring or OPasm)
-            targ_size_t Vstrlen;// length of string
+            size_t Vstrlen;     // length of string
         }
         struct
         {

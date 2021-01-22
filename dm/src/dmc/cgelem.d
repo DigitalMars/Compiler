@@ -419,7 +419,7 @@ private elem *fixconvop(elem *e)
         OPu64_d,        // OPld_u64
     ];
 
-    //print("fixconvop before\n");
+    //printf("fixconvop before\n");
     //elem_print(e);
     assert(invconvtab.length == CNVOPMAX - CNVOPMIN + 1);
     assert(e);
@@ -437,6 +437,8 @@ private elem *fixconvop(elem *e)
         e.EV.E1.EV.E1.Ety = ecomma.Ety;
         ecomma.EV.E2 = e;
         ecomma.Ety = e.Ety;
+        //printf("fixconvop comma\n");
+        //elem_print(ecomma);
         return optelem(ecomma, GOALvalue);
     }
 
@@ -467,7 +469,7 @@ private elem *fixconvop(elem *e)
              cop == OPu8_16 || cop == OPs8_16))
     {   if (e.Eoper != OPshlass && e.Eoper != OPshrass && e.Eoper != OPashrass)
             e.EV.E2 = el_una(icop,tym,e2);
-        //print("after1\n");
+        //printf("after1\n");
         //elem_print(e);
         return e;
     }
@@ -537,7 +539,7 @@ private elem *fixconvop(elem *e)
 
         ed = ed.EV.E1;
     }
-    //print("after2\n");
+    //printf("after2\n");
     //elem_print(e);
 
     e.Ety = tym;
@@ -561,7 +563,7 @@ private elem *fixconvop(elem *e)
         el_free(e1.EV.E1);
         e1.EV.E1 = el_copytree(T);
     }
-    //print("after3\n");
+    //printf("after3\n");
     //elem_print(e);
     return e;
 }
@@ -990,7 +992,8 @@ L1:
         return e;
     }
     // Replace (e + e) with (e * 2)
-    else if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e1.Ety))
+    else if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e1.Ety) &&
+        !tyvector(e1.Ety))      // not all CPUs support XMM multiply
     {
         e.Eoper = OPmul;
         el_free(e2);
