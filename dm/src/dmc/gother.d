@@ -50,8 +50,7 @@ extern (C++):
 version (SCPP)
     import parser;
 
-extern void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
-
+import dmd.backend.errors;
 
 /**********************************************************************/
 

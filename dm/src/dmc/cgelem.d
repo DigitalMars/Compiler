@@ -80,10 +80,7 @@ private __gshared
 private bool cnst(const elem* e) { return e.Eoper == OPconst; }
 int REGSIZE();
 
-version (MARS)
-{
-extern void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
-}
+import dmd.backend.errors;
 
 /*****************************
  */
