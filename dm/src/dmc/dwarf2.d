@@ -1,11 +1,13 @@
 
-/* Reflects declarations from the Dwarf 3 spec, not the Digital Mars
+/* Reflects declarations from the Dwarf 3 spec, not the The D Language Foundation
  * dwarf implementation
  *
- * Source: $(DMDSRC backend/_dwarf2.d)
+ * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarf2.d, backend/_dwarf2.d)
  */
 
 module dmd.backend.dwarf2;
+
+// Online documentation: https://dlang.org/phobos/dmd_backend_dwarf2.html
 
 
 enum
