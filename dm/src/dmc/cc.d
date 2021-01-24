@@ -1177,19 +1177,19 @@ enum
     SFLtmp          = 0x400000,    // symbol is a generated temporary
     SFLthunk        = 0x40000,     // symbol is temporary for thunk
 
-    // Possible values for protection bits
+    // Possible values for visibility bits
     SFLprivate      = 0x60,
     SFLprotected    = 0x40,
     SFLpublic       = 0x20,
     SFLnone         = 0x00,
-    SFLpmask        = 0x60,        // mask for the protection bits
+    SFLpmask        = 0x60,        // mask for the visibility bits
 
     SFLvtbl         = 0x2000,      // VEC_VTBL_LIST: Symbol is a vtable or vbtable
 
     // OPTIMIZER and CODGEN
     GTregcand       = 0x100,       // if Symbol is a register candidate
     SFLdead         = 0x800,       // this variable is dead
-    GTunregister    = 0x2000000,   // 'unregister' a previous register assignment
+    GTunregister    = 0x8000000,   // 'unregister' a previous register assignment
 
     // OPTIMIZER only
     SFLunambig      = 0x400,       // only accessible by unambiguous reference,

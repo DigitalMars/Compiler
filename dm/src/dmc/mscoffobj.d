@@ -749,7 +749,7 @@ version (SCPP)
     // switch to new object file format (similar to C++ with /bigobj)
     // only when exceeding the limit for 16-bit section count according to
     // https://msdn.microsoft.com/en-us/library/8578y171%28v=vs.71%29.aspx
-    bool bigobj = scnhdr_cnt > 65279;
+    bool bigobj = scnhdr_cnt > 65_279;
     build_syment_table(bigobj);
 
     /* Write out the object file in the following order:
@@ -922,6 +922,13 @@ version (SCPP)
             if (sz && foffset != psechdr.PointerToRelocations)
                 printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x, foffset = x%x\n", seg, pseg.SDshtidx, psechdr, cast(uint)psechdr.PointerToRelocations, cast(uint)foffset);
             assert(sz == 0 || foffset == psechdr.PointerToRelocations);
+
+            if (psechdr.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL)
+            {
+                auto rel = reloc(cast(uint)(sz / Relocation.sizeof) + 1);
+                fobjbuf.write((&rel)[0 .. 1]);
+                foffset += rel.sizeof;
+            }
             for (; r != rend; r++)
             {   reloc rel;
                 rel.r_vaddr = 0;
@@ -1182,7 +1189,7 @@ void MsCoffObj_wkext(Symbol *s1,Symbol *s2)
 
 void obj_filename(const(char)* modname)
 {
-    //dbg_printf("obj_filename(char *%s)\n",modname);
+    //dbg_printf("MsCoffObj_filename(char *%s)\n",modname);
     // Not supported by mscoff
 }
 

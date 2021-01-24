@@ -1,8 +1,10 @@
 /**
- * Source: $(DMDSRC backend/_md5.d)
+ * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/md5.d, backend/_md5.d)
  */
 
 module dmd.backend.md5;
+
+// Online documentation: https://dlang.org/phobos/dmd_backend_md5.html
 
 /*
  **********************************************************************
@@ -54,7 +56,7 @@ alias UINT4 = uint;
 struct MD5_CTX {
   UINT4[2] i;                   /* number of _bits_ handled mod 2^64 */
   UINT4[4] buf;                                    /* scratch buffer */
-  ubyte[64] in_;                                     /* input buffer */
+  ubyte[64] _in;                                     /* input buffer */
   ubyte[16] digest;             /* actual digest after MD5Final call */
 }
 
