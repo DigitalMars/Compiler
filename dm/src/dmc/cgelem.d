@@ -424,14 +424,21 @@ private elem *fixconvop(elem *e)
     const cop = e.EV.E1.Eoper;             /* the conversion operator      */
     assert(cop <= CNVOPMAX);
 
-    if (e.EV.E1.EV.E1.Eoper == OPcomma)
-    {   /* conv(a,b) op= e2
-         *   =>
-         * a, (conv(b) op= e2)
+    elem *econv = e.EV.E1;
+    while (OTconv(econv.Eoper))
+    {
+        if (econv.EV.E1.Eoper != OPcomma)
+        {
+            econv = econv.EV.E1;
+            continue;
+        }
+        /* conv(a,b) op= e2     or     conv(conv(a,b)) op= e2
+         *   =>                 many:    =>
+         * a, (conv(b) op= e2)         a, (conv(conv(b)) op= e2)
          */
-        elem *ecomma = e.EV.E1.EV.E1;
-        e.EV.E1.EV.E1 = ecomma.EV.E2;
-        e.EV.E1.EV.E1.Ety = ecomma.Ety;
+        elem *ecomma = econv.EV.E1;
+        econv.EV.E1 = ecomma.EV.E2;
+        econv.EV.E1.Ety = ecomma.Ety;
         ecomma.EV.E2 = e;
         ecomma.Ety = e.Ety;
         //printf("fixconvop comma\n");
