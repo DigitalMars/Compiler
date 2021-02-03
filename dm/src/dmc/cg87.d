@@ -268,6 +268,7 @@ void note87(elem *e, uint offset, int i, int linnum)
     {
         printf("note87(e = %p.%d, i = %d, stackused = %d, line = %d)\n",e,offset,i,global87.stackused,linnum);
         elem_print(e);
+        exit(1);
     }
     assert(i < global87.stackused);
 

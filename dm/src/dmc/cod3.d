@@ -1106,7 +1106,32 @@ static if (NTEXCEPTIONS)
 }
 
         case BCretexp:
-            retregs = regmask(e.Ety, funcsym_p.ty());
+            reg_t reg1, reg2, lreg, mreg;
+            reg1 = reg2 = NOREG;
+            retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), &reg1, &reg2);
+            //assert(reg1 != NOREG || !retregs);
+
+            lreg = mreg = NOREG;
+            if (reg1 == NOREG)
+            {}
+            else if (tybasic(e.Ety) == TYcfloat)
+                lreg = ST01;
+            else if (mask(reg1) & (mST0 | mST01))
+                lreg = reg1;
+            else if (reg2 == NOREG)
+                lreg = reg1;
+            else if (mask(reg1) & XMMREGS)
+            {
+                lreg = XMM0;
+                mreg = XMM1;
+            }
+            else
+            {
+                lreg = mask(reg1) & mLSW ? reg1 : AX;
+                mreg = mask(reg2) & mMSW ? reg2 : DX;
+            }
+            if (reg1 != NOREG)
+                retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
 
             // For the final load into the return regs, don't set regcon.used,
             // so that the optimizer can potentially use retregs for register
@@ -1137,6 +1162,59 @@ static if (NTEXCEPTIONS)
             {
                 gencodelem(cdb,e,&retregs,true);
             }
+
+            if (reg1 == NOREG)
+            {
+            }
+            else if ((mask(reg1) | mask(reg2)) & (mST0 | mST01))
+            {
+                assert(reg1 == lreg && reg2 == NOREG);
+            }
+            // fix return registers
+            else if (tybasic(e.Ety) == TYcfloat)
+            {
+                assert(lreg == ST01);
+                if (I64)
+                {
+                    assert(reg2 == NOREG);
+                    // spill
+                    pop87();
+                    pop87();
+                    cdb.genfltreg(0xD9, 3, tysize(TYfloat));
+                    genfwait(cdb);
+                    cdb.genfltreg(0xD9, 3, 0);
+                    genfwait(cdb);
+                    // reload
+                    if (config.exe == EX_WIN64)
+                    {
+                        assert(reg1 == AX);
+                        cdb.genfltreg(LOD, reg1, 0);
+                        code_orrex(cdb.last(), REX_W);
+                    }
+                    else
+                    {
+                        assert(reg1 == XMM0);
+                        cdb.genxmmreg(xmmload(TYdouble), reg1, 0, TYdouble);
+                    }
+                }
+                else
+                {
+                    assert(reg1 == AX && reg2 == DX);
+                    regm_t pretregs = mask(reg1) | mask(reg2);
+                    fixresult_complex87(cdb, e, retregs, &pretregs);
+                }
+            }
+            else if (reg2 == NOREG)
+                assert(lreg == reg1);
+            else for (int v = 0; v < 2; v++)
+            {
+                if (v ^ (reg1 != mreg))
+                    genmovreg(cdb, reg1, lreg);
+                else
+                    genmovreg(cdb, reg2, mreg);
+            }
+            if (reg1 != NOREG)
+                retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
             goto L4;
 
         case BCret:
@@ -1244,6 +1322,229 @@ version (MARS)
             printf("bl.BC = %d\n",bl.BC);
             assert(0);
     }
+}
+
+/***************************
+ * Allocate registers for function return values.
+ *
+ * Params:
+ *    ty    = return type
+ *    t     = return type extended info
+ *    tyf   = function type
+ *    reg1  = output for the first part register
+ *    reg2  = output for the second part register
+ *
+ * Returns:
+ *    a bit mask of return registers.
+ *    0 if function returns on the stack or returns void.
+ */
+regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
+{
+    //printf("allocretregs()\n");
+    tym_t ty1 = ty;
+    tym_t ty2 = TYMAX;
+
+    *reg1 = *reg2 = NOREG;
+
+    /* Broken for EX_WIN64 and 16 bit code
+     * Broken for complex numbers with EX_windos - should return in STO1
+     */
+    if ((config.exe & (EX_16 | EX_WIN64)) ||
+        tycomplex(ty) && (config.exe & EX_windos))
+        return regmask(ty, tyf);        // use the old way
+
+
+    if (tybasic(ty) == TYvoid)
+        return 0;
+
+    if (ty & mTYxmmgpr)
+    {
+        ty1 = TYdouble;
+        ty2 = TYllong;
+    }
+    else if (ty & mTYgprxmm)
+    {
+        ty1 = TYllong;
+        ty2 = TYdouble;
+    }
+
+    if (tybasic(ty) == TYstruct)
+    {
+        assert(t);
+        ty1 = t.Tty;
+    }
+
+    switch (tyrelax(ty1))
+    {
+        case TYcent:
+            if (!I64 || config.exe == EX_WIN64)
+                return 0;
+            ty1 = ty2 = TYllong;
+            break;
+
+        case TYcdouble:
+            if (tybasic(tyf) == TYjfunc && I32)
+                break;
+            if (!I64 || config.exe == EX_WIN64)
+                return 0;
+            ty1 = ty2 = TYdouble;
+            break;
+
+        case TYcfloat:
+            if (tybasic(tyf) == TYjfunc && I32)
+                break;
+            if (!I64)
+                goto case TYllong;
+            if (config.exe == EX_WIN64)
+                ty1 = TYllong;
+            else
+                ty1 = TYdouble;
+            break;
+
+        case TYcldouble:
+            if (tybasic(tyf) == TYjfunc && I32)
+                break;
+            if (!I64 || config.exe == EX_WIN64)
+                return 0;
+            break;
+
+        case TYllong:
+            if (!I64)
+                ty1 = ty2 = TYlong;
+            break;
+
+        case TYarray:
+            type* targ1, targ2;
+            argtypes(t, targ1, targ2);
+            if (targ1)
+                ty1 = targ1.Tty;
+            else
+                return 0;
+            if (targ2)
+                ty2 = targ2.Tty;
+            break;
+
+        case TYstruct:
+            assert(t);
+            if (I64 && config.exe != EX_WIN64)
+            {
+                assert(tybasic(t.Tty) == TYstruct);
+                type *targ1 = t.Ttag.Sstruct.Sarg1type;
+                type *targ2 = t.Ttag.Sstruct.Sarg2type;
+                if (targ1)
+                    ty1 = targ1.Tty;
+                else
+                    return 0;
+                if (targ2)
+                    ty2 = targ2.Tty;
+                break;
+            }
+            else if (!(t.Ttag.Sstruct.Sflags & STRnotpod))
+            {
+                // windows only, return POD of 1, 2, 4, or 8 bytes on EAX(:EDX)
+                if (!(config.exe & (EX_WIN64 | EX_WIN32)))
+                    return 0;
+
+                uint sz = cast(uint) type_size(t);
+
+                if (sz > 8 || sz == 0)
+                    return 0;
+
+                if (sz == 8)
+                {
+                    if (config.exe == EX_WIN64)
+                        ty1 = TYllong;
+                    else
+                        ty1 = ty2 = TYlong;
+                }
+                else if (sz == 4 || sz == 2 || sz == 1)
+                    ty1 = TYlong;
+                else
+                    return 0;
+
+                break;
+            }
+            return 0;
+
+        default:
+            break;
+    }
+
+
+    static struct RetRegsAllocator
+    {
+    nothrow:
+        static reg_t[2] gp_regs = [AX, DX];
+        static reg_t[2] xmm_regs = [XMM0, XMM1];
+
+        uint cntgpr = 0,
+             cntxmm = 0;
+
+        reg_t gpr() { return gp_regs[cntgpr++]; }
+        reg_t xmm() { return xmm_regs[cntxmm++]; }
+    }
+
+    tym_t tym = ty1;
+    reg_t *reg = reg1;
+    RetRegsAllocator rralloc;
+    for (int v = 0; v < 2; ++v)
+    {
+        if (tym == TYMAX) continue;
+        switch (tysize(tym))
+        {
+        case 1:
+        case 2:
+        case 4:
+            if (tyfloating(tym))
+            {
+                if (I64)
+                    *reg = rralloc.xmm();
+                else
+                    *reg = ST0;
+            }
+            else
+                *reg = rralloc.gpr();
+            break;
+
+        case 8:
+            if (tycomplex(tym))
+            {
+                assert(tybasic(tyf) == TYjfunc && I32);
+                *reg = ST01;
+                break;
+            }
+            assert(I64 || tyfloating(tym));
+            goto case 4;
+
+        default:
+            if (tybasic(tym) == TYldouble || tybasic(tym) == TYildouble)
+            {
+                *reg = ST0;
+                break;
+            }
+            else if (tybasic(tym) == TYcldouble)
+            {
+                *reg = ST01;
+                break;
+            }
+            else if (tycomplex(tym) && tybasic(tyf) == TYjfunc && I32)
+            {
+                *reg = ST01;
+                break;
+            }
+            else if (tysimd(tym))
+            {
+                *reg = rralloc.xmm();
+                break;
+            }
+
+            debug WRTYxx(tym);
+            assert(0);
+        }
+        tym = ty2;
+        reg = reg2;
+    }
+    return (mask(*reg1) | mask(*reg2)) & ~mask(NOREG);
 }
 
 /***********************************************
@@ -3775,81 +4076,103 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
-        if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl != FLreg)
-        {   // Argument is passed in a register
+        if (!((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl != FLreg))
+            continue;
+        // Argument is passed in a register
 
-            type *t = s.Stype;
-            type *t2 = null;
-            if (tybasic(t.Tty) == TYstruct && config.exe != EX_WIN64)
+        type *t = s.Stype;
+        type *t2 = null;
+
+        tym_t tyb = tybasic(t.Tty);
+
+        // This logic is same as FuncParamRegs_alloc function at src/dmd/backend/cod1.d
+        //
+        // Find suitable SROA based on the element type
+        // (Don't put volatile parameters in registers)
+        if (tyb == TYarray && !(t.Tty & mTYvolatile))
+        {
+            type *targ1;
+            argtypes(t, targ1, t2);
+            if (targ1)
+                t = targ1;
+        }
+
+        // If struct just wraps another type
+        if (tyb == TYstruct)
+        {
+            // On windows 64 bits, structs occupy a general purpose register,
+            // regardless of the struct size or the number & types of its fields.
+            if (config.exe != EX_WIN64)
             {
                 type *targ1 = t.Ttag.Sstruct.Sarg1type;
                 t2 = t.Ttag.Sstruct.Sarg2type;
                 if (targ1)
                     t = targ1;
             }
+        }
 
-            if (Symbol_Sisdead(s, anyiasm))
-            {
-                // Ignore it, as it is never referenced
-            }
-            else
-            {
-                targ_size_t offset = Fast.size + BPoff;
-                if (s.Sclass == SCshadowreg)
-                    offset = Para.size;
-                offset += s.Soffset;
-                if (!hasframe || (enforcealign && s.Sclass != SCshadowreg))
-                    offset += EBPtoESP;
+        if (Symbol_Sisdead(s, anyiasm))
+        {
+            // Ignore it, as it is never referenced
+            continue;
+        }
 
-                reg_t preg = s.Spreg;
-                foreach (i; 0 .. 2)     // twice, once for each possible parameter register
+        targ_size_t offset = Fast.size + BPoff;
+        if (s.Sclass == SCshadowreg)
+            offset = Para.size;
+        offset += s.Soffset;
+        if (!hasframe || (enforcealign && s.Sclass != SCshadowreg))
+            offset += EBPtoESP;
+
+        reg_t preg = s.Spreg;
+        foreach (i; 0 .. 2)     // twice, once for each possible parameter register
+        {
+            shadowregm |= mask(preg);
+            opcode_t op = 0x89;                  // MOV x[EBP],preg
+            if (isXMMreg(preg))
+                op = xmmstore((t.Tty & TYarray) && t.Tnext ? t.Tnext.Tty : t.Tty);
+            if (!(pushalloc && preg == pushallocreg) || s.Sclass == SCshadowreg)
+            {
+                if (hasframe && (!enforcealign || s.Sclass == SCshadowreg))
                 {
-                    shadowregm |= mask(preg);
-                    opcode_t op = 0x89;                  // MOV x[EBP],preg
+                    // MOV x[EBP],preg
+                    cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
                     if (isXMMreg(preg))
-                        op = xmmstore(t.Tty);
-                    if (!(pushalloc && preg == pushallocreg) || s.Sclass == SCshadowreg)
                     {
-                        if (hasframe && (!enforcealign || s.Sclass == SCshadowreg))
-                        {
-                            // MOV x[EBP],preg
-                            cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
-                            if (isXMMreg(preg))
-                            {
-                            }
-                            else
-                            {
-                                //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
-                                //         s.Sident, (int)Fast.size, (int)BPoff, (int)s.Soffset, (int)sz);
-                                if (I64 && sz > 4)
-                                    code_orrex(cdb.last(), REX_W);
-                            }
-                        }
-                        else
-                        {
-                            // MOV offset[ESP],preg
-                            // BUG: byte size?
-                            cdb.genc1(op,
-                                      (modregrm(0,4,SP) << 8) |
-                                       modregxrm(2,preg,4),FLconst,offset);
-                            if (isXMMreg(preg))
-                            {
-                            }
-                            else
-                            {
-                                if (I64 && sz > 4)
-                                    cdb.last().Irex |= REX_W;
-                            }
-                        }
+                        checkSetVex(cdb.last(), t.Tty);
                     }
-                    preg = s.Spreg2;
-                    if (preg == NOREG)
-                        break;
-                    if (t2)
-                        t = t2;
-                    offset += REGSIZE;
+                    else
+                    {
+                        //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
+                        //         s.Sident, (int)Fast.size, (int)BPoff, (int)s.Soffset, (int)sz);
+                        if (I64 && sz > 4)
+                            code_orrex(cdb.last(), REX_W);
+                    }
+                }
+                else
+                {
+                    // MOV offset[ESP],preg
+                    // BUG: byte size?
+                    cdb.genc1(op,
+                              (modregrm(0,4,SP) << 8) |
+                               modregxrm(2,preg,4),FLconst,offset);
+                    if (isXMMreg(preg))
+                    {
+                        checkSetVex(cdb.last(), t.Tty);
+                    }
+                    else
+                    {
+                        if (I64 && sz > 4)
+                            cdb.last().Irex |= REX_W;
+                    }
                 }
             }
+            preg = s.Spreg2;
+            if (preg == NOREG)
+                break;
+            if (t2)
+                t = t2;
+            offset += REGSIZE;
         }
     }
 
@@ -3903,49 +4226,51 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
             namedargs |= s.Spregm();
 
-        if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl == FLreg)
-        {   // Argument is passed in a register
+        if (!((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl == FLreg))
+        {
+            // Argument is passed in a register
+            continue;
+        }
 
-            type *t = s.Stype;
-            type *t2 = null;
-            if (tybasic(t.Tty) == TYstruct && config.exe != EX_WIN64)
-            {   type *targ1 = t.Ttag.Sstruct.Sarg1type;
-                t2 = t.Ttag.Sstruct.Sarg2type;
-                if (targ1)
-                    t = targ1;
-            }
+        type *t = s.Stype;
+        type *t2 = null;
+        if (tybasic(t.Tty) == TYstruct && config.exe != EX_WIN64)
+        {   type *targ1 = t.Ttag.Sstruct.Sarg1type;
+            t2 = t.Ttag.Sstruct.Sarg2type;
+            if (targ1)
+                t = targ1;
+        }
 
-            reg_t preg = s.Spreg;
-            reg_t r = s.Sreglsw;
-            for (int i = 0; i < 2; ++i)
+        reg_t preg = s.Spreg;
+        reg_t r = s.Sreglsw;
+        for (int i = 0; i < 2; ++i)
+        {
+            if (preg == NOREG)
+                break;
+            assert(!(mask(preg) & assignregs));         // not already stepped on
+            assignregs |= mask(r);
+
+            // MOV reg,preg
+            if (r == preg)
             {
-                if (preg == NOREG)
-                    break;
-                assert(!(mask(preg) & assignregs));         // not already stepped on
-                assignregs |= mask(r);
-
-                // MOV reg,preg
-                if (r == preg)
-                {
-                }
-                else if (mask(preg) & XMMREGS)
-                {
-                    const op = xmmload(t.Tty);      // MOVSS/D xreg,preg
-                    uint xreg = r - XMM0;
-                    cdb.gen2(op,modregxrmx(3,xreg,preg - XMM0));
-                }
-                else
-                {
-                    //printf("test1 mov %s, %s\n", regstring[r], regstring[preg]);
-                    genmovreg(cdb,r,preg);
-                    if (I64 && sz == 8)
-                        code_orrex(cdb.last(), REX_W);
-                }
-                preg = s.Spreg2;
-                r = s.Sregmsw;
-                if (t2)
-                    t = t2;
             }
+            else if (mask(preg) & XMMREGS)
+            {
+                const op = xmmload(t.Tty);      // MOVSS/D xreg,preg
+                uint xreg = r - XMM0;
+                cdb.gen2(op,modregxrmx(3,xreg,preg - XMM0));
+            }
+            else
+            {
+                //printf("test1 mov %s, %s\n", regstring[r], regstring[preg]);
+                genmovreg(cdb,r,preg);
+                if (I64 && sz == 8)
+                    code_orrex(cdb.last(), REX_W);
+            }
+            preg = s.Spreg2;
+            r = s.Sregmsw;
+            if (t2)
+                t = t2;
         }
     }
 
@@ -3959,61 +4284,61 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
-        if ((s.Sclass == SCregpar || s.Sclass == SCparameter) &&
+        if (!((s.Sclass == SCregpar || s.Sclass == SCparameter) &&
             s.Sfl == FLreg &&
             (refparam
                 // This variable has been reference by a nested function
                 || MARS && s.Stype.Tty & mTYvolatile
-                ))
+                )))
         {
-            // MOV reg,param[BP]
-            //assert(refparam);
-            if (mask(s.Sreglsw) & XMMREGS)
-            {
-                const op = xmmload(s.Stype.Tty);  // MOVSS/D xreg,mem
-                uint xreg = s.Sreglsw - XMM0;
-                cdb.genc1(op,modregxrm(2,xreg,BPRM),FLconst,Para.size + s.Soffset);
-                if (!hasframe)
-                {   // Convert to ESP relative address rather than EBP
-                    code *c = cdb.last();
-                    c.Irm = cast(ubyte)modregxrm(2,xreg,4);
-                    c.Isib = modregrm(0,4,SP);
-                    c.IEV1.Vpointer += EBPtoESP;
-                }
-            }
-            else
-            {
-                cdb.genc1(sz == 1 ? 0x8A : 0x8B,
-                    modregxrm(2,s.Sreglsw,BPRM),FLconst,Para.size + s.Soffset);
+            continue;
+        }
+        // MOV reg,param[BP]
+        //assert(refparam);
+        if (mask(s.Sreglsw) & XMMREGS)
+        {
+            const op = xmmload(s.Stype.Tty);  // MOVSS/D xreg,mem
+            uint xreg = s.Sreglsw - XMM0;
+            cdb.genc1(op,modregxrm(2,xreg,BPRM),FLconst,Para.size + s.Soffset);
+            if (!hasframe)
+            {   // Convert to ESP relative address rather than EBP
                 code *c = cdb.last();
-                if (!I16 && sz == SHORTSIZE)
-                    c.Iflags |= CFopsize; // operand size
-                if (I64 && sz >= REGSIZE)
-                    c.Irex |= REX_W;
-                if (I64 && sz == 1 && s.Sreglsw >= 4)
-                    c.Irex |= REX;
-                if (!hasframe)
-                {   // Convert to ESP relative address rather than EBP
-                    assert(!I16);
-                    c.Irm = cast(ubyte)modregxrm(2,s.Sreglsw,4);
-                    c.Isib = modregrm(0,4,SP);
-                    c.IEV1.Vpointer += EBPtoESP;
-                }
-                if (sz > REGSIZE)
-                {
-                    cdb.genc1(0x8B,
-                        modregxrm(2,s.Sregmsw,BPRM),FLconst,Para.size + s.Soffset + REGSIZE);
-                    code *cx = cdb.last();
-                    if (I64)
-                        cx.Irex |= REX_W;
-                    if (!hasframe)
-                    {   // Convert to ESP relative address rather than EBP
-                        assert(!I16);
-                        cx.Irm = cast(ubyte)modregxrm(2,s.Sregmsw,4);
-                        cx.Isib = modregrm(0,4,SP);
-                        cx.IEV1.Vpointer += EBPtoESP;
-                    }
-                }
+                c.Irm = cast(ubyte)modregxrm(2,xreg,4);
+                c.Isib = modregrm(0,4,SP);
+                c.IEV1.Vpointer += EBPtoESP;
+            }
+            continue;
+        }
+
+        cdb.genc1(sz == 1 ? 0x8A : 0x8B,
+            modregxrm(2,s.Sreglsw,BPRM),FLconst,Para.size + s.Soffset);
+        code *c = cdb.last();
+        if (!I16 && sz == SHORTSIZE)
+            c.Iflags |= CFopsize; // operand size
+        if (I64 && sz >= REGSIZE)
+            c.Irex |= REX_W;
+        if (I64 && sz == 1 && s.Sreglsw >= 4)
+            c.Irex |= REX;
+        if (!hasframe)
+        {   // Convert to ESP relative address rather than EBP
+            assert(!I16);
+            c.Irm = cast(ubyte)modregxrm(2,s.Sreglsw,4);
+            c.Isib = modregrm(0,4,SP);
+            c.IEV1.Vpointer += EBPtoESP;
+        }
+        if (sz > REGSIZE)
+        {
+            cdb.genc1(0x8B,
+                modregxrm(2,s.Sregmsw,BPRM),FLconst,Para.size + s.Soffset + REGSIZE);
+            code *cx = cdb.last();
+            if (I64)
+                cx.Irex |= REX_W;
+            if (!hasframe)
+            {   // Convert to ESP relative address rather than EBP
+                assert(!I16);
+                cx.Irm = cast(ubyte)modregxrm(2,s.Sregmsw,4);
+                cx.Isib = modregrm(0,4,SP);
+                cx.IEV1.Vpointer += EBPtoESP;
             }
         }
     }

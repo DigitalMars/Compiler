@@ -772,10 +772,11 @@ enum THRESHMAX = 0xFFFF;
 
 // Language for error messages
 enum LANG
-{       english,
-        german,
-        french,
-        japanese,
+{
+    english,
+    german,
+    french,
+    japanese,
 }
 
 // Configuration that is not saved in precompiled header

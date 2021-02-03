@@ -50,6 +50,12 @@ __gshared
 Rarray!(seg_data*) SegData;
 }
 
+/* ======================= cod1 stub ======================================= */
+
+void argtypes(type* t, ref type* arg1type, ref type* arg2type)
+{
+}
+
 /* ======================= cgcv stub ======================================= */
 
 void cv_func(Funcsym *s)
