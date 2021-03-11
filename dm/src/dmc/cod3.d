@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod3.d, backend/cod3.d)
@@ -1218,7 +1218,6 @@ static if (NTEXCEPTIONS)
             goto L4;
 
         case BCret:
-        case BCexit:
             retregs = 0;
             gencodelem(cdb,e,&retregs,true);
         L4:
@@ -1232,12 +1231,7 @@ static if (NTEXCEPTIONS)
                 pop87();                // account for return value
             }
 
-            if (bl.BC == BCexit)
-            {
-                if (config.flags4 & CFG4optimized)
-                    mfuncreg = mfuncregsave;
-            }
-            else if (MARS || usednteh & NTEH_try)
+            if (MARS || usednteh & NTEH_try)
             {
                 block *bt = bl;
                 while ((bt = bt.Btry) != null)
@@ -1280,6 +1274,13 @@ version (MARS)
                     }
                 }
             }
+            break;
+
+        case BCexit:
+            retregs = 0;
+            gencodelem(cdb,e,&retregs,true);
+            if (config.flags4 & CFG4optimized)
+                mfuncreg = mfuncregsave;
             break;
 
         case BCasm:
@@ -1354,7 +1355,7 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
         return regmask(ty, tyf);        // use the old way
 
 
-    if (tybasic(ty) == TYvoid)
+    if (tybasic(ty) == TYvoid || tybasic(ty) == TYnoreturn)
         return 0;
 
     if (ty & mTYxmmgpr)

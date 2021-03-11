@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod1.d, backend/cod1.d)
@@ -470,6 +470,16 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
 {
     //printf("logexp(e = %p, jcond = %d)\n", e, jcond);
+    if (tybasic(e.Ety) == TYnoreturn)
+    {
+        con_t regconsave = regcon;
+        regm_t retregs = 0;
+        codelem(cdb,e,&retregs,0);
+        regconsave.used |= regcon.used;
+        regcon = regconsave;
+        return;
+    }
+
     int no87 = (jcond & 2) == 0;
     docommas(cdb, &e);             // scan down commas
     cgstate.stackclean++;

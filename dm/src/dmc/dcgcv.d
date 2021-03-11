@@ -1902,6 +1902,7 @@ L1:
             break;
 
         case TYvoid:
+        case TYnoreturn:
         case TYchar:
         case TYschar:
         case TYuchar:

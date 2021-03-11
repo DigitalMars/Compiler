@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.d, backend/evalu8.d)
@@ -240,23 +240,29 @@ version (SCPP)
 
 int iftrue(elem *e)
 {
-  while (1)
-  {
+    while (1)
+    {
         assert(e);
         elem_debug(e);
         switch (e.Eoper)
-        {       case OPcomma:
-                case OPinfo:
-                        e = e.EV.E2;
-                        break;
-                case OPrelconst:
-                case OPconst:
-                case OPstring:
-                        return boolres(e);
-                default:
-                        return false;
+        {
+            case OPcomma:
+            case OPinfo:
+                e = e.EV.E2;
+                break;
+
+            case OPrelconst:
+            case OPconst:
+            case OPstring:
+                return boolres(e);
+
+            case OPoror:
+                return tybasic(e.EV.E2.Ety) == TYnoreturn;
+
+            default:
+                return false;
         }
-  }
+    }
 }
 
 /***************************
@@ -265,22 +271,27 @@ int iftrue(elem *e)
 
 int iffalse(elem *e)
 {
-        while (1)
-        {       assert(e);
-                elem_debug(e);
-                switch (e.Eoper)
-                {       case OPcomma:
-                        case OPinfo:
-                                e = e.EV.E2;
-                                break;
-                        case OPconst:
-                                return !boolres(e);
-                        //case OPstring:
-                        //case OPrelconst:
-                        default:
-                                return false;
-                }
+    while (1)
+    {
+        assert(e);
+        elem_debug(e);
+        switch (e.Eoper)
+        {
+            case OPcomma:
+            case OPinfo:
+                e = e.EV.E2;
+                break;
+
+            case OPconst:
+                return !boolres(e);
+
+            case OPandand:
+                return tybasic(e.EV.E2.Ety) == TYnoreturn;
+
+            default:
+                return false;
         }
+    }
 }
 
 

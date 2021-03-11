@@ -2,7 +2,7 @@
  * Manipulating basic blocks and their edges.
  *
  * Copyright:   Copyright (C) 1986-1997 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/blockopt.d, backend/blockopt.d)
@@ -10,6 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/blockopt.d
  */
 
+module dmd.backend.blockopt;
 
 /****************************************************************
  * Handle basic blocks.
@@ -932,6 +933,22 @@ private void bropt()
                 pn = &((*pn).EV.E2);
 
         elem *n = *pn;
+
+        /* look for conditional that never returns */
+        if (n && tybasic(n.Ety) == TYnoreturn && b.BC != BCexit)
+        {
+            b.BC = BCexit;
+            // Exit block has no successors, so remove them
+            foreach (bp; ListRange(b.Bsucc))
+            {
+                list_subtract(&(list_block(bp).Bpred),b);
+            }
+            list_free(&b.Bsucc, FPNULL);
+            debug if (debugc) printf("CHANGE: noreturn becomes BCexit\n");
+            go.changes++;
+            continue;
+        }
+
         if (b.BC == BCiftrue)
         {
             assert(n);
