@@ -4013,8 +4013,8 @@ static if (0)
     }
 }
 
-    reg_t reg1 = NOREG, reg2 = NOREG;
-    retregs = allocretregs(e.Ety, e.ET, tym1, &reg1, &reg2);
+    reg_t reg1, reg2;
+    retregs = allocretregs(e.Ety, e.ET, tym1, reg1, reg2);
 
     assert(retregs || !*pretregs);
 
