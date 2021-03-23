@@ -87,7 +87,7 @@ void cgreg_init()
     {   uint sz;
         Symbol *s = globsym[i];
 
-        //printf("considering candidate '%s' for register\n",s.Sident);
+        //printf("considering candidate '%s' for register\n", s.Sident.ptr);
 
         if (s.Srange)
             s.Srange = vec_realloc(s.Srange,dfo.length);

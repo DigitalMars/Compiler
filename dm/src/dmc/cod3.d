@@ -739,6 +739,7 @@ void cgreg_dst_regs(reg_t* dst_integer_reg, reg_t* dst_float_reg)
 
 void cgreg_set_priorities(tym_t ty, const(reg_t)** pseq, const(reg_t)** pseqmsw)
 {
+    //printf("cgreg_set_priorities %x\n", ty);
     const sz = tysize(ty);
 
     if (tyxmmreg(ty))
