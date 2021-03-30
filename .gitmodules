@@ -1,0 +1,3 @@
+[submodule "dmd"]
+	path = dm/src/dmd
+	url = https://github.com/dlang/dmd.git

@@ -411,8 +411,8 @@ strtold.obj : strtold.c
 adl.obj : adl.d
         $(DMD) -c $(DFLAGS) adl.d
 
-backconfig.obj : backconfig.d
-        $(DMD) -c $(DFLAGS) backconfig.d
+backconfig.obj : ../dmd/src/dmd/backend/backconfig.d
+        $(DMD) -c $(DFLAGS) ../dmd/src/dmd/backend/backconfig.d
 
 barray.obj : barray.d
         $(DMD) -c $(DFLAGS) barray.d
