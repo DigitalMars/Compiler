@@ -2,7 +2,7 @@
  * Instruction tables for inline assembler.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ptrntab.d, backend/ptrntab.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_ptrntab.html
@@ -38,6 +38,7 @@ import dmd.backend.dlist;
 import dmd.backend.ty;
 
 nothrow:
+@safe:
 
 //
 // NOTE: For 0 operand instructions, the opcode is taken from
@@ -5805,6 +5806,7 @@ extern (C++) const(char)* asm_opstr(OP *pop)
 /*******************************
  */
 
+@trusted
 extern (C++) OP *asm_op_lookup(const(char)* s)
 {
     int i;
@@ -5825,6 +5827,7 @@ extern (C++) OP *asm_op_lookup(const(char)* s)
 /*******************************
  */
 
+@trusted
 extern (C++) void init_optab()
 {   int i;
 
@@ -5839,6 +5842,7 @@ extern (C++) void init_optab()
     }
 }
 
+@trusted
 private int binary(const(char)* p, const OP[] table)
 {
     int low = 0;

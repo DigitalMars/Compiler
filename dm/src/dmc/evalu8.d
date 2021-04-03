@@ -45,6 +45,7 @@ import scopeh;
 extern (C++):
 
 nothrow:
+@safe:
 
 import dmd.backend.errors;
 
@@ -75,7 +76,7 @@ int boolres(elem *e)
 version (SCPP)
 {
         case OPvar:
-            assert(CPP && PARSER);
+            //assert(CPP && PARSER); // access to global is not @safe
             el_toconst(e);
             assert(e.Eoper == OPconst);
             goto case OPconst;
@@ -152,7 +153,7 @@ version (SCPP)
                 case TYstruct:  // happens on syntax error of (struct x)0
                 version (SCPP)
                 {
-                    assert(errcnt);
+                    //assert(errcnt); // access to global is not @safe
                     goto case TYvoid;
                 }
                 else
@@ -238,6 +239,7 @@ version (SCPP)
  * Return true if expression will always evaluate to true.
  */
 
+@trusted
 int iftrue(elem *e)
 {
     while (1)
@@ -269,6 +271,7 @@ int iftrue(elem *e)
  * Return true if expression will always evaluate to false.
  */
 
+@trusted
 int iffalse(elem *e)
 {
     while (1)
@@ -300,6 +303,7 @@ int iffalse(elem *e)
  * Return with the result.
  */
 
+@trusted
 elem * evalu8(elem *e, goal_t goal)
 {
     elem* e1;

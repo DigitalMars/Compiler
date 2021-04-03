@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2013-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2013-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/divcoeff.d, backend/divcoeff.d)
@@ -18,6 +18,7 @@ import core.stdc.stdio;
 extern (C++):
 
 nothrow:
+@safe:
 
 import core.stdc.stdint : uint64_t;
 alias ullong = uint64_t;
@@ -118,6 +119,7 @@ void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong *pqh, ullong *pq
  *      true    m >= 2**N
  */
 
+@trusted
 extern (C) bool choose_multiplier(int N, ullong d, int prec, ullong *pm, int *pshpost)
 {
     assert(N == 32 || N == 64);
@@ -253,6 +255,7 @@ extern (C) bool udiv_coefficients(int N, ullong d, int *pshpre, ullong *pm, int 
     return mhighbit;
 }
 
+@trusted
 unittest
 {
     struct S

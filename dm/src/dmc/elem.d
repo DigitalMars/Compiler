@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elem.d, backend/elem.d)
@@ -81,6 +81,7 @@ version (CRuntime_Microsoft) extern (C++)
 extern (C++):
 
 nothrow:
+@safe:
 
 alias MEM_PH_MALLOC = mem_malloc;
 alias MEM_PH_CALLOC = mem_calloc;
@@ -139,6 +140,7 @@ private __gshared
  * Initialize el package.
  */
 
+@trusted
 void el_init()
 {
     if (!configv.addlinenumbers)
@@ -149,6 +151,7 @@ void el_init()
  * Initialize for another run through.
  */
 
+@trusted
 void el_reset()
 {
     stable_si = 0;
@@ -161,6 +164,7 @@ void el_reset()
  * Terminate el package.
  */
 
+@trusted
 void el_term()
 {
     static if (TERMCODE)
@@ -190,6 +194,7 @@ void el_term()
  * Allocate an element.
  */
 
+@trusted
 elem *el_calloc()
 {
     elem *e;
@@ -223,7 +228,7 @@ elem *el_calloc()
 /***************
  * Free element
  */
-
+@trusted
 void el_free(elem *e)
 {
 L1:
@@ -317,6 +322,7 @@ version (STATS)
  * Be careful about either or both being null.
  */
 
+@trusted
 elem * el_combine(elem *e1,elem *e2)
 {
     if (e1)
@@ -344,6 +350,7 @@ elem * el_combine(elem *e1,elem *e2)
  * Be careful about either or both being null.
  */
 
+@trusted
 elem * el_param(elem *e1,elem *e2)
 {
     //printf("el_param(%p, %p)\n", e1, e2);
@@ -371,6 +378,7 @@ elem * el_param(elem *e1,elem *e2)
  * Create parameter list, terminated by a null.
  */
 
+@trusted
 elem *el_params(elem *e1, ...)
 {
     elem *e;
@@ -391,6 +399,7 @@ elem *el_params(elem *e1, ...)
  * binary tree.
  */
 
+@trusted
 elem *el_params(void **args, int length)
 {
     if (length == 0)
@@ -407,6 +416,7 @@ elem *el_params(void **args, int length)
  * binary tree.
  */
 
+@trusted
 elem *el_combines(void **args, int length)
 {
     if (length == 0)
@@ -422,6 +432,7 @@ elem *el_combines(void **args, int length)
  * Return number of op nodes
  */
 
+@trusted
 size_t el_opN(const elem *e, OPER op)
 {
     if (e.Eoper == op)
@@ -434,6 +445,7 @@ size_t el_opN(const elem *e, OPER op)
  * Fill an array with the ops.
  */
 
+@trusted
 void el_opArray(elem ***parray, elem *e, OPER op)
 {
     if (e.Eoper == op)
@@ -448,6 +460,7 @@ void el_opArray(elem ***parray, elem *e, OPER op)
     }
 }
 
+@trusted
 void el_opFree(elem *e, OPER op)
 {
     if (e.Eoper == op)
@@ -464,6 +477,7 @@ void el_opFree(elem *e, OPER op)
  * Do an array of parameters as a tree
  */
 
+@trusted
 extern (C) elem *el_opCombine(elem **args, size_t length, OPER op, tym_t ty)
 {
     if (length == 0)
@@ -486,6 +500,7 @@ int el_nparams(const elem *e)
  * Fill an array with the parameters.
  */
 
+@trusted
 void el_paramArray(elem ***parray, elem *e)
 {
     if (e.Eoper == OPparam)
@@ -525,6 +540,7 @@ elem *el_pair(tym_t tym, elem *lo, elem *hi)
  * Copy an element (not the tree!).
  */
 
+@trusted
 void el_copy(elem *to, const elem *from)
 {
     assert(to && from);
@@ -538,6 +554,7 @@ void el_copy(elem *to, const elem *from)
  * Allocate a temporary, and return temporary elem.
  */
 
+@trusted
 elem * el_alloctmp(tym_t ty)
 {
     version (MARS)
@@ -557,6 +574,7 @@ elem * el_alloctmp(tym_t ty)
  * Select the e1 child of e.
  */
 
+@trusted
 elem * el_selecte1(elem *e)
 {
     elem *e1;
@@ -588,6 +606,7 @@ elem * el_selecte1(elem *e)
  * Select the e2 child of e.
  */
 
+@trusted
 elem * el_selecte2(elem *e)
 {
     elem *e2;
@@ -621,6 +640,7 @@ elem * el_selecte2(elem *e)
  * No CSEs.
  */
 
+@trusted
 elem * el_copytree(elem *e)
 {
     elem *d;
@@ -688,6 +708,7 @@ static if (0)
 
 version (MARS)
 {
+@trusted
 elem *exp2_copytotemp(elem *e)
 {
     //printf("exp2_copytotemp()\n");
@@ -724,6 +745,7 @@ elem *exp2_copytotemp(elem *e)
  * with (tmp = e) and tmp is returned.
  */
 
+@trusted
 elem * el_same(elem **pe)
 {
     elem *e = *pe;
@@ -739,6 +761,7 @@ elem * el_same(elem **pe)
  * Thin wrapper of exp2_copytotemp. Different from el_same,
  * always makes a temporary.
  */
+@trusted
 elem *el_copytotmp(elem **pe)
 {
     //printf("copytotemp()\n");
@@ -758,6 +781,7 @@ elem *el_copytotmp(elem **pe)
 version (SCPP_HTOD)
 {
 
+@trusted
 void el_replace_sym(elem *e,const Symbol *s1,Symbol *s2)
 {
     symbol_debug(s1);
@@ -798,6 +822,7 @@ void el_replace_sym(elem *e,const Symbol *s1,Symbol *s2)
  *      0       no
  */
 
+@trusted
 int el_appears(const(elem)* e, const Symbol *s)
 {
     symbol_debug(s);
@@ -880,6 +905,7 @@ Symbol *el_basesym(elem *e)
  *      true if there is one
  */
 
+@trusted
 bool el_anydef(const elem *ed, const(elem)* e)
 {
     const edop = ed.Eoper;
@@ -915,6 +941,7 @@ bool el_anydef(const elem *ed, const(elem)* e)
  * Make a binary operator node.
  */
 
+@trusted
 elem* el_bint(OPER op,type *t,elem *e1,elem *e2)
 {
     elem *e;
@@ -937,6 +964,7 @@ elem* el_bint(OPER op,type *t,elem *e1,elem *e2)
     return e;
 }
 
+@trusted
 elem* el_bin(OPER op,tym_t ty,elem *e1,elem *e2)
 {
 static if (0)
@@ -962,6 +990,7 @@ static if (0)
  * Make a unary operator node.
  */
 
+@trusted
 elem* el_unat(OPER op,type *t,elem *e1)
 {
     debug if (!(op < OPMAX && OTunary(op) && e1))
@@ -982,6 +1011,7 @@ elem* el_unat(OPER op,type *t,elem *e1)
     return e;
 }
 
+@trusted
 elem* el_una(OPER op,tym_t ty,elem *e1)
 {
     debug if (!(op < OPMAX && OTunary(op) && e1))
@@ -1001,6 +1031,7 @@ elem* el_una(OPER op,tym_t ty,elem *e1)
  * Make a constant node out of integral type.
  */
 
+@trusted
 extern (C) elem * el_longt(type *t,targ_llong val)
 {
     assert(PARSER);
@@ -1023,7 +1054,9 @@ elem * el_long(tym_t t,targ_llong val)
     version (MARS)
     { }
     else
-        assert(!PARSER);
+    {
+        //assert(!PARSER); // accessing PARSER is not @safe
+    }
 
     elem* e = el_calloc();
     e.Eoper = OPconst;
@@ -1065,6 +1098,7 @@ elem * el_long(tym_t t,targ_llong val)
 
 version (SCPP_HTOD)
 {
+@trusted
 void el_toconst(elem *e)
 {
     elem_debug(e);
@@ -1086,6 +1120,7 @@ void el_toconst(elem *e)
  * Set new type for elem.
  */
 
+@trusted
 elem * el_settype(elem *e,type *t)
 {
     version (MARS)
@@ -1107,6 +1142,7 @@ elem * el_settype(elem *e,type *t)
 version (SCPP_HTOD)
 {
 
+@trusted
 void el_replacesym(elem *e,const Symbol *s1,Symbol *s2)
 {
     assert(PARSER);
@@ -1133,7 +1169,7 @@ void el_replacesym(elem *e,const Symbol *s1,Symbol *s2)
 /*******************************
  * Create elem that is the size of a type.
  */
-
+@trusted
 elem * el_typesize(type *t)
 {
 version (MARS)
@@ -1177,6 +1213,7 @@ else
 
 version (SCPP_HTOD)
 {
+@trusted
 elem * el_nelems(type *t)
 {
     elem *enelems;
@@ -1221,6 +1258,7 @@ elem * el_nelems(type *t)
 version (MARS)
 {
 
+@trusted
 bool el_funcsideeff(const elem *e)
 {
     const(Symbol)* s;
@@ -1238,6 +1276,7 @@ bool el_funcsideeff(const elem *e)
  * Returns: true if elem has any side effects.
  */
 
+@trusted
 bool el_sideeffect(const elem *e)
 {
     assert(e);
@@ -1260,6 +1299,7 @@ bool el_sideeffect(const elem *e)
  *      2       eb definitely depends on ea
  */
 
+@trusted
 int el_depends(const(elem)* ea, const elem *eb)
 {
  L1:
@@ -1311,6 +1351,7 @@ Lnodep:
 version (SCPP_HTOD)
 {
 
+@trusted
 elem * el_ptr_offset(Symbol *s,targ_size_t offset)
 {
     auto e = el_ptr(s);      /* e is an elem which is a pointer to s */
@@ -1337,6 +1378,7 @@ elem * el_ptr_offset(Symbol *s,targ_size_t offset)
  *      false  elem evaluates left-to-right
  */
 
+@trusted
 bool ERTOL(const elem *e)
 {
     elem_debug(e);
@@ -1354,6 +1396,7 @@ bool ERTOL(const elem *e)
  *      false if expression never returns.
  */
 
+@trusted
 bool el_returns(const(elem)* e)
 {
     while (1)
@@ -1404,6 +1447,7 @@ bool el_returns(const(elem)* e)
  * Scan down commas and return the controlling elem.
  */
 
+@trusted
 elem *el_scancommas(elem *e)
 {
     while (e.Eoper == OPcomma)
@@ -1415,6 +1459,7 @@ elem *el_scancommas(elem *e)
  * Count number of commas in the expression.
  */
 
+@trusted
 int el_countCommas(const(elem)* e)
 {
     int ncommas = 0;
@@ -1441,6 +1486,7 @@ int el_countCommas(const(elem)* e)
 
 version (HTOD) { } else
 {
+@trusted
 elem *el_convfloat(elem *e)
 {
     ubyte[32] buffer = void;
@@ -1533,6 +1579,7 @@ elem *el_convfloat(elem *e)
  * Needed iff vector code can't load immediate constants.
  */
 
+@trusted
 elem *el_convxmm(elem *e)
 {
     ubyte[eve.sizeof] buffer = void;
@@ -1572,6 +1619,7 @@ static if (0)
  * stored in the static data segment.
  */
 
+@trusted
 elem *el_convstring(elem *e)
 {
     //printf("el_convstring()\n");
@@ -1667,6 +1715,7 @@ L1:
  */
 static if (1)
 {
+@trusted
 void shrinkLongDoubleConstantIfPossible(elem *e)
 {
     if (e.Eoper == OPconst && e.Ety == TYldouble)
@@ -1707,6 +1756,7 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
 
 version (HTOD) { } else
 {
+@trusted
 elem *el_convert(elem *e)
 {
     //printf("el_convert(%p)\n", e);
@@ -1781,6 +1831,7 @@ elem *el_convert(elem *e)
  *      *pconst = union of constant data
  */
 
+@trusted
 elem * el_const(tym_t ty, eve *pconst)
 {
     elem *e;
@@ -1858,6 +1909,7 @@ elem *el_ddtor(elem *e,void *decl)
  *      constructor node
  */
 
+@trusted
 elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
 {
     elem *er;
@@ -1953,6 +2005,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
 
 version (SCPP_HTOD)
 {
+@trusted
 elem *el_ctor(elem *ector,elem *e,Symbol *sdtor)
 {
     //printf("el_ctor(ector = %p, e = %p, sdtor = %p)\n", ector, e, sdtor);
@@ -2017,6 +2070,7 @@ elem *el_dtor(elem *edtor,elem *e)
  * Create an elem of the constant 0, of the type t.
  */
 
+@trusted
 elem *el_zero(type *t)
 {
     assert(PARSER);
@@ -2037,6 +2091,7 @@ elem *el_zero(type *t)
  * Return null if can't find it.
  */
 
+@trusted
 elem ** el_parent(elem *e,elem **pe)
 {
     assert(e && pe && *pe);
@@ -2061,6 +2116,7 @@ elem ** el_parent(elem *e,elem **pe)
  * Returns: true if trees match.
  */
 
+@trusted
 private bool el_matchx(const(elem)* n1, const(elem)* n2, int gmatch2)
 {
     if (n1 == n2)
@@ -2433,6 +2489,7 @@ bool el_match5(const elem* n1, const elem* n2)
  * Extract long value from constant parser elem.
  */
 
+@trusted
 targ_llong el_tolongt(elem *e)
 {
     const parsersave = PARSER;
@@ -2446,6 +2503,7 @@ targ_llong el_tolongt(elem *e)
  * Extract long value from constant elem.
  */
 
+@trusted
 targ_llong el_tolong(elem *e)
 {
     elem_debug(e);
@@ -2719,6 +2777,7 @@ targ_ldouble el_toldouble(elem *e)
  * Returns: true if so
  */
 
+@trusted
 bool el_isdependent(elem* e)
 {
     if (type_isdependent(e.ET))
@@ -2745,6 +2804,7 @@ bool el_isdependent(elem* e)
  * Returns: alignment size of elem e
  */
 
+@trusted
 uint el_alignsize(elem *e)
 {
     const tym = tybasic(e.Ety);
@@ -2764,6 +2824,7 @@ uint el_alignsize(elem *e)
 debug
 {
 
+@trusted
 void el_check(const(elem)* e)
 {
     elem_debug(e);
@@ -2787,6 +2848,7 @@ void el_check(const(elem)* e)
  * Write out expression elem.
  */
 
+@trusted
 void elem_print(const elem* e, int nestlevel = 0)
 {
     foreach (i; 0 .. nestlevel)
@@ -2885,6 +2947,7 @@ void elem_print(const elem* e, int nestlevel = 0)
     }
 }
 
+@trusted
 void elem_print_const(const elem* e)
 {
     assert(e.Eoper == OPconst);
@@ -3043,6 +3106,7 @@ version (MARS) { } else
 
 static if (HYDRATE)
 {
+@trusted
 void el_hydrate(elem **pe)
 {
     if (!isdehydrated(*pe))
@@ -3106,6 +3170,7 @@ void el_hydrate(elem **pe)
 
 static if (DEHYDRATE)
 {
+@trusted
 void el_dehydrate(elem **pe)
 {
     elem* e = *pe;

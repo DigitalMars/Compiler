@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright), Dave Fladebo
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -21,6 +21,7 @@ version (MARS)
     import dmd.root.hash;
 
 nothrow:
+@safe:
 
 /*********************
  * This is the "bucket" used by the AArray.
@@ -53,6 +54,7 @@ nothrow:
     /****
      * Frees all the data used by AArray
      */
+    @trusted
     void destroy()
     {
         if (buckets)
@@ -89,7 +91,7 @@ nothrow:
      * Returns:
      *  pointer to Value
      */
-
+    @trusted
     Value* get(Key* pkey)
     {
         //printf("AArray::get()\n");
@@ -150,6 +152,7 @@ nothrow:
      *  !=null  in aa, return pointer to value
      */
 
+    @trusted
     Value* isIn(Key* pkey)
     {
         //printf("AArray.isIn(), .length = %d, .ptr = %p\n", nodes, buckets.ptr);
@@ -183,6 +186,7 @@ nothrow:
      *  pKey = pointer to key
      */
 
+    @trusted
     void del(Key *pkey)
     {
         if (!nodes)
@@ -214,6 +218,7 @@ nothrow:
      *  malloc'd array of keys
      */
 
+    @trusted
     Key[] keys()
     {
         if (!nodes)
@@ -240,6 +245,7 @@ nothrow:
      *  malloc'd array of values
      */
 
+    @trusted
     Value[] values()
     {
         if (!nodes)
@@ -265,6 +271,7 @@ nothrow:
      * Rehash an array.
      */
 
+    @trusted
     void rehash()
     {
         //printf("Rehash\n");
@@ -313,6 +320,7 @@ nothrow:
      *  0   : no entries in aa, or all dg() calls returned 0
      */
 
+    @trusted
     int apply(applyDg dg)
     {
         if (!nodes)
@@ -421,6 +429,7 @@ nothrow:
         }
     }
 
+    @trusted
     static bool equals(Key* pk1, Key* pk2)
     {
         auto buf1 = *pk1;
@@ -437,6 +446,7 @@ nothrow:
     alias AA = AArray!(TinfoChars, uint);
     AA aa;
 
+    @trusted
     static AAchars* create()
     {
         auto a = cast(AAchars*)calloc(1, AAchars.sizeof);
@@ -444,12 +454,14 @@ nothrow:
         return a;
     }
 
+    @trusted
     static void destroy(AAchars* aac)
     {
         aac.aa.destroy();
         free(aac);
     }
 
+    @trusted
     uint* get(const(char)* s, uint len)
     {
         auto buf = s[0 .. len];
@@ -475,6 +487,7 @@ nothrow:
 
     ubyte** pbase;
 
+    @trusted
     hash_t getHash(Key* pk)
     {
         version (MARS)
@@ -492,6 +505,7 @@ nothrow:
         }
     }
 
+    @trusted
     bool equals(Key* pk1, Key* pk2)
     {
         const len1 = pk1.end - pk1.start;
@@ -511,6 +525,7 @@ nothrow:
     alias AA = AArray!(TinfoPair, uint);
     AA aa;
 
+    @trusted
     static AApair* create(ubyte** pbase)
     {
         auto a = cast(AApair*)calloc(1, AApair.sizeof);
@@ -519,12 +534,14 @@ nothrow:
         return a;
     }
 
+    @trusted
     static void destroy(AApair* aap)
     {
         aap.aa.destroy();
         free(aap);
     }
 
+    @trusted
     uint* get(uint start, uint end)
     {
         auto p = Pair(start, end);
@@ -544,6 +561,7 @@ nothrow:
     alias AA = AArray!(TinfoPair, Pair);
     AA aa;
 
+    @trusted
     static AApair* create(ubyte** pbase)
     {
         auto a = cast(AApair*)calloc(1, AApair.sizeof);
@@ -552,12 +570,14 @@ nothrow:
         return a;
     }
 
+    @trusted
     static void destroy(AApair* aap)
     {
         aap.aa.destroy();
         free(aap);
     }
 
+    @trusted
     Pair* get(uint start, uint end)
     {
         auto p = Pair(start, end);

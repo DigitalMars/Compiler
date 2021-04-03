@@ -2,7 +2,7 @@
  * Symbol table array.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/symtab.d, backend/_symtab.d)
@@ -23,6 +23,7 @@ import dmd.backend.mem;
 extern (C++):
 
 nothrow:
+@safe:
 
 alias SYMIDX = size_t;    // symbol table index
 
@@ -50,6 +51,7 @@ struct symtab_t
      */
     void setLength(size_t length)
     {
+        @trusted
         static void enlarge(ref symtab_t barray, size_t length)
         {
             pragma(inline, false);
@@ -83,23 +85,27 @@ struct symtab_t
             enlarge(this, length);              // the slow path
     }
 
+    @trusted
     ref inout(T) opIndex(size_t i) inout nothrow pure @nogc
     {
         assert(i < length);
         return tab[i];
     }
 
+    @trusted
     extern (D) inout(T)[] opSlice() inout nothrow pure @nogc
     {
         return tab[0 .. length];
     }
 
+    @trusted
     extern (D) inout(T)[] opSlice(size_t a, size_t b) inout nothrow pure @nogc
     {
         assert(a <= b && b <= length);
         return tab[a .. b];
     }
 
+    @trusted
     void dtor()
     {
         if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))

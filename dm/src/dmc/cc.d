@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
@@ -25,6 +25,7 @@ import dmd.backend.type;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 enum GENOBJ = 1;       // generating .obj file
 
@@ -74,7 +75,10 @@ static if (MEMMODELS == 1)
 }
 else
 {
+    @trusted
     bool LARGEDATA() { return (config.memmodel & 6) != 0; }
+
+    @trusted
     bool LARGECODE() { return (config.memmodel & 5) != 0; }
 }
 
@@ -167,6 +171,7 @@ alias enum_TK = ubyte;
 
 __gshared Config config;
 
+@trusted
 uint CPP() { return config.flags3 & CFG3cpp; }
 
 
@@ -362,10 +367,16 @@ struct Pstate
                                 // than STmaxsequence
 }
 
+@trusted
 void funcsym_p(Funcsym* fp) { pstate.STfuncsym_p = fp; }
+
+@trusted
 Funcsym* funcsym_p() { return pstate.STfuncsym_p; }
 
+@trusted
 stflags_t preprocessor() { return pstate.STflags & PFLpreprocessor; }
+
+@trusted
 stflags_t inline_asm()   { return pstate.STflags & (PFLmasm | PFLbasm); }
 
 extern __gshared Pstate pstate;
@@ -610,10 +621,15 @@ nothrow:
     void appendSucc(block* b)        { list_append(&this.Bsucc, b); }
     void prependSucc(block* b)       { list_prepend(&this.Bsucc, b); }
     int numSucc()                    { return list_nitems(this.Bsucc); }
+
+    @trusted
     block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
+
+    @trusted
     void setNthSucc(int n, block *b) { list_nth(Bsucc, n).ptr = b; }
 }
 
+@trusted
 inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
 
 /** Basic block control flow operators. **/
@@ -882,6 +898,7 @@ struct mptr_t
     mptr_flags_t   MPflags;
 }
 
+@trusted
 inout(mptr_t)* list_mptr(inout(list_t) lst) { return cast(inout(mptr_t)*) list_ptr(lst); }
 
 
@@ -1143,8 +1160,13 @@ struct struct_t
  * Symbol Table
  */
 
+@trusted
 inout(Symbol)* list_symbol(inout list_t lst) { return cast(inout(Symbol)*) list_ptr(lst); }
+
+@trusted
 void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
+
+@trusted
 inout(Classsym)* list_Classsym(inout list_t lst) { return cast(inout(Classsym)*) list_ptr(lst); }
 
 enum
@@ -1517,6 +1539,7 @@ enum
  * Returns:
  *      exception method for f
  */
+@trusted
 EHmethod ehmethod(Symbol *f)
 {
     return f.Sfunc.Fflags3 & Feh_none ? EHmethod.EH_NONE : config.ehmethod;
@@ -1696,6 +1719,7 @@ struct Srcfiles
     uint idx;       // # used in array
 }
 
+@trusted
 Sfile* sfile(uint fi)
 {
     import dmd.backend.global : srcfiles;

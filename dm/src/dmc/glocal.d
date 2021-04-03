@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1993-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/glocal.d, backend/glocal.d)
@@ -42,6 +42,7 @@ import dmd.backend.dvec;
 extern (C++):
 
 nothrow:
+@safe:
 
 int REGSIZE();
 
@@ -80,6 +81,7 @@ struct loc_t
 // as near as we can to where they are used. This should minimize
 // temporary generation and register usage.
 
+@trusted
 void localize()
 {
     if (debugc) printf("localize()\n");
@@ -112,6 +114,7 @@ void localize()
 //      goal    !=0 if we want the result of the expression
 //
 
+@trusted
 private void local_exp(ref Barray!loc_t lt, elem *e, int goal)
 {
     elem *e1;
@@ -452,6 +455,7 @@ Loop:
 // Returns:
 //      true if it does
 
+@trusted
 private bool local_chkrem(const elem* e, const(elem)* eu)
 {
     while (1)
@@ -481,6 +485,7 @@ private bool local_chkrem(const elem* e, const(elem)* eu)
 //////////////////////////////////////
 // Add entry e to lt[]
 
+@trusted
 private void local_ins(ref Barray!loc_t lt, elem *e)
 {
     elem_debug(e);
@@ -515,6 +520,7 @@ private void local_rem(ref Barray!loc_t lt, size_t u)
 //////////////////////////////////////
 // Analyze and gather LFxxxx flags about expression e and symbol s.
 
+@trusted
 private int local_getflags(const(elem)* e, const Symbol* s)
 {
     elem_debug(e);
@@ -706,6 +712,7 @@ private void local_symdef(ref Barray!loc_t lt, const Symbol* s)
  * References:
  *      https://issues.dlang.org/show_bug.cgi?id=13474
  */
+@trusted
 private bool local_preserveAssignmentTo(tym_t ty)
 {
     /* Need to preserve assignment if generating code using

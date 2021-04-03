@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/global.d, backend/global.d)
@@ -387,7 +387,7 @@ void out_readonly(Symbol *s);
 void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros);
 void out_regcand(symtab_t *);
 void writefunc(Symbol *sfunc);
-void alignOffset(int seg,targ_size_t datasize);
+@trusted void alignOffset(int seg,targ_size_t datasize);
 void out_reset();
 Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 Symbol *out_string_literal(const(char)* str, uint len, uint sz);
@@ -449,7 +449,7 @@ int elemisone(elem *);
 
 /* msc.c */
 targ_size_t size(tym_t);
-Symbol *symboldata(targ_size_t offset,tym_t ty);
+@trusted Symbol *symboldata(targ_size_t offset,tym_t ty);
 bool dom(const block* A, const block* B);
 uint revop(uint op);
 uint invrel(uint op);

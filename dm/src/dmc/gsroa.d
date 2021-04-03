@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2016-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2016-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gsroa.c, backend/gsroa.d)
@@ -39,6 +39,7 @@ import dmd.backend.dvec;
 extern (C++):
 
 nothrow:
+@safe:
 
 int REGSIZE();
 
@@ -65,6 +66,7 @@ struct SymInfo
  *      e = expression to scan
  *      sia = where to put gathered information
  */
+@trusted
 extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[] sia, const(elem)* e)
 {
     while (1)
@@ -171,6 +173,7 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
  *      sia = slicing info
  *      e = expression tree to rewrite in place
  */
+@trusted
 extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[] sia, elem *e)
 {
     while (1)
@@ -256,6 +259,7 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
     }
 }
 
+@trusted
 void sliceStructs(ref symtab_t symtab, block* startblock)
 {
     if (debugc) printf("sliceStructs() %s\n", funcsym_p.Sident.ptr);

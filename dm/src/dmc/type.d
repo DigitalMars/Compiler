@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/type.d, backend/_type.d)
@@ -23,6 +23,7 @@ import dmd.backend.ty;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 // type.h
 
@@ -191,4 +192,3 @@ extern (C) type *type_function(tym_t tyf, type*[] ptypes, bool variadic, type *t
 type *type_enum(const(char) *name, type *tbase);
 type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
         type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size);
-
