@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.d, backend/backconfig.d)
@@ -24,6 +24,7 @@ import dmd.backend.type;
 extern (C++):
 
 nothrow:
+@safe:
 
 version (MARS)
 {
@@ -33,7 +34,7 @@ version (MARS)
 /**************************************
  * Initialize configuration variables.
  */
-
+@trusted
 extern (C) void out_config_init(
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
@@ -339,6 +340,7 @@ debug
 /****************************
  * Transmit internal compiler debugging flags.
  */
+@trusted
 void out_config_debug(
         bool b,
         bool c,
@@ -363,6 +365,7 @@ void out_config_debug(
 /*************************************
  */
 
+@trusted
 void util_set16()
 {
     // The default is 16 bits
@@ -379,6 +382,7 @@ void util_set16()
  * Redo tables from 8086/286 to 386/486.
  */
 
+@trusted
 void util_set32()
 {
     _tyrelax[TYenum] = TYlong;
@@ -470,6 +474,7 @@ else
  * Redo tables from 8086/286 to I64.
  */
 
+@trusted
 void util_set64()
 {
     _tyrelax[TYenum] = TYlong;

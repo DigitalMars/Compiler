@@ -5,7 +5,7 @@
  * Compute common subexpressions for non-optimized builds.
  *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.d
@@ -38,12 +38,14 @@ import dmd.backend.dvec;
 
 
 nothrow:
+@safe:
 
 /*******************************
  * Eliminate common subexpressions across extended basic blocks.
  * String together as many blocks as we can.
  */
 
+@trusted
 public extern (C++) void comsubs()
 {
     //static int xx;
@@ -113,6 +115,7 @@ public extern (C++) void comsubs()
 /*******************************
  */
 
+@trusted
 public extern (C++) void cgcs_term()
 {
     vec_free(csvec);
@@ -154,14 +157,14 @@ __gshared
     // Use a bit vector for quick check if expression is possibly in hcstab[].
     // This results in much faster compiles when hcstab[] gets big.
     vec_t csvec;                 // vector of used entries
-    enum CSVECDIM = 16001; //8009 //3001     // dimension of csvec (should be prime)
+    enum CSVECDIM = 16_001; //8009 //3001     // dimension of csvec (should be prime)
 }
 
 
 /*************************
  * Eliminate common subexpressions for an element.
  */
-
+@trusted
 void ecom(elem **pe)
 {
     auto e = *pe;
@@ -495,6 +498,7 @@ void ecom(elem **pe)
  * Compute hash function for elem e.
  */
 
+@trusted
 hash_t cs_comphash(const elem *e)
 {
     elem_debug(e);
@@ -519,6 +523,7 @@ hash_t cs_comphash(const elem *e)
  * Add an elem to the common subexpression table.
  */
 
+@trusted
 void addhcstab(elem *e, hash_t hash)
 {
     hcstab.push(HCS(e, hash));
@@ -531,6 +536,7 @@ void addhcstab(elem *e, hash_t hash)
  * Eliminate common subs that are indirect loads.
  */
 
+@trusted
 void touchlvalue(elem *e)
 {
     if (e.Eoper == OPind)                /* if indirect store            */
@@ -599,6 +605,7 @@ void touchlvalue(elem *e)
  *              If 0, then this is an indirect assignment.
  */
 
+@trusted
 void touchfunc(int flag)
 {
 
@@ -653,6 +660,7 @@ void touchfunc(int flag)
  * do any indirection ("starred" elems).
  */
 
+@trusted
 void touchstar()
 {
     foreach (ref hcs; hcstab[hcsarray.touchstari .. $])
@@ -670,6 +678,7 @@ void touchstar()
  * Eliminate all common subexpressions.
  */
 
+@trusted
 void touchall()
 {
     foreach (ref hcs; hcstab[])
@@ -686,6 +695,7 @@ void touchall()
  * if a handle pointer access occurs.
  */
 
+@trusted
 void touchaccess(ref Barray!HCS hcstab, const elem *ev) pure nothrow
 {
     const ev1 = ev.EV.E1;

@@ -6,7 +6,7 @@
  * i.e. rewriting trees to less expensive trees.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgelem.d, backend/cgelem.d)
@@ -57,6 +57,7 @@ else
 extern (C++):
 
 nothrow:
+@safe:
 
 elem * evalu8(elem *e, goal_t goal);
 
@@ -86,6 +87,7 @@ import dmd.backend.errors;
 /*****************************
  */
 
+@trusted
 private elem * cgel_lvalue(elem *e)
 {
     //printf("cgel_lvalue()\n"); elem_print(e);
@@ -142,6 +144,7 @@ private elem * cgel_lvalue(elem *e)
  * Scan down commas.
  */
 
+@trusted
 private elem * elscancommas(elem *e)
 {
     while (e.Eoper == OPcomma
@@ -323,6 +326,7 @@ private int cost(const elem* n) { return opcost[n.Eoper]; }
  * of registers in the FPU stack needed.
  */
 
+@trusted
 private int fcost(const elem *e)
 {
     int cost;
@@ -373,6 +377,7 @@ private int fcost(const elem *e)
  * must use a temporary.
  */
 
+@trusted
 private elem *fixconvop(elem *e)
 {
     static immutable ubyte[CNVOPMAX - CNVOPMIN + 1] invconvtab =
@@ -601,6 +606,7 @@ private elem * elstring(elem *e, goal_t goal)
  * Convert far pointer to pointer.
  */
 
+@trusted
 private void eltonear(elem **pe)
 {
     elem *e = *pe;
@@ -613,6 +619,7 @@ private void eltonear(elem **pe)
 /************************
  */
 
+@trusted
 private elem * elstrcpy(elem *e, goal_t goal)
 {
     elem_debug(e);
@@ -652,6 +659,7 @@ private elem * elstrcpy(elem *e, goal_t goal)
 /************************
  */
 
+@trusted
 private elem * elstrcmp(elem *e, goal_t goal)
 {
     elem_debug(e);
@@ -683,6 +691,7 @@ private elem * elstrcmp(elem *e, goal_t goal)
  * For OPmemcmp
  * memcmp(a, b, nbytes) => ((a param b) OPmemcmp nbytes)
  */
+@trusted
 
 private elem * elmemcmp(elem *e, goal_t goal)
 {
@@ -746,6 +755,7 @@ private elem * elmemcmp(elem *e, goal_t goal)
  * For OPmemset
  */
 
+@trusted
 private elem * elmemset(elem *e, goal_t goal)
 {
     elem_debug(e);
@@ -820,6 +830,7 @@ private elem * elmemset(elem *e, goal_t goal)
  *      s2    n
  */
 
+@trusted
 private elem * elmemcpy(elem *e, goal_t goal)
 {
     elem_debug(e);
@@ -885,6 +896,7 @@ private elem * elmemcpy(elem *e, goal_t goal)
  *      v
  */
 
+@trusted
 private elem * eladd(elem *e, goal_t goal)
 {
     //printf("eladd(%p)\n",e);
@@ -1054,6 +1066,7 @@ L1:
  *      e * (c**2) => e << c    ;replace multiply by power of 2 with shift
  */
 
+@trusted
 private elem * elmul(elem *e, goal_t goal)
 {
     tym_t tym = e.Ety;
@@ -1152,6 +1165,7 @@ Lneg:
  *      e   c           e   -c
  */
 
+@trusted
 private elem * elmin(elem *e, goal_t goal)
 {
     elem *e2 = e.EV.E2;
@@ -1315,6 +1329,7 @@ private elem * elmin(elem *e, goal_t goal)
  * This should be expanded to include long type stuff.
  */
 
+@trusted
 private elem * elbitwise(elem *e, goal_t goal)
 {
     //printf("elbitwise(e = %p, goal = x%x)\n", e, goal);
@@ -1649,6 +1664,7 @@ Lopt:
  *      false   more than maxops operands
  */
 
+@trusted
 bool fillinops(elem **ops, int *opsi, int maxops, int oper, elem *e)
 {
     if (e.Eoper == oper)
@@ -1672,6 +1688,7 @@ bool fillinops(elem **ops, int *opsi, int maxops, int oper, elem *e)
  * Replace shift|shift with rotate.
  */
 
+@trusted
 private elem *elor(elem *e, goal_t goal)
 {
     //printf("elor()\n");
@@ -1989,6 +2006,7 @@ private elem *elor(elem *e, goal_t goal)
 /*************************************
  */
 
+@trusted
 private elem *elxor(elem *e, goal_t goal)
 {
     if (OPTIMIZER)
@@ -2025,6 +2043,7 @@ private elem *elxor(elem *e, goal_t goal)
  *      ! OTconv => !
  */
 
+@trusted
 private elem * elnot(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
@@ -2112,6 +2131,7 @@ private elem * elnot(elem *e, goal_t goal)
  *      ~ ~ e => e
  */
 
+@trusted
 private elem * elcom(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
@@ -2128,6 +2148,7 @@ private elem * elcom(elem *e, goal_t goal)
  *      doesn't detect ("string" ? et : ef)
  */
 
+@trusted
 private elem * elcond(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
@@ -2397,6 +2418,7 @@ private elem * elcond(elem *e, goal_t goal)
  *    e   e           e   e
  */
 
+@trusted
 private elem * elcomma(elem *e, goal_t goal)
 {
     int changes = -1;
@@ -2533,6 +2555,7 @@ private elem * elremquo(elem *e, goal_t goal)
 /********************************
  */
 
+@trusted
 private elem * elmod(elem *e, goal_t goal)
 {
     tym_t tym = e.EV.E1.Ety;
@@ -2546,6 +2569,7 @@ private elem * elmod(elem *e, goal_t goal)
  * Can handle OPdiv, OPdivass, OPmod.
  */
 
+@trusted
 private elem * eldiv(elem *e, goal_t goal)
 {
     //printf("eldiv()\n");
@@ -2720,6 +2744,7 @@ private elem * eldiv(elem *e, goal_t goal)
  * Convert (a op b) op c to a op (b op c).
  */
 
+@trusted
 private elem * swaplog(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
@@ -2728,6 +2753,7 @@ private elem * swaplog(elem *e, goal_t goal)
     return optelem(e1,goal);
 }
 
+@trusted
 private elem * eloror(elem *e, goal_t goal)
 {
     tym_t ty1,ty2;
@@ -2852,6 +2878,7 @@ L1:
  *      true    *pe is rewritten
  */
 
+@trusted
 private bool optim_loglog(elem **pe)
 {
     if (I16)
@@ -3026,6 +3053,7 @@ private bool optim_loglog(elem **pe)
     return false;
 }
 
+@trusted
 private elem * elandand(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
@@ -3177,6 +3205,7 @@ L1:
  * not be supported later on.
  */
 
+@trusted
 private elem * elbit(elem *e, goal_t goal)
 {
 
@@ -3238,6 +3267,7 @@ L1:
  *      * & e => e
  */
 
+@trusted
 private elem * elind(elem *e, goal_t goal)
 {
     tym_t tym = e.Ety;
@@ -3291,6 +3321,7 @@ private elem * elind(elem *e, goal_t goal)
  *      & (v1 = v2) => ((v1 = v2), &v1)
  */
 
+@trusted
 private elem * eladdr(elem *e, goal_t goal)
 {
     tym_t tym = e.Ety;
@@ -3388,6 +3419,7 @@ private elem * eladdr(elem *e, goal_t goal)
 /*******************************************
  */
 
+@trusted
 private elem * elneg(elem *e, goal_t goal)
 {
     if (e.EV.E1.Eoper == OPneg)
@@ -3410,6 +3442,7 @@ private elem * elneg(elem *e, goal_t goal)
     return e;
 }
 
+@trusted
 private elem * elcall(elem *e, goal_t goal)
 {
     if (e.EV.E1.Eoper == OPcomma || OTassign(e.EV.E1.Eoper))
@@ -3421,6 +3454,7 @@ private elem * elcall(elem *e, goal_t goal)
  * Walk tree, converting types to tym.
  */
 
+@trusted
 private void elstructwalk(elem *e,tym_t tym)
 {
     tym_t ety;
@@ -3454,6 +3488,7 @@ private void elstructwalk(elem *e,tym_t tym)
  * For OPstreq and OPstrpar.
  */
 
+@trusted
 elem * elstruct(elem *e, goal_t goal)
 {
     //printf("elstruct(%p)\n", e);
@@ -3728,6 +3763,7 @@ elem * elstruct(elem *e, goal_t goal)
  *      expensive than the &, and so it will wind up on the left).
  */
 
+@trusted
 private elem * eleq(elem *e, goal_t goal)
 {
     goal_t wantres = goal;
@@ -4103,6 +4139,7 @@ private elem * elnegass(elem *e, goal_t goal)
  *      l    b
  */
 
+@trusted
 private elem * elopass(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
@@ -4268,6 +4305,7 @@ version (SCPP)   // have bit fields to worry about?
  *      (((l bit w,b) += r) - r) & m
  */
 
+@trusted
 private elem * elpost(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
@@ -4300,6 +4338,7 @@ private elem * elpost(elem *e, goal_t goal)
  *      (e != 0) => (bool e)
  */
 
+@trusted
 private elem * elcmp(elem *e, goal_t goal)
 {
     elem *e2 = e.EV.E2;
@@ -4574,6 +4613,7 @@ ret:
  *      OPbool
  */
 
+@trusted
 private elem * elbool(elem *e, goal_t goal)
 {
     //printf("elbool()\n");
@@ -4708,6 +4748,7 @@ private elem * elbool(elem *e, goal_t goal)
  * Conversions of pointers to far pointers.
  */
 
+@trusted
 private elem * elptrlptr(elem *e, goal_t goal)
 {
     if (e.EV.E1.Eoper == OPrelconst || e.EV.E1.Eoper == OPstring)
@@ -4722,6 +4763,7 @@ private elem * elptrlptr(elem *e, goal_t goal)
 /*********************************
  * Conversions of handle pointers to far pointers.
  */
+@trusted
 private elem * elvptrfptr(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
@@ -4750,6 +4792,7 @@ private elem * elvptrfptr(elem *e, goal_t goal)
  * Also used for conversions of ints to bytes.
  */
 
+@trusted
 private elem * ellngsht(elem *e, goal_t goal)
 {
     //printf("ellngsht()\n");
@@ -4897,6 +4940,7 @@ private elem * ellngsht(elem *e, goal_t goal)
  * OP64_32, OP128_64
  */
 
+@trusted
 private elem * el64_32(elem *e, goal_t goal)
 {
     tym_t ty = e.Ety;
@@ -4996,6 +5040,7 @@ private elem * el64_32(elem *e, goal_t goal)
  * Convert complex to real.
  */
 
+@trusted
 private elem *elc_r(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
@@ -5012,6 +5057,7 @@ private elem *elc_r(elem *e, goal_t goal)
  * Convert complex to imaginary.
  */
 
+@trusted
 private elem *elc_i(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
@@ -5037,6 +5083,7 @@ private elem *elc_i(elem *e, goal_t goal)
  * Handle OPu8_16 and OPs8_16.
  */
 
+@trusted
 private elem * elbyteint(elem *e, goal_t goal)
 {
     if (OTlogical(e.EV.E1.Eoper) || e.EV.E1.Eoper == OPbtst)
@@ -5052,6 +5099,7 @@ private elem * elbyteint(elem *e, goal_t goal)
  * OPs32_64
  * OPu32_64
  */
+@trusted
 private elem * el32_64(elem *e, goal_t goal)
 {
     if (REGSIZE == 8 && e.EV.E1.Eoper == OPbtst)
@@ -5069,6 +5117,7 @@ private elem * el32_64(elem *e, goal_t goal)
  *      OPd_f OPu64_d
  */
 
+@trusted
 private elem *elu64_d(elem *e, goal_t goal)
 {
     tym_t ty;
@@ -5173,6 +5222,7 @@ private elem *elu64_d(elem *e, goal_t goal)
  * Handle <<, OProl and OPror
  */
 
+@trusted
 private elem *elshl(elem *e, goal_t goal)
 {
     tym_t ty = e.Ety;
@@ -5208,6 +5258,7 @@ private elem *elshl(elem *e, goal_t goal)
  * OPshr, OPashr
  */
 
+@trusted
 private elem * elshr(elem *e, goal_t goal)
 {
     tym_t ty = e.Ety;
@@ -5282,6 +5333,7 @@ private elem * elshr(elem *e, goal_t goal)
  * Handle OPmsw.
  */
 
+@trusted
 elem *elmsw(elem *e, goal_t goal)
 {
     tym_t ty = e.Ety;
@@ -5352,6 +5404,7 @@ elem *elmsw(elem *e, goal_t goal)
  * Handle OPpair, OPrpair.
  */
 
+@trusted
 elem *elpair(elem *e, goal_t goal)
 {
     //printf("elpair()\n");
@@ -5378,6 +5431,7 @@ elem *elddtor(elem *e, goal_t goal)
  * Handle OPinfo, OPmark, OPctor, OPdtor
  */
 
+@trusted
 private elem * elinfo(elem *e, goal_t goal)
 {
     //printf("elinfo()\n");
@@ -5408,6 +5462,7 @@ private elem * elclassinit(elem *e, goal_t goal)
 /********************************************
  */
 
+@trusted
 private elem * elvalist(elem *e, goal_t goal)
 {
     assert(e.Eoper == OPva_start);
@@ -5524,6 +5579,7 @@ if (config.exe & EX_posix)
  * OPparam
  */
 
+@trusted
 private void elparamx(elem *e)
 {
     //printf("elparam()\n");
@@ -5560,6 +5616,7 @@ private void elparamx(elem *e)
     }
 }
 
+@trusted
 private elem * elparam(elem *e, goal_t goal)
 {
     if (!OPTIMIZER)
@@ -5579,6 +5636,7 @@ private elem * elparam(elem *e, goal_t goal)
  *      we care about the result.
  */
 
+@trusted
 private elem * optelem(elem *e, goal_t goal)
 {
 beg:
@@ -6079,6 +6137,7 @@ beg:
  *      e1 op v                 e1 op &v
  */
 
+@trusted
 elem *doptelem(elem *e, goal_t goal)
 {
     //printf("doptelem(e = %p, goal = x%x)\n", e, goal);
@@ -6104,6 +6163,7 @@ elem *doptelem(elem *e, goal_t goal)
  * Do optimizations after bltailrecursion() and before common subexpressions.
  */
 
+@trusted
 void postoptelem(elem *e)
 {
     Srcpos pos = {0};
@@ -6156,6 +6216,7 @@ void postoptelem(elem *e)
 /***********************************
  * Rewrite rvalues of complex numbers to pairs of floating point numbers.
  */
+@trusted
 private elem *elToPair(elem *e)
 {
     switch (e.Eoper)
@@ -6251,6 +6312,7 @@ private elem *elToPair(elem *e)
  * order-of-evaluation semantics.
  */
 
+@trusted
 private bool canHappenAfter(elem* a, elem* b)
 {
     return a.Eoper == OPconst ||

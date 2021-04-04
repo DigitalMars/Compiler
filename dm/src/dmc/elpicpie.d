@@ -5,7 +5,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elpicpie.d, backend/elpicpie.d)
@@ -56,6 +56,7 @@ version (SCPP_HTOD)
 extern (C++):
 
 nothrow:
+@safe:
 
 /**************************
  * Make an elem out of a symbol.
@@ -63,6 +64,7 @@ nothrow:
 
 version (MARS)
 {
+@trusted
 elem * el_var(Symbol *s)
 {
     elem *e;
@@ -228,6 +230,7 @@ else if (config.exe & EX_windos)
 
 version (SCPP_HTOD)
 {
+@trusted
 elem * el_var(Symbol *s)
 {
     elem *e;
@@ -318,6 +321,7 @@ if (config.exe & EX_windos)
  * Returns: `elem` with address of `s`
  */
 
+@trusted
 elem * el_ptr(Symbol *s)
 {
     //printf("el_ptr(s = '%s')\n", s.Sident.ptr);
@@ -420,6 +424,7 @@ elem * el_ptr(Symbol *s)
  * Allocate localgot symbol.
  */
 
+@trusted
 private Symbol *el_alloc_localgot()
 {
     if (config.exe & EX_windos)
@@ -454,6 +459,7 @@ private Symbol *el_alloc_localgot()
  * Make an elem out of a symbol, PIC style.
  */
 
+@trusted
 private elem *el_picvar(Symbol *s)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
@@ -463,6 +469,7 @@ private elem *el_picvar(Symbol *s)
     assert(0);
 }
 
+@trusted
 private elem *el_picvar_OSX(Symbol *s)
 {
     elem *e;
@@ -611,6 +618,7 @@ static if (1)
     return e;
 }
 
+@trusted
 private elem *el_picvar_posix(Symbol *s)
 {
     elem *e;
@@ -823,6 +831,7 @@ private elem *el_picvar_posix(Symbol *s)
  * Params: s = variable's symbol
  * Returns: elem created
  */
+@trusted
 private elem *el_pievar(Symbol *s)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
@@ -905,6 +914,7 @@ private elem *el_pievar(Symbol *s)
  * Params: s = variable's symbol
  * Returns: elem created
  */
+@trusted
 private elem *el_pieptr(Symbol *s)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
