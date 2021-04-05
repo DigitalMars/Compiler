@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/debug.c, backend/debugprint.d)
@@ -44,13 +44,16 @@ import dmd.backend.dvec;
 extern (C++):
 
 nothrow:
+@safe:
 
+@trusted
 void ferr(const(char)* p) { printf("%s", p); }
 
 /*******************************
  * Write out storage class.
  */
 
+@trusted
 const(char)* str_class(SC c)
 {
     __gshared const char[10][SCMAX] sc =
@@ -109,6 +112,7 @@ const(char)* str_class(SC c)
   return buffer.ptr;
 }
 
+@trusted
 void WRclass(SC c)
 {
     printf("%11s ",str_class(c));
@@ -118,6 +122,7 @@ void WRclass(SC c)
  * Write out oper numbers.
  */
 
+@trusted
 void WROP(uint oper)
 {
   if (oper >= OPMAX)
@@ -132,6 +137,7 @@ void WROP(uint oper)
  * Write TYxxxx
  */
 
+@trusted
 void WRTYxx(tym_t t)
 {
     if (t & mTYnear)
@@ -160,6 +166,7 @@ void WRTYxx(tym_t t)
     printf("TY%s ",tystring[tybasic(t)]);
 }
 
+@trusted
 void WRBC(uint bc)
 {
     __gshared const char[7][BCMAX] bcs =
@@ -178,6 +185,7 @@ void WRBC(uint bc)
  * Write arglst
  */
 
+@trusted
 void WRarglst(list_t a)
 { int n = 1;
 
@@ -194,6 +202,7 @@ void WRarglst(list_t a)
  * Write out equation elem.
  */
 
+@trusted
 void WReqn(elem *e)
 { __gshared int nest;
 
@@ -288,6 +297,7 @@ void WReqn(elem *e)
   }
 }
 
+@trusted
 void WRblocklist(list_t bl)
 {
     foreach (bl2; ListRange(bl))
@@ -302,6 +312,7 @@ void WRblocklist(list_t bl)
     ferr("\n");
 }
 
+@trusted
 void WRdefnod()
 { int i;
 
@@ -312,6 +323,7 @@ void WRdefnod()
   }
 }
 
+@trusted
 void WRFL(FL fl)
 {
     __gshared const(char)[7][FLMAX] fls =
@@ -341,6 +353,7 @@ void WRFL(FL fl)
  * Write out block.
  */
 
+@trusted
 void WRblock(block *b)
 {
     if (OPTIMIZER)
@@ -478,6 +491,7 @@ void numberBlocks(block *startblock)
         b.Bnumber = ++number;
 }
 
+@trusted
 void WRfunc()
 {
         printf("func: '%s'\n",funcsym_p.Sident.ptr);

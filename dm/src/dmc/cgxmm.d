@@ -42,6 +42,7 @@ import dmd.backend.errors;
 extern (C++):
 
 nothrow:
+@safe:
 
 int REGSIZE();
 
@@ -67,6 +68,7 @@ bool isXMMstore(opcode_t op)
  * Move constant value into xmm register xreg.
  */
 
+@trusted
 private void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, targ_size_t value, regm_t flags)
 {
     /* Generate:
@@ -109,6 +111,7 @@ private void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, targ_size_t v
  * Do simple orthogonal operators for XMM registers.
  */
 
+@trusted
 void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("orthxmm(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -201,7 +204,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  * Params:
  *      opcode = store opcode to use, CMP means generate one
  */
-
+@trusted
 void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t *pretregs)
 {
     tym_t tymll;
@@ -332,6 +335,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
  *
  */
 
+@trusted
 void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("xmmconvt: %p, %s\n", e, regm_str(*pretregs));
@@ -457,6 +461,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  * Generate code for op=
  */
 
+@trusted
 void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {   elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
@@ -530,6 +535,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  * Generate code for post increment and post decrement.
  */
 
+@trusted
 void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     elem *e1 = e.EV.E1;
@@ -614,6 +620,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  * Negate operator
  */
 
+@trusted
 void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("xmmneg()\n");
@@ -652,6 +659,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  * Absolute value operator OPabs
  */
 
+@trusted
 void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("xmmabs()\n");
@@ -695,6 +703,7 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  *      aligned = for vectors, true if aligned to 16 bytes
  */
 
+@trusted
 opcode_t xmmload(tym_t tym, bool aligned)
 {
     opcode_t op;
@@ -747,6 +756,7 @@ opcode_t xmmload(tym_t tym, bool aligned)
  * Get correct store operator based on type.
  */
 
+@trusted
 opcode_t xmmstore(tym_t tym, bool aligned)
 {
     opcode_t op;
@@ -798,6 +808,7 @@ opcode_t xmmstore(tym_t tym, bool aligned)
  * Get correct XMM operator based on type and operator.
  */
 
+@trusted
 private opcode_t xmmoperator(tym_t tym, OPER oper)
 {
     tym = tybasic(tym);
@@ -1045,6 +1056,7 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
     return op;
 }
 
+@trusted
 void cdvector(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     /* e should look like one of:
@@ -1264,6 +1276,7 @@ else
  *  (op1 OPvecsto (op OPparam op2))
  * where op is the store instruction STOxxxx.
  */
+@trusted
 void cdvecsto(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdvecsto()\n");
@@ -1281,6 +1294,7 @@ void cdvecsto(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  * OPvecfill takes the single value in e1 and
  * fills the vector type with it.
  */
+@trusted
 void cdvecfill(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdvecfill(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
@@ -1652,6 +1666,7 @@ static if (0)
  *      false if definitely not aligned
  */
 
+@trusted
 bool xmmIsAligned(elem *e)
 {
     if (tyvector(e.Ety) && e.Eoper == OPvar)
@@ -1691,6 +1706,7 @@ void checkSetVex3(code *c)
  *      ty = type of operand
  */
 
+@trusted
 void checkSetVex(code *c, tym_t ty)
 {
     //printf("checkSetVex() %d %x\n", tysize(ty), c.Iop);
@@ -1795,6 +1811,7 @@ void checkSetVex(code *c, tym_t ty)
  * Load complex operand into XMM registers or flags or both.
  */
 
+@trusted
 void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
