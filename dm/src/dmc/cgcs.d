@@ -54,8 +54,7 @@ public extern (C++) void comsubs()
 
     debug if (debugx) printf("comsubs(%p)\n",startblock);
 
-    // No longer do we just compute Bcount. We now eliminate unreachable
-    // blocks.
+    // No longer just compute Bcount - eliminate unreachable blocks too
     block_compbcount();                   // eliminate unreachable blocks
 
     version (SCPP)
@@ -64,10 +63,8 @@ public extern (C++) void comsubs()
             return;
     }
 
-    if (!csvec)
-    {
-        csvec = vec_calloc(CSVECDIM);
-    }
+    auto cgcs = &cgcsdata;               // cache global value
+    cgcs.start();
 
     block* bln;
     for (block* bl = startblock; bl; bl = bln)
@@ -91,11 +88,9 @@ public extern (C++) void comsubs()
             blc = bln;
             bln = blc.Bnext;
         }
-        vec_clear(csvec);
-        hcstab.setLength(0);
-        hcsarray.touchstari = 0;
-        hcsarray.touchfunci[0] = 0;
-        hcsarray.touchfunci[1] = 0;
+
+        cgcs.reset();
+
         bln = bl;
         while (n--)                     // while more blocks in EBB
         {
@@ -118,10 +113,8 @@ public extern (C++) void comsubs()
 @trusted
 public extern (C++) void cgcs_term()
 {
-    vec_free(csvec);
-    csvec = null;
-    debug debugw && printf("freeing hcstab\n");
-    //hcstab.dtor();  // cache allocation for next iteration
+    cgcsdata.term();
+    debug debugw && printf("cgcs_term()\n");
 }
 
 
@@ -145,11 +138,14 @@ struct HCS
 
 struct HCSArray
 {
-    uint touchstari;
-    uint[2] touchfunci;
+    size_t touchstari;
+    size_t[2] touchfunci;
 }
 
-__gshared
+/**************************************
+ * All the global data for this module
+ */
+struct CGCS
 {
     Barray!HCS hcstab;           // array of hcs's
     HCSArray hcsarray;
@@ -158,8 +154,68 @@ __gshared
     // This results in much faster compiles when hcstab[] gets big.
     vec_t csvec;                 // vector of used entries
     enum CSVECDIM = 16_001; //8009 //3001     // dimension of csvec (should be prime)
+
+  nothrow:
+
+    /*********************************
+     * Initialize for this iteration.
+     */
+    void start()
+    {
+        if (!csvec)
+        {
+            csvec = vec_calloc(CGCS.CSVECDIM);
+        }
+    }
+
+    /*******************************
+     * Reset for next time.
+     * hcstab[]'s storage is kept instead of reallocated.
+     */
+    void reset()
+    {
+        vec_clear(csvec);       // don't free it, recycle storage
+        hcstab.reset();
+        hcsarray = HCSArray.init;
+    }
+
+    /*********************************
+     * All done for this compiler instance.
+     */
+    void term()
+    {
+        vec_free(csvec);
+        csvec = null;
+        //hcstab.dtor();  // cache allocation for next iteration
+    }
+
+    /****************************
+     * Add an elem to the common subexpression table.
+     */
+
+    void push(elem *e, hash_t hash)
+    {
+        hcstab.push(HCS(e, hash));
+    }
+
+    /*******************************
+     * Eliminate all common subexpressions.
+     */
+
+    void touchall()
+    {
+        foreach (ref hcs; hcstab[])
+        {
+            hcs.Helem = null;
+        }
+        const len = hcstab.length;
+        hcsarray.touchstari    = len;
+        hcsarray.touchfunci[0] = len;
+        hcsarray.touchfunci[1] = len;
+    }
 }
 
+__gshared CGCS cgcsdata;
 
 /*************************
  * Eliminate common subexpressions for an element.
@@ -229,8 +285,8 @@ void ecom(elem **pe)
             if (!OTpost(op))                /* lvalue of i++ or i-- is not a cse*/
             {
                 const hash = cs_comphash(e.EV.E1);
-                vec_setbit(hash % CSVECDIM,csvec);
-                addhcstab(e.EV.E1,hash);              // add lvalue to hcstab[]
+                vec_setbit(hash % CGCS.CSVECDIM,cgcsdata.csvec);
+                cgcsdata.push(e.EV.E1,hash);              // add lvalue to cgcsdata.hcstab[]
             }
             return;
 
@@ -247,25 +303,25 @@ void ecom(elem **pe)
         case OPoror:
         {
             ecom(&e.EV.E1);
-            const lengthSave = hcstab.length;
-            auto hcsarraySave = hcsarray;
+            const lengthSave = cgcsdata.hcstab.length;
+            auto hcsarraySave = cgcsdata.hcsarray;
             ecom(&e.EV.E2);
-            hcsarray = hcsarraySave;        // no common subs by E2
-            hcstab.setLength(lengthSave);
+            cgcsdata.hcsarray = hcsarraySave;        // no common subs by E2
+            cgcsdata.hcstab.setLength(lengthSave);
             return;                         /* if comsub then logexp() will */
         }
 
         case OPcond:
         {
             ecom(&e.EV.E1);
-            const lengthSave = hcstab.length;
-            auto hcsarraySave = hcsarray;
+            const lengthSave = cgcsdata.hcstab.length;
+            auto hcsarraySave = cgcsdata.hcsarray;
             ecom(&e.EV.E2.EV.E1);               // left condition
-            hcsarray = hcsarraySave;        // no common subs by E2
-            hcstab.setLength(lengthSave);
+            cgcsdata.hcsarray = hcsarraySave;        // no common subs by E2
+            cgcsdata.hcstab.setLength(lengthSave);
             ecom(&e.EV.E2.EV.E2);               // right condition
-            hcsarray = hcsarraySave;        // no common subs by E2
-            hcstab.setLength(lengthSave);
+            cgcsdata.hcsarray = hcsarraySave;        // no common subs by E2
+            cgcsdata.hcstab.setLength(lengthSave);
             return;                         // can't be a common sub
         }
 
@@ -297,9 +353,9 @@ void ecom(elem **pe)
             return;
 
         case OPddtor:
-            touchall();
+            cgcsdata.touchall();
             ecom(&e.EV.E1);
-            touchall();
+            cgcsdata.touchall();
             return;
 
         case OPparam:
@@ -324,7 +380,7 @@ void ecom(elem **pe)
         case OPvp_fp:
         case OPcvp_fp:
             ecom(&e.EV.E1);
-            touchaccess(hcstab, e);
+            touchaccess(cgcsdata.hcstab, e);
             break;
 
         case OPind:
@@ -452,10 +508,10 @@ void ecom(elem **pe)
      */
 
     debug if (debugx) printf("elem: %p hash: %6d\n",e,hash);
-    int csveci = hash % CSVECDIM;
-    if (vec_testbit(csveci,csvec))
+    int csveci = hash % CGCS.CSVECDIM;
+    if (vec_testbit(csveci,cgcsdata.csvec))
     {
-        foreach_reverse (i, ref hcs; hcstab[])
+        foreach_reverse (i, ref hcs; cgcsdata.hcstab[])
         {
             debug if (debugx)
                 printf("i: %2d Hhash: %6d Helem: %p\n",
@@ -490,8 +546,8 @@ void ecom(elem **pe)
         }
     }
     else
-        vec_setbit(csveci,csvec);
-    addhcstab(e,hash);                    // add this elem to hcstab[]
+        vec_setbit(csveci,cgcsdata.csvec);
+    cgcsdata.push(e,hash);                    // add this elem to hcstab[]
 }
 
 /**************************
@@ -519,16 +575,6 @@ hash_t cs_comphash(const elem *e)
     return hash;
 }
 
-/****************************
- * Add an elem to the common subexpression table.
- */
-
-@trusted
-void addhcstab(elem *e, hash_t hash)
-{
-    hcstab.push(HCS(e, hash));
-}
-
 /***************************
  * "touch" the elem.
  * If it is a pointer, "touch" all the suspects
@@ -550,7 +596,7 @@ void touchlvalue(elem *e)
         return;
     }
 
-    foreach_reverse (ref hcs; hcstab[])
+    foreach_reverse (ref hcs; cgcsdata.hcstab[])
     {
         if (hcs.Helem &&
             hcs.Helem.EV.Vsym == e.EV.Vsym)
@@ -610,10 +656,10 @@ void touchfunc(int flag)
 {
 
     //printf("touchfunc(%d)\n", flag);
-    HCS *petop = hcstab.ptr + hcstab.length;
-    //pe = &hcstab[0]; printf("pe = %p, petop = %p\n",pe,petop);
-    assert(hcsarray.touchfunci[flag] <= hcstab.length);
-    for (HCS *pe = hcstab.ptr + hcsarray.touchfunci[flag]; pe < petop; pe++)
+    HCS *petop = cgcsdata.hcstab.ptr + cgcsdata.hcstab.length;
+    //pe = &cgcsdata.hcstab[0]; printf("pe = %p, petop = %p\n",pe,petop);
+    assert(cgcsdata.hcsarray.touchfunci[flag] <= cgcsdata.hcstab.length);
+    for (HCS *pe = cgcsdata.hcstab.ptr + cgcsdata.hcsarray.touchfunci[flag]; pe < petop; pe++)
     {
         elem *he = pe.Helem;
         if (!he)
@@ -651,7 +697,7 @@ void touchfunc(int flag)
                 break;
         }
     }
-    hcsarray.touchfunci[flag] = cast(uint)hcstab.length;
+    cgcsdata.hcsarray.touchfunci[flag] = cgcsdata.hcstab.length;
 }
 
 
@@ -663,7 +709,7 @@ void touchfunc(int flag)
 @trusted
 void touchstar()
 {
-    foreach (ref hcs; hcstab[hcsarray.touchstari .. $])
+    foreach (ref hcs; cgcsdata.hcstab[cgcsdata.hcsarray.touchstari .. $])
     {
         const e = hcs.Helem;
         if (e &&
@@ -671,23 +717,7 @@ void touchstar()
                 e.Eoper == OPbt) )
             hcs.Helem = null;
     }
-    hcsarray.touchstari = cast(uint)hcstab.length;
-}
-
-/*******************************
- * Eliminate all common subexpressions.
- */
-
-@trusted
-void touchall()
-{
-    foreach (ref hcs; hcstab[])
-    {
-        hcs.Helem = null;
-    }
-    hcsarray.touchstari    = cast(uint)hcstab.length;
-    hcsarray.touchfunci[0] = cast(uint)hcstab.length;
-    hcsarray.touchfunci[1] = cast(uint)hcstab.length;
+    cgcsdata.hcsarray.touchstari = cgcsdata.hcstab.length;
 }
 
 /*****************************************
