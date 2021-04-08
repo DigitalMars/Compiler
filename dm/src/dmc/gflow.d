@@ -48,7 +48,7 @@ void vec_setclear(size_t b, vec_t vs, vec_t vc) { vec_setbit(b, vs); vec_clearbi
 bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }
 
 @trusted
-char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
+char symbol_isintab(const Symbol* s) { return sytab[s.Sclass] & SCSS; }
 
 @trusted
 void util_free(void* p) { if (p) free(p); }
@@ -966,19 +966,23 @@ void genkillae()
 
 /************************************
  * Allocate and compute KILL and GEN vectors for a elem.
+ * Params:
+ *      gen = GEN vector to create and compute
+ *      kill = KILL vector to create and compute
+ *      e = elem used to conpute GEN and KILL
  */
 
 @trusted
-private void aecpelem(vec_t *pgen,vec_t *pkill, elem *n)
+private void aecpelem(out vec_t gen, out vec_t kill, elem *n)
 {
-    *pgen = vec_calloc(go.exptop);
-    *pkill = vec_calloc(go.exptop);
+    gen = vec_calloc(go.exptop);
+    kill = vec_calloc(go.exptop);
     if (n)
     {
         if (flowxx == VBE)
-            accumvbe(*pgen,*pkill,n);
+            accumvbe(gen,kill,n);
         else
-            accumaecp(*pgen,*pkill,n);
+            accumaecp(gen,kill,n);
     }
 }
 
@@ -1032,8 +1036,8 @@ private void accumaecpx(elem *n)
         case OPcolon2:
         {   vec_t Gl,Kl,Gr,Kr;
 
-            aecpelem(&Gl,&Kl,n.EV.E1);
-            aecpelem(&Gr,&Kr,n.EV.E2);
+            aecpelem(Gl,Kl, n.EV.E1);
+            aecpelem(Gr,Kr, n.EV.E2);
 
             /* KILL |= Kl | Kr           */
             /* GEN =((GEN - Kl) | Gl) &  */
@@ -1060,7 +1064,7 @@ private void accumaecpx(elem *n)
         {   vec_t Gr,Kr;
 
             accumaecpx(n.EV.E1);
-            aecpelem(&Gr,&Kr,n.EV.E2);
+            aecpelem(Gr,Kr, n.EV.E2);
 
             if (el_returns(n.EV.E2))
             {
@@ -1354,7 +1358,7 @@ private void lvgenkill()
     {
         vec_free(b.Bgen);
         vec_free(b.Bkill);
-        lvelem(&(b.Bgen),&(b.Bkill), b.Belem, ambigsym);
+        lvelem(b.Bgen,b.Bkill, b.Belem, ambigsym);
         if (b.BC == BCasm)
         {
             vec_set(b.Bgen);
@@ -1372,15 +1376,20 @@ private void lvgenkill()
 
 /*****************************
  * Allocate and compute KILL and GEN for live variables.
+ * Params:
+ *      gen = create and fill in
+ *      kill = create and fill in
+ *      e = elem used to fill in gen and kill
+ *      ambigsym = vector of symbols with ambiguous references
  */
 
 @trusted
-private void lvelem(vec_t *pgen,vec_t *pkill,elem *n, const vec_t ambigsym)
+private void lvelem(out vec_t gen, out vec_t kill, const elem* n, const vec_t ambigsym)
 {
-    *pgen = vec_calloc(globsym.length);
-    *pkill = vec_calloc(globsym.length);
+    gen = vec_calloc(globsym.length);
+    kill = vec_calloc(globsym.length);
     if (n && globsym.length)
-        accumlv(*pgen, *pkill, n, ambigsym);
+        accumlv(gen, kill, n, ambigsym);
 }
 
 /**********************************************
@@ -1388,7 +1397,7 @@ private void lvelem(vec_t *pgen,vec_t *pkill,elem *n, const vec_t ambigsym)
  */
 
 @trusted
-private void accumlv(vec_t GEN,vec_t KILL,elem *n,const vec_t ambigsym)
+private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym)
 {
     assert(GEN && KILL && n);
 
@@ -1413,8 +1422,8 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n,const vec_t ambigsym)
             case OPcolon2:
             {
                 vec_t Gl,Kl,Gr,Kr;
-                lvelem(&Gl,&Kl,n.EV.E1,ambigsym);
-                lvelem(&Gr,&Kr,n.EV.E2,ambigsym);
+                lvelem(Gl,Kl, n.EV.E1,ambigsym);
+                lvelem(Gr,Kr, n.EV.E2,ambigsym);
 
                 /* GEN |= (Gl | Gr) - KILL      */
                 /* KILL |= (Kl & Kr) - GEN      */
@@ -1438,7 +1447,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n,const vec_t ambigsym)
             {
                 vec_t Gr,Kr;
                 accumlv(GEN,KILL,n.EV.E1,ambigsym);
-                lvelem(&Gr,&Kr,n.EV.E2,ambigsym);
+                lvelem(Gr,Kr, n.EV.E2,ambigsym);
 
                 /* GEN |= Gr - KILL     */
                 /* KILL |= 0            */
@@ -1480,12 +1489,12 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n,const vec_t ambigsym)
             {
                 /* Avoid GENing the lvalue of an =      */
                 accumlv(GEN,KILL,n.EV.E2,ambigsym);
-                elem *t = n.EV.E1;
+                const t = n.EV.E1;
                 if (t.Eoper != OPvar)
                     accumlv(GEN,KILL,t.EV.E1,ambigsym);
                 else /* unambiguous assignment */
                 {
-                    Symbol* s = t.EV.Vsym;
+                    const s = t.EV.Vsym;
                     symbol_debug(s);
 
                     uint tsz = tysize(t.Ety);
@@ -1662,8 +1671,8 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
         {
             vec_t Gl,Gr,Kl,Kr;
 
-            aecpelem(&Gl,&Kl,n.EV.E1);
-            aecpelem(&Gr,&Kr,n.EV.E2);
+            aecpelem(Gl,Kl, n.EV.E1);
+            aecpelem(Gr,Kr, n.EV.E2);
 
             /* GEN |=((Gr - Kl) | (Gl - Kr)) - KILL */
             vec_subass(Gr,Kl);
