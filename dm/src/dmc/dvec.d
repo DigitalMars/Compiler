@@ -312,7 +312,6 @@ void vec_clearbit(size_t b, vec_t v)
  */
 
 @trusted
-pure
 size_t vec_testbit(size_t b, const vec_t v)
 {
     if (!v)
@@ -320,7 +319,7 @@ size_t vec_testbit(size_t b, const vec_t v)
     debug
     {
         if (!(v && b < vec_numbits(v)))
-            printf("vec_setbit(v = %p,b = %d): numbits = %d dim = %d\n",
+            printf("vec_testbit(v = %p,b = %d): numbits = %d dim = %d\n",
                 v, cast(int) b, cast(int) (v ? vec_numbits(v) : 0), cast(int) (v ? vec_dim(v) : 0));
     }
     assert(v && b < vec_numbits(v));
