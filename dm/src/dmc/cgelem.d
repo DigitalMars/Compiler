@@ -2098,6 +2098,7 @@ private elem * elnot(elem *e, goal_t goal)
         case OPu16_d:
         case OPu32_d:
         case OPf_d:
+        case OPd_ld:
         case OPs16_32:
         case OPu16_32:
         case OPu8_16:
@@ -2109,18 +2110,6 @@ private elem * elnot(elem *e, goal_t goal)
         case OPnp_fp:
             e1.Eoper = e.Eoper;
             e = optelem(el_selecte1(e), goal);
-            break;
-
-        case OPcomma:
-            /* !(a,b) => (a,!b) */
-            e.Eoper = OPcomma;
-            e.EV.E1 = e1.EV.E1;             // a
-            e.EV.E2 = e1;                 // !
-            e1.Eoper = OPnot;
-            e1.Ety = e.Ety;
-            e1.EV.E1 = e1.EV.E2;            // b
-            e1.EV.E2 = null;
-            e = optelem(e, goal);
             break;
     }
     return e;
@@ -4474,6 +4463,30 @@ private elem * elcmp(elem *e, goal_t goal)
             }
         }
 
+        if (e1.Eoper == OPf_d && tysize(e1.Ety) == 8 && cast(targ_float)e2.EV.Vdouble == e2.EV.Vdouble)
+        {
+            /* Remove unnecessary OPf_d operator
+             */
+            e.EV.E1 = e1.EV.E1;
+            e1.EV.E1 = null;
+            el_free(e1);
+            e2.Ety = e.EV.E1.Ety;
+            e2.EV.Vfloat = cast(targ_float)e2.EV.Vdouble;
+            return optelem(e,GOALvalue);
+        }
+
+        if (e1.Eoper == OPd_ld && tysize(e1.Ety) == tysize(TYldouble) && cast(targ_double)e2.EV.Vldouble == e2.EV.Vldouble)
+        {
+            /* Remove unnecessary OPd_ld operator
+             */
+            e.EV.E1 = e1.EV.E1;
+            e1.EV.E1 = null;
+            el_free(e1);
+            e2.Ety = e.EV.E1.Ety;
+            e2.EV.Vdouble = cast(targ_double)e2.EV.Vldouble;
+            return optelem(e,GOALvalue);
+        }
+
         /* Convert (ulong > uint.max) to (msw(ulong) != 0)
          */
         if (OPTIMIZER && I32 && e.Eoper == OPgt && sz == LLONGSIZE && e2.EV.Vullong == 0xFFFFFFFF)
@@ -4617,18 +4630,45 @@ ret:
 private elem * elbool(elem *e, goal_t goal)
 {
     //printf("elbool()\n");
-    if (OTlogical(e.EV.E1.Eoper) ||
+    elem* e1 = e.EV.E1;
+    const op = e1.Eoper;
+
+    if (OTlogical(op) ||
         // bool bool => bool
-        (tybasic(e.EV.E1.Ety) == TYbool && tysize(e.Ety) == 1)
+        (tybasic(e1.Ety) == TYbool && tysize(e.Ety) == 1)
        )
         return el_selecte1(e);
+
+    switch (op)
+    {
+        case OPs32_d:
+        case OPs16_d:
+        case OPu16_d:
+        case OPu32_d:
+        case OPf_d:
+        case OPd_ld:
+        case OPs16_32:
+        case OPu16_32:
+        case OPu8_16:
+        case OPs8_16:
+        case OPu32_64:
+        case OPs32_64:
+        case OPvp_fp:
+        case OPcvp_fp:
+        case OPnp_fp:
+            e1.Eoper = e.Eoper;
+            return optelem(el_selecte1(e), goal);
+
+        default:
+            break;
+    }
 
     if (OPTIMIZER)
     {
         int shift;
 
         // Replace bool(x,1) with (x,1),1
-        elem *e1 = elscancommas(e.EV.E1);
+        e1 = elscancommas(e1);
         if (cnst(e1) || e1.Eoper == OPrelconst)
         {
             int i = boolres(e1) != 0;
@@ -5642,7 +5682,7 @@ private elem * optelem(elem *e, goal_t goal)
 beg:
     //__gshared uint count;
     //printf("count: %u\n", ++count);
-    //{ printf("xoptelem: %p ",e); WROP(e.Eoper); print(" goal x%x\n", goal); }
+    //{ printf("xoptelem: %p ",e); WROP(e.Eoper); printf(" goal x%x\n", goal); }
     assert(e);
     elem_debug(e);
     assert(e.Ecount == 0);             // no CSEs
@@ -6073,24 +6113,41 @@ beg:
   }
   else /* unary operator */
   {
+        elem* e1 = e.EV.E1;
+
+        /* op(a,b) => a,(op b)
+         */
+        if (e1.Eoper == OPcomma && op != OPstrpar && op != OPddtor)
+        {
+            e.Eoper = e1.Eoper;
+            e.EV.E1 = e1.EV.E1;
+            e.EV.E2 = e1;
+            e1.Eoper = op;
+            e1.Ety = e.Ety;
+            e1.ET = e.ET;
+            e1.EV.E1 = e1.EV.E2;
+            e1.EV.E2 = null;
+            return optelem(e, goal);
+        }
+
         assert(!e.EV.E2 || op == OPinfo || op == OPddtor);
         if (!goal && !OTsideff(op) && !(e.Ety & (mTYvolatile | mTYshared)))
         {
-            tym_t tym = e.EV.E1.Ety;
+            tym_t tym = e1.Ety;
 
             e = el_selecte1(e);
             e.Ety = tym;
             return optelem(e,GOALnone);
         }
 
-        if ((op == OPd_f || op == OPd_ld) && e.EV.E1.Eoper == OPu64_d)
+        if ((op == OPd_f || op == OPd_ld) && e1.Eoper == OPu64_d)
         {
             return elu64_d(e, goal);
         }
 
-        elem *e1 = e.EV.E1 = optelem(e.EV.E1, (op == OPddtor)
-                                                 ? GOALnone
-                                                 : (op == OPbool || op == OPnot) ? GOALflags : GOALvalue);
+        e1 = e.EV.E1 = optelem(e1, (op == OPddtor)
+                                     ? GOALnone
+                                     : (op == OPbool || op == OPnot) ? GOALflags : GOALvalue);
         if (!e1)
             goto retnull;
         if (e1.Eoper == OPconst)
@@ -6153,7 +6210,7 @@ elem *doptelem(elem *e, goal_t goal)
     if (goal & GOALstruct && e && (tybasic(e.Ety) == TYstruct || tybasic(e.Ety) == TYarray))
         e = elstruct(e, goal);
 
-    if (topair)
+    if (topair && e)
         e = elToPair(e);
 
     return e;
