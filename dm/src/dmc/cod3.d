@@ -2252,6 +2252,7 @@ void outswitab(block *b)
 @trusted
 int jmpopcode(elem *e)
 {
+    //printf("jmpopcode()\n"); elem_print(e);
     tym_t tym;
     int zero,i,jp,op;
     static immutable ubyte[6][2][2] jops =
@@ -5429,7 +5430,9 @@ void assignaddrc(code *c)
                 break;
 
             case FLpara:
-//printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d\n", s.Sident.ptr, s.Soffset, Para.size, BPoff, EBPtoESP);
+                //printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Vpointer = %d\n",
+                //s.Sident.ptr, cast(int)s.Soffset, cast(int)Para.size, cast(int)BPoff,
+                //cast(int)EBPtoESP, cast(int)c.IEV1.Vpointer);
                 soff = Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
 

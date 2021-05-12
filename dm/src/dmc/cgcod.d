@@ -826,8 +826,9 @@ Lagain:
     {
         version (FRAMEPTR)
         {
-            Para.size = ((farfunc ? 2 : 1) + needframe) * REGSIZE;
-            if (needframe)
+            bool frame = needframe || tyf & mTYnaked;
+            Para.size = ((farfunc ? 2 : 1) + frame) * REGSIZE;
+            if (frame)
                 EBPtoESP = -REGSIZE;
         }
         else
@@ -1012,7 +1013,6 @@ else
         // we need BP to reset the stack before return
         // otherwise the return address is lost
         needframe = 1;
-
     }
     else if (config.flags & CFGalwaysframe)
         needframe = 1;
@@ -1030,7 +1030,9 @@ else
                 anyiasm ||
                 Alloca.size
                )
+            {
                 needframe = 1;
+            }
         }
         if (refparam && (anyiasm || I16))
             needframe = 1;
