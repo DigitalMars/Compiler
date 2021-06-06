@@ -402,11 +402,11 @@ else
 
 void pragma_process()
 {
-version (SPP)
-{
-}
-else
-{
+    version (SPP)
+    {
+    }
+    else
+    {
         if (config.flags2 & (CFG2phauto | CFG2phautoy) &&
             (tok._pragma == PRdefine ||
              tok._pragma == PRundef  ||
@@ -416,17 +416,17 @@ else
             if (pstate.STflags & PFLhxgen)
                 ph_autowrite();
         }
-}
+    }
 
-        if (tok._pragma != -1)
-        {
-            pstate.STflags |= PFLpreprocessor;  // in preprocessor
-            assert(tok._pragma < PRMAX);
-            (*pragfptab[tok._pragma])();
-            pstate.STflags &= ~PFLpreprocessor; // exiting preprocessor
-            return;
-        }
-        lexerr(EM_preprocess);          // unrecognized pragma
+    if (tok._pragma != -1)
+    {
+        pstate.STflags |= PFLpreprocessor;  // in preprocessor
+        assert(tok._pragma < PRMAX);
+        (*pragfptab[tok._pragma])();
+        pstate.STflags &= ~PFLpreprocessor; // exiting preprocessor
+        return;
+    }
+    lexerr(EM_preprocess);          // unrecognized pragma
 }
 
 
@@ -437,7 +437,8 @@ else
  */
 
 private macro_t ** macinsert(const(char)* p,uint hashval)
-{   macro_t *m;
+{
+    macro_t *m;
     macro_t **mp;
 
     mp = macfindparent(p,hashval);
@@ -480,10 +481,11 @@ macro_t *macdefined(const(char)* id, uint hash)
  */
 
 macro_t * macfind()
-{ macro_t *m;
-  int cmp;
-  char c;
-  int len;
+{
+    macro_t *m;
+    int cmp;
+    char c;
+    int len;
 
 static if (0)
 {
@@ -530,13 +532,15 @@ L4:     mov     EAX,EBX                         ;
 }
 else
 {
-  c = tok.TKid[0];
-  len = strlen(tok.TKid);
-  m = mactabroot[hashtoidx(idhash)]; /* root of macro table     */
-  while (m)                                     /* while more tree      */
-  {     macro_debug(m);
+    c = tok.TKid[0];
+    len = strlen(tok.TKid);
+    m = mactabroot[hashtoidx(idhash)]; /* root of macro table     */
+    while (m)                          /* while more tree         */
+    {
+        macro_debug(m);
         if ((cmp = c - m.Mid[0]) == 0)
-        {   cmp = memcmp(tok.TKid + 1,m.Mid.ptr + 1,len);  /* compare identifiers  */
+        {
+            cmp = memcmp(tok.TKid + 1,m.Mid.ptr + 1,len);  /* compare identifiers  */
             if (cmp == 0)                       /* got it!              */
             {
                 //dbg_printf("found macro %p %s flags = %X\n",m, m.Mid, m.Mflags);
@@ -545,8 +549,8 @@ else
             }
         }
         m = (cmp < 0) ? m.ML : m.MR;  /* select correct child         */
-  }
-  return null;
+    }
+    return null;
 }
 }
 
@@ -556,21 +560,23 @@ else
  */
 
 private macro_t ** macfindparent(const(char)* p,uint hashval)
-{ macro_t* m;
-  macro_t** mp;
-  byte cmp;
-  char c;
-  int len;
+{
+    macro_t* m;
+    macro_t** mp;
+    byte cmp;
+    char c;
+    int len;
 
-  c = *p;
-  len = strlen(p);
-  mp = &mactabroot[hashtoidx(hashval)];         // root of macro table
-  m = *mp;
-  while (m)                                     /* while more tree      */
-  {     macro_debug(m);
+    c = *p;
+    len = strlen(p);
+    mp = &mactabroot[hashtoidx(hashval)];     // root of macro table
+    m = *mp;
+    while (m)                                 /* while more tree      */
+    {
+        macro_debug(m);
         if ((cmp = cast(byte)(c - m.Mid[0])) == 0)
         {   cmp = cast(byte)memcmp(p + 1,m.Mid.ptr + 1,len); /* compare identifiers  */
-            if (cmp == 0)                       /* got it!              */
+            if (cmp == 0)                     /* got it!              */
                 return mp;
         }
         mp = (cmp < 0) ? &m.ML : &m.MR;       // select correct child
@@ -1193,7 +1199,8 @@ static if (TERMCODE)
  */
 
 void definedmac()
-{   macro_t *m;
+{
+    macro_t *m;
 
     m = defmac("defined", null);
     m.Mflags &= ~Mdefined;
@@ -1218,7 +1225,8 @@ macro_t *fixeddefmac(const(char)* name,const(char)* text)
  */
 
 int pragma_defined()
-{   macro_t *m;
+{
+    macro_t *m;
     elem *e;
     char paren;
     int i;
@@ -1262,22 +1270,24 @@ private int pragma_strcmp(void *s1,void *s2)
  */
 
 private void prdefine()
-{ macro_t *m;
-  macro_t *mold;
-  macro_t **pm;
-  int n;
-  char *text;
-  ubyte flags;
-  ubyte mflags;
-  Sfile *sf;
+{
+    macro_t *m;
+    macro_t *mold;
+    macro_t **pm;
+    int n;
+    char *text;
+    ubyte flags;
+    ubyte mflags;
+    Sfile *sf;
 
-  assert(srcfiles.idx > 0);
-  sf = cstate.CSfilblk ? *(cstate.CSfilblk.BLsrcpos).Sfilptr : srcfiles.pfiles[0];
-  if (token() != TKident)
-  {     preerr(EM_ident_exp);           // identifier expected
+    assert(srcfiles.idx > 0);
+    sf = cstate.CSfilblk ? *(cstate.CSfilblk.BLsrcpos).Sfilptr : srcfiles.pfiles[0];
+    if (token() != TKident)
+    {
+        preerr(EM_ident_exp);           // identifier expected
         eatrol();                       /* scan to end of line          */
         return;
-  }
+    }
     if (config.flags2 & CFG2expand)
         listident();
 
@@ -1342,11 +1352,8 @@ private void prdefine()
         )
      )
     {   preerr(EM_multiple_def,mold.Mid.ptr);              // already defined
-debug
-{
-        dbg_printf("was: '%s'\n",mold.Mtext);
-        dbg_printf("is : '%s'\n",text);
-}
+        debug dbg_printf("was: '%s'\n",mold.Mtext);
+        debug dbg_printf("is : '%s'\n",text);
     }
 
     m.Mtext = text;
@@ -1481,8 +1488,8 @@ private char * macrotext(macro_t *m)
     // It turns out that this can only happen when reading from
     // file. We can use this and the knowledge that an LF will be
     // found before the end of the buffer...
-static if (TARGET_WINDOS)       // for linux nwc_predefine add a define string
-    assert(bl.BLtyp == BLfile);        // make sure our assumption is correct
+    static if (TARGET_WINDOS)       // for linux nwc_predefine add a define string
+        assert(bl.BLtyp == BLfile);        // make sure our assumption is correct
 
     static int egchar3()
     {
@@ -2174,18 +2181,19 @@ private void prwarning()
     size_t len;
     ptoken();
     if (tok.TKval != TKstring)
-    {   preerr(EM_string);                      // string expected
+    {
+        preerr(EM_string);                      // string expected
         eatrol();
         return;
     }
     p = combinestrings(&len);
-version (SPP)
-{
-}
-else
-{
-    warerr(WM.WM_warning_message,p);
-}
+    version (SPP)
+    {
+    }
+    else
+    {
+        warerr(WM.WM_warning_message,p);
+    }
     MEM_PH_FREE(p);
     if (tok.TKval != TKeol)
         blankrol();
@@ -2211,45 +2219,49 @@ private void prmessage()
  */
 
 private void prstring(int flag)
-{ char *p;
-  size_t len;
-  char paren;
+{
+    char *p;
+    size_t len;
+    char paren;
 
-  paren = 0;
-  if (tok.TKval == TKlpar)              // optionally enclose message in ()
-  {     paren++;
+    paren = 0;
+    if (tok.TKval == TKlpar)            // optionally enclose message in ()
+    {
+        paren++;
         ptoken();
-  }
-  if (tok.TKval != TKstring)
-  {     preerr(EM_string);              // string expected
+    }
+    if (tok.TKval != TKstring)
+    {
+        preerr(EM_string);              // string expected
         eatrol();
         return;
-  }
-  p = combinestrings(&len);
-  switch (flag)
-  {     case 1:                         // message
-static if (TARGET_WINDOS)
-{
-            dbg_printf("%s\n",p);
-}
+    }
+    p = combinestrings(&len);
+    switch (flag)
+    {
+        case 1:                         // message
+            static if (TARGET_WINDOS)
+            {
+                dbg_printf("%s\n",p);
+            }
             break;
         case 2:                         // setlocale
             token_setlocale(p);
             break;
         default:
             assert(0);
-  }
-static if (TX86)
-{
-  mem_free(p);
-}
-  if (paren)
-  {
+    }
+    static if (TX86)
+    {
+        mem_free(p);
+    }
+    if (paren)
+    {
         if (tok.TKval != TKrpar)
             preerr(EM_rpar);                    // ')' expected
         ptoken();
-  }
-  if (tok.TKval != TKeol)
+    }
+    if (tok.TKval != TKeol)
         blankrol();
 }
 
@@ -2340,30 +2352,32 @@ Lret:
  */
 
 private void prident()
-{ char *p;
-  size_t len;
+{
+    char *p;
+    size_t len;
 
-  if (config.ansi_c)
+    if (config.ansi_c)
         preerr(EM_unknown_pragma);              // unrecognized pragma
-  ptoken();
-  if (tok.TKval != TKstring)
-  {     preerr(EM_string);                      // string expected
+    ptoken();
+    if (tok.TKval != TKstring)
+    {
+        preerr(EM_string);                      // string expected
         eatrol();
         exp_ppon();
         return;
-  }
-  p = combinestrings(&len);
-version (SPP)
-{
-}
-else
-{
-  Obj.exestr(p);
-}
-  MEM_PH_FREE(p);
-  if (tok.TKval != TKeol)
+    }
+    p = combinestrings(&len);
+    version (SPP)
+    {
+    }
+    else
+    {
+        Obj.exestr(p);
+    }
+    MEM_PH_FREE(p);
+    if (tok.TKval != TKeol)
         blankrol();
-  exp_ppon();
+    exp_ppon();
 }
 
 version (Posix)
@@ -2371,21 +2385,21 @@ version (Posix)
 private void prassert()
 {
 
-  if (config.ansi_c)
+    if (config.ansi_c)
         preerr(EM_unknown_pragma);              // unrecognized pragma
-  eatrol();
+    eatrol();
                                 // Simply do nothing
 }
 
 private void prassertid()
 {
-  char *p;
-  targ_int n;
-  targ_size_t len;
+    char *p;
+    targ_int n;
+    targ_size_t len;
 
-  if (config.ansi_c)
+    if (config.ansi_c)
         preerr(EM_unknown_pragma);              // unrecognized pragma
-  //printf("Found assert('%s')\n",tok_ident);
+    //printf("Found assert('%s')\n",tok_ident);
 }
 
 }
@@ -2762,13 +2776,13 @@ enum
                 if (level != 0)
                     preerr(EM_cseg_global);     // only at global scope
                 output_func();          /* flush pending functions */
-version (SPP)
-{
-}
-else
-{
-                outcsegname(tok.TKid);
-}
+                version (SPP)
+                {
+                }
+                else
+                {
+                    outcsegname(tok.TKid);
+                }
                 ptoken();
                 break;
 
@@ -2820,13 +2834,13 @@ else
                     if (level != 0)
                         preerr(EM_cseg_global); // only at global scope
                     output_func();      /* flush pending functions */
-version (SPP)
-{
-}
-else
-{
-                    outcsegname(segname);
-}
+                    version (SPP)
+                    {
+                    }
+                    else
+                    {
+                        outcsegname(segname);
+                    }
                     mem_free(segname);
                 }
                 break;
@@ -3104,8 +3118,8 @@ static if (0)
 {
 private void prexit()
 {
-  stoken();
-  exit(cast(int) msc_getnum());
+    stoken();
+    exit(cast(int) msc_getnum());
 }
 }
 
@@ -3115,33 +3129,36 @@ private void prexit()
  */
 
 private void prif()
-{ targ_int n;
+{
+    targ_int n;
 
-  stoken();
-  n = cast(targ_int)msc_getnum();
-  exp_ppon();
-  if (tok.TKval != TKeol)               // if not end of line
-  {     preerr(EM_eol);
+    stoken();
+    n = cast(targ_int)msc_getnum();
+    exp_ppon();
+    if (tok.TKval != TKeol)             // if not end of line
+    {
+        preerr(EM_eol);
         eatrol();
         return;
-  }
-  else
-  {
-version (SPP)
-{
-    if (!isidstart(cast(char)xc))
-        explist(xc);
-}
-  }
-  incifn();                             /* increase nesting level       */
-  if (n)                                /* if result was true           */
-  {
-  }
-  else                                  /* false conditional            */
-  {     expbackup();                    /* dump first char of this line */
+    }
+    else
+    {
+        version (SPP)
+        {
+            if (!isidstart(cast(char)xc))
+                explist(xc);
+        }
+    }
+    incifn();                           /* increase nesting level       */
+    if (n)                              /* if result was true           */
+    {
+    }
+    else                                /* false conditional            */
+    {
+        expbackup();                    /* dump first char of this line */
         expflag++;                      /* stop listing                 */
         scantoelseend();                /* scan till #else or #end      */
-  }
+    }
 }
 
 
@@ -3182,37 +3199,37 @@ private void pragma_elif(int seen)
 
 private void prendif()
 {
-  blankrol();                           /* scanto to next line          */
-  exp_ppon();
-static if (IMPLIED_PRAGMA_ONCE)
-{
-    if (ifn[ifnidx].IFseen == IF_FIRSTIF)
-    {                                   // Found closing #endif for 1st #if
-        blklst *bl = cstate.CSfilblk;
-        if (bl &&          // candidate for single inclusion
-            (bl.BLflags & BLifndef) &&
-            bl.ifnidx == ifnidx)
-        {
-            if (bl.BLflags & BLendif)
-                bl.BLflags &= ~(BLifndef | BLendif);
-            else
+    blankrol();                         /* scanto to next line          */
+        exp_ppon();
+    static if (IMPLIED_PRAGMA_ONCE)
+    {
+        if (ifn[ifnidx].IFseen == IF_FIRSTIF)
+        {   // Found closing #endif for 1st #if
+            blklst *bl = cstate.CSfilblk;
+            if (bl &&          // candidate for single inclusion
+                (bl.BLflags & BLifndef) &&
+                bl.ifnidx == ifnidx)
             {
-                bl.BLflags |= BLendif;
-                //dbg_printf("\tprendif setting BLendif\n");
+                if (bl.BLflags & BLendif)
+                    bl.BLflags &= ~(BLifndef | BLendif);
+                else
+                {
+                    bl.BLflags |= BLendif;
+                    //dbg_printf("\tprendif setting BLendif\n");
 
-                // BLtokens gets set if there are any more tokens between #endif and end of file
-                bl.BLflags &= ~BLtokens;
+                    // BLtokens gets set if there are any more tokens between #endif and end of file
+                    bl.BLflags &= ~BLtokens;
+                }
             }
         }
     }
-}
-version (SPP)
-{
-  explist(LF);
-}
-  if (ifnidx == 0)
-        preerr(EM_endif);                       // #endif without #if
-  else
+    version (SPP)
+    {
+        explist(LF);
+    }
+    if (ifnidx == 0)
+        preerr(EM_endif);                // #endif without #if
+    else
         ifnidx--;
 }
 
@@ -3222,28 +3239,31 @@ version (SPP)
  */
 
 private void prifdef()
-{ macro_t *m;
+{
+    macro_t *m;
 
-  token();
-  if (tok.TKval != TKident)
-  {     preerr(EM_ident_exp);                   /* identifier expected          */
+    token();
+    if (tok.TKval != TKident)
+    {
+        preerr(EM_ident_exp);            /* identifier expected          */
         exp_ppon();
         return;
-  }
-  listident();
-  blankrol();                           /* finish off line              */
-  exp_ppon();
-  incifn();
-  m = macfind();
-  if (m != null &&                      /* if macro is in table and     */
-      m.Mflags & Mdefined)             /* it's defined                 */
-  {
+    }
+    listident();
+    blankrol();                          /* finish off line              */
+    exp_ppon();
+    incifn();
+    m = macfind();
+    if (m != null &&                     /* if macro is in table and     */
+        m.Mflags & Mdefined)             /* it's defined                 */
+    {
         //printf("ifdef %s\n", m.Mid.ptr);
-  }
-  else                                  /* false conditional            */
-  {     expflag++;                      /* shut off listing             */
+    }
+    else                                /* false conditional            */
+    {
+        expflag++;                      /* shut off listing             */
         scantoelseend();                /* scan till #else or #end      */
-  }
+    }
 }
 
 
@@ -3260,40 +3280,42 @@ private void prifndef()
     if (bl)
         bfl = bl.BLflags;
 
-  if (token() != TKident)
-  {     preerr(EM_ident_exp);                   /* identifier expected          */
+    if (token() != TKident)
+    {
+        preerr(EM_ident_exp);             /* identifier expected          */
         exp_ppon();
         return;
-  }
-  listident();
-  blankrol();                           /* finish off line              */
-  exp_ppon();
-  incifn();
-  macro_t *m = macfind();
-  if (m == null ||                      /* if macro isn't in table or   */
-      !(m.Mflags & Mdefined))          /* it isn't defined             */
-  {
-static if (IMPLIED_PRAGMA_ONCE)
-{
-        /* Look for:
-         *   #ifndef ident
-         * as first thing in the source file
-         */
-        if (bl && !(bfl & BLtokens) && (bl.BLflags & BLnew))
-        {                                       // Found #ifndef at start of file
-            ifn[ifnidx].IFseen = IF_FIRSTIF;
-            bl.BLflags |= BLifndef;
-            bl.ifnidx = ifnidx;
-            assert(tok.TKval == TKident);
-            bl.BLinc_once_id = mem_strdup(tok.TKid);        // Save the identifier
-            //dbg_printf("\tSetting BLifndef for token %s \n", bl.inc_once_id);
+    }
+    listident();
+    blankrol();                           /* finish off line              */
+    exp_ppon();
+    incifn();
+    macro_t *m = macfind();
+    if (m == null ||                      /* if macro isn't in table or   */
+        !(m.Mflags & Mdefined))           /* it isn't defined             */
+    {
+        static if (IMPLIED_PRAGMA_ONCE)
+        {
+            /* Look for:
+             *   #ifndef ident
+             * as first thing in the source file
+             */
+            if (bl && !(bfl & BLtokens) && (bl.BLflags & BLnew))
+            {   // Found #ifndef at start of file
+                ifn[ifnidx].IFseen = IF_FIRSTIF;
+                bl.BLflags |= BLifndef;
+                bl.ifnidx = ifnidx;
+                assert(tok.TKval == TKident);
+                bl.BLinc_once_id = mem_strdup(tok.TKid);        // Save the identifier
+                //dbg_printf("\tSetting BLifndef for token %s \n", bl.inc_once_id);
+            }
         }
-}
-  }
-  else                                  /* false conditional            */
-  {     expflag++;
+    }
+    else                                /* false conditional            */
+    {
+        expflag++;
         scantoelseend();                /* scan till #else or #end      */
-  }
+    }
 }
 
 
@@ -3301,56 +3323,59 @@ static if (IMPLIED_PRAGMA_ONCE)
  * Set new line number and (optional) file name.
  * #line constant identifier
  * # constant identifier flags...
+ * Params:
+ *      linemarker = true if linemarker format
  */
 
 private void prlinex(bool linemarker)
 {
     int lLine, savenum = 0;
-version (SPP)
-{
-    // Pass these on through to preprocessed output
-    exp_ppon();
-    expstring(linemarker ? "# ".ptr : "#line ".ptr);
-    if (linemarker)
-        explist(xc);
-}
+    version (SPP)
+    {
+        // Pass these on through to preprocessed output
+        exp_ppon();
+        expstring(linemarker ? "# ".ptr : "#line ".ptr);
+        if (linemarker)
+            explist(xc);
+    }
 
-  stoken();
-  if (tok.TKval != TKnum)
-  {
+    stoken();
+    if (tok.TKval != TKnum)
+    {
         preerr(EM_linnum);                      // line number expected
         eatrol();
         return;
-  }
+    }
 
-  if (xc == '_')                                // Maybe __LINE__ (fixes Defect #8792)
-        {
+    if (xc == '_')                              // Maybe __LINE__ (fixes Defect #8792)
+    {
         char[10] buf = void;
         savenum = tok.Vlong;
         ptoken();
         if (tok.TKval == TKnum)
-                {
-                int i;
-                sprintf(buf.ptr,"%d", tok.Vlong);
-                i = strlen(buf.ptr);
-                while (i-.0)
-                        savenum *= 10;
-                }
+        {
+            int i;
+            sprintf(buf.ptr,"%d", tok.Vlong);
+            i = strlen(buf.ptr);
+            while (i-.0)
+                savenum *= 10;
         }
-  if (!cstate.CSfilblk)
+    }
+
+    if (!cstate.CSfilblk)
         return;
-  if (!iswhite(xc) && xc != CR && xc != LF && xc != PRE_SPACE && xc != PRE_BRK)
-  {
+    if (!iswhite(xc) && xc != CR && xc != LF && xc != PRE_SPACE && xc != PRE_BRK)
+    {
         preerr(EM_badtoken);                    // Unrecognised token
         return;
-  }
-  cstate.CSfilblk.BLsrcpos.Slinnum = savenum + tok.Vlong - 1;
+    }
+    cstate.CSfilblk.BLsrcpos.Slinnum = savenum + tok.Vlong - 1;
                                                   // line number for next line
-  ininclude++;
-  stoken();
-  ininclude--;
-  if (tok.TKval == TKstring)
-  {
+    ininclude++;
+    stoken();
+    ininclude--;
+    if (tok.TKval == TKstring)
+    {
         size_t len;
         char *name;
 
@@ -3360,25 +3385,27 @@ version (SPP)
         if (cstate.CSfilblk)
             cstate.CSfilblk.BLsrcpos.Sfilptr = filename_indirect(filename_add(name));
         MEM_PH_FREE(name);
-  }
-  else
-  {
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-// PATN: lLine used before set
-        cstate.CSfilblk.BLsrcpos.Slinnum = lLine;
-}
-  }
+    }
+    else
+    {
+        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        {
+            // PATN: lLine used before set
+            cstate.CSfilblk.BLsrcpos.Slinnum = lLine;
+        }
+    }
 
     if (linemarker)                     // if # constant identifier flags...
-    {   while (tok.TKval == TKnum)
+    {
+        while (tok.TKval == TKnum)
             stoken();                   // skip over flags
     }
 
-  if (tok.TKval != TKeol)
-  {     lexerr(EM_eol);                 // end of line expected
+    if (tok.TKval != TKeol)
+    {
+        lexerr(EM_eol);                 // end of line expected
         blankrol();
-  }
+    }
 }
 
 
