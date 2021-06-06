@@ -174,71 +174,74 @@ void datadef(Symbol *s)
     if (CPP)
         nspace_checkEnclosing(s);
 
-        switch (s.Sclass)
-        {
-            case SCauto:
-            case SCregister:
-                if (s.Stype.Tty & mTYcs)
-                {   s.Sclass = SCstatic;
-                    goto Lstatic;
-                }
-                symbol_add(s);
-
-                marksi = globsym.length;
-                initializer(s);         /* followed by initializer      */
-
-                /* Initializing a const& with a temporary means we
-                 * delay calling the destructor on the temporary until
-                 * the end of the scope.
-                 */
-                SYMIDX endsi = globsym.length;
-                if (marksi < endsi &&
-                    tyref(t.Tty) && t.Tnext.Tty & mTYconst)
-                    endsi--;
-
-                func_expadddtors(&curblock.Belem, marksi, endsi, 0, true);
-                break;
-
-            case SCunde:
-                assert(errcnt);         // only happens on errors
-                goto case SCglobal;
-
-            case SCglobal:
-                if (s.Sscope &&
-                    s.Sscope.Sclass != SCstruct &&
-                    s.Sscope.Sclass != SCnamespace)
-                    s.Sclass = SCcomdat;
+    switch (s.Sclass)
+    {
+        case SCauto:
+        case SCregister:
+            if (s.Stype.Tty & mTYcs)
+            {   s.Sclass = SCstatic;
                 goto Lstatic;
+            }
+            symbol_add(s);
 
-            case SCstatic:
-            case SCcomdat:
-            Lstatic:
-                if (type_isvla(s.Stype))
-                    synerr(EM_no_vla);          // can't be a VLA
-                else
-                    initializer(s);             // followed by initializer
-                if (SYMDEB_CODEVIEW && s.Sclass == SCstatic && funcsym_p) // local static?
-                    // So debug data appears twice to be
-                    // MS bug compatible
-                    symbol_add(s);
-                break;
-            case SCregpar:
-            case SCparameter:
-            case SCfastpar:
+            marksi = globsym.length;
+            initializer(s);         /* followed by initializer      */
+
+            /* Initializing a const& with a temporary means we
+             * delay calling the destructor on the temporary until
+             * the end of the scope.
+             */
+            SYMIDX endsi = globsym.length;
+            if (marksi < endsi &&
+                tyref(t.Tty) && t.Tnext.Tty & mTYconst)
+                endsi--;
+
+            func_expadddtors(&curblock.Belem, marksi, endsi, 0, true);
+            break;
+
+        case SCunde:
+            assert(errcnt);         // only happens on errors
+            goto case SCglobal;
+
+        case SCglobal:
+            if (s.Sscope &&
+                s.Sscope.Sclass != SCstruct &&
+                s.Sscope.Sclass != SCnamespace)
+                s.Sclass = SCcomdat;
+            goto Lstatic;
+
+        case SCstatic:
+        case SCcomdat:
+        Lstatic:
+            if (type_isvla(s.Stype))
+                synerr(EM_no_vla);          // can't be a VLA
+            else
+                initializer(s);             // followed by initializer
+            if (SYMDEB_CODEVIEW && s.Sclass == SCstatic && funcsym_p) // local static?
+                // So debug data appears twice to be
+                // MS bug compatible
                 symbol_add(s);
-                break;
-            case SCextern:
-                if (type_isvla(s.Stype))
-                    synerr(EM_no_vla);          // can't be a VLA
-                if (s.Stype.Tty & mTYfar)
-                    s.Sfl = FLfardata;
-                else
-                    s.Sfl = FLextern;
-                break;
-            default:
-                symbol_print(s);
-                assert(0);
-        }
+            break;
+
+        case SCregpar:
+        case SCparameter:
+        case SCfastpar:
+            symbol_add(s);
+            break;
+
+        case SCextern:
+            if (type_isvla(s.Stype))
+                synerr(EM_no_vla);          // can't be a VLA
+            if (s.Stype.Tty & mTYfar)
+                s.Sfl = FLfardata;
+            else
+                s.Sfl = FLextern;
+            break;
+
+        default:
+            symbol_print(s);
+            assert(0);
+    }
 }
 
 /************************************
@@ -249,22 +252,23 @@ void datadef(Symbol *s)
  */
 
 private void initializer(Symbol *s)
-{ type *t;
-  tym_t ty;
-  enum_SC sclass;
-  Symbol *sauto;
-  elem *einit;                          /* for dynamic initializers     */
-  Symbol *sinit;                        /* Symbol to pass to initelem   */
-  Symbol *si;                           /* Symbol for local statics     */
-  Classsym *classsymsave;
-  SYMIDX marksisave;
-  char localstatic;
-  int paren = false;
+{
+    type *t;
+    tym_t ty;
+    enum_SC sclass;
+    Symbol *sauto;
+    elem *einit;                        /* for dynamic initializers     */
+    Symbol *sinit;                      /* Symbol to pass to initelem   */
+    Symbol *si;                         /* Symbol for local statics     */
+    Classsym *classsymsave;
+    SYMIDX marksisave;
+    char localstatic;
+    int paren = false;
 
-  assert(s);
+    assert(s);
 
-  //printf("initializer('%s')\n", s.Sident);
-  //symbol_print(s);
+    //printf("initializer('%s')\n", s.Sident);
+    //symbol_print(s);
 
     bool isstring(type* t)
     {
@@ -272,37 +276,37 @@ private void initializer(Symbol *s)
     }
 
 
-  /* Allow void through */
-  /*assert(tybasic(s.Stype.Tty));*/   /* variables only               */
+    /* Allow void through */
+    /*assert(tybasic(s.Stype.Tty));*/   /* variables only               */
 
-  t = s.Stype;
-  assert(t);
-  ty = tybasic(t.Tty);                 /* type of data                 */
-  sclass = cast(enum_SC) s.Sclass;         // storage class
-  if (CPP)
-  {
-    localstatic = ((sclass == SCstatic || sclass == SCglobal || sclass == SCcomdat)
-        && level > 0);
-    scope_pushclass(cast(Classsym *)s.Sscope);
-    classsymsave = pstate.STclasssym;
-    if (s.Sscope && s.Sscope.Sclass == SCstruct)
-        // Go into scope of class that s is a member of
-        pstate.STclasssym = cast(Classsym *)s.Sscope;
+    t = s.Stype;
+    assert(t);
+    ty = tybasic(t.Tty);                /* type of data                 */
+    sclass = cast(enum_SC) s.Sclass;    // storage class
+    if (CPP)
+    {
+        localstatic = ((sclass == SCstatic || sclass == SCglobal || sclass == SCcomdat)
+            && level > 0);
+        scope_pushclass(cast(Classsym *)s.Sscope);
+        classsymsave = pstate.STclasssym;
+        if (s.Sscope && s.Sscope.Sclass == SCstruct)
+            // Go into scope of class that s is a member of
+            pstate.STclasssym = cast(Classsym *)s.Sscope;
 
-    // Remember top of symbol table so we can see if any temporaries are
-    // generated during initialization, so we can add in destructors for
-    // them.
-    marksisave = pstate.STmarksi;
-    pstate.STmarksi = globsym.length;
-  }
+        // Remember top of symbol table so we can see if any temporaries are
+        // generated during initialization, so we can add in destructors for
+        // them.
+        marksisave = pstate.STmarksi;
+        pstate.STmarksi = globsym.length;
+    }
 
     if (CPP && tok.TKval == TKlpar && !tyaggregate(ty))
         paren = true;
-    else
-    if (tok.TKval != TKeq)              /* if no initializer            */
+    else if (tok.TKval != TKeq)         /* if no initializer            */
     {
         switch (sclass)
-        {   case SCglobal:
+        {
+            case SCglobal:
             case SCcomdat:
                 sclass = SCglobal;
                 s.Sclass = sclass;
@@ -320,14 +324,16 @@ private void initializer(Symbol *s)
                 if (!funcsym_p)         // no local statics
                 {
                     if (!CPP)
-                    {   s.Sclass = SCextern;
+                    {
+                        s.Sclass = SCextern;
                         s.Sfl = FLextern;
                         s.Sflags |= SFLwasstatic;
                         nwc_addstatic(s);
                         return;
                     }
                     else
-                    {   type *tr = type_arrayroot(t);
+                    {
+                        type *tr = type_arrayroot(t);
                         if (tybasic(tr.Tty) == TYstruct)
                             template_instantiate_forward(tr.Ttag);
                         if (tybasic(tr.Tty) != TYstruct ||
@@ -362,7 +368,8 @@ private void initializer(Symbol *s)
         if (t.Tflags & TFsizeunknown)
         {
             if (tybasic(t.Tty) == TYstruct)
-            {   Classsym *stag = t.Ttag;
+            {
+                Classsym *stag = t.Ttag;
                 template_instantiate_forward(stag);
                 if (stag.Stype.Tflags & TFsizeunknown)
                     synerr(EM_unknown_size, &stag.Sident[0]); // size of %s is not known
@@ -403,12 +410,14 @@ private void initializer(Symbol *s)
             cpperr(EM_const_needs_init, &s.Sident[0]);      // uninitialized reference
         }
         if (tybasic(type_arrayroot(t).Tty) == TYstruct)
-        {   list_t arglist;
+        {
+            list_t arglist;
 
             /* Get list of arguments to constructor     */
             arglist = null;
             if (tok.TKval == TKlpar)
-            {   stoken();
+            {
+                stoken();
                 getarglist(&arglist);
                 chktok(TKrpar,EM_rpar);
             }
@@ -481,7 +490,8 @@ private void initializer(Symbol *s)
 
     // If array of unknown size
     if (ty == TYarray && t.Tflags & TFsizeunknown)
-    {   char bracket = 0;
+    {
+        char bracket = 0;
 
         /* Take care of char a[]="  ";          */
 
@@ -516,7 +526,8 @@ private void initializer(Symbol *s)
         }
 
         if (tok.TKval == TKlcur)                /* if left curly                */
-        {   targ_size_t elemsize,dim;
+        {
+            targ_size_t elemsize,dim;
             size_t i;
 
             stoken();
@@ -609,8 +620,8 @@ private void initializer(Symbol *s)
                 init_staticctor = true;
             auto dtb = DtBuilder(0);
             if (ty == TYstruct && tok.TKval != TKlcur)
-            {   elem *e;
-
+            {
+                elem *e;
                 e = assign_exp();
                 e = typechk(e,t);
                 e = poptelem3(e);
@@ -634,6 +645,7 @@ private void initializer(Symbol *s)
             init_constructor(s,t,null,0,0x41,si);       /* call destructor, if any */
             init_staticctor = false;
             break;
+
         case SCextern:
         case SCunde:
         case SCparameter:
@@ -649,7 +661,8 @@ private void initializer(Symbol *s)
 
 ret:
     if (sauto)                          /* if auto aggregate initializer */
-    {   elem *e;
+    {
+        elem *e;
 
         type_settype(&sauto.Stype,t);
         e = init_sets(sauto,s);
@@ -659,20 +672,23 @@ ret:
             // sauto, so we hang the EH info off of the OPstreq.
 
             if (ty == TYstruct)
-            {   Classsym *stag = t.Ttag;
+            {
+                Classsym *stag = t.Ttag;
 
                 if (stag.Sstruct.Sdtor && pointertype == stag.Sstruct.ptrtype)
                     e = el_ctor(cpp_fixptrtype(el_ptr(sauto),t),e,n2_createprimdtor(stag));
             }
             else if (ty == TYarray)
-            {   type *tclass;
+            {
+                type *tclass;
 
                 tclass = type_arrayroot(t);
                 if (type_struct(tclass))
                 {   Classsym *stag = tclass.Ttag;
 
                     if (stag.Sstruct.Sdtor && pointertype == stag.Sstruct.ptrtype)
-                    {   elem *enelems;
+                    {
+                        elem *enelems;
 
                         enelems = el_nelems(t);
                         assert(enelems.Eoper == OPconst);
@@ -787,7 +803,8 @@ Symbol *init_typeinfo_data(type *ptype)
 
     // If it is not already there, create a new one
     if (!s)
-    {   tym_t ty;
+    {
+        tym_t ty;
         auto dtb = DtBuilder(0);
 
         s = scope_define(id, SCTglobal,SCcomdat);       // create the symbol
@@ -827,7 +844,8 @@ Symbol *init_typeinfo_data(type *ptype)
             char *name = type_tostring(&buf,t);
             size_t len = buf.size();
             if (name[len - 1] == ' ')           // cut off trailing ' '
-            {   name[len - 1] = 0;
+            {
+                name[len - 1] = 0;
                 len--;
             }
             dtb.nbytes(len + 1,name);
@@ -960,7 +978,8 @@ void init_sym(Symbol *s,elem *e)
  */
 
 private elem * dyn_init(Symbol *s)
-{   elem* e,e1,e2;
+{
+    elem* e,e1,e2;
     type *t;
     type *tv;
     tym_t ty;
@@ -980,7 +999,8 @@ private elem * dyn_init(Symbol *s)
         e2 = poptelem(arraytoptr(assign_exp()));
         ty = t.Tty;
         if (ty & mTYconst && e2.Eoper == OPconst)
-        {   s.Sflags |= SFLvalue;
+        {
+            s.Sflags |= SFLvalue;
             tv = t;
             if (tyref(ty))
                 tv = t.Tnext;
@@ -1006,7 +1026,8 @@ private elem * dyn_init(Symbol *s)
         if (tyaggregate(ty))
         {   e.Eoper = OPstreq;
             if (config.flags3 & CFG3eh && tybasic(ty) == TYstruct)
-            {   Classsym *stag = t.Ttag;
+            {
+                Classsym *stag = t.Ttag;
 
                 if (stag.Sstruct.Sdtor && pointertype == stag.Sstruct.ptrtype)
                     e = el_ctor(cpp_fixptrtype(el_ptr(s),t),e,n2_createprimdtor(stag));
@@ -1024,7 +1045,8 @@ private elem * dyn_init(Symbol *s)
 private void init_closebrack(int brack)
 {
     if (brack)                          /* if expecting closing bracket */
-    {   if (tok.TKval == TKcomma)
+    {
+        if (tok.TKval == TKcomma)
             stoken();
         if (tok.TKval != TKrcur)
         {   synerr(EM_rcur);            // right bracket expected
@@ -1091,7 +1113,8 @@ private size_t getArrayIndex(size_t i, size_t dim, char unknown)
  */
 
 private elem* initelem(type *t, ref DtBuilder dtb, Symbol *s, targ_size_t offset)
-{   elem *e;
+{
+    elem *e;
 
     //dbg_printf("+initelem()\n");
     assert(t);
@@ -1139,7 +1162,8 @@ private elem* initelem(type *t, ref DtBuilder dtb, Symbol *s, targ_size_t offset
         case TYfref:
         case TYmemptr:
             if (tok.TKval == TKlcur)    /* could be { initializer }     */
-            {   stoken();
+            {
+                stoken();
                 e = initelem(t,dtb,s,offset);
                 chktok(TKrcur,EM_rcur);
             }
@@ -1157,12 +1181,15 @@ private elem* initelem(type *t, ref DtBuilder dtb, Symbol *s, targ_size_t offset
                 e = elemtodt(s,dtb,e,offset);
             }
             break;
+
         case TYstruct:
             e = initstruct(t,dtb,s,offset);
             break;
+
         case TYarray:
             e = initarray(t,dtb,s,offset);
             break;
+
         default:
             /* We could get these as a result of syntax errors  */
             e = null;
@@ -1191,7 +1218,8 @@ struct StructDesignator
 }
 
 private elem* initstruct(type *t, ref DtBuilder dtb, Symbol *ss,targ_size_t offset)
-{   elem *e;
+{
+    elem *e;
     list_t sl;
     targ_size_t dsstart;
     targ_size_t soffset;                // offset into struct s
@@ -1211,7 +1239,8 @@ private elem* initstruct(type *t, ref DtBuilder dtb, Symbol *ss,targ_size_t offs
     assert(t);
     //type_debug(t);
     if (tok.TKval == TKlcur)
-    {   brack = true;
+    {
+        brack = true;
         stoken();
     }
     else
@@ -1230,8 +1259,8 @@ private elem* initstruct(type *t, ref DtBuilder dtb, Symbol *ss,targ_size_t offs
     // Count up how many designators we'll need
     nmembers = 0;
     for (sl = stag.Sstruct.Sfldlst; sl; sl = list_next(sl))
-    {   Symbol *s = list_symbol(sl);
-
+    {
+        Symbol *s = list_symbol(sl);
         if (!s)
             continue;
         switch (s.Sclass)
@@ -1253,7 +1282,8 @@ private elem* initstruct(type *t, ref DtBuilder dtb, Symbol *ss,targ_size_t offs
     // Populate array of designators
     i = 0;
     for (sl = stag.Sstruct.Sfldlst; sl; sl = list_next(sl))
-    {   Symbol *s = list_symbol(sl);
+    {
+        Symbol *s = list_symbol(sl);
 
         switch (s.Sclass)
         {
@@ -1272,7 +1302,8 @@ private elem* initstruct(type *t, ref DtBuilder dtb, Symbol *ss,targ_size_t offs
     soffset = cast(targ_size_t)-1;
     designated = 0;
     for (i = 0; 1; i++)
-    {   Symbol *s;
+    {
+        Symbol *s;
         elem *e1;
 
         if (i == nmembers)
@@ -1341,7 +1372,8 @@ private elem* initstruct(type *t, ref DtBuilder dtb, Symbol *ss,targ_size_t offs
                     if (!e && s.Smemoff == soffset)
                         continue;               // if not 1st member of union
                     if (soffset != -1)          // if not first
-                    {   stoken();               // skip over separating comma
+                    {
+                        stoken();               // skip over separating comma
                         if (tok.TKval == TKrcur)
                             break;
                     }
@@ -1573,7 +1605,8 @@ private elem* initarray(type *t, ref DtBuilder dtb,Symbol *s,targ_size_t offset)
     //dbg_printf("Tty = x%x, Tdim = %d, size = %d, Tnext.Tty = x%x\n",
             //t.Tty,t.Tdim,tsize,t.Tnext.Tty);
     if (dim || unknown)
-    {   DtArray dta;
+    {
+        DtArray dta;
 
         targ_uns i = 0;
         if (unknown)
@@ -1626,19 +1659,19 @@ Ldone:
 
 private elem* elemtodt(Symbol *s, ref DtBuilder dtb, elem *e, targ_size_t offset)
 {
-  char *p;
-  tym_t ty;
-  targ_size_t size;
-  Symbol *sa;
+    char *p;
+    tym_t ty;
+    targ_size_t size;
+    Symbol *sa;
 
 Lagain:
-  if (errcnt)                   /* if errors have occurred in source file */
+    if (errcnt)                 /* if errors have occurred in source file */
         goto ret;               /* then forget about output file        */
-  assert(e);
-  ty = e.ET.Tty;
-  assert(CPP || !tyaggregate(ty));
-  switch (e.Eoper)
-  {
+    assert(e);
+    ty = e.ET.Tty;
+    assert(CPP || !tyaggregate(ty));
+    switch (e.Eoper)
+    {
     case OPrelconst:
         sa = e.EV.Vsym;
         if (!sa) return null;
@@ -1648,6 +1681,7 @@ Lagain:
             case SCanon:
                 sa = sa.Sscope;
                 goto again;
+
             case SCinline:
             case SCsinline:
             case SCeinline:
@@ -1658,6 +1692,7 @@ Lagain:
             case SCcomdef:
             case SCcomdat:
                 break;
+
             case SCauto:
             case SCparameter:
             case SCregister:
@@ -1670,6 +1705,7 @@ Lagain:
 
             case SCunde:
                 return null;
+
             default:
                 //debug WRclass(cast(enum_SC)sa.Sclass);
                 assert(0);
@@ -1807,7 +1843,8 @@ void init_vtbl(Symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
 
     // Put in RTTI information
     if (config.flags3 & CFG3rtti)
-    {   Symbol *s;
+    {
+        Symbol *s;
 
         //symbol_debug(srtti);
         s = init_typeinfo(srtti.Stype);
@@ -1816,7 +1853,8 @@ void init_vtbl(Symbol *s_vtbl,list_t virtlist,Classsym *stag,Classsym *srtti)
     }
 
     for (lvf = virtlist; lvf; lvf = list_next(lvf))
-    {   Symbol *s;
+    {
+        Symbol *s;
 
         mptr_t *m = cast(mptr_t *) list_ptr(lvf);
         s = m.MPf;
@@ -1904,9 +1942,11 @@ void init_vbtbl(
         assert(b2);
         //dbg_printf("b2='%s' vbtbloff = x%lx, size=x%x\n",b2.BCbase.Sident,(long)b2.vbtbloff,size);
         if (b2.BCvbtbloff + _tysize[TYint] > size)
-        {   size = b2.BCvbtbloff + _tysize[TYint];
+        {
+            size = b2.BCvbtbloff + _tysize[TYint];
             if (size > dim)             // need to reallocate array
-            {   pdata = cast(char *)mem_realloc(pdata,size);
+            {
+                pdata = cast(char *)mem_realloc(pdata,size);
                 memset(pdata + dim,0,size - dim);
                 dim = size;
             }
@@ -1978,7 +2018,8 @@ elem *init_constructor(Symbol *s,type *t,list_t arglist,
 
     /* Look for special cases where we can dump temporary variables     */
     if (list_nitems(arglist) == 1 && !errcnt)
-    {   Symbol *sa;
+    {
+        Symbol *sa;
         Symbol *sctor;
         elem* e1,e2;
         elem* ec;
@@ -2000,7 +2041,7 @@ elem *init_constructor(Symbol *s,type *t,list_t arglist,
             el_match(e1.EV.E1,e2) &&
             !(dflag & DTRsnull))
         {
-assert(0); // can't find any cases of this, must be an anachronism
+            assert(0); // can't find any cases of this, must be an anachronism
             if (dflag & DTRptre)
             {
                 el_free(e.EV.E2);
@@ -2025,7 +2066,8 @@ assert(0); // can't find any cases of this, must be an anachronism
         }
 
         if (e.Eoper == OPcond && (dflag & (DTRdtor | DTRrete)) == DTRrete)
-        {   type *t2;
+        {
+            type *t2;
 
             list_free(&arglist,FPNULL);
             list_append(&arglist,e.EV.E2.EV.E1);
@@ -2048,7 +2090,8 @@ assert(0); // can't find any cases of this, must be an anachronism
                 e1x = e1x.EV.E1;
             ec = null;
             if (e1x.Eoper == OPinfo)
-            {   if (e1x.EV.E1.Eoper == OPctor &&
+            {
+                if (e1x.EV.E1.Eoper == OPctor &&
                     e1x.EV.E1.EV.E1.Eoper == OPrelconst)
                     ec = e1x.EV.E1.EV.E1;
                 e1x = e1x.EV.E2;
@@ -2061,13 +2104,15 @@ assert(0); // can't find any cases of this, must be an anachronism
                  * with s, and let the function construct s.
                  */
                 if (type_struct(e.ET) && e.ET.Ttag == stag)
-                {   type *tf = e1x.EV.E1.ET;      /* function type        */
+                {
+                    type *tf = e1x.EV.E1.ET;      /* function type        */
                     type *tret = tf.Tnext;     /* function return type */
 
                     //type_debug(tret);
                     if (exp2_retmethod(tf) == RET_STACK &&
                         tret.Ttag == stag)
-                    {   elem *eh;
+                    {
+                       elem *eh;
 
                         // Find hidden parameter, and set e1x to it
                         eh = exp2_gethidden(e1x);
@@ -2081,7 +2126,8 @@ assert(0); // can't find any cases of this, must be an anachronism
                             int result;
 
                             if (dflag & DTRsnull)
-                            {   eh.Eoper = OPstrthis;
+                            {
+                                eh.Eoper = OPstrthis;
                                 if (ec)
                                     ec.Eoper = OPstrthis;
                                 e = list_elem(arglist);
@@ -2101,7 +2147,8 @@ assert(0); // can't find any cases of this, must be an anachronism
                                 eh.EV.Vsym = s;
                                 eh.EV.Voffset = offset;
                                 if (ec)
-                                {   ec.Eoper = eh.Eoper;
+                                {
+                                    ec.Eoper = eh.Eoper;
                                     ec.EV.Vsym = s;
                                     ec.EV.Voffset = offset;
                                 }
@@ -2144,7 +2191,8 @@ assert(0); // can't find any cases of this, must be an anachronism
                     sa = e1x.EV.Vsym;
                     sa.Sflags |= SFLnodtor;
                     if (sa.Sflags & SFLfree)
-                    {   sa.Sflags &= ~SFLfree;
+                    {
+                        sa.Sflags &= ~SFLfree;
                         symbol_keep(sa);
                     }
                     if (dflag & DTRsnull)
@@ -2157,7 +2205,8 @@ assert(0); // can't find any cases of this, must be an anachronism
                         e1x.EV.Voffset = offset;
                     }
                     if (ec)
-                    {   ec.Eoper = e1x.Eoper;
+                    {
+                        ec.Eoper = e1x.Eoper;
                         ec.EV.Vsym = e1x.EV.Vsym;
                         ec.EV.Voffset = e1x.EV.Voffset;
                     }
@@ -2166,11 +2215,13 @@ assert(0); // can't find any cases of this, must be an anachronism
 
                     /* Convert to pointer to struct     */
                     if (dflag & DTRptre)
-                    {   type *tret;
+                    {
+                        type* tret;
 
                         tret = newpointer(e.ET);
                         if (!I32)
-                        {   tret.Tty = TYfptr;
+                        {
+                            tret.Tty = TYfptr;
                             if (e.Eoper == OPind &&
                                 e.EV.E1.Eoper == OPoffset)
                             {
@@ -2192,16 +2243,20 @@ assert(0); // can't find any cases of this, must be an anachronism
     }
 
     final switch (dflag & (DTRptre | DTRsnull))
-    {   case DTRptre:
+    {
+        case DTRptre:
             eptr = el_var(s);
             break;
+
         case DTRsnull:
             eptr = el_longt(newpointer(tclass),0L);
             eptr.Eoper = OPstrthis;
             break;
+
         case 0:
             eptr = el_ptr_offset(s,offset);
             break;
+
         case DTRptre | DTRsnull:
             assert(0);
     }
@@ -2288,45 +2343,46 @@ Ldtor:
     if (dflag & DTRdtor && stag.Sstruct.Sdtor &&
         (s.Sclass == SCstatic || s.Sclass == SCglobal))
     {
-            elem *enelems2;
-            elem *ey;
-            int temp = 0;
+        elem *enelems2;
+        elem *ey;
+        int temp = 0;
 
-            for (Symbol *sc = s.Sscope; sc; sc = sc.Sscope)
+        for (Symbol *sc = s.Sscope; sc; sc = sc.Sscope)
+        {
+            if (sc.Sclass == SCstruct && sc.Sstruct.Stempsym)
             {
-                if (sc.Sclass == SCstruct && sc.Sstruct.Stempsym)
+                temp = 1;
+                if (!sinit)
                 {
-                    temp = 1;
-                    if (!sinit)
-                    {   sinit = init_staticflag(s);
-                        temp = 2;               // destructor only
-                    }
-                    break;
+                    sinit = init_staticflag(s);
+                    temp = 2;               // destructor only
                 }
+                break;
             }
+        }
 
-            if (temp == 0 && s.Sclass == SCglobal && s.Sdt && s.Sdt.dt == DT_common)
-                s.Sdt.dt = DT_azeros;         // don't use common block if dtor
-            enelems2 = el_nelems(t);
-            ey = el_ptr_offset(s,offset);
-            ey = cpp_destructor(tclass,ey,enelems2,DTORmostderived | DTORnoeh);
-            if (ey && sinit)
-            {   /* Rewrite ey as (sinit && ey)    */
-                elem *ex;
-                if (temp)
-                {
-                    // Rewrite ey as (sinit -= 1, ey)
-                    ex = el_bint(OPminass,tstypes[TYchar],el_var(sinit),el_longt(tstypes[TYchar],1));
-                    ey = el_combine(ex, ey);
-                }
-                ey = el_bint(OPandand,tstypes[TYint],el_var(sinit),ey);
-                if (temp == 2)
-                {   // (sinit || (sinit += 1, e))
-                    ex.Eoper = OPaddass;
-                    ey.Eoper = OPoror;
-                }
+        if (temp == 0 && s.Sclass == SCglobal && s.Sdt && s.Sdt.dt == DT_common)
+            s.Sdt.dt = DT_azeros;         // don't use common block if dtor
+        enelems2 = el_nelems(t);
+        ey = el_ptr_offset(s,offset);
+        ey = cpp_destructor(tclass,ey,enelems2,DTORmostderived | DTORnoeh);
+        if (ey && sinit)
+        {   /* Rewrite ey as (sinit && ey)    */
+            elem *ex;
+            if (temp)
+            {
+                // Rewrite ey as (sinit -= 1, ey)
+                ex = el_bint(OPminass,tstypes[TYchar],el_var(sinit),el_longt(tstypes[TYchar],1));
+                ey = el_combine(ex, ey);
             }
-            list_prepend(&destructor_list,ey);
+            ey = el_bint(OPandand,tstypes[TYint],el_var(sinit),ey);
+            if (temp == 2)
+            {   // (sinit || (sinit += 1, e))
+                ex.Eoper = OPaddass;
+                ey.Eoper = OPoror;
+            }
+        }
+        list_prepend(&destructor_list,ey);
     }
     return e;
 }
@@ -2361,14 +2417,16 @@ private Symbol* init_staticflag(Symbol *s)
  */
 
 private elem* initarrayelem(Symbol *s,type *t,targ_size_t offset)
-{   list_t arglist;
+{
+    list_t arglist;
     targ_uns dim;
     bool brack;
     targ_size_t elemsize;
     elem *e;
 
     if (tok.TKval == TKlcur)
-    {   brack = true;
+    {
+        brack = true;
         stoken();
     }
     else
@@ -2376,7 +2434,8 @@ private elem* initarrayelem(Symbol *s,type *t,targ_size_t offset)
 
     e = null;
     switch (tybasic(t.Tty))
-    {   case TYstruct:
+    {
+        case TYstruct:
             arglist = null;
             list_append(&arglist,assign_exp());
             e = init_constructor(s,t,arglist,offset,0x20,null);
@@ -2384,7 +2443,8 @@ private elem* initarrayelem(Symbol *s,type *t,targ_size_t offset)
 
         case TYarray:
             if (t.Tdim)
-            {   elem *e2;
+            {
+                elem *e2;
 
                 elemsize = type_size(t) / t.Tdim;
                 dim = 0;
@@ -2438,7 +2498,8 @@ private int init_arraywithctor(Symbol *s)
     stag = tclass.Ttag;
     template_instantiate_forward(stag);
     if (stag.Sstruct.Sflags & STRanyctor)
-    {   targ_size_t dim;                /* # of initializers seen so far */
+    {
+        targ_size_t dim;                /* # of initializers seen so far */
         targ_size_t elemsize;
         enum_SC sclass;
         elem* e,e2;
@@ -2489,7 +2550,8 @@ private int init_arraywithctor(Symbol *s)
 
         sinit = null;
         if (localstatic)
-        {   sinit = init_localstatic(&e,s);
+        {
+            sinit = init_localstatic(&e,s);
             block_appendexp(curblock, addlinnum(e));
             block_initvar(s);
         }
@@ -2535,7 +2597,8 @@ private int init_arraywithctor(Symbol *s)
  */
 
 private Symbol* init_localstatic(elem **peinit, Symbol *s)
-{   type *tr;
+{
+    type *tr;
     Symbol *sinit = null;
     elem *einit;
 
