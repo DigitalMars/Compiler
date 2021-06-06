@@ -12,8 +12,13 @@
 # Paths:
 
 DMCDIR=\dm
-DMDDIR=e:\dmd2.074
+
+#DMDDIR=e:\dmd2.074
+#DMDDIR79=e:\dmd2.079
+DMDDIR=e:\dmd2.079
+DMDDIR74=e:\dmd2.074
 DMDDIR79=e:\dmd2.079
+DMDDIR92=e:\dmd2.092
 
 CBX=.
 NTDLLSHELL=ntdllshell
@@ -66,7 +71,15 @@ LFLAGS=/map/e/f/packcode/noe;
 
 # D compiler
 DMD=$(DMDDIR)\windows\bin\dmd
+DMD74=$(DMDDIR74)\windows\bin\dmd
 DMD79=$(DMDDIR79)\windows\bin\dmd
+DMDXX=$(DMDDIR74)\windows\bin\dmd
+
+DMD=$(DMDDIR92)\windows\bin\dmd
+DMD74=$(DMDDIR92)\windows\bin\dmd
+DMD79=$(DMDDIR92)\windows\bin\dmd
+DMDXX=$(DMDDIR92)\windows\bin\dmd
+
 # C++ compiler
 CC=dmc
 # Make program
@@ -472,7 +485,7 @@ cgen.obj : cgen.d
         $(DMD) -c $(DFLAGS) cgen.d
 
 cgobj.obj : cgobj.d code.d
-        $(DMD) -c $(DFLAGS) -J. cgobj.d code.d
+        $(DMDXX) -c $(DFLAGS) -J. cgobj.d code.d
 
 mscoffobj.obj : mscoffobj.d
         $(DMD) -c $(DFLAGS) -J. mscoffobj.d

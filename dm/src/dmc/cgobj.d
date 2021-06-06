@@ -480,8 +480,8 @@ int insidx(char *p,uint index)
     asm nothrow
     {
         naked                           ;
-        mov     EAX,index - [ESP+4]     ;
-        mov     ECX,p - [ESP+4]         ;
+        mov     EAX,[ESP+8]             ; // index
+        mov     ECX,[ESP+4]             ; // p
         cmp     EAX,0x7F                ;
         jae     L1                      ;
         mov     [ECX],AL                ;

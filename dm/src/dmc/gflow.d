@@ -180,13 +180,14 @@ private void rdgenkill()
     go.dnunambig.setLength(sz);
     go.dnunambig[] = 0;
 
-    go.defnod.setLength(0);
-    foreach (b; dfo[])    // for each block
+    go.defnod.setLength(deftop);
+    size_t i = deftop;
+    foreach_reverse (b; dfo[])    // for each block
         if (b.Belem)
-            asgdefelems(b, b.Belem);    // fill in go.defnod[]
-    assert(go.defnod.length == deftop);
+            asgdefelems(b, b.Belem, go.defnod[], i);    // fill in go.defnod[]
+    assert(i == 0);
 
-    initDNunambigVectors();
+    initDNunambigVectors(go.defnod[]);
 
     foreach (b; dfo[])    // for each block
     {
@@ -246,53 +247,76 @@ private uint numdefelems(const(elem)* e, ref uint num_unambig_def)
 }
 
 /**************************
- * Load go.defnod[] array.
+ * Load defnod[] array.
  * Loaded in order of execution of the elems. Not sure if this is
  * necessary.
  */
 
 @trusted
-private void asgdefelems(block *b,elem *n)
+extern (D)
+private void asgdefelems(block *b,elem *n, DefNode[] defnod, ref size_t i)
 {
     assert(b && n);
-    const op = n.Eoper;
-    if (ERTOL(n))
+    while (1)
     {
-        asgdefelems(b,n.EV.E2);
-        asgdefelems(b,n.EV.E1);
-    }
-    else if (OTbinary(op))
-    {
-        asgdefelems(b,n.EV.E1);
-        asgdefelems(b,n.EV.E2);
-    }
-    else if (OTunary(op))
-        asgdefelems(b,n.EV.E1);
+        const op = n.Eoper;
 
-    if (OTdef(op))
-    {
-        n.Edef = cast(uint)go.defnod.length;
-        go.defnod.push(DefNode(n, b, null));
+        if (OTdef(op))
+        {
+            --i;
+            defnod[i] = DefNode(n, b, null);
+            n.Edef = cast(uint)i;
+        }
+        else
+            n.Edef = ~0;       // just to ensure it is not in the array
+
+        if (ERTOL(n))
+        {
+            asgdefelems(b,n.EV.E1,defnod,i);
+            n = n.EV.E2;
+            continue;
+        }
+        else if (OTbinary(op))
+        {
+            asgdefelems(b,n.EV.E2,defnod,i);
+            n = n.EV.E1;
+            continue;
+        }
+        else if (OTunary(op))
+        {
+            n = n.EV.E1;
+            continue;
+        }
+        break;
     }
-    else
-        n.Edef = ~0;       // just to ensure it is not in the array
 }
+
+/* The easiest way to test this non-trivial revision is to compare it with the
+ * result from the previous implementation. (I already botched it once.)
+ * After it passes, remove.
+ */
+version = CheckAgainstOldMethod;
+
 
 /*************************************
  * Allocate and initialize DNumambig vectors in go.defnod[]
  */
 
 @trusted
-private void initDNunambigVectors()
+extern (D)
+private void initDNunambigVectors(DefNode[] defnod)
 {
     //printf("initDNunambigVectors()\n");
-    const size_t numbits = go.defnod.length;
+    const size_t numbits = defnod.length;
     const size_t dim = (numbits + (VECBITS - 1)) >> VECSHIFT;
 
-    uint j = 0;
-    foreach (const i; 0 .. go.defnod.length)
+    /* Initialize vector for DNunambig for each defnod[] entry that
+     * is an assignment to a variable
+     */
+    size_t j = 0;
+    foreach (const i; 0 .. defnod.length)
     {
-        elem *e = go.defnod[i].DNelem;
+        elem *e = defnod[i].DNelem;
         if (OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar)
         {
             vec_t v = &go.dnunambig[j] + 2;
@@ -300,11 +324,135 @@ private void initDNunambigVectors()
             vec_dim(v) = dim;
             vec_numbits(v) = numbits;
             j += dim + 2;
-            fillInDNunambig(v, e);
-            go.defnod[i].DNunambig = v;
+            defnod[i].DNunambig = v;
         }
     }
     assert(j <= go.dnunambig.length);
+
+    foreach (const i; 0 .. defnod.length)
+    {
+        if (vec_t v = defnod[i].DNunambig)
+        {
+            elem *e = defnod[i].DNelem;
+            fillInDNunambig(v, e, i, defnod[]);
+        }
+    }
+
+    version (CheckAgainstOldMethod)
+    {
+        // Test result against old version
+
+        vec_t v = vec_calloc(numbits);
+        foreach (const i; 0 .. defnod.length)
+        {
+            if (defnod[i].DNunambig)
+            {
+                elem *e = defnod[i].DNelem;
+                vec_clear(v);
+                fillInDNunambigOldMethod(v, e, defnod[]);
+                assert(vec_equal(defnod[i].DNunambig, v));
+            }
+        }
+        vec_free(v);
+    }
+}
+
+/**************************************
+ * Fill in the DefNode.DNumambig vector.
+ * Set bits defnod[] indices for entries
+ * which are completely destroyed when e is
+ * unambiguously assigned to.
+ * Note that results for indices less than `start`
+ * are already computed, so skip them.
+ * Params:
+ *      v = vector to fill in
+ *      e = defnod[] entry that is an assignment to a variable
+ *      start = starting index in defnod[]
+ *      defnod = array of definition nodes
+ */
+
+@trusted
+extern (D)
+private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
+{
+    assert(OTassign(e.Eoper));
+    elem *t = e.EV.E1;
+    assert(t.Eoper == OPvar);
+    Symbol *d = t.EV.Vsym;
+
+    targ_size_t toff = t.EV.Voffset;
+    targ_size_t tsize = (e.Eoper == OPstreq) ? type_size(e.ET) : tysize(t.Ety);
+    targ_size_t ttop = toff + tsize;
+
+    // for all unambig defs in defnod[]
+    foreach (const i; start + 1 .. defnod.length)
+    {
+        vec_t v2 = defnod[i].DNunambig;
+        if (!v2)
+            continue;
+
+        elem *tn = defnod[i].DNelem;
+        elem *tn1;
+        targ_size_t tn1size;
+
+        // If not same variable then no overlap
+        tn1 = tn.EV.E1;
+        if (d != tn1.EV.Vsym)
+            continue;
+
+        // If t completely overlaps tn1
+        tn1size = (tn.Eoper == OPstreq)
+            ? type_size(tn.ET) : tysize(tn1.Ety);
+        if (toff <= tn1.EV.Voffset &&
+            tn1.EV.Voffset + tn1size <= ttop)
+        {
+            vec_setbit(cast(uint)i, v);
+            vec_setbit(cast(uint)start, v2);
+        }
+    }
+}
+
+
+version (CheckAgainstOldMethod)
+{
+@trusted
+extern (D)
+private void fillInDNunambigOldMethod(vec_t v, elem *e, DefNode[] defnod)
+{
+    assert(OTassign(e.Eoper));
+    elem *t = e.EV.E1;
+    assert(t.Eoper == OPvar);
+    Symbol *d = t.EV.Vsym;
+
+    targ_size_t toff = t.EV.Voffset;
+    targ_size_t tsize = (e.Eoper == OPstreq) ? type_size(e.ET) : tysize(t.Ety);
+    targ_size_t ttop = toff + tsize;
+
+    // for all unambig defs in defnod[]
+    foreach (const i; 0 .. defnod.length)
+    {
+        elem *tn = defnod[i].DNelem;
+        elem *tn1;
+        targ_size_t tn1size;
+
+        if (!OTassign(tn.Eoper))
+            continue;
+
+        // If def of same variable, kill that def
+        tn1 = tn.EV.E1;
+        if (tn1.Eoper != OPvar || d != tn1.EV.Vsym)
+            continue;
+
+        // If t completely overlaps tn1
+        tn1size = (tn.Eoper == OPstreq)
+            ? type_size(tn.ET) : tysize(tn1.Ety);
+        if (toff <= tn1.EV.Voffset &&
+            tn1.EV.Voffset + tn1size <= ttop)
+        {
+            vec_setbit(cast(uint)i, v);
+        }
+    }
+}
 }
 
 /*************************************

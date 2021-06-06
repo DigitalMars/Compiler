@@ -2629,6 +2629,13 @@ version (Posix)
                     case TK_attribute:
                     case TK_extension:
 }
+                        /* This accepts the following legal C and C++:
+                                typedef long T;
+                                int x(T());
+                           For C++:
+                                S x(int());
+                                S<int()> y;
+                         */
                         if (tym)
                             synerr(EM_illegal_type_combo);      // illegal combination of types
 
