@@ -1,0 +1,56 @@
+name: CI
+
+on: [ pull_request, push ]
+
+jobs:
+  main:
+    name: Run
+    # DMC only supports Win32
+    runs-on: windows-2019
+    steps:
+      - uses: dlang-community/setup-dlang@v1
+        with:
+          compiler: dmd-2.092.0
+      - uses: actions/checkout@v2
+
+      # Restore or install dmc (and DM make)
+      # Copied from druntime, keep it in sync
+      - name: '[Windows] Restore dmc from cache'
+        id: cache-dmc
+        if: runner.os == 'Windows'
+        uses: actions/cache@v1
+        with:
+          path: ${{ github.workspace }}/tools/
+          key: dmc857
+
+      - name: '[Windows] Install dmc'
+        if: runner.os == 'Windows' && steps.cache-dmc.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          $url = "http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip"
+          $sha256hash = "aabd977b83134d38615e56d105ea1f505778d1a3a29c88836b95ce2339b10057"
+          Write-Host ('Downloading {0} ...' -f $url)
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          $ProgressPreference = 'SilentlyContinue'
+          New-Item -ItemType directory -Path ${{ github.workspace }}\tools\
+          Invoke-WebRequest -Uri $url -OutFile '${{ github.workspace }}\tools\dmc.zip'
+          if ((Get-FileHash '${{ github.workspace }}\tools\dmc.zip' -Algorithm "SHA256").Hash -ne $sha256hash) {
+            exit 1
+          }
+          Expand-Archive '${{ github.workspace }}\tools\dmc.zip' -DestinationPath '${{ github.workspace }}\tools\'
+
+      - name: 'Build compiler'
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+
+          cd dm\src\dmc\
+          ${{ github.workspace }}\tools\dm\bin\make CC=${{ github.workspace }}\tools\dm\bin\dmc.exe TARGET=SCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map/co scppn.exe
+
+          if %errorlevel% neq 0 exit /b %errorlevel%
+
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v2
+        with:
+          name: scppn
+          path: dm/src/dmc/scppn.exe

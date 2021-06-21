@@ -149,6 +149,7 @@ nothrow:
     }
 }
 
+@system
 enum FLELIM = cast(Symbol *)-1;
 
 struct Iv

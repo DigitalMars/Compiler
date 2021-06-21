@@ -17,8 +17,8 @@ https://digitalmars.com/ctg/sc.html
 4. Change directory to `dm\src\dmc`
 5. Make sure the `dm\bin\make.exe` program is on your `PATH`.
 6. Execute the commands:
-   `make clean`
-   `make scppn`
+   `make CC=dmc clean`
+   `make CC=dmc scppn`
 You might need to edit the `makefile` to set the path to your DMD installation.
 
 Note that DMC targets Win32, and hasn't been ported to other platforms.
