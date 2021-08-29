@@ -1047,6 +1047,8 @@ private elem *memptr_exp()
  *              simple_type_name (expression_list)
  *              sizeof una_exp
  *              sizeof (type_name)      ?? primary ??
+ *              _Alignof una_exp
+ *              _Alignof (type_name)    ?? primary ??
  *              primary_exp ++
  *              primary_exp --
  *              new type_name
@@ -1309,6 +1311,7 @@ private elem *memptr_exp()
             goto default;
 
         case TKsizeof:
+        case TK_Alignof:
         case TK_typeinfo:
         case TK_typemask:
             if (config.ansi_c && preprocessor)
@@ -2589,6 +2592,7 @@ enum
 /****************************
  * Parse and return elem tree for: sizeof expressions.
  *      sizeof
+ *      _Alignof
  *      typeid
  *      __typeinfo
  *      __typemask
@@ -2633,6 +2637,11 @@ elem *exp_sizeof(int tk)
         typemask = tybasic(t1.Tty);
         if (tk == TKtypeid)
             e = rtti_typeid(t,null);
+        else if (tk == TK_Alignof)
+        {
+            e = el_longt(tssize, type_alignsize(t1));
+            type_free(t);
+        }
         else
         {   e = el_typesize(t1);
             type_free(t);
@@ -2658,6 +2667,8 @@ sizexp:
         {
             switch (e1.Eoper)
             {   case OPstring:
+                    if (tk == TK_Alignof)
+                        goto Ldefault;
                     // Use string length instead of pointer
                     e = el_longt(tstypes[TYint],e1.EV.Vstrlen);
                     break;
@@ -2665,7 +2676,11 @@ sizexp:
                     synerr(EM_sizeof_bitfield);     // can't take size of bit field
                     goto default;
                 default:
-                    e = el_typesize(e1.ET);        // size of expression
+                Ldefault:
+                    if (tk == TKsizeof)
+                        e = el_typesize(e1.ET);        // size of expression
+                    else
+                        e = el_longt(tssize, el_alignsize(e1));
                     break;
             }
             if (CPP)

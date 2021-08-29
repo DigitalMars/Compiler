@@ -85,6 +85,9 @@ enum {
         TK_Imaginary,
         TKrestrict,
 
+        // ISO C11
+        TK_Alignof,
+
         // CPP
         TKbool,
         TKcatch,

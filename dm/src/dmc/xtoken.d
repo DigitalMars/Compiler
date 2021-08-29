@@ -700,7 +700,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
     enum OPTS_NON_ANSI = 1;         // asm
     //enum OPTS_NON_ANSI = 3;       // asm,typeof,restrict
 
-__gshared Keyword[36] kwtab1 =
+__gshared Keyword[37] kwtab1 =
 [
     { "auto",         TKauto },
     { "break",        TKbreak },
@@ -735,7 +735,7 @@ __gshared Keyword[36] kwtab1 =
         // For ANSI C99
     { "_Complex",     TK_Complex },
     { "_Imaginary",   TK_Imaginary },
-        // BUG: do restrict and inline too
+        // BUG: do inline too
 
     { "const",        TKconst },        // last three are non-traditional C
     { "signed",       TKsigned },       // place at end for linux option to
@@ -744,12 +744,15 @@ __gshared Keyword[36] kwtab1 =
     //{ "typeof",       TK_typeof },
     { "restrict",     TKrestrict },
     { "asm",          TK_asm },
+
+        // For ISO C11
+    { "_Alignof",     TK_Alignof },
 ];
 
 }
 else
 {
-__gshared Keyword[52] kwtab1 =
+__gshared Keyword[53] kwtab1 =
 [
     { "auto",         TKauto },
     { "break",        TKbreak },
@@ -789,6 +792,9 @@ __gshared Keyword[52] kwtab1 =
     { "const",        TKconst },        // last three are non-traditional C
     { "signed",       TKsigned },       // place at end for linux option to
     { "volatile",     TKvolatile },     // exclude them
+
+        // For ISO C11
+    { "_Alignof",     TK_Alignof },
 
         // Be compatible with IBM's OS/2 C compiler.
     { "_Cdecl",       TK_cdecl },
