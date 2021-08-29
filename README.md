@@ -6,7 +6,7 @@ http://www.digitalmars.com
 
 https://digitalmars.com/ctg/sc.html
 
-## Building the compiler:
+## Building the compiler (Win32 only):
 
 1. Download and install Digital Mars C++ compiler from https://www.digitalmars.com/download/freecompiler.html
 2. Download and install DMD 2.074.1 from http://downloads.dlang.org/releases/2017/
@@ -20,3 +20,5 @@ https://digitalmars.com/ctg/sc.html
    `make clean`
    `make scppn`
 You might need to edit the `makefile` to set the path to your DMD installation.
+
+Note that DMC targets Win32, and hasn't been ported to other platforms.

@@ -13,13 +13,6 @@
 
 DMCDIR=\dm
 
-#DMDDIR=e:\dmd2.074
-#DMDDIR79=e:\dmd2.079
-DMDDIR=e:\dmd2.079
-DMDDIR74=e:\dmd2.074
-DMDDIR79=e:\dmd2.079
-DMDDIR92=e:\dmd2.092
-
 CBX=.
 NTDLLSHELL=ntdllshell
 TK=tk
@@ -70,16 +63,7 @@ LFLAGS=/map/e/f/packcode/noe;
 ##### Tools
 
 # D compiler
-DMD=$(DMDDIR)\windows\bin\dmd
-DMD74=$(DMDDIR74)\windows\bin\dmd
-DMD79=$(DMDDIR79)\windows\bin\dmd
-DMDXX=$(DMDDIR74)\windows\bin\dmd
-
-DMD=$(DMDDIR92)\windows\bin\dmd
-DMD74=$(DMDDIR92)\windows\bin\dmd
-DMD79=$(DMDDIR92)\windows\bin\dmd
-DMDXX=$(DMDDIR92)\windows\bin\dmd
-
+DMD=dmd
 # C++ compiler
 CC=dmc
 # Make program
@@ -431,7 +415,7 @@ barray.obj : barray.d
         $(DMD) -c $(DFLAGS) barray.d
 
 bcomplex.obj : bcomplex.d
-        $(DMD79) -c $(DFLAGS) bcomplex.d
+        $(DMD) -c $(DFLAGS) bcomplex.d
 
 blockopt.obj : blockopt.d
         $(DMD) -c $(DFLAGS) blockopt.d
@@ -548,7 +532,7 @@ dnwc.obj : dnwc.d
         $(DMD) -c $(DFLAGS) dnwc.d
 
 dph.obj : dph.d page.di
-        $(DMD79) -c $(DFLAGS) dph.d
+        $(DMD) -c $(DFLAGS) dph.d
 
 dpragma.obj : dpragma.d
         $(DMD) -c $(DFLAGS) dpragma.d
@@ -560,10 +544,10 @@ dspeller.obj : dspeller.d
         $(DMD) -c $(DFLAGS) dspeller.d
 
 dtemplate.obj : dtemplate.d
-        $(DMD79) -c $(DFLAGS) dtemplate.d
+        $(DMD) -c $(DFLAGS) dtemplate.d
 
 dtype.obj : dtype.d
-        $(DMD79) -c $(DFLAGS) dtype.d
+        $(DMD) -c $(DFLAGS) dtype.d
 
 dwarfeh.obj : dwarfeh.d
         $(DMD) -c $(DFLAGS) dwarfeh.d

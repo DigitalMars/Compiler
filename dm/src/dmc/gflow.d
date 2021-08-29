@@ -334,6 +334,7 @@ private void initDNunambigVectors(DefNode[] defnod)
         if (vec_t v = defnod[i].DNunambig)
         {
             elem *e = defnod[i].DNelem;
+            vec_setbit(cast(uint) i, v);        // of course it modifies itself
             fillInDNunambig(v, e, i, defnod[]);
         }
     }
@@ -400,13 +401,16 @@ private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
         if (d != tn1.EV.Vsym)
             continue;
 
-        // If t completely overlaps tn1
         tn1size = (tn.Eoper == OPstreq)
             ? type_size(tn.ET) : tysize(tn1.Ety);
-        if (toff <= tn1.EV.Voffset &&
-            tn1.EV.Voffset + tn1size <= ttop)
+        // If t completely overlaps tn1
+        if (toff <= tn1.EV.Voffset && tn1.EV.Voffset + tn1size <= ttop)
         {
             vec_setbit(cast(uint)i, v);
+        }
+        // if tn1 completely overlaps t
+        if (tn1.EV.Voffset <= toff && ttop <= tn1.EV.Voffset + tn1size)
+        {
             vec_setbit(cast(uint)start, v2);
         }
     }
