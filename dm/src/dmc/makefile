@@ -469,7 +469,7 @@ cgen.obj : cgen.d
 	$(DMD) -c $(DFLAGS) cgen.d
 
 cgobj.obj : cgobj.d code.d
-	$(DMDXX) -c $(DFLAGS) -J. cgobj.d code.d
+	$(DMD) -c $(DFLAGS) -J. cgobj.d code.d
 
 mscoffobj.obj : mscoffobj.d
 	$(DMD) -c $(DFLAGS) -J. mscoffobj.d
