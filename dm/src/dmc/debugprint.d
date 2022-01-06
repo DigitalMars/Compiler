@@ -1,4 +1,6 @@
 /**
+ * Pretty print data structures
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -133,6 +135,21 @@ void WROP(uint oper)
   ferr(" ");
 }
 
+/***************************
+ * Convert OPER to string.
+ * Params:
+ *      oper = operator number
+ * Returns:
+ *      pointer to string
+ */
+
+@trusted
+const(char)* oper_str(uint oper)
+{
+    assert(oper < OPMAX);
+    return debtab[oper];
+}
+
 /*******************************
  * Write TYxxxx
  */
@@ -158,6 +175,10 @@ void WRTYxx(tym_t t)
 //    if (t & mTYtransu)
 //        printf("mTYtransu|");
 //#endif
+    if (t & mTYxmmgpr)
+        printf("mTYxmmgpr|");
+    if (t & mTYgprxmm)
+        printf("mTYgprxmm|");
     t = tybasic(t);
     if (t >= TYMAX)
     {   printf("TY %x\n",cast(int)t);
@@ -210,7 +231,8 @@ void WReqn(elem *e)
         return;
   if (OTunary(e.Eoper))
   {
-        WROP(e.Eoper);
+        ferr(oper_str(e.Eoper));
+        ferr(" ");
         if (OTbinary(e.EV.E1.Eoper))
         {       nest++;
                 ferr("(");
@@ -238,7 +260,8 @@ void WReqn(elem *e)
         else
                 WReqn(e.EV.E1);
         ferr(" ");
-        WROP(e.Eoper);
+        ferr(oper_str(e.Eoper));
+        ferr(" ");
         if (e.Eoper == OPstreq)
             printf("%d", cast(int)type_size(e.ET));
         ferr(" ");
@@ -286,12 +309,13 @@ void WReqn(elem *e)
             case OPhalt:
             case OPdctor:
             case OPddtor:
-                WROP(e.Eoper);
+                ferr(oper_str(e.Eoper));
+                ferr(" ");
                 break;
             case OPstrthis:
                 break;
             default:
-                WROP(e.Eoper);
+                ferr(oper_str(e.Eoper));
                 assert(0);
         }
   }

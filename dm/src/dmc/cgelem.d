@@ -1,4 +1,6 @@
 /**
+ * Local optimizations of elem trees
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -787,12 +789,40 @@ private elem * elmemset(elem *e, goal_t goal)
                     case SHORTSIZE:     tym = TYshort;  goto L1;
                     case LONGSIZE:      tym = TYlong;   goto L1;
                     case LLONGSIZE:     if (_tysize[TYint] == 2)
-                                            goto Ldefault;
+                                            goto default;
                                         tym = TYllong;  goto L1;
+
+                    case 16:            if (REGSIZE == 8 && e1.Eoper == OPrelconst)
+                                            goto L1;
+                                        goto default;
                     L1:
                     {
                         tym_t ety = e.Ety;
                         memset(&value, value & 0xFF, value.sizeof);
+                        if (nbytes == 2 * REGSIZE && e1.Eoper == OPrelconst)
+                        {
+                            /* Rewrite as:
+                             * (*e1.0 = value),(*e1.4 = value),(e1)
+                             */
+                            tym = REGSIZE == 8 ? TYllong : TYint;
+
+                            auto e1a = el_copytree(e1);
+                            e1a.Eoper = OPvar;
+                            e1a.Ety = tym;
+                            auto ea = el_bin(OPeq,TYint,e1a,el_long(tym,value));
+
+                            auto e1b = el_copytree(e1);
+                            e1b.Eoper = OPvar;
+                            e1b.Ety = tym;
+                            e1b.EV.Voffset += REGSIZE;
+                            auto eb = el_bin(OPeq,tym,e1b,el_long(tym,value));
+
+                            e.EV.E1 = null;
+                            el_free(e);
+                            e = el_combine(el_combine(ea, eb), e1);
+                            e = optelem(e, GOALvalue);
+                            return e;
+                        }
                         evalue.EV.Vullong = value;
                         evalue.Ety = tym;
                         e.Eoper = OPeq;
@@ -807,11 +837,10 @@ private elem * elmemset(elem *e, goal_t goal)
                         e.EV.E2 = el_selecte2(e.EV.E2);
                         e = el_combine(e, tmp);
                         e = optelem(e,GOALvalue);
-                        break;
                     }
+                        break;
 
                     default:
-                    Ldefault:
                         break;
                 }
             }
@@ -3268,7 +3297,7 @@ private elem * elbit(elem *e, goal_t goal)
             e.Eoper = OPu8_16;
             e.EV.E2 = null;
             el_free(e2);
-            goto L1;
+            return optelem(e,GOALvalue);         // optimize result
         }
 
         if (w + b == sz)                // if field is left-justified
@@ -3282,7 +3311,7 @@ private elem * elbit(elem *e, goal_t goal)
             e.Eoper = OPs8_16;
             e.EV.E2 = null;
             el_free(e2);
-            goto L1;
+            return optelem(e,GOALvalue);         // optimize result
         }
         m = ~cast(targ_ullong)0;
         c = sz - (w + b);
@@ -3297,7 +3326,6 @@ private elem * elbit(elem *e, goal_t goal)
     e.EV.E1 = el_bin(OPshr,tym1,
                 el_bin(OPshl,tym1,e.EV.E1,el_long(TYint,c)),
                 el_long(TYint,b));
-L1:
     return optelem(e,GOALvalue);         // optimize result
 }
 
@@ -3684,7 +3712,9 @@ elem * elstruct(elem *e, goal_t goal)
                     }
                 }
                 else if (I32 && targ1 && targ2)
+                {
                     tym = TYllong;
+                }
                 assert(tym != TYstruct);
             }
             assert(tym != ~0);
@@ -3772,6 +3802,8 @@ elem * elstruct(elem *e, goal_t goal)
             break;
         }
     }
+    //printf("elstruct return\n");
+    //elem_print(e);
     return e;
 }
 
@@ -4071,13 +4103,6 @@ static if (0)
 
    if (e1.Eoper == OPcomma)
         return cgel_lvalue(e);
-version (MARS)
-{
-    // No bit fields to deal with
-    return e;
-}
-else
-{
   if (e1.Eoper != OPbit)
         return e;
   if (e1.EV.E1.Eoper == OPcomma || OTassign(e1.EV.E1.Eoper))
@@ -4139,7 +4164,6 @@ else
     el_free(e);
     return optelem(eres,GOALvalue);
 }
-}
 
 /**********************************
  */
@@ -4186,8 +4210,7 @@ private elem * elopass(elem *e, goal_t goal)
     {   e = fixconvop(e);
         return optelem(e,GOALvalue);
     }
-version (SCPP)   // have bit fields to worry about?
-{
+
     goal_t wantres = goal;
     if (e1.Eoper == OPbit)
     {
@@ -4266,7 +4289,7 @@ version (SCPP)   // have bit fields to worry about?
         e = optelem(eres,GOALvalue);
         return e;
     }
-}
+
     {
         if (e1.Eoper == OPcomma || OTassign(e1.Eoper))
             e = cgel_lvalue(e);    // replace (e,v)op=e2 with e,(v op= e2)
@@ -5732,7 +5755,7 @@ private elem * optelem(elem *e, goal_t goal)
 beg:
     //__gshared uint count;
     //printf("count: %u\n", ++count);
-    //{ printf("xoptelem: %p ",e); WROP(e.Eoper); printf(" goal x%x\n", goal); }
+    //{ printf("xoptelem: %p %s goal x%x\n",e, oper_str(e.Eoper), goal); }
     assert(e);
     elem_debug(e);
     assert(e.Ecount == 0);             // no CSEs
@@ -6208,11 +6231,11 @@ beg:
   }
 
 //  if (debugb)
-//  {   print("optelem: %p ",e); WROP(op); print("\n"); }
+//  {   print("optelem: %p %s\n",e, oper_str(op)); }
 
     static if (0)
     {
-        {   print("xoptelem: %p ",e); WROP(e.Eoper); print("\n"); }
+        printf("xoptelem: %p %s\n", e, oper_str(e.Eoper));
         elem_print(e);
         e = (*elxxx[op])(e, goal);
         printf("After:\n");

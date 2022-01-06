@@ -1352,6 +1352,7 @@ err:
 
 
 /*************************
+ * C11 6.5.2.1-2
  * E1[E2] is converted to *(E1 + E2*s1)
  * No error checking is done.
  */
@@ -2134,7 +2135,9 @@ elem *convertchk(elem *e)
 }
 
 /**************************
+ * C11 6.3.2.1-3
  * If e is <array of>, convert it to <pointer to>.
+ * C11 6.3.2.1-4
  * If e is <function>, convert it to <pointer to><function>.
  */
 

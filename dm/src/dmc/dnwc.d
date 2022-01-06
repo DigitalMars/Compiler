@@ -3360,14 +3360,14 @@ private type * getprototype(const char *fident,type *tret)
             tp2.Tflags &= ~TFfuncparam;
             type_free(pt);
 
-            /* Convert function to pointer to function  */
+            // C11 6.7.6.3-8 Convert function to pointer to function
             if (tyfunc(tparam.Tty))
             {   tparam = newpointer(tparam);
                 tparam.Tnext.Tcount--;
                 tparam.Tcount++;
             }
 
-            /* Convert <array of> to <pointer to> in prototypes         */
+            // C11 6.7.6.3-7 Convert <array of> to <pointer to> in prototypes
             else if (tybasic(tparam.Tty) == TYarray)
                 tparam = topointer(tparam);
 

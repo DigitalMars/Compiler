@@ -179,8 +179,16 @@ __gshared VecGlobal vecGlobal;
 
 private pure vec_base_t MASK(uint b) { return cast(vec_base_t)1 << (b & VECMASK); }
 
+/****
+ * Returns:
+ *      number of bits in the vector
+ */
 @trusted
 pure ref inout(vec_base_t) vec_numbits(inout vec_t v) { return v[-1]; }
+/****
+ * Returns:
+ *      number of bytes in the vector
+ */
 @trusted
 pure ref inout(vec_base_t) vec_dim(inout vec_t v) { return v[-2]; }
 
@@ -312,6 +320,7 @@ void vec_clearbit(size_t b, vec_t v)
  */
 
 @trusted
+pure
 size_t vec_testbit(size_t b, const vec_t v)
 {
     if (!v)
@@ -319,7 +328,7 @@ size_t vec_testbit(size_t b, const vec_t v)
     debug
     {
         if (!(v && b < vec_numbits(v)))
-            printf("vec_testbit(v = %p,b = %d): numbits = %d dim = %d\n",
+            printf("vec_setbit(v = %p,b = %d): numbits = %d dim = %d\n",
                 v, cast(int) b, cast(int) (v ? vec_numbits(v) : 0), cast(int) (v ? vec_dim(v) : 0));
     }
     assert(v && b < vec_numbits(v));
@@ -362,6 +371,33 @@ size_t vec_index(size_t b, const vec_t vec)
     }
     return vec_numbits(vec);
 }
+
+/********************************
+ * Count number of set bits in vector `v`
+ * Params:
+ *      v = vector
+ * Returns:
+ *      number of set bits
+ */
+@safe
+pure
+uint vec_numBitsSet(const vec_t vec)
+{
+    uint n = 0;
+    size_t length = vec_numbits(vec);
+    for (size_t i = 0; (i = vec_index(i, vec)) < length; ++i)
+        ++n;
+    return n;
+}
+
+uint vec_numBitsSet2(const vec_t vec)
+{
+    uint n = 0;
+    foreach (i; VecRange(vec))
+        ++n;
+    return n;
+}
+
 
 /********************************
  * Compute v1 &= v2.
@@ -648,3 +684,14 @@ void vec_print(const vec_t v)
 }
 
 
+struct VecRange
+{
+    uint i;
+    const vec_t v;
+
+  @nogc @safe nothrow pure:
+    this(const vec_t v) { this.v = v; i = vec_index(0, v); }
+    bool empty() const { return i == vec_numbits(v); }
+    uint front() const { return i; }
+    void popFront() { i = vec_index(i + 1, v); }
+}

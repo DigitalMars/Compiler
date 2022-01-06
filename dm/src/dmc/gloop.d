@@ -34,7 +34,6 @@ import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
-import dmd.backend.outbuf;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -3735,9 +3734,14 @@ bool loopunroll(ref Loop l)
     /* For simplification, only unroll loops that consist only
      * of a head and tail, and the tail is the exit block.
      */
-    int numblocks = 0;
+    const numblocks = vec_numBitsSet(l.Lloop);
+{
+    assert(dfo.length == vec_numbits(l.Lloop));
+    int n = 0;
     for (int i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop
-        ++numblocks;
+        ++n;
+    assert(n == numblocks);
+}
     if (numblocks != 2)
     {
         if (log) printf("\tnot 2 blocks, but %d\n", numblocks);

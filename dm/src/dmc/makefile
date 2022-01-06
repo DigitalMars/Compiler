@@ -13,6 +13,13 @@
 
 DMCDIR=\dm
 
+#DMDDIR=e:\dmd2.074
+#DMDDIR79=e:\dmd2.079
+DMDDIR=e:\dmd2.079
+DMDDIR74=e:\dmd2.074
+DMDDIR79=e:\dmd2.079
+DMDDIR92=e:\dmd2.092
+
 CBX=.
 NTDLLSHELL=ntdllshell
 TK=tk
@@ -63,7 +70,16 @@ LFLAGS=/map/e/f/packcode/noe;
 ##### Tools
 
 # D compiler
-DMD=dmd
+DMD=$(DMDDIR)\windows\bin\dmd
+DMD74=$(DMDDIR74)\windows\bin\dmd
+DMD79=$(DMDDIR79)\windows\bin\dmd
+DMDXX=$(DMDDIR74)\windows\bin\dmd
+
+DMD=$(DMDDIR92)\windows\bin\dmd
+DMD74=$(DMDDIR92)\windows\bin\dmd
+DMD79=$(DMDDIR92)\windows\bin\dmd
+DMDXX=$(DMDDIR92)\windows\bin\dmd
+
 # C++ compiler
 CC=dmc
 # Make program
@@ -93,80 +109,80 @@ LINKN=$(DMCDIR)\bin\link /de
 
 # Makerules:
 .c.obj:
-	$(CC) -c $(CFLAGS) $(PREC) $*
+        $(CC) -c $(CFLAGS) $(PREC) $*
 
 .asm.obj:
-	$(CC) -c $(CFLAGS) $*
+        $(CC) -c $(CFLAGS) $*
 
 ################ DUMMY #########################
 
 noparameter:
-	echo no parameter
+        echo no parameter
 
 
 ################ RELEASES #########################
 
 release:
-	make clean
-	make scppn
-	make clean
-	make sppn
-	make clean
-	make scppnd
-	make clean
-	make sppnd
-	make clean
-	make htodn
-	make clean
+        make clean
+        make scppn
+        make clean
+        make sppn
+        make clean
+        make scppnd
+        make clean
+        make sppnd
+        make clean
+        make htodn
+        make clean
 
 ################ NT COMMAND LINE RELEASE #########################
 
 scppn:
-#	make TARGET=SCPP OPT=-o "DEBUG=-gt -g -DSTATIC= -Nc" LFLAGS=/noi/noe/map scppn.exe
-	make TARGET=SCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map/co scppn.exe
-#	make TARGET=SCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map scppn.exe
+#       make TARGET=SCPP OPT=-o "DEBUG=-gt -g -DSTATIC= -Nc" LFLAGS=/noi/noe/map scppn.exe
+       make TARGET=SCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map/co scppn.exe
+#        make TARGET=SCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map scppn.exe
 
 sppn:
-	make TARGET=SPP  OPT=-o+space DEBUG= LFLAGS=/noi/noe/map sppn.exe
+        make TARGET=SPP  OPT=-o+space DEBUG= LFLAGS=/noi/noe/map sppn.exe
 
 htodn:
-	make TARGET=HTOD XFLG=-DSCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map htodn.exe
+        make TARGET=HTOD XFLG=-DSCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map htodn.exe
 
 htod:
-	make TARGET=HTOD XFLG=-DSCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map htod.exe
+        make TARGET=HTOD XFLG=-DSCPP OPT=-o "DEBUG= -DSTATIC= -Nc" LFLAGS=/noi/noe/map htod.exe
 
 ################ NT COMMAND LINE DEBUG #########################
 
 debcppn:
-	make TARGET=SCPP OPT= "DEBUG=-D -g -DMEM_DEBUG" \
-	DDEBUG=-debug LFLAGS=/noi/noe/co/m scppn.exe
+        make TARGET=SCPP OPT= "DEBUG=-D -g -DMEM_DEBUG" \
+            DDEBUG=-debug LFLAGS=/noi/noe/co/m scppn.exe
 
 debppn:
-	make TARGET=SPP  OPT= "DEBUG=-D -g -DMEM_DEBUG" \
-	DDEBUG=-debug LFLAGS=/noi/noe/co/m sppn.exe
+        make TARGET=SPP  OPT= "DEBUG=-D -g -DMEM_DEBUG" \
+	    DDEBUG=-debug LFLAGS=/noi/noe/co/m sppn.exe
 
 debhtodn:
-	make TARGET=HTOD XFLG=-DSCPP  OPT= "DEBUG=-D -g -DMEM_DEBUG" \
-	DDEBUG=-debug LFLAGS=/noi/noe/co/m htodn.exe
+        make TARGET=HTOD XFLG=-DSCPP  OPT= "DEBUG=-D -g -DMEM_DEBUG" \
+	    DDEBUG=-debug LFLAGS=/noi/noe/co/m htodn.exe
 
 ################ NT DLL RELEASE #########################
 
 scppnd:
-	make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG= DDEBUG= LFLAGS=/noi/noe/map BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
-#	make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG=-g DDEBUG=-debug LFLAGS=/noi/noe/map/co BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
+        make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG= DDEBUG= LFLAGS=/noi/noe/map BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
+#       make TARGET=SCPP OPT=-o+space "XFLG=$(NTDLL)" DEBUG=-g DDEBUG=-debug LFLAGS=/noi/noe/map/co BASE=18087936 DDLLFLAGS=-version=_WINDLL scppnd.dll
 
 sppnd:
-	make TARGET=SPP  OPT=-o+space "XFLG=$(NTDLL)" DEBUG= DDEBUG=-debug LFLAGS=/noi/noe/map BASE=21430272 DDLLFLAGS=-version=_WINDLL sppnd.dll
+        make TARGET=SPP  OPT=-o+space "XFLG=$(NTDLL)" DEBUG= DDEBUG=-debug LFLAGS=/noi/noe/map BASE=21430272 DDLLFLAGS=-version=_WINDLL sppnd.dll
 
 ################ NT DLL DEBUG #########################
 
 debcppnd:
-	make TARGET=SCPP OPT= "DEBUG=-g -D -DMEM_DEBUG -DTERMCODE" "XFLG=$(NTDLL)" \
-	DDEBUG=-debug LFLAGS=/noi/noe/map/co DDLLFLAGS=-version=_WINDLL scppnd.dll
+        make TARGET=SCPP OPT= "DEBUG=-g -D -DMEM_DEBUG -DTERMCODE" "XFLG=$(NTDLL)" \
+	    DDEBUG=-debug LFLAGS=/noi/noe/map/co DDLLFLAGS=-version=_WINDLL scppnd.dll
 
 debppnd:
-	make TARGET=SPP  OPT=-o+space "XFLG=$(NTDLL)" \
-	DDEBUG=-debug LFLAGS=/noi/noe/map/co DDLLFLAGS=-version=_WINDLL sppnd.dll
+        make TARGET=SPP  OPT=-o+space "XFLG=$(NTDLL)" \
+	    DDEBUG=-debug LFLAGS=/noi/noe/map/co DDLLFLAGS=-version=_WINDLL sppnd.dll
 
 #########################################
 
@@ -191,82 +207,82 @@ ALLOBJS= $(OBJ1a) $(OBJ1b) $(OBJ1c) $(OBJ1d) $(OBJ1e) $(OBJ1f) $(OBJ1g) \
 #########################################
 
 $(TARGET)n.exe : $(ALLOBJS) $(TARGET)n.lnk $(TARGET)n.def
-	$(LINKN) @$*.lnk
+        $(LINKN) @$*.lnk
 
 $(TARGET)nd.dll : $(ALLOBJS) $(TARGET)nd.lnk $(TARGET)nd.def
-	$(LINKN) @$*.lnk
+        $(LINKN) @$*.lnk
 
 
 #########################################
 
 $(TARGET)n.def : makefile
-	echo NAME $(TARGET)              >  $*.def
-	echo SUBSYSTEM CONSOLE	         >> $*.def
-	echo EXETYPE NT                  >> $*.def
-	echo CODE SHARED EXECUTE         >> $*.def
-	echo STUB '$(LIBNT)\NTSTUB.EXE'  >> $*.def
-	echo INCLUDE $(TARGET)n.tra	     >> $*.def
+        echo NAME $(TARGET)                     >  $*.def
+        echo SUBSYSTEM CONSOLE                  >> $*.def
+        echo EXETYPE NT                         >> $*.def
+        echo CODE SHARED EXECUTE                >> $*.def
+        echo STUB '$(LIBNT)\NTSTUB.EXE'         >> $*.def
+        echo INCLUDE $(TARGET)n.tra             >> $*.def
 
 $(TARGET)nd.def : makefile
-	echo LIBRARY "$*.dll"                           > $*.def
-	echo DESCRIPTION '$(TARGET) as a DLL'           >> $*.def
-	echo EXETYPE NT                                 >> $*.def
-	echo SUBSYSTEM WINDOWS                          >> $*.def
-	echo CODE SHARED EXECUTE                        >> $*.def
-	echo DATA WRITE                                 >> $*.def
-	echo EXPORTS                                    >> $*.def
-	echo   _$(TARGET)Version=_DllVersion@0  @1      >> $*.def
-	echo   _$(TARGET)Entry=_DllEntry@12     @2      >> $*.def
-	echo   _NetSpawnVersion=_NetSpawnVersion@0 @3   >> $*.def
-#	echo   _NetSpawnVersion@0              @4      >> $*.def
+        echo LIBRARY "$*.dll"                           > $*.def
+        echo DESCRIPTION '$(TARGET) as a DLL'           >> $*.def
+        echo EXETYPE NT                                 >> $*.def
+        echo SUBSYSTEM WINDOWS                          >> $*.def
+        echo CODE SHARED EXECUTE                        >> $*.def
+        echo DATA WRITE                                 >> $*.def
+        echo EXPORTS                                    >> $*.def
+        echo   _$(TARGET)Version=_DllVersion@0  @1      >> $*.def
+        echo   _$(TARGET)Entry=_DllEntry@12     @2      >> $*.def
+        echo   _NetSpawnVersion=_NetSpawnVersion@0 @3   >> $*.def
+        #echo   _NetSpawnVersion@0              @4      >> $*.def
 
 ########################################
 
 $(TARGET)n.lnk : makefile
-	echo $(OBJ1a)+                          >  $*.lnk
-	echo $(OBJ1b)+                          >> $*.lnk
-	echo $(OBJ1c)+                          >> $*.lnk
-	echo $(OBJ1d)+                          >> $*.lnk
-	echo $(OBJ1e)+                          >> $*.lnk
-	echo $(OBJ1f)+                          >> $*.lnk
-	echo $(OBJ1g)+                          >> $*.lnk
-	echo $(OBJ2a)+                          >> $*.lnk
-	echo $(OBJ2b)+                          >> $*.lnk
-	echo $(OBJ2c)+                          >> $*.lnk
-	echo $(OBJ2d)+                          >> $*.lnk
-	echo $(OBJ2e)+                          >> $*.lnk
-	echo $(OBJ2f)$(LFLAGS)                  >> $*.lnk
-	echo $*                                 >> $*.lnk
-	echo $*                                 >> $*.lnk
-	echo tdb+                               >> $*.lnk
-	echo $(SNN)+                            >> $*.lnk
-	echo $(LIBNT)\kernel32+                 >> $*.lnk
-	echo $(LIBNT)\user32                    >> $*.lnk
-	echo $*.def;                            >> $*.lnk
+        echo $(OBJ1a)+                          >  $*.lnk
+        echo $(OBJ1b)+                          >> $*.lnk
+        echo $(OBJ1c)+                          >> $*.lnk
+        echo $(OBJ1d)+                          >> $*.lnk
+        echo $(OBJ1e)+                          >> $*.lnk
+        echo $(OBJ1f)+                          >> $*.lnk
+        echo $(OBJ1g)+                          >> $*.lnk
+        echo $(OBJ2a)+                          >> $*.lnk
+        echo $(OBJ2b)+                          >> $*.lnk
+        echo $(OBJ2c)+                          >> $*.lnk
+        echo $(OBJ2d)+                          >> $*.lnk
+        echo $(OBJ2e)+                          >> $*.lnk
+        echo $(OBJ2f)$(LFLAGS)                  >> $*.lnk
+        echo $*                                 >> $*.lnk
+        echo $*                                 >> $*.lnk
+        echo tdb+                               >> $*.lnk
+        echo $(SNN)+                            >> $*.lnk
+        echo $(LIBNT)\kernel32+                 >> $*.lnk
+        echo $(LIBNT)\user32                    >> $*.lnk
+        echo $*.def;                            >> $*.lnk
 
 $(TARGET)nd.lnk : makefile
-	echo $(NTDLLSHELL)\lib\netsploc+        >  $*.lnk
-	echo $(OBJ1a)+                          >> $*.lnk
-	echo $(OBJ1b)+                          >> $*.lnk
-	echo $(OBJ1c)+                          >> $*.lnk
-	echo $(OBJ1d)+                          >> $*.lnk
-	echo $(OBJ1e)+                          >> $*.lnk
-	echo $(OBJ1f)+                          >> $*.lnk
-	echo $(OBJ1g)+                          >> $*.lnk
-	echo $(OBJ2a)+                          >> $*.lnk
-	echo $(OBJ2b)+                          >> $*.lnk
-	echo $(OBJ2c)+                          >> $*.lnk
-	echo $(OBJ2d)+                          >> $*.lnk
-	echo $(OBJ2e)+                          >> $*.lnk
-	echo $(OBJ2f)$(LFLAGS)/base:$(BASE)     >> $*.lnk
-	echo $*.dll                             >> $*.lnk
-	echo $*                                 >> $*.lnk
-	echo $(NTDLLSHELL)\lib\spwnlnd+         >> $*.lnk
-	echo tdb+                               >> $*.lnk
-	echo $(SNN)+                            >> $*.lnk
-	echo $(LIBNT)\kernel32+                 >> $*.lnk
-	echo $(LIBNT)\user32                    >> $*.lnk
-	echo $*.def;                            >> $*.lnk
+        echo $(NTDLLSHELL)\lib\netsploc+        >  $*.lnk
+        echo $(OBJ1a)+                          >> $*.lnk
+        echo $(OBJ1b)+                          >> $*.lnk
+        echo $(OBJ1c)+                          >> $*.lnk
+        echo $(OBJ1d)+                          >> $*.lnk
+        echo $(OBJ1e)+                          >> $*.lnk
+        echo $(OBJ1f)+                          >> $*.lnk
+        echo $(OBJ1g)+                          >> $*.lnk
+        echo $(OBJ2a)+                          >> $*.lnk
+        echo $(OBJ2b)+                          >> $*.lnk
+        echo $(OBJ2c)+                          >> $*.lnk
+        echo $(OBJ2d)+                          >> $*.lnk
+        echo $(OBJ2e)+                          >> $*.lnk
+        echo $(OBJ2f)$(LFLAGS)/base:$(BASE)     >> $*.lnk
+        echo $*.dll                             >> $*.lnk
+        echo $*                                 >> $*.lnk
+        echo $(NTDLLSHELL)\lib\spwnlnd+         >> $*.lnk
+        echo tdb+                               >> $*.lnk
+        echo $(SNN)+                            >> $*.lnk
+        echo $(LIBNT)\kernel32+                 >> $*.lnk
+        echo $(LIBNT)\user32                    >> $*.lnk
+        echo $*.def;                            >> $*.lnk
 
 ####################################################
 
@@ -279,10 +295,10 @@ CCH= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h
 ##################### GENERATED SOURCE #####################
 
 msgs2.d msgs2.h msgs2.c : msgsx.exe
-	msgsx
+        msgsx
 
 msgsx.exe : msgsx.c
-	dmc msgsx -D$(TARGET)
+        dmc msgsx -D$(TARGET)
 
 ##################### ZIP ################################
 
@@ -308,15 +324,15 @@ HTODSRC= ppexp.d unialpha.d entity.d cpp.di dmcdll.di nspace.d dinit.d \
 FRONTSRC= dmcdll.h scdll.h \
 	tdb.h \
 	\
-	errmsgs2.c tdbx.c \
-	msgsx.c \
-	trace.c dmcdll.c \
-	tk.c
+        errmsgs2.c tdbx.c \
+        msgsx.c \
+        trace.c dmcdll.c \
+        tk.c
 
 # Back end
 BACKDSRC= bcomplex.d cc.d cdef.d cgcv.d code.d code_x86.d cv4.d \
-	dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
-	mscoff.d obj.d oper.d rtlsym.d ty.d type.d xmm.d \
+        dwarf.d dwarf2.d el.d exh.d global.d iasm.d mach.d md5.di \
+        mscoff.d obj.d oper.d rtlsym.d ty.d type.d xmm.d \
 	divcoeff.d dvec.d dlist.d filespec.d evalu8.d go.d gsroa.d \
 	glocal.d goh.d md5.d mem.d varstats.di aarray.d
 
@@ -344,10 +360,10 @@ BACKSRC= \
 SRC= $(FRONTSRC) $(FRONTDSRC) $(BACKSRC) $(BACKDSRC)
 
 TKSRC= $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TK)\filespec.h \
-	$(TK)\mem.c
+        $(TK)\mem.c
 
 SHELLSRC= $(NTDLLSHELL)\include\dllrun.h $(NTDLLSHELL)\include\network.h \
-		$(NTDLLSHELL)\include\nsidde.h $(NTDLLSHELL)\include\netspawn.h
+        $(NTDLLSHELL)\include\nsidde.h $(NTDLLSHELL)\include\netspawn.h
 
 LIBSRC= $(NTDLLSHELL)\lib\spwnlnd.lib $(NTDLLSHELL)\lib\netsploc.obj
 
@@ -361,373 +377,373 @@ htod.exe : $(HTODSRC) msgs2.d dspeller.obj castab.d
 	$(DMD) $(DFLAGS) $(HTODSRC) msgs2.d dspeller.obj -J.
 
 zip:
-	del dm$(VERSION).zip
-	zip32 -u dm$(VERSION) $(RELEASE)
+        del dm$(VERSION).zip
+        zip32 -u dm$(VERSION) $(RELEASE)
 
 zipsrc:
-	del dm$(VERSION)src.zip
-	zip32 -u dm$(VERSION)src $(SRC) tdb.lib $(LICENSE) backend.txt
-	zip32 -u dm$(VERSION)src $(TKSRC)
-	zip32 -u dm$(VERSION)src $(SHELLSRC)
-	zip32 -u dm$(VERSION)src $(LIBSRC)
-	zip32 -u dm$(VERSION)src $(BUILDSRC)
+        del dm$(VERSION)src.zip
+        zip32 -u dm$(VERSION)src $(SRC) tdb.lib $(LICENSE) backend.txt
+        zip32 -u dm$(VERSION)src $(TKSRC)
+        zip32 -u dm$(VERSION)src $(SHELLSRC)
+        zip32 -u dm$(VERSION)src $(LIBSRC)
+        zip32 -u dm$(VERSION)src $(BUILDSRC)
 
 detab:
-	detab $(SRC) $(TKSRC) $(SHELLSRC)
+        detab $(SRC) $(TKSRC) $(SHELLSRC)
 
 tolf:
-	tolf $(SRC) $(TKSRC) $(SHELLSRC) $(BUILDSRC) $(LICENSE)
+        tolf $(SRC) $(TKSRC) $(SHELLSRC) $(BUILDSRC) $(LICENSE)
 
 install:
-	cp $(SRC) $(BUILDSRC) tdb.lib $(LICENSE) \dm\src\dmc
-	cp $(TKSRC) \dm\src\dmc\tk
-	cp $(SHELLSRC) \dm\src\dmc\ntdllshell\include
-	cp $(LIBSRC) \dm\src\dmc\ntdllshell\lib
+        cp $(SRC) $(BUILDSRC) tdb.lib $(LICENSE) \dm\src\dmc
+        cp $(TKSRC) \dm\src\dmc\tk
+        cp $(SHELLSRC) \dm\src\dmc\ntdllshell\include
+        cp $(LIBSRC) \dm\src\dmc\ntdllshell\lib
 
 installbin:
-	cp scppn.exe sppn.exe scppnd.dll sppnd.dll htodn.exe \dm\bin
+        cp scppn.exe sppn.exe scppnd.dll sppnd.dll htodn.exe \dm\bin
 
 git: detab tolf $(BUILDSRC)
-	$(SCP) $(SRC) $(BUILDSRC) tdb.lib $(LICENSE) $(SCPDIR)/Compiler/dm/src/dmc/
-	$(SCP) $(TKSRC) $(SCPDIR)/Compiler/dm/src/dmc/tk
-	$(SCP) $(SHELLSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/include
-	$(SCP) $(LIBSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/lib
+        $(SCP) $(SRC) $(BUILDSRC) tdb.lib $(LICENSE) $(SCPDIR)/Compiler/dm/src/dmc/
+        $(SCP) $(TKSRC) $(SCPDIR)/Compiler/dm/src/dmc/tk
+        $(SCP) $(SHELLSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/include
+        $(SCP) $(LIBSRC) $(SCPDIR)/Compiler/dm/src/dmc/ntdllshell/lib
 
 gitback: detab tolf $(BACKSRC)
-	$(SCP) $(BACKSRC) walter@mercury:forks/dmd/src/backend/
+        $(SCP) $(BACKSRC) walter@mercury:forks/dmd/src/backend/
 
 
 ##################### SPECIAL BUILDS #####################
 
 os.obj : os.c
-	$(CC) -c $(CFLAGS) os.c
+        $(CC) -c $(CFLAGS) os.c
 
 strtold.obj : strtold.c
-	$(CC) -c -o strtold.c
+        $(CC) -c -o strtold.c
 
 adl.obj : adl.d
-	$(DMD) -c $(DFLAGS) adl.d
+        $(DMD) -c $(DFLAGS) adl.d
 
 backconfig.obj : backconfig.d
-	$(DMD) -c $(DFLAGS) backconfig.d
+        $(DMD) -c $(DFLAGS) backconfig.d
 
 barray.obj : barray.d
-	$(DMD) -c $(DFLAGS) barray.d
+        $(DMD) -c $(DFLAGS) barray.d
 
 bcomplex.obj : bcomplex.d
-	$(DMD) -c $(DFLAGS) bcomplex.d
+        $(DMD79) -c $(DFLAGS) bcomplex.d
 
 blockopt.obj : blockopt.d
-	$(DMD) -c $(DFLAGS) blockopt.d
+        $(DMD) -c $(DFLAGS) blockopt.d
 
 dblklst.obj : dblklst.d
-	$(DMD) -c $(DFLAGS) dblklst.d
+        $(DMD) -c $(DFLAGS) dblklst.d
 
 cgcs.obj : cgcs.d
-	$(DMD) -c $(DFLAGS) cgcs.d
+        $(DMD) -c $(DFLAGS) cgcs.d
 
 dcode.obj : dcode.d
-	$(DMD) -c $(DFLAGS) dcode.d
+        $(DMD) -c $(DFLAGS) dcode.d
 
 cgcod.obj : cgcod.d
-	$(DMD) -c $(DFLAGS) -J. cgcod.d
+        $(DMD) -c $(DFLAGS) -J. cgcod.d
 
 cod1.obj : cod1.d
-	$(DMD) -c $(DFLAGS) cod1.d
+        $(DMD) -c $(DFLAGS) cod1.d
 
 cod2.obj : cod2.d
-	$(DMD) -c $(DFLAGS) cod2.d
+        $(DMD) -c $(DFLAGS) cod2.d
 
 cod3.obj : cod3.d
-	$(DMD) -c $(DFLAGS) cod3.d
+        $(DMD) -c $(DFLAGS) cod3.d
 
 cod4.obj : cod4.d
-	$(DMD) -c $(DFLAGS) cod4.d
+        $(DMD) -c $(DFLAGS) cod4.d
 
 cod5.obj : cod5.d
-	$(DMD) -c $(DFLAGS) cod5.d
+        $(DMD) -c $(DFLAGS) cod5.d
 
 codebuilder.obj : codebuilder.d
-	$(DMD) -c $(DFLAGS) -J. codebuilder.d
+        $(DMD) -c $(DFLAGS) -J. codebuilder.d
 
 code_x86.obj : code_x86.d
-	$(DMD) -c $(DFLAGS) code_x86.d
+        $(DMD) -c $(DFLAGS) code_x86.d
 
 cg.obj : cg.d
-	$(DMD) -c $(DFLAGS) -J. cg.d
+        $(DMD) -c $(DFLAGS) -J. cg.d
 
 cg87.obj : cg87.d
-	$(DMD) -c $(DFLAGS) -J. cg87.d
+        $(DMD) -c $(DFLAGS) -J. cg87.d
 
 cgcse.obj : cgcse.d
-	$(DMD) -c $(DFLAGS) cgcse.d
+        $(DMD) -c $(DFLAGS) cgcse.d
 
 cgelem.obj : cgelem.d
-	$(DMD) -c $(DFLAGS) -J. cgelem.d
+        $(DMD) -c $(DFLAGS) -J. cgelem.d
 
 cgen.obj : cgen.d
-	$(DMD) -c $(DFLAGS) cgen.d
+        $(DMD) -c $(DFLAGS) cgen.d
 
 cgobj.obj : cgobj.d code.d
-	$(DMDXX) -c $(DFLAGS) -J. cgobj.d code.d
+        $(DMDXX) -c $(DFLAGS) -J. cgobj.d code.d
 
 mscoffobj.obj : mscoffobj.d
-	$(DMD) -c $(DFLAGS) -J. mscoffobj.d
+        $(DMD) -c $(DFLAGS) -J. mscoffobj.d
 
 dvarstats.obj : dvarstats.d
-	$(DMD) -c $(DFLAGS) -J. dvarstats.d
+        $(DMD) -c $(DFLAGS) -J. dvarstats.d
 
 cgreg.obj : cgreg.d
-	$(DMD) -c $(DFLAGS) cgreg.d
+        $(DMD) -c $(DFLAGS) cgreg.d
 
 cgsched.obj : cgsched.d
-	$(DMD) -c $(DFLAGS) cgsched.d
+        $(DMD) -c $(DFLAGS) cgsched.d
 
 cgxmm.obj : cgxmm.d
-	$(DMD) -c $(DFLAGS) cgxmm.d
+        $(DMD) -c $(DFLAGS) cgxmm.d
 
 compress.obj : compress.d
-	$(DMD) -c $(DFLAGS) compress.d
+        $(DMD) -c $(DFLAGS) compress.d
 
 cv8.obj : cv8.d
-	$(DMD) -c $(DFLAGS) cv8.d
+        $(DMD) -c $(DFLAGS) cv8.d
 
 dcgcv.obj : dcgcv.d
-	$(DMD) -c $(DFLAGS) dcgcv.d
+        $(DMD) -c $(DFLAGS) dcgcv.d
 
 dcpp.obj : msgs2.d dcpp.d
-	$(DMD) -c $(DFLAGS) dcpp.d
+        $(DMD) -c $(DFLAGS) dcpp.d
 
 debugprint.obj : debugprint.d
-	$(DMD) -c $(DFLAGS) debugprint.d
+        $(DMD) -c $(DFLAGS) debugprint.d
 
 denum.obj : denum.d
-	$(DMD) -c $(DFLAGS) denum.d
+        $(DMD) -c $(DFLAGS) denum.d
 
 dt.obj : dt.d
-	$(DMD) -c $(DFLAGS) dt.d
+        $(DMD) -c $(DFLAGS) dt.d
 
 dwarfdbginf.obj : dwarfdbginf.d
-	$(DMD) -c $(DFLAGS) dwarfdbginf.d
+        $(DMD) -c $(DFLAGS) dwarfdbginf.d
 
 err.obj : err.d
-	$(DMD) -c $(DFLAGS) err.d
+        $(DMD) -c $(DFLAGS) err.d
 
 dexp2.obj : dexp2.d castab.d
-	$(DMD) -c $(DFLAGS) -J. dexp2.d
+        $(DMD) -c $(DFLAGS) -J. dexp2.d
 
 dfile.obj : dfile.d
-	$(DMD) -c $(DFLAGS) -J. dfile.d
+        $(DMD) -c $(DFLAGS) -J. dfile.d
 
 dgetcmd.obj : dgetcmd.d
-	$(DMD) -c $(DFLAGS) dgetcmd.d
+        $(DMD) -c $(DFLAGS) dgetcmd.d
 
 diasm.obj : diasm.d
-	$(DMD) -c $(DFLAGS) diasm.d
+        $(DMD) -c $(DFLAGS) diasm.d
 
 dmsc.obj : dmsc.d
-	$(DMD) -c $(DFLAGS) dmsc.d
+        $(DMD) -c $(DFLAGS) dmsc.d
 
 dnwc.obj : dnwc.d
-	$(DMD) -c $(DFLAGS) dnwc.d
+        $(DMD) -c $(DFLAGS) dnwc.d
 
 dph.obj : dph.d page.di
-	$(DMD) -c $(DFLAGS) dph.d
+        $(DMD79) -c $(DFLAGS) dph.d
 
 dpragma.obj : dpragma.d
-	$(DMD) -c $(DFLAGS) dpragma.d
+        $(DMD) -c $(DFLAGS) dpragma.d
 
 dscope.obj : dscope.d
-	$(DMD) -c $(DFLAGS) dscope.d
+        $(DMD) -c $(DFLAGS) dscope.d
 
 dspeller.obj : dspeller.d
-	$(DMD) -c $(DFLAGS) dspeller.d
+        $(DMD) -c $(DFLAGS) dspeller.d
 
 dtemplate.obj : dtemplate.d
-	$(DMD) -c $(DFLAGS) dtemplate.d
+        $(DMD79) -c $(DFLAGS) dtemplate.d
 
 dtype.obj : dtype.d
-	$(DMD) -c $(DFLAGS) dtype.d
+        $(DMD79) -c $(DFLAGS) dtype.d
 
 dwarfeh.obj : dwarfeh.d
-	$(DMD) -c $(DFLAGS) dwarfeh.d
+        $(DMD) -c $(DFLAGS) dwarfeh.d
 
 elem.obj : elem.d
-	$(DMD) -c $(DFLAGS) elem.d
+        $(DMD) -c $(DFLAGS) elem.d
 
 elpicpie.obj : elpicpie.d
-	$(DMD) -c $(DFLAGS) elpicpie.d
+        $(DMD) -c $(DFLAGS) elpicpie.d
 
 evalu8.obj : evalu8.d
-	$(DMD) -c $(DFLAGS) evalu8.d
+        $(DMD) -c $(DFLAGS) evalu8.d
 
 filespec.obj : filespec.d
-	$(DMD) -c $(DFLAGS) filespec.d
+        $(DMD) -c $(DFLAGS) filespec.d
 
 func.obj : func.d
-	$(DMD) -c $(DFLAGS) func.d
+        $(DMD) -c $(DFLAGS) func.d
 
 gdag.obj : gdag.d
-	$(DMD) -c $(DFLAGS) gdag.d
+        $(DMD) -c $(DFLAGS) gdag.d
 
 gflow.obj : gflow.d
-	$(DMD) -c $(DFLAGS) gflow.d
+        $(DMD) -c $(DFLAGS) gflow.d
 
 glocal.obj : glocal.d
-	$(DMD) -c $(DFLAGS) glocal.d
+        $(DMD) -c $(DFLAGS) glocal.d
 
 global.obj : global.d
-	$(DMD) -c $(DFLAGS) global.d
+        $(DMD) -c $(DFLAGS) global.d
 
 gloop.obj : gloop.d
-	$(DMD) -c $(DFLAGS) gloop.d
+        $(DMD) -c $(DFLAGS) gloop.d
 
 go.obj : go.d
-	$(DMD) -c $(DFLAGS) go.d
+        $(DMD) -c $(DFLAGS) go.d
 
 goh.obj : goh.d
-	$(DMD) -c $(DFLAGS) goh.d
+        $(DMD) -c $(DFLAGS) goh.d
 
 gother.obj : gother.d
-	$(DMD) -c $(DFLAGS) gother.d
+        $(DMD) -c $(DFLAGS) gother.d
 
 gsroa.obj : gsroa.d
-	$(DMD) -c $(DFLAGS) gsroa.d
+        $(DMD) -c $(DFLAGS) gsroa.d
 
 ini.obj : ini.d
-	$(DMD) -c $(DFLAGS) ini.d
+        $(DMD) -c $(DFLAGS) ini.d
 
 dinit.obj : dinit.d
-	$(DMD) -c $(DFLAGS) dinit.d
+        $(DMD) -c $(DFLAGS) dinit.d
 
 nspace.obj : nspace.d
-	$(DMD) -c $(DFLAGS) nspace.d
+        $(DMD) -c $(DFLAGS) nspace.d
 
 divcoeff.obj : divcoeff.d
-	$(DMD) -c $(DFLAGS) divcoeff.d
+        $(DMD) -c $(DFLAGS) divcoeff.d
 
 dvec.obj : dvec.d
-	$(DMD) -c $(DFLAGS) dvec.d
+        $(DMD) -c $(DFLAGS) dvec.d
 
 loadline.obj : loadline.d msgs2.d
-	$(DMD) -c $(DFLAGS) loadline.d
+        $(DMD) -c $(DFLAGS) loadline.d
 
 dinline.obj : dinline.d
-	$(DMD) -c $(DFLAGS) dinline.d
+        $(DMD) -c $(DFLAGS) dinline.d
 
 html.obj : html.d
-	$(DMD) -c $(DFLAGS) html.d
+        $(DMD) -c $(DFLAGS) html.d
 
 htod.obj : htod.d
-	$(DMD) -c $(DFLAGS) htod.d
+        $(DMD) -c $(DFLAGS) htod.d
 
 oper.obj : oper.d
-	$(DMD) -c $(DFLAGS) oper.d
+        $(DMD) -c $(DFLAGS) oper.d
 
 parser.obj : parser.d
-	$(DMD) -c $(DFLAGS) parser.d
+        $(DMD) -c $(DFLAGS) parser.d
 
 poptelem.obj : poptelem.d
-	$(DMD) -c $(DFLAGS) poptelem.d
+        $(DMD) -c $(DFLAGS) poptelem.d
 
 precomp.obj : precomp.d
-	$(DMD) -c $(DFLAGS) precomp.d
+        $(DMD) -c $(DFLAGS) precomp.d
 
 dlist.obj : dlist.d
-	$(DMD) -c $(DFLAGS) dlist.d
+        $(DMD) -c $(DFLAGS) dlist.d
 
 dstruct.obj : dstruct.d
-	$(DMD) -c $(DFLAGS) dstruct.d
+        $(DMD) -c $(DFLAGS) dstruct.d
 
 dth.obj : dt.d
-	$(DMD) -c $(DFLAGS) dt.d -ofdth.obj
+        $(DMD) -c $(DFLAGS) dt.d -ofdth.obj
 
 dtoken.obj : dtoken.d
-	$(DMD) -c $(DFLAGS) dtoken.d
+        $(DMD) -c $(DFLAGS) dtoken.d
 
 xtoken.obj : xtoken.d
-	$(DMD) -c $(DFLAGS) xtoken.d
+        $(DMD) -c $(DFLAGS) xtoken.d
 
 dutil.obj : dutil.d
-	$(DMD) -c $(DFLAGS) dutil.d
+        $(DMD) -c $(DFLAGS) dutil.d
 
 ee.obj : ee.d
-	$(DMD) -c $(DFLAGS) ee.d
+        $(DMD) -c $(DFLAGS) ee.d
 
 eh.obj : msgs2.d eh.d
-	$(DMD) -c $(DFLAGS) eh.d
+        $(DMD) -c $(DFLAGS) eh.d
 
 entity.obj : entity.d
-	$(DMD) -c $(DFLAGS) entity.d
+        $(DMD) -c $(DFLAGS) entity.d
 
 exp.obj : exp.d
-	$(DMD) -c $(DFLAGS) exp.d
+        $(DMD) -c $(DFLAGS) exp.d
 
 filename.obj : filename.d
-	$(DMD) -c $(DFLAGS) filename.d
+        $(DMD) -c $(DFLAGS) filename.d
 
 newman.obj : newman.d
-	$(DMD) -c $(DFLAGS) newman.d
+        $(DMD) -c $(DFLAGS) newman.d
 
 nteh.obj : nteh.d
-	$(DMD) -c $(DFLAGS) nteh.d
+        $(DMD) -c $(DFLAGS) nteh.d
 
 obj.obj : obj.d
-	$(DMD) -c $(DFLAGS) obj.d
+        $(DMD) -c $(DFLAGS) obj.d
 
 objrecor.obj : objrecor.d
-	$(DMD) -c $(DFLAGS) objrecor.d
+        $(DMD) -c $(DFLAGS) objrecor.d
 
 out.obj : out.d
-	$(DMD) -c $(DFLAGS) out.d
+        $(DMD) -c $(DFLAGS) out.d
 
 outbuf.obj : outbuf.d
-	$(DMD) -c $(DFLAGS) outbuf.d
+        $(DMD) -c $(DFLAGS) outbuf.d
 
 pdata.obj : pdata.d
-	$(DMD) -c $(DFLAGS) pdata.d
+        $(DMD) -c $(DFLAGS) pdata.d
 
 phstring.obj : phstring.d
-	$(DMD) -c $(DFLAGS) phstring.d
+        $(DMD) -c $(DFLAGS) phstring.d
 
 ppexp.obj : ppexp.d
-	$(DMD) -c $(DFLAGS) ppexp.d
+        $(DMD) -c $(DFLAGS) ppexp.d
 
 pseudo.obj : pseudo.d
-	$(DMD) -c $(DFLAGS) pseudo.d
+        $(DMD) -c $(DFLAGS) pseudo.d
 
 ptrntab.obj : ptrntab.d
-	$(DMD) -c $(DFLAGS) ptrntab.d
+        $(DMD) -c $(DFLAGS) ptrntab.d
 
 rawstring.obj : rawstring.d
-	$(DMD) -c $(DFLAGS) rawstring.d
+        $(DMD) -c $(DFLAGS) rawstring.d
 
 drtlsym.obj : rtlsym.d drtlsym.d
-	$(DMD) -c $(DFLAGS) drtlsym.d
+        $(DMD) -c $(DFLAGS) drtlsym.d
 
 rtti.obj : rtti.d
-	$(DMD) -c $(DFLAGS) rtti.d
+        $(DMD) -c $(DFLAGS) rtti.d
 
 stubobj.obj : stubobj.d
-	$(DMD) -c $(DFLAGS) stubobj.d
+        $(DMD) -c $(DFLAGS) stubobj.d
 
 symbol.obj : symbol.d
-	$(DMD) -c $(DFLAGS) symbol.d
+        $(DMD) -c $(DFLAGS) symbol.d
 
 symtab.obj : symtab.d
-	$(DMD) -c $(DFLAGS) symtab.d
+        $(DMD) -c $(DFLAGS) symtab.d
 
 tytostr.obj : tytostr.d
-	$(DMD) -c $(DFLAGS) tytostr.d
+        $(DMD) -c $(DFLAGS) tytostr.d
 
 unialpha.obj : unialpha.d
-	$(DMD) -c $(DFLAGS) unialpha.d
+        $(DMD) -c $(DFLAGS) unialpha.d
 
 utf.obj : utf.d
-	$(DMD) -c $(DFLAGS) utf.d
+        $(DMD) -c $(DFLAGS) utf.d
 
 var.obj : var.d
-	$(DMD) -c $(DFLAGS) var.d
+        $(DMD) -c $(DFLAGS) var.d
 
 ################# Source file dependencies ###############
 
@@ -773,19 +789,19 @@ tdbx.obj : $(DEP) $(tdbx.dep) tdbx.c
 ################### Utilities ################
 
 clean:
-	del *.obj
-	del *.lnk
-	del *.sym
-	del *.dep
-	del *.def
-#	del *.bak
-	del msgsx.exe
-	del *.map
-	del *.tmp
-	del *.lst
-	del *.exp
-	del *.dbg
-	del *.res
-	del msgs.c msgs2.d msgs2.h msgs2.c
+        del *.obj
+        del *.lnk
+        del *.sym
+        del *.dep
+        del *.def
+#       del *.bak
+        del msgsx.exe
+        del *.map
+        del *.tmp
+        del *.lst
+        del *.exp
+        del *.dbg
+        del *.res
+        del msgs.c msgs2.d msgs2.h msgs2.c
 
 ###################################
