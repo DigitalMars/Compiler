@@ -21,4 +21,6 @@ https://digitalmars.com/ctg/sc.html
    `make scppn`
 You might need to edit the `makefile` to set the path to your DMD installation.
 
-Note that DMC targets Win32, and hasn't been ported to other platforms.
+Note that DMC runs on Win32, and hasn't been ported to other platforms.
+It can generate code for Win32, 16 bit DOS, 16 and 32 bit Windows, 286 DOS extenders,
+and 386 DOS extenders.
