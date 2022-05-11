@@ -146,8 +146,37 @@ version (SPP)
 {
 void exp_linemarker(Srcpos *s, uint flag)
 {
-    const(char)* format = "# %d \"%s\"";
-    fprintf(fout,format,s.Slinnum - 1,srcpos_name(*s));
+    static if (1)
+    {
+        fprintf(fout, "# %d \"", s.Slinnum - 1);
+        auto p = srcpos_name(*s);
+        while (1)
+        {
+            switch (*p)
+            {
+                case 0:
+                    break;
+
+                case '\\':
+                    fputc('\\', fout);
+                    goto default;
+
+                default:
+                    fputc(*p, fout);
+                    ++p;
+                    continue;
+            }
+            break;
+        }
+        fputc('"', fout);
+    }
+    else
+    {
+        // Old way has problems with \ path delimiters being escapes
+        const(char)* format = "# %d \"%s\"";
+        fprintf(fout,format,s.Slinnum - 1,srcpos_name(*s));
+    }
+
     char c = '1';
     while (flag)
     {
