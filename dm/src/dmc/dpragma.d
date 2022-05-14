@@ -593,7 +593,7 @@ void print_macros()
 {
     if (!(config.flags3 & CFG3defines))
         return;
-    printf("print_macros()\n");
+
     foreach (m; mactabroot[0 .. MACROHASHSIZE])
     {
         static void visit(macro_t* m)
@@ -614,7 +614,7 @@ void print_macros()
 }
 
 /*********************************
- * Print macro in canonicalized textual form (minimized whitespace, comments removed)
+ * Print macro in canonicalized source form (minimized whitespace, comments removed)
  * Params:
  *      m = macro to print
  */
