@@ -26,8 +26,8 @@ extern (C++):
 nothrow:
 @safe:
 
-enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
-enum VERSIONHEX = "0x900";      // for __DMC__ macro
+enum VERSION = "9.01.0";        // for banner and imbedding in .OBJ file
+enum VERSIONHEX = "0x901";      // for __DMC__ macro
 enum VERSIONINT = 0x900;        // for precompiled headers and DLL version
 
 version (SCPP)
@@ -370,7 +370,7 @@ else
 {
     debug
     {
-        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
+        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2022.  All Rights Reserved.
 Written by Walter Bright
 *****BETA TEST VERSION*****";
     }
@@ -378,12 +378,12 @@ Written by Walter Bright
     {
         version (linux)
         {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2022.  All Rights Reserved.
 Written by Walter Bright, Linux version by Pat Nelson";
         }
         else
         {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2022.  All Rights Reserved.
 Written by Walter Bright";
         }
     }
