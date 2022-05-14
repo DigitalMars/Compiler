@@ -377,6 +377,7 @@ else
                 switch (*p++)
                 {
                     case 'C':   flags = CFG3comment;    goto Lflags3;
+                    case 'D':   flags = CFG3defines;    goto Lflags3;
                     case 'H':   flags = CFG3eh;         goto Lflags3;   // obsolete
                     case 'L':   flags = CFG3noline;     goto Lflags3;
                     case 'R':   flags = CFG3rtti;       goto Lflags3;   // obsolete
@@ -878,6 +879,9 @@ static if (0)
                     case '-':
                         configv.verbose = 1;
                         break;
+                    case 'a':
+                        configv.vasm = true;
+                        break;
                     default:
                         break;
                 }
@@ -1025,8 +1029,6 @@ else
                         scheduler = *p;
                         break;
 
-debug
-{
             case '-':
                 switch (*p)
                 {
@@ -1047,7 +1049,6 @@ debug
                 }
                 p++;
                 break;
-}
 
             default:
 version (SPP)

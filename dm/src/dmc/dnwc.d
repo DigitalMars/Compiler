@@ -133,6 +133,7 @@ extern (C) int main(int argc,char** argv)
         while (stoken() != TKeof)
         { }
 
+        print_macros();
         pragma_term();
         file_term();
         fclose(fout);

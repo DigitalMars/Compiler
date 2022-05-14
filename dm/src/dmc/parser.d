@@ -560,6 +560,7 @@ int pragma_search(const(char)* id);
 macro_t *macfind();
 macro_t *macdefined(const(char)* id, uint hash);
 //void listident();
+void print_macros();
 char *filename_stringize(char *name);
 ubyte *macro_predefined(macro_t *m);
 int macprocess(macro_t *m, phstring_t *pargs, BlklstSave *blsave);

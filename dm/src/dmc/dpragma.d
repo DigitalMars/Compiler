@@ -585,6 +585,104 @@ private macro_t ** macfindparent(const(char)* p,uint hashval)
   return mp;
 }
 
+/*****************************************
+ * Print all macros in table.
+ * SPP -ED switch
+ */
+void print_macros()
+{
+    if (!(config.flags3 & CFG3defines))
+        return;
+    printf("print_macros()\n");
+    foreach (m; mactabroot[0 .. MACROHASHSIZE])
+    {
+        static void visit(macro_t* m)
+        {
+            while (m)
+            {
+                if (m.ML)
+                    visit(m.ML);
+
+                printMacro(m);
+
+                m = m.MR;
+            }
+        }
+
+        visit(m);
+    }
+}
+
+/*********************************
+ * Print macro in canonicalized textual form (minimized whitespace, comments removed)
+ * Params:
+ *      m = macro to print
+ */
+private void printMacro(macro_t* m)
+{
+    if (!(m.Mflags & Mdefined) ||
+        !m.Mtext)  // skip ones like __LINE__ and __FILE__
+        return;
+
+    printf("#define %s", m.Mid.ptr);
+    if (m.Mflags & Mnoparen)
+    {
+        if (*m.Mtext)
+            printf(" %s", m.Mtext);
+        fputc('\n', stdout);
+        return;
+    }
+
+    /* print parameter list
+     */
+    fputc('(', stdout);
+    const length = m.Marglist.length;
+    for (size_t i = 0; i < length; ++i)
+    {
+        if (i)
+            fputc(',', stdout);
+        printf("%s", m.Marglist[i]);
+    }
+    if (m.Mflags & Mellipsis)
+    {
+        if (length)
+            printf(", ");
+        printf("...");
+    }
+    fputc(')', stdout);
+
+    /* print expansion text, if there is any
+     */
+    if (*m.Mtext)
+    {
+        fputc(' ', stdout);
+        for (char* p = m.Mtext; *p; ++p)
+        {
+            const c = *p;
+            if (c == PRE_ARG && p[1])
+            {
+                int n = p[1];
+                if (n == PRE_ARG)
+                    fputc(c, stdout);
+                else if (n == PRE_CAT)
+                    printf("##");
+                else if (n == PRE_STR)
+                {
+                    printf("#%s", m.Marglist[p[2] - 1]);
+                    ++p;
+                }
+                else if (n <= length)
+                    printf("%s", m.Marglist[n - 1]);
+                ++p;
+            }
+            else
+                fputc(c, stdout);
+        }
+    }
+
+    fputc('\n', stdout);
+}
+
 
 /***************************
  * Put tok.TKid back in output file.
